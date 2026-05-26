@@ -1210,13 +1210,16 @@
   // ---------- upload ----------
 
   // Render a single printable (name / number / pair) to its own tight PNG.
-  // Used by per-line cart submission so each roster entry gets its own art
-  // file rather than sharing one packed-sheet PNG.
+  // Adds a small safety pad around the ink so anti-aliasing at the canvas
+  // edges doesn't clip the last letter or shave the descender. The ink
+  // dimensions (printable.widthIn × printable.heightIn) remain authoritative
+  // for pricing and variant matching — the pad only affects the PNG canvas.
   async function renderEntryPNG(printable, cfg, fontDef, colorHex) {
+    const PAD_IN = 0.15;
     const fakePacked = {
-      placements: [{ item: printable, x: 0, y: 0, w: printable.widthIn, h: printable.heightIn }],
-      totalHeightIn: printable.heightIn,
-      sheetWidthIn: printable.widthIn,
+      placements: [{ item: printable, x: PAD_IN, y: PAD_IN, w: printable.widthIn, h: printable.heightIn }],
+      totalHeightIn: printable.heightIn + PAD_IN * 2,
+      sheetWidthIn: printable.widthIn + PAD_IN * 2,
     };
     return renderExportPNG(fakePacked, cfg, fontDef, colorHex);
   }
