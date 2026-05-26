@@ -212,7 +212,7 @@
                     endfor
                   %}
 
-                    <!-- Design groups: bysize items grouped by product + upload filename -->
+                    <!-- Design groups: bysize items grouped by product + _design name (or upload filename as fallback) -->
                     {%- liquid
                       assign _nt_seen   = ""
                       assign _nt_groups = ""
@@ -224,14 +224,26 @@
                           continue
                         endunless
                         assign _nt_upload = ""
+                        # Prefer _design name — per-line uploads (N&N) have different
+                        # filenames within one design but share a _design name.
                         for p in item.properties
                           assign _pk = p.first | downcase
-                          if _pk contains 'upload'
+                          if _pk == '_design name'
                             if p.last != blank
-                              assign _nt_upload = p.last | split: '/' | last | split: '?' | first | downcase
+                              assign _nt_upload = p.last | handleize
                             endif
                           endif
                         endfor
+                        if _nt_upload == blank
+                          for p in item.properties
+                            assign _pk = p.first | downcase
+                            if _pk contains 'upload'
+                              if p.last != blank
+                                assign _nt_upload = p.last | split: '/' | last | split: '?' | first | downcase
+                              endif
+                            endif
+                          endfor
+                        endif
                         if _nt_upload != blank
                           assign _nt_upload = item.product.id | append: '_' | append: _nt_upload
                           unless _nt_seen contains _nt_upload
@@ -266,12 +278,22 @@
                           assign _nt_f = ""
                           for p in item.properties
                             assign _pk = p.first | downcase
-                            if _pk contains 'upload'
+                            if _pk == '_design name'
                               if p.last != blank
-                                assign _nt_f = p.last | split: '/' | last | split: '?' | first | downcase
+                                assign _nt_f = p.last | handleize
                               endif
                             endif
                           endfor
+                          if _nt_f == blank
+                            for p in item.properties
+                              assign _pk = p.first | downcase
+                              if _pk contains 'upload'
+                                if p.last != blank
+                                  assign _nt_f = p.last | split: '/' | last | split: '?' | first | downcase
+                                endif
+                              endif
+                            endfor
+                          endif
                           if _nt_f != blank
                             assign _nt_f = item.product.id | append: '_' | append: _nt_f
                           endif
@@ -345,12 +367,22 @@
                           {%- assign _nt_f = "" -%}
                           {%- for p in item.properties -%}
                             {%- assign _pk = p.first | downcase -%}
-                            {%- if _pk contains 'upload' -%}
+                            {%- if _pk == '_design name' -%}
                               {%- if p.last != blank -%}
-                                {%- assign _nt_f = p.last | split: '/' | last | split: '?' | first | downcase -%}
+                                {%- assign _nt_f = p.last | handleize -%}
                               {%- endif -%}
                             {%- endif -%}
                           {%- endfor -%}
+                          {%- if _nt_f == blank -%}
+                            {%- for p in item.properties -%}
+                              {%- assign _pk = p.first | downcase -%}
+                              {%- if _pk contains 'upload' -%}
+                                {%- if p.last != blank -%}
+                                  {%- assign _nt_f = p.last | split: '/' | last | split: '?' | first | downcase -%}
+                                {%- endif -%}
+                              {%- endif -%}
+                            {%- endfor -%}
+                          {%- endif -%}
                           {%- if _nt_f != blank -%}{%- assign _nt_f = item.product.id | append: '_' | append: _nt_f -%}{%- endif -%}
                           {%- if _nt_f == _gkey -%}
                             {%- render 'cart-item', item: item, is_child: true, isAntigroDesignerProduct: false, displayAntigroDesignerControls: false -%}
@@ -373,12 +405,22 @@
                             {%- assign _nt_f = "" -%}
                             {%- for p in item.properties -%}
                               {%- assign _pk = p.first | downcase -%}
-                              {%- if _pk contains 'upload' -%}
+                              {%- if _pk == '_design name' -%}
                                 {%- if p.last != blank -%}
-                                  {%- assign _nt_f = p.last | split: '/' | last | split: '?' | first | downcase -%}
+                                  {%- assign _nt_f = p.last | handleize -%}
                                 {%- endif -%}
                               {%- endif -%}
                             {%- endfor -%}
+                            {%- if _nt_f == blank -%}
+                              {%- for p in item.properties -%}
+                                {%- assign _pk = p.first | downcase -%}
+                                {%- if _pk contains 'upload' -%}
+                                  {%- if p.last != blank -%}
+                                    {%- assign _nt_f = p.last | split: '/' | last | split: '?' | first | downcase -%}
+                                  {%- endif -%}
+                                {%- endif -%}
+                              {%- endfor -%}
+                            {%- endif -%}
                             {%- if _nt_f != blank -%}{%- assign _nt_f = item.product.id | append: '_' | append: _nt_f -%}{%- endif -%}
                             {%- if _nt_f == _gkey -%}
                               {%- unless item.gift_card -%}

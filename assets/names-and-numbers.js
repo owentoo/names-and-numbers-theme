@@ -577,24 +577,42 @@
           const fontDef = currentFont();
           const colorDef = currentColor();
           const printables = buildPrintables(state, nameHeights, numberHeights);
-          const packed = packShelf(printables, cfg, fontDef);
-          const blob = await renderExportPNG(packed, cfg, fontDef, colorDef.hex);
-          const { imgixUrl, sourceUrl } = await uploadBlob(blob, cfg);
-          dom.props.uploadImgix.value = imgixUrl;
-          dom.props.uploadS3.value    = sourceUrl;
+          measurePrintables(printables, cfg, fontDef);
+
+          // Per-entry artwork: each roster entry gets its own tight PNG so
+          // the cart can show individual line items each with their own
+          // preview thumbnail. Uploaded in parallel via Promise.all.
+          const entryPrintables = new Map();
+          printables.forEach(p => {
+            if (p.copyIdx === 0 && !entryPrintables.has(p.entryIdx)) {
+              entryPrintables.set(p.entryIdx, p);
+            }
+          });
+          const entryIdxs = [...entryPrintables.keys()];
+          dom.submitLabel.textContent = `Rendering ${entryIdxs.length} prints…`;
+          const uploads = await Promise.all(entryIdxs.map(async (idx) => {
+            const p = entryPrintables.get(idx);
+            const blob = await renderEntryPNG(p, cfg, fontDef, colorDef.hex);
+            const urls = await uploadBlob(blob, cfg);
+            return { idx, urls };
+          }));
+          const urlByEntryIdx = new Map(uploads.map(u => [u.idx, u.urls]));
+          // The first entry's PNG also acts as the shared design thumbnail
+          // (used by the cart's nt-design-group-header).
+          const firstUrls = urlByEntryIdx.get(entryIdxs[0]);
+          dom.props.uploadImgix.value = firstUrls.imgixUrl;
+          dom.props.uploadS3.value    = firstUrls.sourceUrl;
 
           dom.submitLabel.textContent = state.editLineKey ? 'Updating cart…' : 'Adding to cart…';
 
-          // Shared properties — every line in this design carries these so
-          // the cart UI groups them and the round-trip Edit link can hydrate
-          // the full roster from any line.
+          // Shared properties — every line carries _design name so the cart
+          // UI groups them under one design header even though each line has
+          // a different upload URL.
           const designId = 'nn-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
           const sharedProps = {
             'Style': 'Names & Numbers',
             '_design name': designId,
-            'Upload (Vector Files Preferred)': imgixUrl,
-            '_Original Image': sourceUrl,
-            '_cartImg': imgixUrl + '?w=200&h=200&fit=clip&auto=format&q=80',
+            '_design_thumb': firstUrls.imgixUrl + '?w=200&h=200&fit=clip&auto=format&q=80',
             'Scope': scopeLabel(state.scope),
             'Font': fontDef.label,
             'Color': colorDef.id === 'custom' ? `Custom (${colorDef.hex})` : colorDef.label,
@@ -602,17 +620,8 @@
             'Number Height': state.scope === 'names' ? '' : `${currentNumH().inches} in (${currentNumH().label})`,
             'Entries': serializeEntries(state),
             'Entries Count': String(state.entries.length),
-            '_render_version': 'client-v3',
+            '_render_version': 'client-v4',
           };
-
-          // Build one cart-line item per roster entry. Variant matched by
-          // each entry's individual bounding-box sq in, qty = entry.qty.
-          const entryPrintables = new Map();
-          printables.forEach(p => {
-            if (p.copyIdx === 0 && !entryPrintables.has(p.entryIdx)) {
-              entryPrintables.set(p.entryIdx, p);
-            }
-          });
 
           // bySize tier-quantity discount ladder (mirrors the prices-table at
           // snippets/portal-multiupload.liquid:498-540). Total qty across the
@@ -642,11 +651,15 @@
             const lineSqIn = Math.ceil((p.widthIn || 0) * (p.heightIn || 0));
             const variant = matchVariantBySqIn(variants, lineSqIn);
             if (!variant) return;
+            const lineUrls = urlByEntryIdx.get(i) || firstUrls;
             items.push({
               id: variant.id,
               quantity: Math.max(1, parseInt(entry.qty, 10) || 1),
               properties: {
                 ...sharedProps,
+                'Upload (Vector Files Preferred)': lineUrls.imgixUrl,
+                '_Original Image': lineUrls.sourceUrl,
+                '_cartImg': lineUrls.imgixUrl + '?w=200&h=200&fit=clip&auto=format&q=80',
                 'Name':   p.kind === 'pair' ? p.name : (p.kind === 'name' ? p.text : ''),
                 'Number': p.kind === 'pair' ? p.number : (p.kind === 'number' ? p.text : ''),
                 '_entry_idx': String(i),
@@ -1026,10 +1039,10 @@
     return out;
   }
 
-  function packShelf(printables, cfg, fontDef) {
-    if (printables.length === 0) {
-      return { placements: [], totalHeightIn: 0, sheetWidthIn: cfg.sheetWidthIn };
-    }
+  // Measure each printable's bounding box. Mutates input array; safe to call
+  // before either packShelf (preview layout) or renderEntryPNG (per-entry art).
+  function measurePrintables(printables, cfg, fontDef) {
+    if (printables.length === 0) return;
     const family = fontDef.family;
     const weight = fontDef.weight || 700;
     const measureCanvas = document.createElement('canvas');
@@ -1054,7 +1067,7 @@
         p.widthIn  = Math.min(naturalWidthIn, maxWidth);
         p.heightIn = pairH;
         p.scaleX   = naturalWidthIn > maxWidth ? maxWidth / naturalWidthIn : 1;
-        // Pre-compute the per-piece draw widths (uncapped) so renderExportPNG
+        // Pre-compute the per-piece draw widths (uncapped) so the renderer
         // can center each line within the pair's bounding box.
         p._nameWidthIn = nameW;
         p._numWidthIn  = numW;
@@ -1065,6 +1078,13 @@
         p.scaleX = naturalWidthIn > maxWidth ? maxWidth / naturalWidthIn : 1;
       }
     });
+  }
+
+  function packShelf(printables, cfg, fontDef) {
+    if (printables.length === 0) {
+      return { placements: [], totalHeightIn: 0, sheetWidthIn: cfg.sheetWidthIn };
+    }
+    measurePrintables(printables, cfg, fontDef);
 
     const sorted = [...printables].sort((a, b) => {
       if (b.heightIn !== a.heightIn) return b.heightIn - a.heightIn;
@@ -1179,6 +1199,18 @@
   }
 
   // ---------- upload ----------
+
+  // Render a single printable (name / number / pair) to its own tight PNG.
+  // Used by per-line cart submission so each roster entry gets its own art
+  // file rather than sharing one packed-sheet PNG.
+  async function renderEntryPNG(printable, cfg, fontDef, colorHex) {
+    const fakePacked = {
+      placements: [{ item: printable, x: 0, y: 0, w: printable.widthIn, h: printable.heightIn }],
+      totalHeightIn: printable.heightIn,
+      sheetWidthIn: printable.widthIn,
+    };
+    return renderExportPNG(fakePacked, cfg, fontDef, colorHex);
+  }
 
   async function uploadBlob(blob, cfg) {
     const randomName = `names-and-numbers-${Date.now()}-${Math.floor(Math.random() * 1e6)}.png`;
