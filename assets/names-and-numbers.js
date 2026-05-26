@@ -1143,10 +1143,17 @@
     const family = fontDef.family;
     const weight = fontDef.weight || 700;
     const drawText = (text, x, y, heightIn, scaleX) => {
-      ctx.font = `${weight} ${heightIn}px "${family}", sans-serif`;
+      // Render at a high probe font size (heightIn × 96 px) and scale down
+      // via ctx.scale to the target inches. Using a small CSS font like
+      // "8px" directly causes subpixel rounding in measureText that makes
+      // glyphs render slightly wider than the packer predicted, clipping
+      // off the right edge of the canvas. Probe-sized rendering matches
+      // measurePrintables exactly.
+      const PROBE_PX = heightIn * 96;
+      ctx.font = `${weight} ${PROBE_PX}px "${family}", sans-serif`;
       const m = ctx.measureText(text);
-      const ascent  = m.actualBoundingBoxAscent  || heightIn * 0.78;
-      const descent = m.actualBoundingBoxDescent || heightIn * 0.22;
+      const ascent  = m.actualBoundingBoxAscent  || PROBE_PX * 0.78;
+      const descent = m.actualBoundingBoxDescent || PROBE_PX * 0.22;
       const measuredHeight = ascent + descent;
       const scale = heightIn / measuredHeight;
       ctx.save();
@@ -1171,9 +1178,13 @@
         return;
       }
       const scaleX = pl.item.scaleX || 1;
-      ctx.font = `${weight} ${pl.h}px "${family}", sans-serif`;
+      // Use the same probe-px convention as measurePrintables for the
+      // centering calc so the offset isn't out of sync with what drawText
+      // actually paints.
+      const PROBE_PX_C = pl.h * 96;
+      ctx.font = `${weight} ${PROBE_PX_C}px "${family}", sans-serif`;
       const m = ctx.measureText(pl.item.text);
-      const naturalDrawWidth = m.width * (pl.h / ((m.actualBoundingBoxAscent || pl.h * 0.78) + (m.actualBoundingBoxDescent || pl.h * 0.22)));
+      const naturalDrawWidth = m.width / 96;      // inches at heightIn px tall
       const drawWidth = naturalDrawWidth * scaleX;
       const tx = pl.x + Math.max(0, (pl.w - drawWidth) / 2);
       drawText(pl.item.text, tx, pl.y, pl.h, scaleX);
