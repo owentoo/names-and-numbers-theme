@@ -1,0 +1,448 @@
+{%-liquid
+      comment
+        Cart-page upload-image lookup. assets/hide-upload-property.js
+        renames the visible "Upload (Vector Files Preferred)" key to
+        "_Upload (Vector Files Preferred)" at the cart-add boundary so
+        Shopify's checkout suppresses it from the order summary. By the
+        time this template renders the underscore-prefixed variant is
+        the only key present, so the previous `prop_first_char != '_'`
+        guard was skipping it and the row fell back to the variant
+        image. We match both visible and hidden variants (with or
+        without leading `_`).
+      endcomment
+      capture getUploadedImg
+          for prop in item.properties
+              if prop.last != blank
+                  if prop.first contains "Vector"  and prop.last contains 'imgix'  or prop.first contains "Vector"  and prop.last contains "ninja-services"
+                      echo prop.last
+                  endif
+              endif
+          endfor
+      endcapture
+
+     capture getUploadedImg2
+          for prop in item.properties
+              if prop.last != blank
+                  if prop.first contains "Original" and prop.last contains 'imgix'
+                         echo prop.last
+                  endif
+              endif
+          endfor
+      endcapture
+
+      if getUploadedImg != blank
+          if getUploadedImg contains '.xai'
+              assign getUploadedImg = ''
+          elsif getUploadedImg contains '.xeps'
+              assign getUploadedImg = ''
+          elsif getUploadedImg contains '.xpdf'
+              assign getUploadedImg = ''
+          endif
+      endif
+  -%}
+
+  {% assign nextItem = cart.items[forloop.index] %}
+  {% assign displayAntigroDesignerControls = false %}
+  {% assign isAntigroDesignerProduct = false %}
+
+  {% if item.properties._clientDesignId %}
+      {% assign isAntigroDesignerProduct = true %}
+
+      {% if item.properties._clientDesignId != nextItem.properties._clientDesignId %}
+          {% assign displayAntigroDesignerControls = true %}
+      {% endif %}
+  {% endif %}
+
+  {%-liquid
+      assign pType = item.product.type | escape | downcase
+      assign beatles = pType | split: " "
+      assign isBlank = false
+      for tag in item.product.tags
+          if tag contains 'Blank'
+              assign isBlank = true
+              break
+          endif
+      endfor
+                     
+       assign isshopify_colletive = false
+       if item.product.tags contains "Shopify Collective"
+         assign isshopify_colletive = true
+       endif
+  -%}
+  {%- assign is_nn_item = false -%}
+  {%- if item.properties["Style"] == "Names & Numbers" -%}{%- assign is_nn_item = true -%}{%- endif -%}
+  {%- if is_nn_item -%}
+    {{ 'names-and-numbers.css' | asset_url | stylesheet_tag }}
+  {%- endif -%}
+  <!-- nn-debug: style=[{{ item.properties["Style"] | escape }}] is_nn={{ is_nn_item }} -->
+  {%- if is_nn_item -%}
+    <script>
+      (function () {
+        var node = document.getElementById('item-{{ item.id }}');
+        if (!node) return;
+        // Remove the bySize "Edit Size" trigger + its size-block container.
+        node.querySelectorAll('.nt-size-block, .nt-edit-size-btn').forEach(function (el) {
+          el.style.setProperty('display', 'none', 'important');
+        });
+      })();
+    </script>
+  {%- endif -%}
+
+
+  <div id="item-{{ item.id }}" is-blank="{{ isBlank }}" {% if isBlank == true %}data-tier-pricing="{{ item.variant.metafields.custom.tier_pricing }}" data-base-price="{{ item.variant.price }}"{% endif %} testing-aa data-product_type="{{ beatles | join: "_" }}" class="{% if isshopify_colletive %} shopify_colletive_enable{% endif %} {{ beatles | join: "_" }} cart-form-item{% if is_nn_item %} nn-cart-item{% endif %} {% if isAntigroDesignerProduct %}antigro-designer {% endif %}  {% if item.product.id == settings.gift_wrap_product.id %} cart-item--gift-wrapping {% endif %}" data-title="{{ item.product.title | escape }} {%- unless item.product.has_only_default_variant -%} ({{ item.variant.title | escape }}) {%- endunless -%}" data-id="{{ item.key }}" data-qty="{{ item.quantity }}" data-product-id="{{ item.product.id }}" data-js-cart-item>
+
+      <div class="cart-item__product-info cart-form-item--layout"> 
+        {%liquid
+          assign noaction = ""
+          if getUploadedImg != blank or getUploadedImg2 != blank
+          
+            if  getUploadedImg == blank
+              assign getUploadedImg = getUploadedImg2
+            endif
+
+            if getUploadedImg contains "?"
+              assign getUploadedImg  = getUploadedImg | append: "&h=100&auto=compress&q=50&trim=colorUnlessAlpha&fm=png"
+            else
+              assign getUploadedImg  = getUploadedImg | append: "?h=100&auto=compress&q=50&trim=colorUnlessAlpha&fm=png"
+            endif
+          
+            assign getUploadedImg  = getUploadedImg | replace:"ninja-services-production-ninjauploadss3bucket-zks2mguobhe4.s3.amazonaws.com","ninjauploads-production.imgix.net"
+
+          
+            assign isbg = item.properties["Remove Background"] | downcase
+            if isbg == "no"
+          
+              if getUploadedImg contains "&"
+                assign getUploadedImg = getUploadedImg | replace : "?bg-remove=true&" , "?"
+                if getUploadedImg contains "?h=100"
+                  if getUploadedImg contains "&"
+                    assign getUploadedImgThumb = getUploadedImg | replace : "?h=100&" , "?"
+                  else
+                    assign getUploadedImgThumb = getUploadedImg | replace : "?h=100&" , ""
+                  endif
+                else
+                  assign getUploadedImgThumb = getUploadedImg | replace : "&h=100" , ""
+                endif
+              else
+                assign getUploadedImg = getUploadedImg | replace : "?bg-remove=true" , ""
+                assign getUploadedImgThumb = getUploadedImg | replace : "&q=50" , ""
+              endif
+          
+            else
+          
+              assign getUploadedImgThumb = getUploadedImg
+              if getUploadedImg contains "?h=100" and getUploadedImg contains "&"
+                  assign getUploadedImgThumb = getUploadedImg | replace : "?h=100&" , "?"
+              elsif getUploadedImg contains "&h=100"
+                assign getUploadedImgThumb = getUploadedImg | replace : "&h=100" , ""
+              endif
+          
+            endif
+          elsif isBlank == true
+          else
+            assign noaction = "style='pointer-events:none'"
+          endif
+          if beatles contains 'gang'
+            assign noaction = "--"
+            assign getFileExt = getUploadedImg | split: '?' | first | split: '.' | last | strip
+            assign getFileExt = getFileExt | prepend: '.'
+            assign getBaseURL = getUploadedImg | split: getFileExt | first
+            if getFileExt == '.png'
+              assign getUploadedImgThumb = getBaseURL | append: getFileExt | append: '?auto=compress&q=50'
+              assign getUploadedImg = getBaseURL | append: getFileExt | append: '?auto=compress&q=50&h=100'
+            elsif getFileExt == '.ai' or getFileExt == '.eps' or getFileExt == '.pdf'
+              assign getUploadedImgThumb = getBaseURL | append: getFileExt | append: '?fm=png&auto=compress&q=50'
+              assign getUploadedImg = getBaseURL | append: getFileExt | append: '?fm=png&auto=compress&q=50&h=100'
+            endif
+          endif
+        %}
+        {%-liquid
+          capture getPropertyImg
+            for property in item.properties
+              if property.first == '_cartImg' and property.last != blank
+                echo property.last
+              endif
+            endfor
+          endcapture
+        -%}
+
+          <a
+            {% if getPropertyImg != blank %}
+              href="javascript:void(0)"
+            {% else %}
+              {% if noaction == "" %}href="javascript:void(0)" {% else %} href="javascript:void(0)"{% endif %}
+            {% endif %}
+            ext="{{ getFileExt }}"
+            {{ noaction }}
+            data-bgtype="{% if isbg == "yes" or getUploadedImg contains ".png" %}yes{% endif %}"
+            data-src="{% if getPropertyImg != blank %}{% if getPropertyImg contains '?' %}{{ getPropertyImg | append: '&w=2000' }}{% else %}{{ getPropertyImg | append: '?w=2000' }}{% endif %}{% else %}{{ getUploadedImgThumb | replace:"&h=100",""  | replace:"&q=50",""   | replace:"&auto=compress","" }}{% endif %}"
+            data-target='.cart-preview'
+            class="preview-modal {% if getPropertyImg != blank %}cartPropertyImg{%endif%} cart-item__thumbnail element--border-width-clamped element--border-radius {% if getUploadedImg contains "bg-remove" or getUploadedImg contains ".png" %} transparent-image {% endif %}"
+          >
+            {%- comment -%}
+              Force fit:true for customer-uploaded thumbs so wide/tall
+              designs aren\'t cropped to a square — see cart-item.liquid
+              for the rationale.
+            {%- endcomment -%}
+            {% if getPropertyImg != blank %}
+              {%- render 'lazy-image-small', replaceImg: getPropertyImg, image: item.image, aspect_ratio: settings.cart_image_ratio, fit: true, class: 'lazy-image--scale-animation' -%}
+            {% else %}
+              {% if getUploadedImg != blank or getUploadedImg2 != blank %}
+                {%- render 'lazy-image-small', replaceImg: getUploadedImg, image: item.image, aspect_ratio: settings.cart_image_ratio, fit: true, class: 'lazy-image--scale-animation' -%}
+              {% else %}
+                {%- render 'lazy-image-small', image: item.image, aspect_ratio: settings.cart_image_ratio, fit: settings.cart_image_fit, class: 'lazy-image--scale-animation' -%}
+              {% endif %}
+            {% endif %}
+          </a>
+
+          <div class="cart-form-item__price-title-variants _upsell_parent_block">
+              
+              <a href="{{ item.url }}" class="cart-item__title" {{ noaction }}>
+                  <span class="text-animation--underline-thin">{{ item.product.title | escape }}</span>
+              </a>
+            
+              
+              {%- if item.product.id != 6947128901715 -%}
+              <div class="cart-item__property">
+                {%- if qty_label -%}
+                  <div>qty: <strong>{{ qty_label }}</strong></div>
+                {%- elsif desc -%}
+                  <div><strong>{{ item.product.description }}</strong></div>
+                {%- endif -%}
+                  {%- assign sizeAlreadyPrint = false -%}
+
+                    <!--################ -->
+                    {%- unless item.product.has_only_default_variant -%}
+                      {%- for option in item.options_with_values -%}
+                        {%liquid
+                          assign option_name = option.name | downcase
+                          assign _style = option.value | downcase | split : "style #"
+                          assign style_count = _style | size
+                        %}
+                        {% if style_count < 2 and option_name == "design size (square inches)"  %}
+                          <div data-s="{{ style_count }}" class="options_with_values" data="{{ option.name }}">
+                            {% unless is_child %}Size: {% endunless %}<strong>{{ option.value }}</strong>
+                          </div>
+                              {%- assign sizeAlreadyPrint = true -%}
+                        {% endif %}
+
+                        {% if option_name == "size"  %}
+                          <div data-s="{{ style_count }}" class="options_with_values" data="{{ option.name }}">
+                            {% unless is_child %}Size: {% endunless %}<strong>{{ option.value }}</strong>
+                          </div>
+                              {%- assign sizeAlreadyPrint = true -%}
+                        {% endif %}
+                      {% endfor %}
+                    {% endunless %}
+                    <!--################ -->
+
+                    {% assign pCut = "" %}
+                    {%- unless item.product.has_only_default_variant -%}
+                            {%- for option in item.options_with_values -%}
+                              {% assign pfirst = option.name | downcase %}
+                              {%- if pfirst == 'precut' -%}
+                                {% assign pCutVal = option.value %}
+                                {% assign pCut = option.value | downcase %}
+                                {% if pCut == 'no - leave in a roll' %}
+                                  {% assign pCut = "" %}
+                                {% endif %}
+                                {% if pCut != "" %}
+                                  <div>Precut: <strong>{{ pCutVal }}</strong></div>
+                                {% endif %}
+                                {% continue %}
+                              {%- endif -%}
+                              {%- if pfirst == 'design size (square inches)' or pfirst == "size" -%}
+                                {% continue %}
+                              {% endif %}
+                              
+                              <div data-s="{{ style_count }}" class="options_with_values {% if style_count > 1 %} {{ beatles | join: "_" }} {% endif %} size" data="{{ option.name }}">
+                               {{ option.name }}: <strong>{{ option.value }}</strong>
+                              </div>
+                            {%- endfor -%}
+                    {%- endunless -%}
+
+
+                    {%- if item.selling_plan_allocation -%}
+                        <span class="text-size--small">
+                            {{ item.selling_plan_allocation.selling_plan.name }}
+                        </span>
+                    {%- endif -%}
+
+                
+                    {% assign loop_no = item.index | plus : 1 %}
+                    {% render 'arrange-properties' lineItem: item, loopno: loop_no , linekey:item.key, qty: item.quantity, properties:item.properties, sizeAlreadyPrint: sizeAlreadyPrint, edit_label: 'Edit', hide_precut: is_child, is_child: is_child %}
+
+                    {%- comment -%}
+                      Names & Numbers edit link — sends the customer back to the configurator
+                      with state encoded in the URL. Configurator hydrates from the param,
+                      then auto-removes this line item after a successful re-add.
+                    {%- endcomment -%}
+                    {%- if item.properties["Style"] == "Names & Numbers" -%}
+                      {%- capture nn_state -%}{"scope":{{ item.properties["Scope"] | default: '' | json }},"font":{{ item.properties["Font"] | default: '' | json }},"color":{{ item.properties["Color"] | default: '' | json }},"nameHeight":{{ item.properties["Name Height"] | default: '' | json }},"numberHeight":{{ item.properties["Number Height"] | default: '' | json }},"entries":{{ item.properties["Entries"] | default: '' | json }}}{%- endcapture -%}
+                      {%- assign nn_state_b64 = nn_state | base64_encode -%}
+                      <div class="nn-cart-edit">
+                        <a href="/products/{{ item.product.handle }}?nn={{ nn_state_b64 }}&amp;edit_line={{ item.key | url_encode }}" class="nn-cart-edit__link">Edit names &amp; numbers</a>
+                      </div>
+                    {%- endif -%}
+
+
+                    </div>
+              {%- endif -%}
+
+
+          </div>
+
+            <!-- CTA's -->
+          <div class="cart-item__actions space-between">
+                  <div class="flex-row">
+                  {%-liquid
+                      assign isApplyLimit = false
+                      for cartProd in settings.maxLimitProds
+                          if item.product.id == cartProd.id
+                              assign isApplyLimit = true
+                          endif
+                      endfor
+                  -%}
+                      <product-quantity class="product-quantity quantity-selector-holder" error="Enter qty above {{ item.product.metafields.custom.min_quantity }}">
+                      {% if isAntigroDesignerProduct %}
+                          {{ item.quantity }}
+                          <input type="hidden" name="updates[]" {% if item.product.metafields.custom.min_quantity != blank %} onkeyup="checkQtyValidation(this);" {% endif %}   min="{{ item.product.metafields.custom.min_quantity | default: 0 }}"  value="{{ item.quantity }}" min="0" class="qty qty-selector product__quantity" id="updates_{{ item.id }}">
+                          <button class="qty-button qty-minus" style="display: none"></button>
+                          <button class="qty-button qty-plus" style="display: none"></button>
+                      {% else %}
+                          <cart-product-quantity>
+                              <button {% if item.product.metafields.custom.min_quantity != blank %}  onclick="decrimentalQtyCart(this);" {% endif %} type="button" class="qty-button qty-minus no-js-hidden" aria-label="{{ 'general.accessibility_labels.decrease_quantity' | t }}" role="button" controls="updates_{{ item.id }}">
+                                  {%- render 'theme-symbols', icon: 'minus' -%}
+                              </button>
+                              <label for="qty-{{ id }}" class="visually-hidden">{{ 'general.accessibility_labels.quantity' | t }}</label>
+                              <input {% if item.product.metafields.custom.min_quantity != blank %} onkeyup="checkQtyValidation(this);" {% endif %} min="{{ item.product.metafields.custom.min_quantity | default: 0 }}"  type="number" name="updates[]" value="{{ item.quantity }}" min="0" {% if isApplyLimit %}readonly{% endif %} class="qty qty-selector product__quantity _cart__quantity" id="updates_{{ item.id }}" data-href="{{ routes.cart_change_url }}?line={{ forloop.index }}&amp;quantity=$qty">
+                              <button type="button" class="qty-button qty-plus no-js-hidden" {% if isApplyLimit and settings.cartMaxLimit == item.quantity %}disabled{% endif %} aria-label="{{ 'general.accessibility_labels.increase_quantity' | t }}" role="button" controls="updates_{{ item.id }}">
+                                  {%- render 'theme-symbols', icon: 'plus' -%}
+                              </button>
+                          </cart-product-quantity>
+                      {% endif %}
+                      </product-quantity>
+                  </div>
+                  <div class="text-right d-block d-md-none" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+                {%- unless item.gift_card -%}
+                    {%- if item.product.id != 6947128901715 -%}
+                    <div class="cart-item__price discounted-line-item-price">
+                      <div>
+                        {%- if item.final_line_price < item.original_line_price -%}
+                          <div><span><del><strong>{{ item.original_line_price | divided_by : item.quantity | money }}</strong> ea</del></span></div>
+                          {% if item.final_line_price > 0 %}
+                            <div class="seccolor"><strong>{{ item.final_line_price | divided_by : item.quantity | money }}</strong> ea</div>
+                          {% endif %}
+                        {%- elsif item.variant.compare_at_price > item.variant.price -%}
+                          <div><span><del><strong>{{ item.variant.compare_at_price | money }}</strong> ea</del></span></div>
+                          <div class="seccolor"><strong>{{ item.variant.price | money }}</strong> ea</div>
+                        {%- else -%}
+                          <div><strong>{{ item.variant.price | money }}</strong> ea</div>
+                        {%- endif -%}
+                      </div>
+                    </div>
+                    {%- endif -%}
+                    <div class="cart-item__price">
+                        {%- if item.final_line_price < item.original_line_price -%}
+                            <span class="visually-hidden">{{ 'general.accessibility_labels.price.regular' | t }}</span>
+                            <strong data-line-item-cost="{{ item.final_line_price }}">{% if item.final_line_price <= 0 %}FREE{% else %}{{ item.final_line_price | money }}{% endif %}</strong>
+                            <span class="visually-hidden">{{ 'general.accessibility_labels.price.sale' | t }}</span>
+                            <!-- <span><del>{{ item.original_line_price | money }}</del></span> -->
+                            {% assign calprice = item.original_line_price | minus : item.final_line_price %}
+                        {%- elsif item.variant.compare_at_price > item.variant.price -%}
+                            <span class="visually-hidden">{{ 'general.accessibility_labels.price.regular' | t }}</span>
+                            <strong data-line-item-cost="{{ item.final_line_price }}">{% if item.final_line_price <= 0 %}FREE{% else %}{{ item.final_line_price | money }}{% endif %}</strong>
+                            <span class="visually-hidden">{{ 'general.accessibility_labels.price.sale' | t }}</span>
+                            <!-- strikethrough total removed -->
+                            {% assign calprice = item.original_line_price | minus : item.final_line_price %}
+                        {%- else -%}
+                            <span class="visually-hidden">{{ 'general.accessibility_labels.price.regular' | t }}</span>
+                            <strong data-line-item-cost="{{ item.final_line_price }}">{% if item.final_line_price <= 0 %}FREE{% else %}{{ item.final_line_price | money }}{% endif %}</strong>
+                        {%- endif -%}
+
+                    </div>
+                {%- endunless -%}
+                {%- unless isAntigroDesignerProduct -%}
+                  {%- if item.product.id == 7578022281299 -%}
+                    <a href="javascript:void(0)" class="remove text-link text-size--small cleanup-task" onclick="document.querySelector('.precut-confirm').style.display = 'grid'" data-qty="{{ item.quantity }}" title="{{ 'cart.remove_item' | t }}"><svg width="10px" height="10px" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><g fill="#000" fill-rule="nonzero"><path d="M2.09530633,10 C1.76417325,10 1.48142966,9.89988556 1.24707555,9.69965667 C1.012709,9.49943841 0.89552573,9.25787904 0.89552573,8.97497856 L0.89552573,1.5203337 L0,1.5203337 L0,0.691508523 L3.20894854,0.691508523 L3.20894854,0 L6.79105146,0 L6.79105146,0.691508523 L10,0.691508523 L10,1.5203337 L9.10447427,1.5203337 L9.10447427,8.96806093 C9.10447427,9.26285208 8.98849125,9.50853972 8.75652521,9.70512383 C8.52455917,9.90170794 8.24061533,10 7.90469367,10 L2.09530633,10 Z M8.13434005,1.5203337 L1.86565995,1.5203337 L1.86565995,8.97497856 C1.86565995,9.03220048 1.88718988,9.07920533 1.93024974,9.11599313 C1.9733096,9.15278092 2.02832846,9.17117482 2.09530633,9.17117482 L7.90469367,9.17117482 C7.96210682,9.17117482 8.01473762,9.1507407 8.06258605,9.10987245 C8.11042205,9.06899358 8.13434005,9.02402895 8.13434005,8.97497856 L8.13434005,1.5203337 Z M3.51034892,8.02354865 L4.48048314,8.02354865 L4.48048314,2.66795987 L3.51034892,2.66795987 L3.51034892,8.02354865 Z M5.51951686,8.02354865 L6.48965108,8.02354865 L6.48965108,2.66795987 L5.51951686,2.66795987 L5.51951686,8.02354865 Z"/></g></svg></a>
+                  {%- else -%}
+                    <a href="{{ routes.cart_change_url }}?line={{ forloop.index }}&amp;quantity=0" class="remove text-link text-size--small cleanup-task" title="{{ 'cart.remove_item' | t }}"><svg width="10px" height="10px" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><g fill="#000" fill-rule="nonzero"><path d="M2.09530633,10 C1.76417325,10 1.48142966,9.89988556 1.24707555,9.69965667 C1.012709,9.49943841 0.89552573,9.25787904 0.89552573,8.97497856 L0.89552573,1.5203337 L0,1.5203337 L0,0.691508523 L3.20894854,0.691508523 L3.20894854,0 L6.79105146,0 L6.79105146,0.691508523 L10,0.691508523 L10,1.5203337 L9.10447427,1.5203337 L9.10447427,8.96806093 C9.10447427,9.26285208 8.98849125,9.50853972 8.75652521,9.70512383 C8.52455917,9.90170794 8.24061533,10 7.90469367,10 L2.09530633,10 Z M8.13434005,1.5203337 L1.86565995,1.5203337 L1.86565995,8.97497856 C1.86565995,9.03220048 1.88718988,9.07920533 1.93024974,9.11599313 C1.9733096,9.15278092 2.02832846,9.17117482 2.09530633,9.17117482 L7.90469367,9.17117482 C7.96210682,9.17117482 8.01473762,9.1507407 8.06258605,9.10987245 C8.11042205,9.06899358 8.13434005,9.02402895 8.13434005,8.97497856 L8.13434005,1.5203337 Z M3.51034892,8.02354865 L4.48048314,8.02354865 L4.48048314,2.66795987 L3.51034892,2.66795987 L3.51034892,8.02354865 Z M5.51951686,8.02354865 L6.48965108,8.02354865 L6.48965108,2.66795987 L5.51951686,2.66795987 L5.51951686,8.02354865 Z"/></g></svg></a>
+                  {%- endif -%}
+                {%- endunless -%}
+                  </div>
+            </div>
+          <!-- CTA's -->
+          
+            <div class="text-right d-none d-md-block" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+              {%- unless item.gift_card -%}
+                  <div class="cart-item__price">
+                      {%- if item.product.id != 6947128901715 -%}
+                      <div class="cart-item__price discounted-line-item-price">
+                        <div>
+                          {%- if item.final_line_price < item.original_line_price -%}
+                            <div><span><del><strong>{{ item.original_line_price | divided_by : item.quantity | money }}</strong> ea</del></span></div>
+                            {% if item.final_line_price > 0 %}
+                              <div class="seccolor"><strong>{{ item.final_line_price | divided_by : item.quantity | money }}</strong> ea</div>
+                            {% endif %}
+                          {%- elsif item.variant.compare_at_price > item.variant.price -%}
+                            <div><span><del><strong>{{ item.variant.compare_at_price | money }}</strong> ea</del></span></div>
+                            <div class="seccolor"><strong>{{ item.variant.price | money }}</strong> ea</div>
+                          {%- else -%}
+                            <div><strong>{{ item.variant.price | money }}</strong> ea</div>
+                          {%- endif -%}
+                        </div>
+                      </div>
+                      {%- endif -%}
+
+                      {%- if item.final_line_price < item.original_line_price -%}
+                          <span class="visually-hidden">{{ 'general.accessibility_labels.price.regular' | t }}</span>
+                          <strong data-line-item-cost="{{ item.final_line_price }}">{% if item.final_line_price <= 0 %}FREE{% else %}{{ item.final_line_price | money }}{% endif %}</strong>
+                          <span class="visually-hidden">{{ 'general.accessibility_labels.price.sale' | t }}</span>
+                          <!-- <span><del>{{ item.original_line_price | money }}</del></span> -->
+                          {% assign calprice = item.original_line_price | minus : item.final_line_price %}
+                          {% assign moneySaved = moneySaved | plus : calprice %}
+                      {%- elsif item.variant.compare_at_price > item.variant.price -%}
+                          <span class="visually-hidden">{{ 'general.accessibility_labels.price.regular' | t }}</span>
+                          <strong data-line-item-cost="{{ item.final_line_price }}">{% if item.final_line_price <= 0 %}FREE{% else %}{{ item.final_line_price | money }}{% endif %}</strong>
+                          <span class="visually-hidden">{{ 'general.accessibility_labels.price.sale' | t }}</span>
+                          <!-- strikethrough total removed -->
+                          {% assign calprice = item.original_line_price | minus : item.final_line_price %}
+                          {% assign moneySaved = moneySaved | plus : calprice %}
+                      {%- else -%}
+                          <span class="visually-hidden">{{ 'general.accessibility_labels.price.regular' | t }}</span>
+                          <strong data-line-item-cost="{{ item.final_line_price }}">{% if item.final_line_price <= 0 %}FREE{% else %}{{ item.final_line_price | money }}{% endif %}</strong>
+                          {% assign moneySaved = moneySaved | plus : 0 %}
+                      {%- endif -%}
+
+                  </div>
+              {%- endunless -%}
+              {%- unless isAntigroDesignerProduct -%}
+                {%- if item.product.id == 7578022281299 -%}
+                  <a href="javascript:void(0)" class="remove text-link text-size--small cleanup-task" onclick="document.querySelector('.precut-confirm').style.display = 'grid'" data-qty="{{ item.quantity }}" title="{{ 'cart.remove_item' | t }}"><svg width="10px" height="10px" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><g fill="#000" fill-rule="nonzero"><path d="M2.09530633,10 C1.76417325,10 1.48142966,9.89988556 1.24707555,9.69965667 C1.012709,9.49943841 0.89552573,9.25787904 0.89552573,8.97497856 L0.89552573,1.5203337 L0,1.5203337 L0,0.691508523 L3.20894854,0.691508523 L3.20894854,0 L6.79105146,0 L6.79105146,0.691508523 L10,0.691508523 L10,1.5203337 L9.10447427,1.5203337 L9.10447427,8.96806093 C9.10447427,9.26285208 8.98849125,9.50853972 8.75652521,9.70512383 C8.52455917,9.90170794 8.24061533,10 7.90469367,10 L2.09530633,10 Z M8.13434005,1.5203337 L1.86565995,1.5203337 L1.86565995,8.97497856 C1.86565995,9.03220048 1.88718988,9.07920533 1.93024974,9.11599313 C1.9733096,9.15278092 2.02832846,9.17117482 2.09530633,9.17117482 L7.90469367,9.17117482 C7.96210682,9.17117482 8.01473762,9.1507407 8.06258605,9.10987245 C8.11042205,9.06899358 8.13434005,9.02402895 8.13434005,8.97497856 L8.13434005,1.5203337 Z M3.51034892,8.02354865 L4.48048314,8.02354865 L4.48048314,2.66795987 L3.51034892,2.66795987 L3.51034892,8.02354865 Z M5.51951686,8.02354865 L6.48965108,8.02354865 L6.48965108,2.66795987 L5.51951686,2.66795987 L5.51951686,8.02354865 Z"/></g></svg></a>
+                {%- else -%}
+                  <a href="{{ routes.cart_change_url }}?line={{ forloop.index }}&amp;quantity=0" class="remove text-link text-size--small cleanup-task" title="{{ 'cart.remove_item' | t }}"><svg width="10px" height="10px" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><g fill="#000" fill-rule="nonzero"><path d="M2.09530633,10 C1.76417325,10 1.48142966,9.89988556 1.24707555,9.69965667 C1.012709,9.49943841 0.89552573,9.25787904 0.89552573,8.97497856 L0.89552573,1.5203337 L0,1.5203337 L0,0.691508523 L3.20894854,0.691508523 L3.20894854,0 L6.79105146,0 L6.79105146,0.691508523 L10,0.691508523 L10,1.5203337 L9.10447427,1.5203337 L9.10447427,8.96806093 C9.10447427,9.26285208 8.98849125,9.50853972 8.75652521,9.70512383 C8.52455917,9.90170794 8.24061533,10 7.90469367,10 L2.09530633,10 Z M8.13434005,1.5203337 L1.86565995,1.5203337 L1.86565995,8.97497856 C1.86565995,9.03220048 1.88718988,9.07920533 1.93024974,9.11599313 C1.9733096,9.15278092 2.02832846,9.17117482 2.09530633,9.17117482 L7.90469367,9.17117482 C7.96210682,9.17117482 8.01473762,9.1507407 8.06258605,9.10987245 C8.11042205,9.06899358 8.13434005,9.02402895 8.13434005,8.97497856 L8.13434005,1.5203337 Z M3.51034892,8.02354865 L4.48048314,8.02354865 L4.48048314,2.66795987 L3.51034892,2.66795987 L3.51034892,8.02354865 Z M5.51951686,8.02354865 L6.48965108,8.02354865 L6.48965108,2.66795987 L5.51951686,2.66795987 L5.51951686,8.02354865 Z"/></g></svg></a>
+                {%- endif -%}
+              {%- endunless -%}
+            </div>
+          
+      </div>
+
+  </div>
+
+  {% if displayAntigroDesignerControls %}
+      <div class="antigro-designer__cart-tr-controls">
+          <div class="antigro-designer__cart-controls">
+              <div class="button button--solid" onclick='Designer.redirectToCreator("{{ item.properties._clientDesignId }}")'>
+                  {{ 'antigro.modify_design' | t }}
+              </div>
+
+              <span
+                  class="antigro-designer__cart-remove"
+                  aria-label="{{ 'sections.cart.remove_title' | t: title: item.title }}"
+                  onclick='Designer.removeCartItemsByClientDesignId("{{ item.properties._clientDesignId }}")'
+              >
+                  {{ 'cart.remove_item' | t }}
+              </span>
+          </div>
+      </div>
+  {% endif %}

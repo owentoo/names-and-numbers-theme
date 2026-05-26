@@ -1,0 +1,1867 @@
+{% doc %}
+  @prompt
+    Create a customizable “Hot Spot Image” section. The section should include a main header at the top, followed by a centered feature image with draggable hot spot markers placed on top of the image. Each hot spot must support: editable number label, editable title, editable description, manual position controls (X/Y), the ability to change the circle color, number color, number background, border color, and full hide/show toggles.
+    
+    On the left and right sides of the main image, create stacked content blocks (like 1–4) where each block includes a number bubble, a heading, and a description. Give me full control over every aspect: text, bubble color, bubble background color, bubble border color, text color, spacing, alignment, padding, and hide/show for each block.
+    
+    Additional requirements:
+    
+    Ability to upload the main image and adjust image size, width, border radius, and alignment.
+    
+    Ability to customize the layout spacing between the left column, image, and right column.
+    
+    Ability to set background color or gradient for the entire section.
+    
+    Full typography controls for the main header and all text in the side columns.
+    
+    Responsive behavior: columns stack on mobile with adjustable order.
+    
+    Hot spots must remain accurately positioned on mobile; include mobile position controls if needed.
+    
+    Accessibility: ARIA labels for each hot spot.
+    
+    Make all settings fully editable so I have complete control over every visual and functional element of the section.
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-hotspot-section-{{ ai_gen_id }} {
+    background: {{ block.settings.section_background }};
+    padding: {{ block.settings.section_padding_top }}px 20px {{ block.settings.section_padding_bottom }}px;
+  }
+
+  .ai-hotspot-container-{{ ai_gen_id }} {
+    max-width: {{ block.settings.container_max_width }}px;
+    margin: 0 auto;
+  }
+
+  .ai-hotspot-main-header-{{ ai_gen_id }} {
+    text-align: {{ block.settings.header_alignment }};
+    margin-bottom: {{ block.settings.header_margin_bottom }}px;
+    font-family: {{ block.settings.header_font.family }}, {{ block.settings.header_font.fallback_families }};
+    font-weight: {{ block.settings.header_font.weight }};
+    font-size: {{ block.settings.header_font_size }}px;
+    color: {{ block.settings.header_color }};
+    line-height: 1.2;
+  }
+
+  .ai-hotspot-layout-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: {{ block.settings.left_column_width }}fr {{ block.settings.image_column_width }}fr {{ block.settings.right_column_width }}fr;
+    gap: {{ block.settings.column_gap }}px;
+    align-items: {{ block.settings.vertical_alignment }};
+  }
+
+  .ai-hotspot-side-column-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: {{ block.settings.block_spacing }}px;
+  }
+
+  .ai-hotspot-content-block-{{ ai_gen_id }} {
+    display: flex;
+    align-items: {{ block.settings.block_alignment }};
+    gap: {{ block.settings.block_inner_gap }}px;
+    padding: {{ block.settings.block_padding }}px;
+  }
+
+  .ai-hotspot-number-bubble-{{ ai_gen_id }} {
+    flex-shrink: 0;
+    width: {{ block.settings.bubble_size }}px;
+    height: {{ block.settings.bubble_size }}px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    border-width: {{ block.settings.bubble_border_width }}px;
+    border-style: solid;
+  }
+
+  .ai-hotspot-block-text-{{ ai_gen_id }} {
+    flex: 1;
+  }
+
+  .ai-hotspot-block-heading-{{ ai_gen_id }} {
+    font-family: {{ block.settings.block_heading_font.family }}, {{ block.settings.block_heading_font.fallback_families }};
+    font-weight: {{ block.settings.block_heading_font.weight }};
+    font-size: {{ block.settings.block_heading_size }}px;
+    margin: 0 0 {{ block.settings.heading_margin_bottom }}px 0;
+    line-height: 1.3;
+  }
+
+  .ai-hotspot-block-description-{{ ai_gen_id }} {
+    font-family: {{ block.settings.block_description_font.family }}, {{ block.settings.block_description_font.fallback_families }};
+    font-weight: {{ block.settings.block_description_font.weight }};
+    font-size: {{ block.settings.block_description_size }}px;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .ai-hotspot-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: {{ block.settings.image_width }}%;
+    margin: 0 auto;
+  }
+
+  .ai-hotspot-main-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: {{ block.settings.image_border_radius }}px;
+  }
+
+  .ai-hotspot-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    aspect-ratio: 1;
+    background-color: #f4f4f4;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .ai-hotspot-placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    max-width: 400px;
+    max-height: 400px;
+  }
+
+  .ai-hotspot-empty-state-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+  }
+
+  .ai-hotspot-marker-{{ ai_gen_id }} {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  .ai-hotspot-circle-{{ ai_gen_id }} {
+    width: {{ block.settings.hotspot_size }}px;
+    height: {{ block.settings.hotspot_size }}px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: {{ block.settings.hotspot_number_size }}px;
+    border-width: {{ block.settings.hotspot_border_width }}px;
+    border-style: solid;
+    transition: transform 0.2s ease;
+  }
+
+  .ai-hotspot-marker-{{ ai_gen_id }}:hover .ai-hotspot-circle-{{ ai_gen_id }} {
+    transform: scale(1.1);
+  }
+
+  .ai-hotspot-tooltip-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: {{ block.settings.tooltip_background }};
+    color: {{ block.settings.tooltip_text_color }};
+    padding: {{ block.settings.tooltip_padding }}px;
+    border-radius: {{ block.settings.tooltip_border_radius }}px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+    z-index: 20;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: {{ block.settings.tooltip_min_width }}px;
+  }
+
+  .ai-hotspot-marker-{{ ai_gen_id }}:hover .ai-hotspot-tooltip-{{ ai_gen_id }} {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .ai-hotspot-tooltip-title-{{ ai_gen_id }} {
+    font-weight: 700;
+    font-size: {{ block.settings.tooltip_title_size }}px;
+    margin: 0 0 4px 0;
+  }
+
+  .ai-hotspot-tooltip-description-{{ ai_gen_id }} {
+    font-size: {{ block.settings.tooltip_description_size }}px;
+    margin: 0;
+    white-space: normal;
+  }
+
+  @media screen and (max-width: 989px) {
+    .ai-hotspot-layout-{{ ai_gen_id }} {
+      grid-template-columns: 1fr;
+      gap: {{ block.settings.mobile_spacing }}px;
+    }
+
+    .ai-hotspot-main-header-{{ ai_gen_id }} {
+      font-size: {{ block.settings.header_font_size | times: 0.8 }}px;
+    }
+
+    .ai-hotspot-image-wrapper-{{ ai_gen_id }} {
+      width: 100%;
+      {% if block.settings.mobile_order == 'image_first' %}
+        order: 1;
+      {% elsif block.settings.mobile_order == 'image_middle' %}
+        order: 2;
+      {% else %}
+        order: 3;
+      {% endif %}
+    }
+
+    .ai-hotspot-side-column-{{ ai_gen_id }}.left {
+      {% if block.settings.mobile_order == 'image_first' %}
+        order: 2;
+      {% elsif block.settings.mobile_order == 'image_middle' %}
+        order: 1;
+      {% else %}
+        order: 1;
+      {% endif %}
+    }
+
+    .ai-hotspot-side-column-{{ ai_gen_id }}.right {
+      {% if block.settings.mobile_order == 'image_first' %}
+        order: 3;
+      {% elsif block.settings.mobile_order == 'image_middle' %}
+        order: 3;
+      {% else %}
+        order: 2;
+      {% endif %}
+    }
+
+    .ai-hotspot-marker-{{ ai_gen_id }} {
+      {% if block.settings.use_mobile_positions %}
+        left: var(--mobile-x) !important;
+        top: var(--mobile-y) !important;
+      {% endif %}
+    }
+
+    .ai-hotspot-circle-{{ ai_gen_id }} {
+      width: {{ block.settings.hotspot_size | times: 0.8 }}px;
+      height: {{ block.settings.hotspot_size | times: 0.8 }}px;
+      font-size: {{ block.settings.hotspot_number_size | times: 0.8 }}px;
+    }
+
+    .ai-hotspot-tooltip-{{ ai_gen_id }} {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 90vw;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-hotspot-section-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-hotspot-container-{{ ai_gen_id }} vividbox-node">
+    {% if block.settings.show_main_header and block.settings.main_header != blank %}
+      <h2 class="ai-hotspot-main-header-{{ ai_gen_id }}">{{ block.settings.main_header }}</h2>
+    {% endif %}
+
+    <div class="ai-hotspot-layout-{{ ai_gen_id }}">
+      <div class="ai-hotspot-side-column-{{ ai_gen_id }} left">
+        {% for i in (1..4) %}
+          {% liquid
+            assign show_key = 'show_left_block_' | append: i
+            assign number_key = 'left_block_' | append: i | append: '_number'
+            assign heading_key = 'left_block_' | append: i | append: '_heading'
+            assign description_key = 'left_block_' | append: i | append: '_description'
+            assign bubble_bg_key = 'left_block_' | append: i | append: '_bubble_bg'
+            assign bubble_border_key = 'left_block_' | append: i | append: '_bubble_border'
+            assign number_color_key = 'left_block_' | append: i | append: '_number_color'
+            assign heading_color_key = 'left_block_' | append: i | append: '_heading_color'
+            assign description_color_key = 'left_block_' | append: i | append: '_description_color'
+
+            assign show_block = block.settings[show_key]
+            assign number = block.settings[number_key]
+            assign heading = block.settings[heading_key]
+            assign description = block.settings[description_key]
+            assign bubble_bg = block.settings[bubble_bg_key]
+            assign bubble_border = block.settings[bubble_border_key]
+            assign number_color = block.settings[number_color_key]
+            assign heading_color = block.settings[heading_color_key]
+            assign description_color = block.settings[description_color_key]
+          %}
+
+          {% if show_block %}
+            <div class="ai-hotspot-content-block-{{ ai_gen_id }}">
+              <div
+                class="ai-hotspot-number-bubble-{{ ai_gen_id }}"
+                style="background-color: {{ bubble_bg }}; border-color: {{ bubble_border }}; color: {{ number_color }};"
+              >
+                {{ number }}
+              </div>
+              <div class="ai-hotspot-block-text-{{ ai_gen_id }}">
+                {% if heading != blank %}
+                  <h3
+                    class="ai-hotspot-block-heading-{{ ai_gen_id }}"
+                    style="color: {{ heading_color }};"
+                  >
+                    {{ heading }}
+                  </h3>
+                {% endif %}
+                {% if description != blank %}
+                  <p
+                    class="ai-hotspot-block-description-{{ ai_gen_id }}"
+                    style="color: {{ description_color }};"
+                  >
+                    {{ description }}
+                  </p>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="ai-hotspot-image-wrapper-{{ ai_gen_id }}">
+        {% if block.settings.main_image %}
+          <img
+            src="{{ block.settings.main_image | image_url: width: 1200 }}"
+            alt="{{ block.settings.main_image.alt | escape }}"
+            class="ai-hotspot-main-image-{{ ai_gen_id }}"
+            width="{{ block.settings.main_image.width }}"
+            height="{{ block.settings.main_image.height }}"
+            loading="lazy"
+          >
+        {% else %}
+          <div class="ai-hotspot-placeholder-{{ ai_gen_id }}">
+            {{ 'image' | placeholder_svg_tag }}
+            <div class="ai-hotspot-empty-state-{{ ai_gen_id }}">Upload your main image</div>
+          </div>
+        {% endif %}
+
+        {% for i in (1..6) %}
+          {% liquid
+            assign show_key = 'show_hotspot_' | append: i
+            assign number_key = 'hotspot_' | append: i | append: '_number'
+            assign title_key = 'hotspot_' | append: i | append: '_title'
+            assign description_key = 'hotspot_' | append: i | append: '_description'
+            assign x_key = 'hotspot_' | append: i | append: '_x'
+            assign y_key = 'hotspot_' | append: i | append: '_y'
+            assign mobile_x_key = 'hotspot_' | append: i | append: '_mobile_x'
+            assign mobile_y_key = 'hotspot_' | append: i | append: '_mobile_y'
+            assign circle_bg_key = 'hotspot_' | append: i | append: '_circle_bg'
+            assign circle_border_key = 'hotspot_' | append: i | append: '_circle_border'
+            assign number_color_key = 'hotspot_' | append: i | append: '_number_color'
+
+            assign show_hotspot = block.settings[show_key]
+            assign number = block.settings[number_key]
+            assign title = block.settings[title_key]
+            assign description = block.settings[description_key]
+            assign x_pos = block.settings[x_key]
+            assign y_pos = block.settings[y_key]
+            assign mobile_x = block.settings[mobile_x_key]
+            assign mobile_y = block.settings[mobile_y_key]
+            assign circle_bg = block.settings[circle_bg_key]
+            assign circle_border = block.settings[circle_border_key]
+            assign number_color = block.settings[number_color_key]
+          %}
+
+          {% if show_hotspot %}
+            <div
+              class="ai-hotspot-marker-{{ ai_gen_id }}"
+              style="left: {{ x_pos }}%; top: {{ y_pos }}%; --mobile-x: {{ mobile_x }}%; --mobile-y: {{ mobile_y }}%;"
+              role="button"
+              tabindex="0"
+              aria-label="{{ title | escape }}: {{ description | escape }}"
+            >
+              <div
+                class="ai-hotspot-circle-{{ ai_gen_id }}"
+                style="background-color: {{ circle_bg }}; border-color: {{ circle_border }}; color: {{ number_color }};"
+              >
+                {{ number }}
+              </div>
+              {% if title != blank or description != blank %}
+                <div class="ai-hotspot-tooltip-{{ ai_gen_id }}">
+                  {% if title != blank %}
+                    <div class="ai-hotspot-tooltip-title-{{ ai_gen_id }}">{{ title }}</div>
+                  {% endif %}
+                  {% if description != blank %}
+                    <div class="ai-hotspot-tooltip-description-{{ ai_gen_id }}">{{ description }}</div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="ai-hotspot-side-column-{{ ai_gen_id }} right">
+        {% for i in (1..4) %}
+          {% liquid
+            assign show_key = 'show_right_block_' | append: i
+            assign number_key = 'right_block_' | append: i | append: '_number'
+            assign heading_key = 'right_block_' | append: i | append: '_heading'
+            assign description_key = 'right_block_' | append: i | append: '_description'
+            assign bubble_bg_key = 'right_block_' | append: i | append: '_bubble_bg'
+            assign bubble_border_key = 'right_block_' | append: i | append: '_bubble_border'
+            assign number_color_key = 'right_block_' | append: i | append: '_number_color'
+            assign heading_color_key = 'right_block_' | append: i | append: '_heading_color'
+            assign description_color_key = 'right_block_' | append: i | append: '_description_color'
+
+            assign show_block = block.settings[show_key]
+            assign number = block.settings[number_key]
+            assign heading = block.settings[heading_key]
+            assign description = block.settings[description_key]
+            assign bubble_bg = block.settings[bubble_bg_key]
+            assign bubble_border = block.settings[bubble_border_key]
+            assign number_color = block.settings[number_color_key]
+            assign heading_color = block.settings[heading_color_key]
+            assign description_color = block.settings[description_color_key]
+          %}
+
+          {% if show_block %}
+            <div class="ai-hotspot-content-block-{{ ai_gen_id }}">
+              <div
+                class="ai-hotspot-number-bubble-{{ ai_gen_id }}"
+                style="background-color: {{ bubble_bg }}; border-color: {{ bubble_border }}; color: {{ number_color }};"
+              >
+                {{ number }}
+              </div>
+              <div class="ai-hotspot-block-text-{{ ai_gen_id }}">
+                {% if heading != blank %}
+                  <h3
+                    class="ai-hotspot-block-heading-{{ ai_gen_id }}"
+                    style="color: {{ heading_color }};"
+                  >
+                    {{ heading }}
+                  </h3>
+                {% endif %}
+                {% if description != blank %}
+                  <p
+                    class="ai-hotspot-block-description-{{ ai_gen_id }}"
+                    style="color: {{ description_color }};"
+                  >
+                    {{ description }}
+                  </p>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Hot spot image",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section layout"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_main_header",
+      "label": "Show main header",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "main_header",
+      "label": "Main header",
+      "default": "Discover the Features"
+    },
+    {
+      "type": "font_picker",
+      "id": "header_font",
+      "label": "Header font",
+      "default": "inter_n7"
+    },
+    {
+      "type": "range",
+      "id": "header_font_size",
+      "min": 20,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "label": "Header font size",
+      "default": 40
+    },
+    {
+      "type": "color",
+      "id": "header_color",
+      "label": "Header color",
+      "default": "#000000"
+    },
+    {
+      "type": "select",
+      "id": "header_alignment",
+      "label": "Header alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "header_margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Header bottom margin",
+      "default": 40
+    },
+    {
+      "type": "color",
+      "id": "section_background",
+      "label": "Section background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Section top padding",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Section bottom padding",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "container_max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Container max width",
+      "default": 1400
+    },
+    {
+      "type": "header",
+      "content": "Column layout"
+    },
+    {
+      "type": "range",
+      "id": "left_column_width",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "label": "Left column width",
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "image_column_width",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "label": "Image column width",
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "right_column_width",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "label": "Right column width",
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "column_gap",
+      "min": 10,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Column gap",
+      "default": 40
+    },
+    {
+      "type": "select",
+      "id": "vertical_alignment",
+      "label": "Vertical alignment",
+      "options": [
+        { "value": "start", "label": "Top" },
+        { "value": "center", "label": "Center" },
+        { "value": "end", "label": "Bottom" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Main image"
+    },
+    {
+      "type": "image_picker",
+      "id": "main_image",
+      "label": "Image"
+    },
+    {
+      "type": "range",
+      "id": "image_width",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Image width",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "label": "Image border radius",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Content blocks style"
+    },
+    {
+      "type": "range",
+      "id": "block_spacing",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Block spacing",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "block_padding",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Block padding",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "block_inner_gap",
+      "min": 5,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Block inner gap",
+      "default": 15
+    },
+    {
+      "type": "select",
+      "id": "block_alignment",
+      "label": "Block alignment",
+      "options": [
+        { "value": "flex-start", "label": "Top" },
+        { "value": "center", "label": "Center" },
+        { "value": "flex-end", "label": "Bottom" }
+      ],
+      "default": "flex-start"
+    },
+    {
+      "type": "range",
+      "id": "bubble_size",
+      "min": 30,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "label": "Bubble size",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "bubble_border_width",
+      "min": 0,
+      "max": 5,
+      "step": 1,
+      "unit": "px",
+      "label": "Bubble border width",
+      "default": 2
+    },
+    {
+      "type": "font_picker",
+      "id": "block_heading_font",
+      "label": "Block heading font",
+      "default": "inter_n6"
+    },
+    {
+      "type": "range",
+      "id": "block_heading_size",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Block heading size",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "heading_margin_bottom",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading bottom margin",
+      "default": 8
+    },
+    {
+      "type": "font_picker",
+      "id": "block_description_font",
+      "label": "Block description font",
+      "default": "inter_n4"
+    },
+    {
+      "type": "range",
+      "id": "block_description_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Block description size",
+      "default": 15
+    },
+    {
+      "type": "header",
+      "content": "Hotspot markers"
+    },
+    {
+      "type": "range",
+      "id": "hotspot_size",
+      "min": 30,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "label": "Hotspot size",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "hotspot_number_size",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Hotspot number size",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "hotspot_border_width",
+      "min": 0,
+      "max": 5,
+      "step": 1,
+      "unit": "px",
+      "label": "Hotspot border width",
+      "default": 2
+    },
+    {
+      "type": "header",
+      "content": "Tooltip style"
+    },
+    {
+      "type": "color",
+      "id": "tooltip_background",
+      "label": "Tooltip background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "tooltip_text_color",
+      "label": "Tooltip text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "tooltip_padding",
+      "min": 8,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Tooltip padding",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "tooltip_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Tooltip border radius",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "tooltip_min_width",
+      "min": 100,
+      "max": 400,
+      "step": 20,
+      "unit": "px",
+      "label": "Tooltip min width",
+      "default": 200
+    },
+    {
+      "type": "range",
+      "id": "tooltip_title_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Tooltip title size",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "tooltip_description_size",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Tooltip description size",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Mobile settings"
+    },
+    {
+      "type": "select",
+      "id": "mobile_order",
+      "label": "Mobile layout order",
+      "options": [
+        { "value": "image_first", "label": "Image first" },
+        { "value": "image_middle", "label": "Image middle" },
+        { "value": "image_last", "label": "Image last" }
+      ],
+      "default": "image_first"
+    },
+    {
+      "type": "range",
+      "id": "mobile_spacing",
+      "min": 20,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Mobile spacing",
+      "default": 30
+    },
+    {
+      "type": "checkbox",
+      "id": "use_mobile_positions",
+      "label": "Use custom mobile positions",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Hotspot 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hotspot_1",
+      "label": "Show hotspot 1",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "hotspot_1_number",
+      "label": "Number",
+      "default": "1"
+    },
+    {
+      "type": "text",
+      "id": "hotspot_1_title",
+      "label": "Title",
+      "default": "Feature 1"
+    },
+    {
+      "type": "textarea",
+      "id": "hotspot_1_description",
+      "label": "Description",
+      "default": "Description of feature 1"
+    },
+    {
+      "type": "range",
+      "id": "hotspot_1_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Horizontal position",
+      "default": 25
+    },
+    {
+      "type": "range",
+      "id": "hotspot_1_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Vertical position",
+      "default": 25
+    },
+    {
+      "type": "range",
+      "id": "hotspot_1_mobile_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile horizontal position",
+      "default": 25
+    },
+    {
+      "type": "range",
+      "id": "hotspot_1_mobile_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile vertical position",
+      "default": 25
+    },
+    {
+      "type": "color",
+      "id": "hotspot_1_circle_bg",
+      "label": "Circle background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_1_circle_border",
+      "label": "Circle border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_1_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Hotspot 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hotspot_2",
+      "label": "Show hotspot 2",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "hotspot_2_number",
+      "label": "Number",
+      "default": "2"
+    },
+    {
+      "type": "text",
+      "id": "hotspot_2_title",
+      "label": "Title",
+      "default": "Feature 2"
+    },
+    {
+      "type": "textarea",
+      "id": "hotspot_2_description",
+      "label": "Description",
+      "default": "Description of feature 2"
+    },
+    {
+      "type": "range",
+      "id": "hotspot_2_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Horizontal position",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "hotspot_2_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Vertical position",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "hotspot_2_mobile_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile horizontal position",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "hotspot_2_mobile_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile vertical position",
+      "default": 30
+    },
+    {
+      "type": "color",
+      "id": "hotspot_2_circle_bg",
+      "label": "Circle background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_2_circle_border",
+      "label": "Circle border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_2_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Hotspot 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hotspot_3",
+      "label": "Show hotspot 3",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "hotspot_3_number",
+      "label": "Number",
+      "default": "3"
+    },
+    {
+      "type": "text",
+      "id": "hotspot_3_title",
+      "label": "Title",
+      "default": "Feature 3"
+    },
+    {
+      "type": "textarea",
+      "id": "hotspot_3_description",
+      "label": "Description",
+      "default": "Description of feature 3"
+    },
+    {
+      "type": "range",
+      "id": "hotspot_3_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Horizontal position",
+      "default": 75
+    },
+    {
+      "type": "range",
+      "id": "hotspot_3_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Vertical position",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "hotspot_3_mobile_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile horizontal position",
+      "default": 75
+    },
+    {
+      "type": "range",
+      "id": "hotspot_3_mobile_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile vertical position",
+      "default": 50
+    },
+    {
+      "type": "color",
+      "id": "hotspot_3_circle_bg",
+      "label": "Circle background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_3_circle_border",
+      "label": "Circle border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_3_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Hotspot 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hotspot_4",
+      "label": "Show hotspot 4",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "hotspot_4_number",
+      "label": "Number",
+      "default": "4"
+    },
+    {
+      "type": "text",
+      "id": "hotspot_4_title",
+      "label": "Title",
+      "default": "Feature 4"
+    },
+    {
+      "type": "textarea",
+      "id": "hotspot_4_description",
+      "label": "Description",
+      "default": "Description of feature 4"
+    },
+    {
+      "type": "range",
+      "id": "hotspot_4_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Horizontal position",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "hotspot_4_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Vertical position",
+      "default": 70
+    },
+    {
+      "type": "range",
+      "id": "hotspot_4_mobile_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile horizontal position",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "hotspot_4_mobile_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile vertical position",
+      "default": 70
+    },
+    {
+      "type": "color",
+      "id": "hotspot_4_circle_bg",
+      "label": "Circle background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_4_circle_border",
+      "label": "Circle border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_4_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Hotspot 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hotspot_5",
+      "label": "Show hotspot 5",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "hotspot_5_number",
+      "label": "Number",
+      "default": "5"
+    },
+    {
+      "type": "text",
+      "id": "hotspot_5_title",
+      "label": "Title",
+      "default": "Feature 5"
+    },
+    {
+      "type": "textarea",
+      "id": "hotspot_5_description",
+      "label": "Description",
+      "default": "Description of feature 5"
+    },
+    {
+      "type": "range",
+      "id": "hotspot_5_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Horizontal position",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "hotspot_5_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Vertical position",
+      "default": 75
+    },
+    {
+      "type": "range",
+      "id": "hotspot_5_mobile_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile horizontal position",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "hotspot_5_mobile_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile vertical position",
+      "default": 75
+    },
+    {
+      "type": "color",
+      "id": "hotspot_5_circle_bg",
+      "label": "Circle background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_5_circle_border",
+      "label": "Circle border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_5_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Hotspot 6"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hotspot_6",
+      "label": "Show hotspot 6",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "hotspot_6_number",
+      "label": "Number",
+      "default": "6"
+    },
+    {
+      "type": "text",
+      "id": "hotspot_6_title",
+      "label": "Title",
+      "default": "Feature 6"
+    },
+    {
+      "type": "textarea",
+      "id": "hotspot_6_description",
+      "label": "Description",
+      "default": "Description of feature 6"
+    },
+    {
+      "type": "range",
+      "id": "hotspot_6_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Horizontal position",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "hotspot_6_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Vertical position",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "hotspot_6_mobile_x",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile horizontal position",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "hotspot_6_mobile_y",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "Mobile vertical position",
+      "default": 80
+    },
+    {
+      "type": "color",
+      "id": "hotspot_6_circle_bg",
+      "label": "Circle background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_6_circle_border",
+      "label": "Circle border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "hotspot_6_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Left block 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_left_block_1",
+      "label": "Show left block 1",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "left_block_1_number",
+      "label": "Number",
+      "default": "1"
+    },
+    {
+      "type": "text",
+      "id": "left_block_1_heading",
+      "label": "Heading",
+      "default": "Premium Quality"
+    },
+    {
+      "type": "textarea",
+      "id": "left_block_1_description",
+      "label": "Description",
+      "default": "Made with the finest materials for lasting durability"
+    },
+    {
+      "type": "color",
+      "id": "left_block_1_bubble_bg",
+      "label": "Bubble background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_1_bubble_border",
+      "label": "Bubble border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_1_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_1_heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "left_block_1_description_color",
+      "label": "Description color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Left block 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_left_block_2",
+      "label": "Show left block 2",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "left_block_2_number",
+      "label": "Number",
+      "default": "2"
+    },
+    {
+      "type": "text",
+      "id": "left_block_2_heading",
+      "label": "Heading",
+      "default": "Easy to Use"
+    },
+    {
+      "type": "textarea",
+      "id": "left_block_2_description",
+      "label": "Description",
+      "default": "Simple setup and intuitive controls for everyone"
+    },
+    {
+      "type": "color",
+      "id": "left_block_2_bubble_bg",
+      "label": "Bubble background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_2_bubble_border",
+      "label": "Bubble border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_2_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_2_heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "left_block_2_description_color",
+      "label": "Description color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Left block 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_left_block_3",
+      "label": "Show left block 3",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "left_block_3_number",
+      "label": "Number",
+      "default": "3"
+    },
+    {
+      "type": "text",
+      "id": "left_block_3_heading",
+      "label": "Heading",
+      "default": "Eco-Friendly"
+    },
+    {
+      "type": "textarea",
+      "id": "left_block_3_description",
+      "label": "Description",
+      "default": "Sustainably sourced and environmentally conscious"
+    },
+    {
+      "type": "color",
+      "id": "left_block_3_bubble_bg",
+      "label": "Bubble background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_3_bubble_border",
+      "label": "Bubble border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_3_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_3_heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "left_block_3_description_color",
+      "label": "Description color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Left block 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_left_block_4",
+      "label": "Show left block 4",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "left_block_4_number",
+      "label": "Number",
+      "default": "4"
+    },
+    {
+      "type": "text",
+      "id": "left_block_4_heading",
+      "label": "Heading",
+      "default": "Affordable"
+    },
+    {
+      "type": "textarea",
+      "id": "left_block_4_description",
+      "label": "Description",
+      "default": "Great value without compromising on quality"
+    },
+    {
+      "type": "color",
+      "id": "left_block_4_bubble_bg",
+      "label": "Bubble background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_4_bubble_border",
+      "label": "Bubble border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_4_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "left_block_4_heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "left_block_4_description_color",
+      "label": "Description color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Right block 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_right_block_1",
+      "label": "Show right block 1",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "right_block_1_number",
+      "label": "Number",
+      "default": "3"
+    },
+    {
+      "type": "text",
+      "id": "right_block_1_heading",
+      "label": "Heading",
+      "default": "Fast Delivery"
+    },
+    {
+      "type": "textarea",
+      "id": "right_block_1_description",
+      "label": "Description",
+      "default": "Quick shipping to get your order to you faster"
+    },
+    {
+      "type": "color",
+      "id": "right_block_1_bubble_bg",
+      "label": "Bubble background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_1_bubble_border",
+      "label": "Bubble border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_1_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_1_heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "right_block_1_description_color",
+      "label": "Description color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Right block 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_right_block_2",
+      "label": "Show right block 2",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "right_block_2_number",
+      "label": "Number",
+      "default": "4"
+    },
+    {
+      "type": "text",
+      "id": "right_block_2_heading",
+      "label": "Heading",
+      "default": "Warranty Included"
+    },
+    {
+      "type": "textarea",
+      "id": "right_block_2_description",
+      "label": "Description",
+      "default": "Backed by our comprehensive warranty program"
+    },
+    {
+      "type": "color",
+      "id": "right_block_2_bubble_bg",
+      "label": "Bubble background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_2_bubble_border",
+      "label": "Bubble border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_2_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_2_heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "right_block_2_description_color",
+      "label": "Description color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Right block 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_right_block_3",
+      "label": "Show right block 3",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "right_block_3_number",
+      "label": "Number",
+      "default": "5"
+    },
+    {
+      "type": "text",
+      "id": "right_block_3_heading",
+      "label": "Heading",
+      "default": "24/7 Support"
+    },
+    {
+      "type": "textarea",
+      "id": "right_block_3_description",
+      "label": "Description",
+      "default": "Our team is always here to help you"
+    },
+    {
+      "type": "color",
+      "id": "right_block_3_bubble_bg",
+      "label": "Bubble background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_3_bubble_border",
+      "label": "Bubble border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_3_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_3_heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "right_block_3_description_color",
+      "label": "Description color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Right block 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_right_block_4",
+      "label": "Show right block 4",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "right_block_4_number",
+      "label": "Number",
+      "default": "6"
+    },
+    {
+      "type": "text",
+      "id": "right_block_4_heading",
+      "label": "Heading",
+      "default": "Satisfaction Guaranteed"
+    },
+    {
+      "type": "textarea",
+      "id": "right_block_4_description",
+      "label": "Description",
+      "default": "100% money-back guarantee if you're not satisfied"
+    },
+    {
+      "type": "color",
+      "id": "right_block_4_bubble_bg",
+      "label": "Bubble background",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_4_bubble_border",
+      "label": "Bubble border",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_4_number_color",
+      "label": "Number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "right_block_4_heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "right_block_4_description_color",
+      "label": "Description color",
+      "default": "#666666"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Hot spot image"
+    }
+  ],
+  "tag": null
+}
+{% endschema %}

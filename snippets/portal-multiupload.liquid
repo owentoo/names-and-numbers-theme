@@ -1,0 +1,1106 @@
+{%- comment -%}
+  Portal Multi-Upload Setup
+  Provides everything bySize.js needs to run the multi-upload modal on the Members Portal page.
+  Variant data pulled from DTF Transfers product; block settings hardcoded for DTF.
+{%- endcomment -%}
+
+{%- assign dtfProduct = all_products['dtf-transfers'] -%}
+
+{%- comment -%} ===== Build variant arrays (mirrors bySize__js 'allVariants') ===== {%- endcomment -%}
+{%- capture allVariantsJSON -%}
+  {% for variant in dtfProduct.variants %}
+    {
+      "id": {{ variant.id | json }},
+      "title": {{ variant.title | json }},
+      {% if variant.featured_image != blank %}
+        "thumb": {{ variant.featured_image | image_url: width: 100 | json }},
+        "large": {{ variant.featured_image | image_url: width: 1000 | json }},
+      {% elsif variant.image != blank %}
+        "thumb": {{ variant.image | image_url: width: 100 | json }},
+        "large": {{ variant.image | image_url: width: 1000 | json }},
+      {% else %}
+        "thumb": null,
+        "large": null,
+      {% endif %}
+      {% if variant.option1 != blank %}
+        "option1": {{ variant.option1 | json }},
+        "option1_converted": {{ variant.option1 | replace: '"', '^' | json }},
+        {% if variant.option1 contains 'Style #' %}
+          "isCustom": true,
+          {%-liquid
+            assign getSize = variant.option1 | split: 'Style #' | remove: ' ' | remove: '[' | remove: ']' | remove: '"' | remove: ','
+            assign minInches = getSize | split: '-' | first | strip | times: 1
+            assign maxInches = getSize | split: '-' | last | strip | times: 1
+          -%}
+          "minInches": {{ minInches | json }},
+          "maxInches": {{ maxInches | json }},
+        {% else %}
+          "isPopular": true,
+        {% endif %}
+      {% endif %}
+      {% if variant.option2 != blank %}
+        "option2": {{ variant.option2 | json }},
+      {% endif %}
+      {% if variant.option3 != blank %}
+        "option3": {{ variant.option3 | json }},
+      {% endif %}
+      "media_id": {{ variant.featured_media.id | json }},
+      "price": {{ variant.price | money_without_currency | json }}
+    }
+    {%- unless forloop.last -%},{%- endunless -%}
+  {% endfor %}
+{%- endcapture -%}
+
+{%- assign customVariantsJSON = '' -%}
+{%- assign popularVariantsJSON = '' -%}
+{% for variant in dtfProduct.variants %}
+  {% if variant.option1 contains 'Style #' %}
+    {%- capture customVariantsJSON -%}
+      {{ customVariantsJSON }}
+      ,{
+        "id": {{ variant.id | json }},
+        "title": {{ variant.title | json }},
+        {% if variant.featured_image != blank %}
+          "thumb": {{ variant.featured_image | image_url: width: 100 | json }},
+          "large": {{ variant.featured_image | image_url: width: 1000 | json }},
+        {% else %}
+          "thumb": null,
+          "large": null,
+        {% endif %}
+        {% if variant.option1 != blank %}"option1": {{ variant.option1 | json }},{% endif %}
+        {% if variant.option2 != blank %}"option2": {{ variant.option2 | json }},{% endif %}
+        {% if variant.option3 != blank %}"option3": {{ variant.option3 | json }},{% endif %}
+        {%-liquid
+          assign getMin = variant.option1 | split: '#' | last
+          if getMin contains '-'
+            assign cmin = getMin | split: '-' | first
+            assign cmax = getMin | split: '-' | last
+          endif
+        -%}
+        {% if cmin != blank and cmax != blank %}"min": {{ cmin | json }},"max": {{ cmax | json }},{% endif %}
+        "media_id": {{ variant.featured_media.id | json }},
+        "price": {{ variant.price | money_without_currency | json }}
+      }
+    {%- endcapture -%}
+  {% else %}
+    {%- capture popularVariantsJSON -%}
+      {{ popularVariantsJSON }}
+      ,{
+        "id": {{ variant.id | json }},
+        "title": {{ variant.title | json }},
+        {% if variant.featured_image != blank %}
+          "thumb": {{ variant.featured_image | image_url: width: 100 | json }},
+          "large": {{ variant.featured_image | image_url: width: 1000 | json }},
+        {% else %}
+          "thumb": null,
+          "large": null,
+        {% endif %}
+        {% if variant.option1 != blank %}"option1": {{ variant.option1 | json }},{% endif %}
+        {% if variant.option2 != blank %}"option2": {{ variant.option2 | json }},{% endif %}
+        {% if variant.option3 != blank %}"option3": {{ variant.option3 | json }},{% endif %}
+        "media_id": {{ variant.featured_media.id | json }},
+        "price": {{ variant.price | money_without_currency | json }}
+      }
+    {%- endcapture -%}
+  {% endif %}
+{% endfor %}
+{% if customVariantsJSON != blank %}
+  {%- assign customVariantsJSON = customVariantsJSON | remove_first: ',' -%}
+{% endif %}
+{% if popularVariantsJSON != blank %}
+  {%- assign popularVariantsJSON = popularVariantsJSON | remove_first: ',' -%}
+{% endif %}
+
+{%- comment -%} ===== Cart count ===== {%- endcomment -%}
+{%- capture alreadyCartQty -%}{%- render '__alreadyItemsInCart', product: dtfProduct -%}{%- endcapture -%}
+
+{%- comment -%} ===== Free-shipping data ===== {%- endcomment -%}
+{%-liquid
+  assign localzone = localization.country.iso_code
+  case localzone
+    when "CA"
+      assign bySize_freeShipping_amount = settings.bySize_freeShipping_amount_ca
+      assign nwprice = bySize_freeShipping_amount | prepend: "$" | append: " CAD"
+    else
+      assign bySize_freeShipping_amount = settings.bySize_freeShipping_amount
+      assign nwprice = bySize_freeShipping_amount | prepend: "$"
+  endcase
+
+  assign bySizeTotal = 0
+  assign isBySizeAvailable = false
+  for item in cart.items
+    if item.product.type == 'custom transfers' or item.product.type == 'spangles' or item.product.type == 'UV DTF' or item.product.type == 'UV DTF gang' or item.product.type == 'puff transfers' or item.product.tags contains 'supplies'
+      assign isBySizeAvailable = true
+      assign bySizeTotal = bySizeTotal | plus: item.final_line_price
+    endif
+  endfor
+  capture eligibilityBySize
+    assign a__ = bySize_freeShipping_amount | times: 100
+    if a__ > bySizeTotal
+      assign awayFrom_bysize = a__ | minus: bySizeTotal | divided_by: 100.00 | round: 2
+      assign awayFrom_bysize_0 = awayFrom_bysize | split: '.' | first
+      assign awayFrom_bysize_1 = awayFrom_bysize | split: '.' | last
+      if awayFrom_bysize_1.size == 1
+        assign awayFrom_bysize_1 = awayFrom_bysize_1 | append: '0'
+      endif
+      assign awayFrom_bysize = awayFrom_bysize_0 | append: '.' | append: awayFrom_bysize_1 | prepend: '$'
+      echo settings.bySize_freeShipping_text | replace: '[AMOUNT]', awayFrom_bysize
+    else
+      echo "Congrats! <strong>Free Shipping</strong> Unlocked on <strong>Transfers & Supplies</strong>"
+    endif
+  endcapture
+-%}
+
+{%- comment -%} ===== CSS ===== {%- endcomment -%}
+<link rel="stylesheet" href="{{ 'transferBySize.css' | asset_url }}">
+<link rel="stylesheet" href="{{ 'bySize.css' | asset_url }}">
+{{ 'pricesTable-v2.css' | asset_url | stylesheet_tag }}
+{{ 'customTabelPopup.css' | asset_url | stylesheet_tag }}
+<style>
+  multi-upload-wrapper * { font-family: "inter" !important; }
+
+  /* Multi-upload: let the image preview expand to the full width of its
+     upload tile so the preview box and the Remove BG / Upscale / Edit AI
+     bar below it share the same width. The default `file-preview` rule
+     (in __blanksUploadHelper.css) caps the preview at `max-width: 415px`
+     which leaves the toggle bar wider than the image. */
+  multi-upload-wrapper preview-box file-preview,
+  multi-upload-wrapper preview-box file-preview[show-dimensions] {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* ── Portal fixes: base styles normally provided by custom-fileupload.liquid ── */
+
+  /* 1. Qty / Price / Total grid layout */
+  precut-unit-logic .precut-unit-logic__grid {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  precut-unit-logic .__title {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  precut-unit-logic .precut-unit-logic__grid .__originalPrice {
+    font-weight: 500;
+    color: gray;
+    font-size: 10px;
+    text-decoration: line-through;
+    align-self: end;
+    margin-top: 10px;
+  }
+  precut-unit-logic .precut-unit-logic__grid .__originalPrice.hidden {
+    margin-top: 0;
+  }
+  precut-unit-logic .precut-unit-logic__grid .__discountedPrice {
+    font-weight: 600;
+    color: #000;
+    font-size: 14px;
+  }
+
+  /* 2. Rebuild-tools wrapper (edit-with-ai + toggles below image) */
+  .multiupload-rebuild-tools-inner {
+    padding: 4px 4px 4px 15px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    flex-direction: row-reverse;
+    gap: 10px;
+    background-color: #F3F3F3;
+    margin-top: 20px;
+  }
+  .multiupload-rebuild-tools-inner toggle-options {
+    margin: 0 10px 0 0;
+  }
+  .multiupload-rebuild-tools-inner toggle-options .switch {
+    background: transparent;
+    padding: 20px 0;
+    font-weight: 600;
+    font-size: 12px;
+    color: #444444;
+  }
+  .multiupload-rebuild-tools-inner toggle-options .switch img { display: none; }
+  .multiupload-rebuild-tools-inner toggle-options .switch .toggleOption:checked + .slider {
+    background-color: #73D447;
+  }
+  .multiupload-rebuild-tools-inner toggle-options .switch[for^="superRes"]:before {
+    content: "";
+    background-color: #D9D9D9;
+    display: block;
+    width: 1px;
+    height: 40px;
+    margin-right: 4px;
+    margin-left: 4px;
+  }
+  .multiupload-rebuild-tools-inner .edit-with-ai {
+    position: static;
+    white-space: nowrap;
+    box-shadow: unset;
+    background: #fff;
+    color: #666 !important;
+    font-size: 12px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  body .multiupload-rebuild-tools-inner:has(toggle-options[show-bg-option="false"][show-superres-option="false"]) .edit-with-ai {
+    width: 100%;
+    justify-content: center;
+  }
+  body .multiupload-rebuild-tools-inner:has(toggle-options[show-bg-option="false"][show-superres-option="false"]) {
+    padding-left: 4px;
+  }
+  multi-upload-wrapper .multiupload-rebuild-tools-inner {
+    flex-direction: column-reverse;
+    padding: 4px;
+    gap: 5px;
+  }
+  multi-upload-wrapper .multiupload-rebuild-tools-inner .edit-with-ai {
+    justify-content: center;
+    width: 100%;
+  }
+  multi-upload-wrapper .multiupload-rebuild-tools-inner toggle-options {
+    max-width: calc(100% - 8px);
+    margin-right: 0;
+  }
+  multi-upload-wrapper .multiupload-rebuild-tools-inner toggle-options .switch {
+    padding: 14px 0;
+  }
+
+  /* 3. Toggle options — ensure flex on desktop */
+  @media (min-width: 769px) {
+    multi-upload toggle-options { display: flex !important; }
+  }
+
+  /* 4. Image loading overlay (spinner while image processes) */
+  .easyzoom.image-loading:after,
+  .easyzoom.image-loading-2:after {
+    content: "";
+    left: 0; right: 0; bottom: 0; top: 0;
+    position: absolute;
+    z-index: 1;
+    background: url(https://cdn.shopify.com/s/files/1/0558/0265/8899/files/loader-2.gif?v=1723724647) rgba(0,0,0,0.5) center center no-repeat;
+    background-size: 60px;
+  }
+  .easyzoom.image-loading .upload_tools {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* 5. File progress bar */
+  file-progress {
+    display: grid;
+    grid-template-columns: 75px auto 50px;
+    align-items: start;
+    gap: 10px;
+    position: relative;
+  }
+  .fileProgress .fileProgress__ninjaImg { max-width: 100%; }
+  .fileProgress .fileProgress__msg {
+    background-color: #cfefff;
+    padding: 6px 10px;
+    border-radius: 8px;
+    display: flex;
+    gap: 10px;
+    max-width: 84%;
+    margin: 0 auto;
+    font-size: 10.5px;
+    line-height: 1;
+    align-items: center;
+    color: #1480b7;
+    font-weight: 500;
+  }
+  .fileProgress .fileProgress__msg svg { width: 30px; height: 30px; fill: #1480b7; }
+  .fileProgress .fileProgress__msg p { margin-bottom: 0; }
+  .fileProgress .fileProgress__loadingPercent { text-align: right; }
+  .fileProgress .loadingPercent__counter { color: #c4c3c4; }
+  .fileProgress .fileProgress__barWrap {
+    position: absolute;
+    left: 75px;
+    top: 50px;
+    width: calc(100% - 85px);
+  }
+  .fileProgress .fileProgress__barWrap::before {
+    content: "";
+    position: absolute;
+    bottom: 5px;
+    width: 100%;
+    height: .7rem;
+    background-color: #ebf2ff;
+    border-radius: .625rem;
+  }
+  .fileProgress .fileProgress__bar {
+    background: url(/cdn/shop/files/New_beam.png) center no-repeat;
+    background-size: 100% 24px;
+    bottom: 0;
+    width: 0;
+    height: .7rem;
+    background-color: #ebf2ff;
+    border-radius: .625rem;
+    display: inline-block;
+    position: relative;
+  }
+  .fileProgress .fileProgress__bar img {
+    position: absolute;
+    right: -14px;
+    top: -8px;
+    height: 28px;
+  }
+</style>
+
+{%- comment -%} ===== Global JS variables ===== {%- endcomment -%}
+<script>
+  const productTypeIs = 'bySize';
+  const productTemplateIs = 'portal';
+  const productURL = '/products/dtf-transfers';
+  let CUSTOMER_ID = null;
+  {% if customer %}CUSTOMER_ID = {{ customer.id }};{% endif %}
+
+  loaderGif = `{{ 'loader.gif' | asset_url }}`;
+  const allVariants = [{{ allVariantsJSON }}];
+  const allCustomVariants = [{{ customVariantsJSON }}];
+  const allPopularVariants = [{{ popularVariantsJSON }}];
+  const mainSectionID = 'portal-multiupload';
+  let precutOptionAvailable = false;
+  const isPuffProduct = false;
+  const isMagnetProduct = false;
+  const isCustomStickerProduct = false;
+  const isBumperStickerProduct = false;
+
+  const bySizeVariants = allVariants;
+  const imagesTypesNew = ["image/png","image/jpg","image/jpeg","application/postscript",".eps","application/pdf","image/tiff","image/svg+xml"];
+  const definedMinWidth = 0.25;
+  const definedMaxWidth = 22;
+  const definedMinHeight = 0.25;
+  const definedMaxHeight = 22;
+  const definedMinQty = 1;
+  const isEnabledPixelsValidation = false;
+  const definedMaxPixelsForSuperRes = 1000000;
+  const smartSizing = true;
+
+  const imgParamsSettings = [
+    {"fileType":"png","preview":"trim=colorUnlessAlpha&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100","order":"[imgIx]trim=colorUnlessAlpha&&[S3]","bgRemover":true,"superRes":true,"byDefaultBgRemover":false,"byDefaultSuperRes":false},
+    {"fileType":"jpg","preview":"trim=colorUnlessAlpha&fm=png&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100","order":"[imgIx]trim=colorUnlessAlpha&&[S3]","bgRemover":true,"superRes":true,"byDefaultBgRemover":true,"byDefaultSuperRes":false},
+    {"fileType":"ai","preview":"trim=colorUnlessAlpha&fm=png&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100","order":"[BOTH_S3]","bgRemover":false,"superRes":false,"byDefaultBgRemover":false,"byDefaultSuperRes":false},
+    {"fileType":"eps","preview":"fm=png&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100","order":"[BOTH_S3]","bgRemover":false,"superRes":false,"byDefaultBgRemover":false,"byDefaultSuperRes":false},
+    {"fileType":"pdf","preview":"trim=colorUnlessAlpha&fm=png&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100","order":"[BOTH_S3]","bgRemover":false,"superRes":false,"byDefaultBgRemover":false,"byDefaultSuperRes":false},
+    {"fileType":"tif","preview":"trim=colorUnlessAlpha&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100","order":"[imgIx]fm=png&&[S3]","bgRemover":true,"superRes":false,"byDefaultBgRemover":false,"byDefaultSuperRes":false},
+    {"fileType":"svg","preview":"trim=colorUnlessAlpha&fm=png&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100","order":"[BOTH_S3]","bgRemover":false,"superRes":false,"byDefaultBgRemover":false,"byDefaultSuperRes":false}
+  ];
+  const fileParamsAccount = [
+    {"fileType":"png","preview":"trim=colorUnlessAlpha&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100"},
+    {"fileType":"jpg","preview":"trim=colorUnlessAlpha&fm=png&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100"},
+    {"fileType":"ai","preview":"trim=colorUnlessAlpha&fm=png&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100"},
+    {"fileType":"eps","preview":"fm=png&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100"},
+    {"fileType":"pdf","preview":"trim=colorUnlessAlpha&fm=png&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100"},
+    {"fileType":"tif","preview":"trim=colorUnlessAlpha&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100"},
+    {"fileType":"svg","preview":"trim=colorUnlessAlpha&fm=png&w=2000","cart":"trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100"}
+  ];
+
+  const newCartMsgs = {
+    "emptyCart": "<b>Add [QTY]</b> of this design or your next upload to reach [NEXT_DISCOUNT] savings",
+    "itemsAvailableInCart": "Add <b>[QTY]</b> of this design or your next upload to reach [NEXT_DISCOUNT] savings.",
+    "maxDiscount": "You\u2019ve beat the video game and reached the <b>Maximum Cumulative Discount!</b>"
+  };
+</script>
+
+{%- comment -%} ===== Multi-upload HTML templates ===== {%- endcomment -%}
+<div id="multiUploadTemplates" class="hidden">
+
+  {%- comment -%} --- MAIN modal wrapper --- {%- endcomment -%}
+  <template data-multi-id="main">
+    <multi-upload-wrapper class="multiUpload active">
+      <multi-upload>
+        <span class="multiUpload__close">&nbsp;</span>
+        <upload-area>
+          <file-blocks-area total-qty="1"></file-blocks-area>
+
+          <another-upload-multi class="anotherUpload" tabindex="1" newdesign>
+            <div class="secondDropZone" for="secondFile_">
+              <div class="secondDropZone__title">Add another design</div>
+              <div class="secondDropZone__inner">
+                <b>Browse</b>
+                <div class="secondDropZone__text">Drag and drop file(s)</div>
+              </div>
+              {% if customer %}
+                <p class="access_old_data">
+                  <a href="#" class="purchase_from_previous" data-type="first_upload">Choose a previously uploaded design</a>
+                </p>
+              {% else %}
+                <p class="access_old_data">
+                  <a data-link="" href="/customer_authentication/login?return_to={{ dtfProduct.url | url_encode }}" class="basic__link first__upload">Login</a> to see previous designs
+                </p>
+              {% endif %}
+            </div>
+          </another-upload-multi>
+          <input type="file" id="anotherFileMultiple" class="hidden" multiple accept="image/png,image/jpg,image/jpeg,application/postscript,.eps,application/pdf,image/tiff,image/svg+xml">
+        </upload-area>
+
+        <other-options>
+          <div class="otherOptions__top">
+            <multi-shipping-bar>
+              {%- if settings.cartFreeShippingBySize -%}
+                {% if isBySizeAvailable %}
+                  <div class="cart-notice text-size--small hide-if-empty-cart">
+                    <free-shipping-bysize class="sidebar-widget__contentItem freeship_zone{{ localzone | downcase }}"
+                      free-shipping-amount="{{ bySize_freeShipping_amount | times: 100 }}"
+                      data-cart-total="{{ bySizeTotal }}">
+                      {%- assign bySizeToolTip = '<picture class="tooltip"><img src="//ninja-transfers-cdn.imgix.net/info_da70c6e6-1e86-41d3-9035-2bf57d01d406_medium.svg?auto=format,compress&amp;v=1678797665" class="infoIcon infoModal grt-infoicon"><span class="tooltiptext">' | append: settings.bySize_freeShipping_tooltipContent | replace: '[AMOUNT]', nwprice | append: '</span></picture>' -%}
+                      <div class="freeShipping__title">
+                        <div>
+                          <span class="freeShipping__content">{{ eligibilityBySize }}</span>
+                          <span>{{ settings.bySize_freeShipping_title | replace: '[TOOLTIP]', bySizeToolTip }}</span>
+                        </div>
+                        <strong class="nowrap">{{ nwprice }}</strong>
+                      </div>
+                      <span class="cart-notice__slider">
+                        <span class="cart-notice__slider-bar" style="background-color: #3eaeff; width: 0;"></span>
+                      </span>
+                    </free-shipping-bysize>
+                  </div>
+                {% endif %}
+              {%- endif -%}
+            </multi-shipping-bar>
+
+            <delivery-block>
+              <div class="delivery-block">
+                <div class="del-sh-text">Fastest Delivery <strong>Sat, <date>Jun. 14th</date></strong> if ordered in <strong><time>04h 45m 51s</time></strong></div>
+                <span class="textinfodel" style="display:none">Fastest Delivery <strong>Sat, <date>Jun. 14th</date></strong> if ordered in <strong><time>04h 45m 50s</time></strong></span>
+              </div>
+            </delivery-block>
+
+            {%- comment -%} --- Prices table (hardcoded DTF tiers) --- {%- endcomment -%}
+            {{ 'pricesTable-v2.css' | asset_url | stylesheet_tag }}
+            <prices-table class="pricesTable v2"
+              already-in-cart="{{ alreadyCartQty }}"
+              current-qty-plus-cart-qty="{{ alreadyCartQty | plus: 1 }}"
+              empty-cart-msg="&lt;b&gt;Add [QTY]&lt;/b&gt; of this design or your next upload to reach [NEXT_DISCOUNT] savings"
+              items-msg="Add &lt;b&gt;[QTY]&lt;/b&gt; of this design or your next upload to reach [NEXT_DISCOUNT] savings."
+              max-qty-msg="You&rsquo;ve beat the video game and reached the &lt;b&gt;Maximum Cumulative Discount!&lt;/b&gt;">
+              <div class="pricesTable__title">
+                Buy More &amp; Save w/ <span class="customTabelPlaceWrap__colorChange">Cumulative Discounts</span>
+                <div class="pricesTable__detail" style="display: inline;">
+                  <picture class="tooltip">
+                    <img src="//ninja-transfers-cdn.imgix.net/info_da70c6e6-1e86-41d3-9035-2bf57d01d406_medium.svg?auto=format,compress&amp;v=1678797665" class="infoIcon infoModal grt-infoicon" width="" height="">
+                    <span class="tooltiptext" style="text-align:left;background-color:#000;color:#fff;height:auto;max-height:112px;padding:5px;margin-right:0;right:0;left:unset;width:220px;white-space:wrap;line-height:130%;min-height:auto;">
+                      <strong>Example:</strong> If you order 5 different designs with 50 pieces each, you will receive the 250 pc cumulative discount (50% off) for all.
+                    </span>
+                  </picture>
+                </div>
+              </div>
+              <div class="pricesTable__subText">We count every <strong>DTF Transfer &amp; UV DTF Sticker</strong> in your order to ensure you receive the maximum discount per piece.</div>
+              <div class="pricesTable__table">
+                <div class="pricesTable__tableHeading">
+                  <div class="pricesTable__tableHeading_1">Total Qty</div>
+                  <div class="pricesTable__tableHeading_2">Price</div>
+                  <div class="pricesTable__tableHeading_3">Discount</div>
+                </div>
+                <div class="pricesTable__items">
+                  <div class="pricesTable__table_viewAll view" view-all="view all" view-hide="hide">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="#555" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </div>
+                  <div class="pricesTable__item selected" index="1" min="1" max="14" off="50" next-off="20" pre-cut="0.19">
+                    <div class="pricesTable__item_1"><dynamic-qty>1-14 pcs</dynamic-qty></div>
+                    <div class="pricesTable__item_2"><symbol>$</symbol><discount></discount> ea</div>
+                    <div class="pricesTable__item_3" aa="0% off">&nbsp;</div>
+                    <div class="pricesTable__item__msg"></div>
+                  </div>
+                  <div class="pricesTable__item" index="2" min="15" max="49" off="20" next-off="30" pre-cut="0.19">
+                    <div class="pricesTable__item_1"><dynamic-qty>15-49</dynamic-qty></div>
+                    <div class="pricesTable__item_2"><symbol>$</symbol><discount></discount> ea</div>
+                    <div class="pricesTable__item_3" aa="20% off">20% off</div>
+                    <div class="pricesTable__item__msg"></div>
+                  </div>
+                  <div class="pricesTable__item" index="3" min="50" max="99" off="30" next-off="40" pre-cut="0.19">
+                    <div class="pricesTable__item_1"><dynamic-qty>50-99</dynamic-qty></div>
+                    <div class="pricesTable__item_2"><symbol>$</symbol><discount></discount> ea</div>
+                    <div class="pricesTable__item_3" aa="30% off">30% off</div>
+                    <div class="pricesTable__item__msg"></div>
+                  </div>
+                  <div class="pricesTable__item" index="4" min="100" max="249" off="40" next-off="50" pre-cut="0.19">
+                    <div class="pricesTable__item_1"><dynamic-qty>100-249</dynamic-qty></div>
+                    <div class="pricesTable__item_2"><symbol>$</symbol><discount></discount> ea</div>
+                    <div class="pricesTable__item_3" aa="40% off">40% off</div>
+                    <div class="pricesTable__item__msg"></div>
+                  </div>
+                  <div class="pricesTable__item" index="5" min="250" max="1000000" off="50" next-off="1000000" pre-cut="0.19">
+                    <div class="pricesTable__item_1"><dynamic-qty>250+</dynamic-qty></div>
+                    <div class="pricesTable__item_2"><symbol>$</symbol><discount></discount> ea</div>
+                    <div class="pricesTable__item_3" aa="50% off">50% off</div>
+                    <div class="pricesTable__item__msg"></div>
+                  </div>
+                  <div class="pricesTable__selectedBar"></div>
+                </div>
+              </div>
+              <div class="print_perfect">
+                <img src="{{ 'print_perfect.svg' | asset_url }}" style="width: 30px;">
+                <p><strong>Ninja Guarantee:</strong>&nbsp;<em>Perfect Prints. Free Art Review. No Extra Fees!</em></p>
+              </div>
+              <discount-properties discount-input="min_1-off_50#min_15-off_20#min_50-off_30#min_100-off_40#min_250-off_50#" discount-name="50%25_off_for_1_transfers#20%25_off_for_15_transfers#30%25_off_for_50_transfers#40%25_off_for_100_transfers#50%25_off_for_250_transfers#"></discount-properties>
+            </prices-table>
+          </div>
+
+          <footer-block>
+            <precut>
+              <div class="preCut__text">
+                <span>Want to save time?</span>
+                <a class="openmodalbox" href="javascript://" onclick="$('.precut-popup').show();">
+                  <img src="//ninja-transfers-cdn.imgix.net/info_da70c6e6-1e86-41d3-9035-2bf57d01d406_medium.svg?auto=format,compress&amp;v=1678797665" class="infoIcon infoModal grt-infoicon" width="" height="">
+                </a>
+              </div>
+              <label for="preCutOption_multi">
+                <input type="checkbox" id="preCutOption_multi">
+                Yes, Pre-cut transfers <strong class="nodisplay precut-cost">$0.19 each</strong>
+              </label>
+            </precut>
+
+            <proceed-to-checkout>
+              <span class="button button--solid button--product button--loader button--move addToCartGroupItemsMultiple">
+                <span class="button__text" data-js-product-add-to-cart-text="">Add to Cart</span>
+                <span class="button__preloader">
+                  <svg class="button__preloader-element" viewBox="25 25 50 50"><circle cx="50" cy="50" r="20" fill="none" stroke-width="4"></circle></svg>
+                </span>
+              </span>
+            </proceed-to-checkout>
+            <div class="multiupload-rewards-slice grt-rewardpointinfo">
+              {% render 'reward-point-info', product: product, classneed: "__product-page", type: 'product', price: product.first_available_variant.price %}
+            </div>
+          </footer-block>
+        </other-options>
+      </multi-upload>
+    </multi-upload-wrapper>
+  </template>
+
+  {%- comment -%} --- File-block template (cloned per upload) --- {%- endcomment -%}
+  <template data-multi-id="fileBlock">
+    <uploaded-files-block tabindex="1">
+      {% render 'ldl-loader' %}
+
+      <item-no>
+        <div class="itemNo__name">Upload 1</div>
+        <div class="itemNo__action"><a href="javascript://">Delete</a></div>
+      </item-no>
+
+      <div class="previewBlock_and_lineItems">
+        <preview-box>
+          <span class="zoom-text">Hover to Zoom | <a href="javascript://" style="color:#03a3f7" class="zoom_image">Click</a> to enlarge</span>
+          <div class="previewText"><span class="fw-600">Preview:</span> The image will print as shown above.</div>
+          <file-preview id="filePreview" show-dimensions>
+            <preview-block class="easyzoom zoom-box">
+              <div class="upload_tools">
+                <a href="javascript://" removefile>
+                  <svg style="pointer-events:none" clip-rule="evenodd" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m4.015 5.494h-.253c-.413 0-.747-.335-.747-.747s.334-.747.747-.747h5.253v-1c0-.535.474-1 1-1h4c.526 0 1 .465 1 1v1h5.254c.412 0 .746.335.746.747s-.334.747-.746.747h-.254v15.435c0 .591-.448 1.071-1 1.071-2.873 0-11.127 0-14 0-.552 0-1-.48-1-1.071zm14.5 0h-13v15.006h13zm-4.25 2.506c-.414 0-.75.336-.75.75v8.5c0 .414.336.75.75.75s.75-.336.75-.75v-8.5c0-.414-.336-.75-.75-.75zm-4.5 0c-.414 0-.75.336-.75.75v8.5c0 .414.336.75.75.75s.75-.336.75-.75v-8.5c0-.414-.336-.75-.75-.75zm3.75-4v-.5h-3v.5z" fill-rule="nonzero"/></svg>
+                </a>
+              </div>
+              <div class="horizontal_direction" x-is="0">&nbsp;</div>
+              <div class="verticle_direction" y-is="0">&nbsp;</div>
+              <img class="xzoom fileupload_hero" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/transparent.png?v=1728297951" width="" height="">
+            </preview-block>
+            <file-details class="hidden"></file-details>
+          </file-preview>
+          <div class="multiupload-rebuild-tools-inner">
+            <button class="edit-with-ai">
+              <span class="edit-with-aiFlex" onclick="document.querySelector('.customTabelPopup__overlay-ai').style.display = 'grid'">
+                <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/f496250308654ff1177d427b518129208af23c9d.png?v=1772729514">
+                <span>Edit with AI</span>
+              </span>
+            </button>
+            <toggle-options show-bg-option="false" show-superres-option="false">
+              <label class="switch bgRemover" for="bgRemover_">
+                <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/editWithAI_c3302daf-3fd0-4731-a169-d7e8f7e5eee7.png?auto=format,compress&amp;v=1766579573" width="" height="" style="height: 28px;">
+                <input type="checkbox" class="toggleOption hidden" id="bgRemover_">
+                Remove Background
+                <div class="slider round"></div>
+              </label>
+              <label class="switch superRes" for="superRes_">
+                <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/editWithAI_c3302daf-3fd0-4731-a169-d7e8f7e5eee7.png?auto=format,compress&amp;v=1766579573" width="" height="" style="height: 28px;">
+                <input type="checkbox" class="toggleOption hidden" id="superRes_">
+                Upscale
+                <div class="slider round"></div>
+              </label>
+            </toggle-options>
+          </div>
+        </preview-box>
+
+        <line-items>
+          <tab-controls>
+            <input type="radio" name="tabOptionName_" id="tabOptionCustom_" class="hidden tabOptionName" value="custom" checked>
+            <label class="tabLink" for="tabOptionCustom_" tabindex="1">Custom Size</label>
+            <input type="radio" name="tabOptionName_" id="tabOptionPopular_" class="hidden tabOptionName" value="popular">
+            <label class="tabLink" for="tabOptionPopular_">Popular Size</label>
+          </tab-controls>
+
+          <sizes-blocks total-items="1" total-qty="1">
+            <line-items-custom></line-items-custom>
+            <line-items-popular></line-items-popular>
+            <div class="add-more-block" style="padding: 16px 16px 16px 0px; border-bottom: 1px solid #dddd; margin-bottom: 16px; border-top: 1px solid #ddd;">
+              <a class="addmore_size lnkcolor d-inline-flex" href="javascript:void(0);">
+                <span>
+                  <svg version='1.1' xmlns='http://www.w3.org/2000/svg' x='0px' y='0px' width='12px' height='12px' viewBox='-3.001 0 18 17' enable-background='new -3.001 0 18 17' xml:space='preserve'>
+                    <path fill='none' stroke='#42a9de' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='M5.999,1v15 M13.498,8.5 H-1.501'/>
+                  </svg>
+                </span>
+                <strong>&nbsp;Add another size of this design<custom--size></custom--size><popular--size class="hidden"></popular--size></strong>
+              </a>
+            </div>
+          </sizes-blocks>
+
+          {%- comment -%}
+            Old <designer-notes> block replaced with collapsible
+            nt-design-note (snippets/nt-design-note.liquid). Textarea
+            still submits as properties[Design Notes].
+          {%- endcomment -%}
+          {% render 'nt-design-note' %}
+        </line-items>
+      </div>
+    </uploaded-files-block>
+  </template>
+
+  {%- comment -%} --- Custom size row --- {%- endcomment -%}
+  <template data-multi-id="custom">
+    <div class="widthHeight__custom" item="1-1" option-selected="custom" dpi-warning="" discount="" qty="1" precut="">
+      <div class="widthHeight__item" by="width" title="">
+        <div class="widthHeight__item_inputWrapper">
+          <button class="widthHeight__value-minus">&minus;</button>
+          <input type="number" name="width__value" class="widthHeight__value" value="0.00" min="0.25" max="22" step="0.5">
+          <button class="widthHeight__value-plus">&plus;</button>
+        </div>
+        <div class="widthHeight__item_err hidden">
+          <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M0 0h48v48h-48z" fill="none"/><path d="M24 4c-11.05 0-20 8.95-20 20s8.95 20 20 20 20-8.95 20-20-8.95-20-20-20zm2 30h-4v-12h4v12zm0-16h-4v-4h4v4z"/></svg>
+          <span>22 inch max</span>
+        </div>
+        <div class="widthHeight__item_minErr hidden"><span>0.25 inch min</span></div>
+      </div>
+      <div class="widthHeight__item" by="height" title="">
+        <div class="widthHeight__item_inputWrapper">
+          <button class="widthHeight__value-minus">&minus;</button>
+          <input type="number" name="height__value" class="widthHeight__value" value="0.00" min="0.25" max="22" step="0.5">
+          <button class="widthHeight__value-plus">&plus;</button>
+        </div>
+        <div class="widthHeight__item_err hidden">
+          <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M0 0h48v48h-48z" fill="none"/><path d="M24 4c-11.05 0-20 8.95-20 20s8.95 20 20 20 20-8.95 20-20-8.95-20-20-20zm2 30h-4v-12h4v12zm0-16h-4v-4h4v4z"/></svg>
+          <span>22 inch max</span>
+        </div>
+        <div class="widthHeight__item_minErr hidden"><span>0.25 inch min</span></div>
+      </div>
+      <precut-unit-logic title="">
+        <div class="precut-unit-logic__grid">
+          <div class="precut-unit-logic__qty">
+            <div><input type="text" name="quantity" class="customQtyFile__qty" value="1" min="1" autocomplete="off"></div>
+            <qty-error>1 pc min</qty-error>
+          </div>
+          <div class="precut-unit-logic__price">
+            <div class="__originalPrice">$0.00</div>
+            <div class="__discountedPrice">$0.00<span>ea</span></div>
+          </div>
+          <div class="precut-unit-logic__total">
+            <div class="__originalPrice">$0.00</div>
+            <div class="__discountedPrice">$0.00</div>
+          </div>
+          <div class="precut-unit-logic__discount">
+            <span></span>
+            <div class="del_item">
+              <a class="del_item_cta" href="javascript:void(0)">
+                <svg width="20px" height="20px" enable-background="new 0 0 24 24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><g><path d="M12,2C6.5,2,2,6.5,2,12c0,5.5,4.5,10,10,10s10-4.5,10-10C22,6.5,17.5,2,12,2z M16.9,15.5l-1.4,1.4L12,13.4l-3.5,3.5 l-1.4-1.4l3.5-3.5L7.1,8.5l1.4-1.4l3.5,3.5l3.5-3.5l1.4,1.4L13.4,12L16.9,15.5z"></path></g></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </precut-unit-logic>
+      <dpi-warning title="">At this size, artwork clarity may be compromised. Opt for a smaller size or enhance quality with our Super Resolution feature for best results.</dpi-warning>
+    </div>
+  </template>
+
+  {%- comment -%} --- Popular size row --- {%- endcomment -%}
+  <template data-multi-id="popular">
+    <div class="widthHeight__custom" item="1-2" option-selected="popular" dpi-warning="" discount="" qty="1" precut="">
+      <div class="widthHeight__item__popular" title="">
+        <div>
+          {% if dtfProduct.metafields.custom.multiupload_ui  and dtfProduct.metafields.custom.smart_sizing %}
+            <select class="popularSizes">
+              <option value="" selected disabled>Select a popular size</option>
+              {% for variant in dtfProduct.variants %}
+                {% unless variant.option1 contains 'Style #' %}
+                  {% assign desc = '' %}
+                  {% case variant.option1 %}
+                    {% when '2" x 2"' %}{% assign desc = 'Tag Print / Neck Label' %}
+                    {% when '3" x 3"' %}{% assign desc = 'Small Tag/Sleeve Icon' %}
+                    {% when '4" x 2"' %}{% assign desc = 'Name Label/Small Chest Text' %}
+                    {% when '4" x 4"' %}{% assign desc = 'Left-Chest Logo' %}
+                    {% when '5" x 3"' %}{% assign desc = 'Small Badge Logo' %}
+                    {% when '5" x 5"' %}{% assign desc = 'Small Chest/Youth Print' %}
+                    {% when '6" x 6"' %}{% assign desc = 'Std Left-Chest/Youth' %}
+                    {% when '7" x 7"' %}{% assign desc = 'Small Front (Adult)' %}
+                    {% when '8" x 8"' %}{% assign desc = 'Medium Front Print' %}
+                    {% when '9" x 9"' %}{% assign desc = 'Large Chest/Med Front' %}
+                    {% when '9" x 11"' %}{% assign desc = 'Vertical Front/Youth' %}
+                    {% when '10" x 10"' %}{% assign desc = 'Standard Adult Front' %}
+                    {% when '11" x 5"' %}{% assign desc = 'Chest Banner/Sleeve' %}
+                    {% when '11" x 11"' %}{% assign desc = 'Adult Full Front' %}
+                    {% when '11" x 14"' %}{% assign desc = 'Tall Front/Jersey' %}
+                    {% when '12" x 17"' %}{% assign desc = 'Oversized Front/Hoodie' %}
+                  {% endcase %}
+                  <option value="{{ variant.option1 | replace: '"', '^' }}" vid="{{ variant.id }}">
+                    {{ variant.option1 | replace: '"', '&#8243;' }}{% if desc != '' %} - {{ desc }}{% endif %}
+                  </option>
+                {% endunless %}
+              {% endfor %}
+            </select>
+          {% else %}
+            <select class="popularSizes">
+              {% for variant in dtfProduct.variants %}
+                {% unless variant.option1 contains 'Style #' %}
+                  <option value="{{ variant.option1 | replace: '"', '^' }}" vid="{{ variant.id }}">{{ variant.option1 | replace: '"', '&#8243;' }}</option>
+                {% endunless %}
+              {% endfor %}
+            </select>
+          {% endif %}
+        </div>
+        <div class="smart-sizing">
+          <span>Smart Sizing Applied</span>
+          <span class="widthHeight__option-toolTip">
+            <img src="//ninja-transfers-cdn.imgix.net/info_da70c6e6-1e86-41d3-9035-2bf57d01d406_medium.svg?auto=format,compress&amp;v=1678797665" width="" height="">
+            <div class="widthHeight__option-toolTip__content">
+              <div>We automatically scale your design to the largest dimension of the popular size you choose, ensuring you only pay for the space you need. For example, a 4&quot;&times;8&quot; upload becomes 1&quot;&times;2&quot; when you select a 2&quot;&times;2&quot; size.</div>
+            </div>
+          </span>
+        </div>
+      </div>
+      <precut-unit-logic title="">
+        <div class="precut-unit-logic__grid">
+          <div class="precut-unit-logic__qty">
+            <div><input type="text" name="quantity" class="customQtyFile__qty" value="1" min="1" autocomplete="off"></div>
+            <qty-error>1 pc min</qty-error>
+          </div>
+          <div class="precut-unit-logic__price">
+            <div class="__originalPrice">$0.00</div>
+            <div class="__discountedPrice">$0.00<span>ea</span></div>
+          </div>
+          <div class="precut-unit-logic__total">
+            <div class="__originalPrice">$0.00</div>
+            <div class="__discountedPrice">$0.00</div>
+          </div>
+          <div class="precut-unit-logic__discount">
+            <span></span>
+            <div class="del_item">
+              <a class="del_item_cta" href="javascript:void(0)">
+                <svg width="20px" height="20px" enable-background="new 0 0 24 24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><g><path d="M12,2C6.5,2,2,6.5,2,12c0,5.5,4.5,10,10,10s10-4.5,10-10C22,6.5,17.5,2,12,2z M16.9,15.5l-1.4,1.4L12,13.4l-3.5,3.5 l-1.4-1.4l3.5-3.5L7.1,8.5l1.4-1.4l3.5,3.5l3.5-3.5l1.4,1.4L13.4,12L16.9,15.5z"></path></g></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </precut-unit-logic>
+      <dpi-warning title="">At this size, artwork clarity may be compromised. Opt for a smaller size or enhance quality with our Super Resolution feature for best results.</dpi-warning>
+    </div>
+  </template>
+
+  {%- comment -%} --- File remove confirmation --- {%- endcomment -%}
+  <template data-multi-id="fileRemove">
+    <file-remove-wrapper-multi>
+      <file-remove-block class="fileRemoveBlock">
+        <svg class="fileRemoveBlock__close" width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+        <div class="fileRemoveBlock__msg">Are you sure you would like to remove this file?</div>
+        <div class="fileRemoveBlock__action">
+          <button type="button" class="button button--solid fileRemoveBlock__removeFile">Remove File</button>
+          <button type="button" class="close button button--solid fileRemoveBlock__cancle" style="background: #999 !important;">Cancel</button>
+        </div>
+      </file-remove-block>
+    </file-remove-wrapper-multi>
+  </template>
+
+  {%- comment -%} --- Precut info modal --- {%- endcomment -%}
+  <template data-id="precutModal">
+    <div class="customTabelPopup__overlay precut-popup precut_info_block newPrecutModal">
+      <div class="customTabelPopup">
+        <span class="customTabelPopup__close">
+          <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+        </span>
+        <div class="font18"><strong>What is Pre-cut?</strong></div>
+        <div class="mrg16">Save time and effort by letting us pre-cut your transfers! Ready to apply right out of the box, these are perfect for fast, hassle free application.</div>
+        <div class="row mrg24 dFlex">
+          <div class="col-sm-6">
+            <div><img src="//ninja-transfers-cdn.imgix.net/un-precut.jpg?auto=format,compress&amp;v=1734979380" alt="Not Pre-cut" width="" height=""></div>
+            <div class="mrg24"><strong>Not Pre-cut</strong></div>
+            <div class="mrg8 opacity3">Time saved: 0</div>
+            <div class="opacity3 font12 mrg4">Based on 50 transfers</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="w3_bg"><img src="//ninja-transfers-cdn.imgix.net/precut.jpg?auto=format,compress&amp;v=1734979400" alt="Pre-cut" width="" height=""></div>
+            <div class="mrg24"><strong>Pre-cut</strong></div>
+            <div class="mrg8">Time saved: <strong class="lnkcolor">1 Hour</strong></div>
+            <div class="font12 mrg4">Based on 50 transfers</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+</div>
+
+{%- comment -%} ===== Stub elements bySize.js expects at parse time (lines 47-99) ===== {%- endcomment -%}
+<div style="display:none!important">
+  <upload-controls>
+    <master-upload id="dropZoon">
+      <input type="file" id="fileInput" class="hidden">
+    </master-upload>
+    <file-preview></file-preview>
+  </upload-controls>
+  <img id="previewImage">
+  <div id="fileDetails"></div>
+  <div id="uploadedFile"></div>
+  <div id="uploadedFileInfo"></div>
+  <div class="uploaded-file__name"></div>
+  <div class="uploaded-file__icon-text"></div>
+  <div class="uploaded-file__counter"></div>
+  <div class="upload-area__tooltip-data"></div>
+</div>
+
+{%- comment -%} ===== JS dependencies ===== {%- endcomment -%}
+<script src="{{ 'pricesTable-v2.js' | asset_url }}" defer></script>
+<script defer src="{{ 'bySize.js' | asset_url }}"></script>
+
+{%- comment -%} ===== AI Edit with AI support (mirrors __blanksUploadHelper.js AI code) ===== {%- endcomment -%}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  /* ── constants & state ── */
+  const AI_DAILY_LIMIT = 50;
+  const AI_STATES = { ORIGINAL: 'original', PROCESSING: 'processing', RESULT: 'result', RESULT_ORG: 'result-org' };
+  let aiJobCancelled = false;
+  let aiJobAbortController = null;
+
+  /* ── tiny helpers ── */
+  function showRedToast(msg) {
+    try {
+      const t = document.createElement('div');
+      t.textContent = msg;
+      Object.assign(t.style, { position:'fixed',bottom:'24px',left:'50%',transform:'translateX(-50%)',background:'#ef4444',color:'#fff',padding:'12px 24px',borderRadius:'8px',zIndex:'999999',fontSize:'14px',fontWeight:'600',boxShadow:'0 4px 12px rgba(0,0,0,.3)' });
+      document.body.appendChild(t);
+      setTimeout(function(){ t.remove(); }, 4000);
+    } catch(e){}
+  }
+  function getLocalDayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function getAiUsage() {
+    var day = getLocalDayKey(), raw = localStorage.getItem('nanoBananaUsage'), obj = {};
+    try { obj = raw ? JSON.parse(raw) : {}; } catch(e){ obj = {}; }
+    if (!obj || obj.day !== day) obj = { day: day, count: 0 };
+    return obj;
+  }
+  function canUseAiRequest() { return getAiUsage().count < AI_DAILY_LIMIT; }
+  function bumpAiUsage() {
+    var u = getAiUsage(); u.count++; localStorage.setItem('nanoBananaUsage', JSON.stringify(u));
+  }
+
+  /* ── get current preview image ── */
+  function getCurrentPreviewImageUrl() {
+    try {
+      if (typeof uploadType !== 'undefined' && uploadType === 'multi' && typeof selectedBlockNo !== 'undefined' && selectedBlockNo) {
+        var src = $('multi-upload uploaded-files-block[block-no="' + selectedBlockNo + '"] preview-box .fileupload_hero').attr('src');
+        if (src) return src;
+      }
+      return '';
+    } catch(e){ return ''; }
+  }
+
+  /* ── updateFileDetailsFunction (not in bySize.js) ── */
+  if (typeof window.updateFileDetailsFunction !== 'function') {
+    window.updateFileDetailsFunction = function(fileDetails, blockNo) {
+      try {
+        $('multi-upload uploaded-files-block[block-no="' + blockNo + '"] preview-box file-preview file-details').text(JSON.stringify(fileDetails));
+        return true;
+      } catch(e){ return false; }
+    };
+  }
+
+  /* ── nano-banana API ── */
+  async function nanoBananaEditRequest(imageUrl, promptText) {
+    aiJobCancelled = false;
+    aiJobAbortController = new AbortController();
+    const FAL_KEY = 'be8d6227-0af0-4f18-ac79-14111cef50cb:a8a72b50bf97f848e1144bd9c5481f0f';
+    const AUTH = 'Key ' + FAL_KEY;
+
+    var qR = await fetch('https://queue.fal.run/fal-ai/nano-banana/edit', {
+      method: 'POST',
+      headers: { 'Authorization': AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: promptText, num_images: 1, aspect_ratio: 'auto', output_format: 'png', image_urls: [imageUrl] })
+    });
+    if (!qR.ok) throw new Error('Failed to queue request (' + qR.status + ')');
+    var job = await qR.json();
+    if (!job.status_url || !job.response_url) throw new Error('Invalid nano-banana queue response');
+
+    var statusUrl = job.status_url, resultUrl = job.response_url, attempts = 0;
+    while (attempts < 40) {
+      attempts++;
+      var sR = await fetch(statusUrl, { method: 'GET', headers: { 'Authorization': AUTH }, signal: aiJobAbortController.signal });
+      if (!sR.ok) throw new Error('Status check failed (' + sR.status + ')');
+      var sJ = await sR.json();
+      if (sJ.status === 'COMPLETED') break;
+      if (sJ.status === 'FAILED' || sJ.status === 'CANCELLED' || sJ.status === 'ERROR') throw new Error('Request failed: ' + sJ.status);
+      await new Promise(function(r){ setTimeout(r, 2000); });
+    }
+    if (aiJobCancelled) throw new Error('AI request cancelled');
+
+    var rR = await fetch(resultUrl, { method: 'GET', headers: { 'Authorization': AUTH } });
+    if (!rR.ok) throw new Error('Failed to get result (' + rR.status + ')');
+    var rJ = await rR.json();
+    var images = [];
+    if (Array.isArray(rJ.images)) images = rJ.images;
+    if (!images.length && rJ.response && Array.isArray(rJ.response.images)) images = rJ.response.images;
+    if (!images.length && rJ.data && Array.isArray(rJ.data.images)) images = rJ.data.images;
+    if (!images.length && rJ.output && Array.isArray(rJ.output.images)) images = rJ.output.images;
+    if (!images.length) throw new Error('No images in response');
+    var first = images[0] || {};
+    var url = first.url || first.image_url || first.data_url || first.uri || '';
+    if (!url) throw new Error('No image URL returned');
+    return url;
+  }
+
+  /* ── AI state manager ── */
+  function setAIState(state) {
+    var $box = $('.ai-preview-box');
+    $box.addClass('ai-fade');
+    setTimeout(function(){ $box.removeClass('ai-fade'); }, 250);
+
+    $('#customer_image_preview, #ai_image_preview, .ai-processing, .ai-prompt-box, .ai-action-box, .black-bg, .ai-action-box .button').hide();
+    $('.ai-tabs, .ai-tab').removeClass('active');
+    $('.ai-modal').removeClass('ai-is-processing');
+
+    if (state === AI_STATES.ORIGINAL) {
+      $('.ai-tab[data-tab="original"]').addClass('active');
+      $('#customer_image_preview, .ai-prompt-box').show();
+    }
+    if (state === AI_STATES.PROCESSING) {
+      $('.ai-processing').show();
+      $('.ai-modal').addClass('ai-is-processing');
+    }
+    if (state === AI_STATES.RESULT) {
+      $('.ai-tabs, .ai-tab[data-tab="ai"]').addClass('active');
+      $('#ai_image_preview, .ai-action-box, .ai-action-box .button#use_ai_image').show();
+      $('.black-bg').css({'display':'flex'});
+    }
+    if (state === AI_STATES.RESULT_ORG) {
+      $('.ai-tabs, .ai-tab[data-tab="original"]').addClass('active');
+      $('#customer_image_preview, .ai-action-box, .ai-action-box .button:not(#use_ai_image)').show();
+      $('.black-bg').hide();
+    }
+  }
+
+  /* ── Event Handlers ── */
+  $(document)
+
+  /* Edit with AI button click — load image & init modal */
+  .on('click', '.edit-with-ai .edit-with-aiFlex', function(e) {
+    try {
+      e.stopImmediatePropagation();
+      var $block = $(this).closest('uploaded-files-block');
+
+      if (typeof uploadType !== 'undefined' && uploadType === 'multi') {
+        selectedBlockNo = $block.attr('block-no');
+
+        var $ci = $block.find('line-items-custom .widthHeight__custom').first();
+        if ($ci.length > 0) { selectedItemNo = $ci.attr('item'); }
+        else { selectedItemNo = $block.find('line-items-popular .widthHeight__custom').first().attr('item'); }
+
+        if (!canUseAiRequest()) { showRedToast('You have reached your AI generation limit for today.'); return; }
+
+        $('body').addClass('lock-page');
+        var imgUrl = getCurrentPreviewImageUrl();
+        $('#customer_image_preview').attr('src', imgUrl || '');
+        $('#ai_image_preview').attr('src', '');
+        $('#ai_prompt_2').val('');
+        $('#ai_status_message').hide().text('');
+        $('.ai_result_output').hide();
+        $('.ai-container').removeClass('_success');
+        var $btn = $('#ai_generate_image_2');
+        $btn.prop('disabled', false).data('busy', '0');
+        setAIState(AI_STATES.ORIGINAL);
+      }
+    } catch(err){}
+  })
+
+  /* Generate AI image */
+  .on('click', '#ai_generate_image_2', async function() {
+    if (!canUseAiRequest()) { showRedToast('You have reached your AI generation limit for today.'); return; }
+    var $btn = $(this), $prompt = $('#ai_prompt_2'), $status = $('#ai_status_message'), isSuccess = false;
+    $('.ai-container').removeClass('_success');
+    setAIState(AI_STATES.PROCESSING);
+    try {
+      $('.customTabelPopup__overlay-ai').addClass('ai-overlay-locked processing-ai');
+      var baseImageUrl = $('#customer_image_preview').attr('src');
+      if (!baseImageUrl) { alert('No base image found. Please upload an image first.'); return; }
+      var promptText = ($prompt.val() || '').trim();
+      if (!promptText) { $status.show().text('Please enter a prompt.'); $prompt.focus(); setAIState(AI_STATES.ORIGINAL); return; }
+
+      $btn.prop('disabled', true); $prompt.prop('disabled', true); $btn.data('busy', '1');
+      $status.hide().text('');
+      $('#ai_image_preview').attr('src', '');
+
+      var newUrl = await nanoBananaEditRequest(baseImageUrl, promptText);
+      bumpAiUsage();
+
+      $('#ai_image_preview').attr('src', newUrl);
+      setAIState(AI_STATES.RESULT);
+      isSuccess = true;
+    } catch(err) {
+      $status.show().text('Error: ' + (err.message || 'Something went wrong.'));
+      setAIState(AI_STATES.ORIGINAL);
+    } finally {
+      $('.customTabelPopup__overlay-ai').removeClass('ai-overlay-locked processing-ai');
+      if (!isSuccess) { $btn.prop('disabled', false); $prompt.prop('disabled', false); $btn.data('busy', '0'); }
+      else { $btn.prop('disabled', true); $prompt.prop('disabled', false); $btn.data('busy', '0'); }
+    }
+  })
+
+  /* Apply AI image */
+  .on('click', '#use_ai_image', async function() {
+    var $btn = $(this), $status = $('#ai_status_message');
+    try {
+      $('.customTabelPopup__overlay-ai').addClass('ai-overlay-locked');
+      var aiImageUrl = $('#ai_image_preview').attr('src');
+      if (!aiImageUrl) return;
+
+      var origText = $btn.data('original-text') || $btn.html();
+      $btn.data('original-text', origText).prop('disabled', true).html('Applying...');
+
+      if (typeof uploadType !== 'undefined' && uploadType === 'multi' && typeof selectedBlockNo !== 'undefined' && selectedBlockNo) {
+        if ($('uploaded-files-block[block-no="' + selectedBlockNo + '"] toggle-options[show-bg-option="true"] .bgRemover .toggleOption').length > 0) {
+          $('uploaded-files-block[block-no="' + selectedBlockNo + '"] toggle-options[show-bg-option="true"] .bgRemover .toggleOption').prop('checked', true);
+          await addDelay(200);
+        }
+        var uploaded = await processFileOrUrl(aiImageUrl, selectedBlockNo);
+        var fileDetail = {
+          originalFile: uploaded.originalFile || aiImageUrl,
+          imgIxFile: uploaded.imgIxFile || uploaded.originalFile || aiImageUrl,
+          file_crc: uploaded.file_crc,
+          fileName: uploaded.fileName || 'ai-image.png',
+          fileURL: uploaded.originalFile || aiImageUrl,
+          isAIEdit: true,
+          aiOriginalUrl: aiImageUrl
+        };
+        var getFileDetail = getFileDetailsFunction(selectedBlockNo);
+        var updatedObject = Object.assign({}, getFileDetail, fileDetail);
+        var isUpdate = updateFileDetailsFunction(updatedObject, selectedBlockNo);
+        if (isUpdate) {
+          $('multi-upload uploaded-files-block[block-no="' + selectedBlockNo + '"] toggle-options .toggleOption').trigger('change');
+        }
+      }
+    } catch(err) {
+      $status.show().text('Error: ' + (err.message || 'Something went wrong.'));
+    } finally {
+      $('.customTabelPopup__overlay-ai').removeClass('ai-overlay-locked').hide();
+      $btn.prop('disabled', false).html($btn.data('original-text') || 'Apply AI Edit');
+      $('body').removeClass('lock-page');
+    }
+  })
+
+  /* Tab switchers */
+  .on('click', '.ai-tab[data-tab="ai"]', function() {
+    if ($('#ai_image_preview').attr('src')) setAIState(AI_STATES.RESULT);
+  })
+  .on('click', '.ai-tab[data-tab="original"]', function() {
+    if ($('#ai_image_preview').attr('src')) setAIState(AI_STATES.RESULT_ORG);
+  });
+});
+</script>

@@ -1,0 +1,508 @@
+{% doc %}
+  @prompt
+    need a section with eight blocks with text below them, need space btween and text size for desktop and mobile. on mobile give me the option to go 2 by 2 or hide overflow with scroll , desktop need to be in 1 or 2 rows , Section needs max width option with horizontal padding for desktop and mobile. text needs weight option, horizontal padding should be inside max width, go from 8 to 6 blocks, for horizontal scroll on mobile make sure you can see 30 px of 3rd block, add text alignment option for mobile 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-image-grid-{{ ai_gen_id }} {
+    display: block;
+    width: 100%;
+  }
+
+  .ai-image-grid-wrapper-{{ ai_gen_id }} {
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    padding: 0 {{ block.settings.padding_desktop }}px;
+  }
+
+  .ai-image-grid-container-{{ ai_gen_id }} {
+    display: grid;
+    {% if block.settings.desktop_rows == '1' %}
+      grid-template-columns: repeat(6, 1fr);
+    {% else %}
+      grid-template-columns: repeat(3, 1fr);
+    {% endif %}
+    gap: {{ block.settings.spacing_desktop }}px;
+    width: 100%;
+  }
+
+  .ai-image-grid-item-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: {{ block.settings.text_spacing }}px;
+  }
+
+  .ai-image-grid-image-wrapper-{{ ai_gen_id }} {
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: {{ block.settings.border_radius }}px;
+  }
+
+  .ai-image-grid-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-image-grid-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-image-grid-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  .ai-image-grid-text-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text_size_desktop }}px;
+    font-weight: {{ block.settings.text_weight }};
+    color: {{ block.settings.text_color }};
+    text-align: {{ block.settings.text_alignment }};
+    line-height: 1.4;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-image-grid-wrapper-{{ ai_gen_id }} {
+      padding: 0 {{ block.settings.padding_mobile }}px;
+    }
+
+    .ai-image-grid-container-{{ ai_gen_id }} {
+      {% if block.settings.mobile_layout == 'grid' %}
+        grid-template-columns: repeat(2, 1fr);
+        gap: {{ block.settings.spacing_mobile }}px;
+      {% elsif block.settings.mobile_layout == 'scroll' %}
+        display: flex;
+        overflow-x: auto;
+        gap: {{ block.settings.spacing_mobile }}px;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-right: calc(100vw - {{ block.settings.padding_mobile }}px - {{ block.settings.padding_mobile }}px - (2 * ((100vw - {{ block.settings.padding_mobile }}px - {{ block.settings.padding_mobile }}px - {{ block.settings.spacing_mobile }}px) / 2)) - {{ block.settings.spacing_mobile }}px - 30px);
+      {% endif %}
+    }
+
+    .ai-image-grid-container-{{ ai_gen_id }}::-webkit-scrollbar {
+      display: none;
+    }
+
+    {% if block.settings.mobile_layout == 'scroll' %}
+      .ai-image-grid-item-{{ ai_gen_id }} {
+        flex: 0 0 calc((100vw - {{ block.settings.padding_mobile }}px - {{ block.settings.padding_mobile }}px - {{ block.settings.spacing_mobile }}px) / 2);
+        scroll-snap-align: start;
+      }
+    {% endif %}
+
+    .ai-image-grid-text-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_mobile }}px;
+      text-align: {{ block.settings.text_alignment_mobile }};
+    }
+  }
+{% endstyle %}
+
+<image-grid-{{ ai_gen_id }} class="ai-image-grid-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-image-grid-wrapper-{{ ai_gen_id }}">
+    <div class="ai-image-grid-container-{{ ai_gen_id }}">
+      {% for i in (1..6) %}
+        {% liquid
+          assign image_key = 'image_' | append: i
+          assign text_key = 'text_' | append: i
+          assign image = block.settings[image_key]
+          assign text = block.settings[text_key]
+        %}
+        
+        <div class="ai-image-grid-item-{{ ai_gen_id }}">
+          <div class="ai-image-grid-image-wrapper-{{ ai_gen_id }}">
+            {% if image %}
+              <img
+                src="{{ image | image_url: width: 600 }}"
+                alt="{{ image.alt | escape }}"
+                loading="lazy"
+                width="600"
+                height="600"
+                class="ai-image-grid-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="ai-image-grid-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          
+          {% if text != blank %}
+            <div class="ai-image-grid-text-{{ ai_gen_id }}">
+              {{ text }}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</image-grid-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class ImageGrid{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.container = this.querySelector('.ai-image-grid-container-{{ ai_gen_id }}');
+        
+        if (window.innerWidth <= 749 && this.container.style.display === 'flex') {
+          this.setupScrollBehavior();
+        }
+      }
+
+      setupScrollBehavior() {
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        this.container.addEventListener('mousedown', (e) => {
+          isDown = true;
+          startX = e.pageX - this.container.offsetLeft;
+          scrollLeft = this.container.scrollLeft;
+        });
+
+        this.container.addEventListener('mouseleave', () => {
+          isDown = false;
+        });
+
+        this.container.addEventListener('mouseup', () => {
+          isDown = false;
+        });
+
+        this.container.addEventListener('mousemove', (e) => {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - this.container.offsetLeft;
+          const walk = (x - startX) * 2;
+          this.container.scrollLeft = scrollLeft - walk;
+        });
+      }
+    }
+
+    customElements.define('image-grid-{{ ai_gen_id }}', ImageGrid{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Image grid with text",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Container"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum width",
+      "min": 1000,
+      "max": 2000,
+      "step": 100,
+      "unit": "px",
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "padding_desktop",
+      "label": "Desktop horizontal padding",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile",
+      "label": "Mobile horizontal padding",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "desktop_rows",
+      "label": "Desktop layout",
+      "options": [
+        {
+          "value": "1",
+          "label": "1 row (6 columns)"
+        },
+        {
+          "value": "2",
+          "label": "2 rows (3 columns)"
+        }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "range",
+      "id": "spacing_desktop",
+      "label": "Desktop spacing",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "spacing_mobile",
+      "label": "Mobile spacing",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "select",
+      "id": "mobile_layout",
+      "label": "Mobile layout",
+      "options": [
+        {
+          "value": "grid",
+          "label": "2x2 grid"
+        },
+        {
+          "value": "scroll",
+          "label": "Horizontal scroll"
+        }
+      ],
+      "default": "grid"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Image border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Text style"
+    },
+    {
+      "type": "range",
+      "id": "text_size_desktop",
+      "label": "Desktop text size",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "label": "Mobile text size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "text_weight",
+      "label": "Text weight",
+      "options": [
+        {
+          "value": "300",
+          "label": "Light"
+        },
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "range",
+      "id": "text_spacing",
+      "label": "Space between image and text",
+      "min": 5,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Desktop text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment_mobile",
+      "label": "Mobile text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Block 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_1",
+      "label": "Text",
+      "default": "Block 1"
+    },
+    {
+      "type": "header",
+      "content": "Block 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_2",
+      "label": "Text",
+      "default": "Block 2"
+    },
+    {
+      "type": "header",
+      "content": "Block 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_3",
+      "label": "Text",
+      "default": "Block 3"
+    },
+    {
+      "type": "header",
+      "content": "Block 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_4",
+      "label": "Text",
+      "default": "Block 4"
+    },
+    {
+      "type": "header",
+      "content": "Block 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_5",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_5",
+      "label": "Text",
+      "default": "Block 5"
+    },
+    {
+      "type": "header",
+      "content": "Block 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_6",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_6",
+      "label": "Text",
+      "default": "Block 6"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Image grid with text"
+    }
+  ]
+}
+{% endschema %}

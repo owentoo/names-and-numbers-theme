@@ -1,0 +1,282 @@
+{%- assign s = section.settings -%}
+
+<style>
+  #bcg-{{ section.id }} *,
+  #bcg-{{ section.id }} *::before,
+  #bcg-{{ section.id }} *::after { box-sizing: border-box; }
+
+  #bcg-{{ section.id }} {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 56px 0;
+    background: {{ s.background_color }};
+  }
+
+  #bcg-{{ section.id }} .bcg-inner {
+    max-width: {{ s.content_width }}px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* Header */
+  #bcg-{{ section.id }} .bcg-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    margin-bottom: 28px;
+  }
+  #bcg-{{ section.id }} .bcg-view-all::before {
+    content: "|";
+    margin: 0 10px;
+    color: #ccc;
+    font-weight: 400;
+  }
+  #bcg-{{ section.id }} .bcg-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #0f0f1a;
+    margin: 0;
+  }
+  #bcg-{{ section.id }} .bcg-view-all {
+    font-size: {{ s.cta_font_size }}px;
+    font-weight: 600;
+    color: {{ s.cta_color }};
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: gap 0.2s ease, opacity 0.15s ease;
+    white-space: nowrap;
+  }
+  #bcg-{{ section.id }} .bcg-view-all:hover { gap: 8px; opacity: 0.8; }
+
+  /* Grid */
+  #bcg-{{ section.id }} .bcg-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 16px;
+  }
+
+  /* Card */
+  #bcg-{{ section.id }} .bcg-card {
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    display: block;
+    text-decoration: none;
+    background: #fff;
+    border: 1px solid #efefef;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  #bcg-{{ section.id }} .bcg-card:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+    transform: translateY(-2px);
+  }
+  #bcg-{{ section.id }} .bcg-card__bg {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  #bcg-{{ section.id }} .bcg-card:hover .bcg-card__bg {
+    transform: scale(1.05);
+  }
+
+  /* Text label */
+  #bcg-{{ section.id }} .bcg-card__label {
+    padding: 10px 12px 12px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    flex-direction: column;
+  }
+  #bcg-{{ section.id }} .bcg-card__name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f0f1a;
+    line-height: 1.2;
+  }
+  #bcg-{{ section.id }} .bcg-card__count {
+    font-size: 11px;
+    font-weight: 400;
+    color: #888;
+    margin-top: 2px;
+  }
+  #bcg-{{ section.id }} .bcg-card__price {
+    font-size: 11px;
+    font-weight: 700;
+    color: #16a34a;
+    margin-top: 3px;
+  }
+  #bcg-{{ section.id }} .bcg-card__price span {
+    font-weight: 400;
+    color: #888;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    #bcg-{{ section.id }} .bcg-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 768px) {
+    #bcg-{{ section.id }} { padding: 40px 0; }
+    #bcg-{{ section.id }} .bcg-inner { padding: 0 20px; }
+    #bcg-{{ section.id }} .bcg-title { font-size: 22px; }
+    #bcg-{{ section.id }} .bcg-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    #bcg-{{ section.id }} .bcg-card__label { padding: 8px 10px 10px; }
+    #bcg-{{ section.id }} .bcg-card__name { font-size: 12px; }
+  }
+</style>
+
+<div id="bcg-{{ section.id }}">
+  <div class="bcg-inner">
+
+    <div class="bcg-header">
+      {%- if s.section_title != blank -%}
+        <h2 class="bcg-title">{{ s.section_title }}</h2>
+      {%- endif -%}
+      {%- if s.view_all_url != blank and s.view_all_text != blank -%}
+        <a href="{{ s.view_all_url }}" class="bcg-view-all">{{ s.view_all_text }} <span>&#8594;</span></a>
+      {%- endif -%}
+    </div>
+
+    {%- if section.blocks.size > 0 -%}
+      <div class="bcg-grid">
+        {%- for block in section.blocks -%}
+          {%- assign b = block.settings -%}
+
+          {%- comment -%} Pull collection image if URL points to a collection {%- endcomment -%}
+          {%- assign col_handle = b.url | split: '/' | last -%}
+          {%- assign linked_col = collections[col_handle] -%}
+
+          <a href="{{ b.url }}" class="bcg-card" {{ block.shopify_attributes }}>
+            {%- if linked_col.image != blank -%}
+              <div class="bcg-card__bg" style="background-image:url('{{ linked_col.image | image_url: width: 800 }}')"></div>
+            {%- else -%}
+              <div class="bcg-card__bg" style="background:linear-gradient(135deg, {{ b.gradient_start }}, {{ b.gradient_end }})"></div>
+            {%- endif -%}
+
+            <div class="bcg-card__label">
+              <span class="bcg-card__name">{{ b.label }}</span>
+              {%- if b.count_text != blank -%}
+                <span class="bcg-card__count">{{ b.count_text }}</span>
+              {%- endif -%}
+              {%- if b.starting_price != blank -%}
+                <span class="bcg-card__price"><span>Starting at </span>{{ b.starting_price }}</span>
+              {%- endif -%}
+            </div>
+          </a>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Category Grid",
+  "settings": [
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "content_width",
+      "label": "Content width (px)",
+      "min": 900,
+      "max": 1600,
+      "step": 20,
+      "default": 1280,
+      "unit": "px"
+    },
+    {
+      "type": "color",
+      "id": "cta_color",
+      "label": "View All link color",
+      "default": "#42a9de"
+    },
+    {
+      "type": "text",
+      "id": "section_title",
+      "label": "Section title",
+      "default": "Shop by Category"
+    },
+    {
+      "type": "url",
+      "id": "view_all_url",
+      "label": "View All link URL"
+    },
+    {
+      "type": "text",
+      "id": "view_all_text",
+      "label": "View All link text",
+      "default": "View All"
+    },
+    {
+      "type": "range",
+      "id": "cta_font_size",
+      "label": "CTA text size (px)",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "default": 13,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "category_card",
+      "name": "Category Card",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "T-Shirts"
+        },
+        {
+          "type": "text",
+          "id": "count_text",
+          "label": "Style count",
+          "info": "e.g. \"320+ styles\". Leave blank to hide.",
+          "default": "320+ styles"
+        },
+        {
+          "type": "text",
+          "id": "starting_price",
+          "label": "Starting price",
+          "info": "e.g. \"$2.79\". Leave blank to hide.",
+          "default": "$2.79"
+        },
+        {
+          "type": "url",
+          "id": "url",
+          "label": "Link URL"
+        },
+        {
+          "type": "color",
+          "id": "gradient_start",
+          "label": "Gradient start",
+          "info": "Used when no collection image is found.",
+          "default": "#2d3748"
+        },
+        {
+          "type": "color",
+          "id": "gradient_end",
+          "label": "Gradient end",
+          "default": "#4a5568"
+        },
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Category Grid"
+    }
+  ]
+}
+{% endschema %}

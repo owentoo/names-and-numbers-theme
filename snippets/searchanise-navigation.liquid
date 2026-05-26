@@ -1,0 +1,1035 @@
+<style>
+  .yotpo-sr-star-full path {
+    fill: rgb(255, 205, 0) !important;
+  }
+
+  .snize-horizontal-right {
+    min-width:0px !important;
+    margin-left:0px !important;
+  }
+</style>
+
+<div id="yotpoProductReviews" style="display:none;">
+{%- for product in collection.products -%}
+<div class="style-{{ product.metafields.specs.shirt_style }}">
+  <div class="yotpo-widget-instance" data-yotpo-instance-id="447610" data-yotpo-product-id="{{product.id}}" data-yotpo-cart-product-id="{{item.product.id}}" data-yotpo-section-id="{{template.name}}"></div>
+</div>
+{%- endfor -%}
+</div>
+{% comment %}
+<script>
+    const colorData = {};
+    {% paginate collection.products by 1000 %}
+  {% for product in collection.products %}
+    {% if product.metafields.specs.color_data != blank %}
+    colorData["{{ product.metafields.specs.shirt_style | downcase }}"] = {{ product.metafields.specs.color_data }};
+    {% endif %}
+    {% endfor %}
+  {% endpaginate %}
+
+    let selectedColor = null;
+    function refreshSelectedColor () {
+      const urlParts = document.location.pathname.split('/');
+      const urlParams = new URLSearchParams(window.location.search);
+      const colorParam = urlParams.get('rb_filter_ptag_01afa331fa9ab7fb404d2f26720ea67c');
+      if (colorParam) selectedColor = colorParam;
+      else selectedColor = urlParts[urlParts.length-1]
+    }
+
+    function applySelectedColor () {
+      if (selectedColor) {
+        $(".snize-view-link").each(function () {
+          var $el = $(this);
+          const urlParts = $el.attr("href").split("-");
+          const style = urlParts[urlParts.length-1];
+          const colorStyleData = colorData[style];
+          if (colorStyleData) {
+            const _colorData = colorStyleData[selectedColor.toLowerCase()];
+            if (_colorData) {
+              $(".snize-item-image",$el).attr("src","https://cdn.shopify.com/s/files/1/0558/0265/8899/products/" + _colorData.img);
+              $el.attr("href","/products/"+_colorData.link);
+            }
+          }
+        })
+      }
+    }
+    refreshSelectedColor();
+
+
+
+    let lastUrl = document.location.toString();
+    setInterval(function () {
+      const currentUrl = document.location.toString();
+      if (currentUrl != lastUrl) {
+        console.log("URL CHANGED TO " + currentUrl)
+        lastUrl = currentUrl;
+        refreshSelectedColor();
+        applySelectedColor();
+      }
+    },50)
+
+    ;
+</script>
+{% endcomment %}
+<style>
+  .deliveryEstimateTable {
+    width:100%;
+  }
+
+  .deliveryEstimateTable td {
+    border:none;
+  }
+
+  .deliveryEstimateError {
+    display:none;
+    color:#ff0000 !important;
+    font-weight:bold;
+  }
+
+  .shippingToZipCode {
+    text-decoration:underline;
+  }
+</style>
+
+<div
+  class="deliveryEstimateContainer container--large container--vertical-space-small"
+  style="margin-top:36px;margin-bottom:24px;display:none;"
+>
+ {% comment %} {% render 'custom-popup' %} {% endcomment %}
+      <div onclick="resetEstimateDeliveryDate();return false;" class="deliveryEstimateDate" style="display:none; cursor: pointer;">
+      <div class="collection-zipCode-data zipCode-icon-wrapper">
+        <span  style="text-decoration:none;" class="shippingToZipCode"></span>
+        <span class="ninja_edit-icon" style="vertical-align: middle; text-decoration:none;">{% render 'edit_icon'%}</span>
+      </div>
+    </div>
+</div>
+
+<script>
+  function collectionItemsLoaded () {
+    //$(".snize-item-image").attr("src","https://cdn.shopify.com/s/files/1/0558/0265/8899/files/g800_50_p_6c2eb434-71b2-48ab-8694-c86ded02bb35_large.jpg?v=1689132418")
+    //colorUrlLookup
+
+    /*
+    $(".snize-view-link").each(function () {
+      var $el = $(this);
+      const urlParts = $el.attr("href").split("-");
+      const style = urlParts[urlParts.length-1];
+      const colorStyleData = colorData[style];
+      if (colorStyleData) {
+        const _colorData = colorStyleData[selectedColor.toLowerCase()];
+        if (_colorData) {
+          $(".snize-item-image",$el).attr("src","https://cdn.shopify.com/s/files/1/0558/0265/8899/products/" + _colorData.img);
+          $el.attr("href","/products/"+_colorData.link);
+        }
+      }
+    })
+    */
+    /*
+    const getNextWorkDate = date => {
+      let day = date.getDay(), add = 1;
+      if (day === 6)           add = 2; else 
+      if (day === 5)           add = 3;
+      date.setDate(date.getDate() + add); // will correctly handle 31+1 > 32 > 1st next month
+      return date;
+    };
+    const curDate = new Date();
+    const cutoffDate = new Date(`${curDate.getMonth()+1}/${curDate.getDate()}/${curDate.getFullYear()} 16:30`);
+    const daysOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const monthsOfYear = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let shipDate = curDate;
+    if (shipDate.getTime() >= cutoffDate.getTime()) shipDate = getNextWorkDate(shipDate);
+    const nextWorkDate = getNextWorkDate(shipDate);
+    const deliveryDateText = `${daysOfWeek[nextWorkDate.getDay()]}, ${monthsOfYear[nextWorkDate.getMonth()]} ${nextWorkDate.getDate()}`;
+
+    $("#snize_results .snize-view-link").each(function () {
+        const $productCard = $(this);        
+        $(".estimatedDeliveryDateText", $productCard).html(deliveryDateText);
+        $(".estimatedDeliveryDate", $productCard).show(); // Show the delivery date div
+    });
+    */
+
+    
+    $(".deliveryEstimateContainer").show();
+  
+    const savedZipCode = window.localStorage.getItem("deliveryPostalCode");
+    if (savedZipCode) {
+      $(".deliveryEstimateZip").val(savedZipCode);
+      estimateDeliveryDate();
+    }
+    else {
+      $(".deliveryEstimateZip").val('78701');
+      estimateDeliveryDate();
+
+      /*
+      $.ajax({
+        type: "GET",
+        //url: 'http://ipwho.is',
+        url: 'http://ipwhois.pro/?key=YGjaRyEWIW8Y8MLO',
+        contentType: "application/json; charset=utf-8",
+        dataType: 'json',
+        success: function (response) {
+          console.log("ipwho response: " + JSON.stringify(response,null,2))
+          try {
+            if (response.success && response.country_code == "US") {
+              console.log("Retrieved geolocation postal code " + response.postal)
+              $(".deliveryEstimateZip").val(response.postal);
+              estimateDeliveryDate();
+            } else {
+             $(".deliveryEstimateZip").val('78701');
+             estimateDeliveryDate();
+            }
+          }
+          catch (error) {
+            console.log("Could not determine geolocation (error: " + error + "): " + response);  
+          }
+        },
+        error: function (response) {
+          console.log("Could not determine geolocation: " + response);
+        }
+      });
+      */
+    }
+    
+  }
+  
+  function resetEstimateDeliveryDate () {
+    $(".popup-overlay").removeClass('popup-overlay-hidden');
+    // $(".deliveryEstimateDate").hide();
+  }
+
+  function getEstimatedDeliveryDateCache (zipCode, masterHandle) {
+    const cache = JSON.parse(window.sessionStorage.getItem("estimatedDeliveryDateCache-"+zipCode));
+    if (cache) return cache[masterHandle];
+    return null;
+  }
+
+  function updateEstimatedDeliveryDateCache (zipCode, masterHandle, response) {
+    let cache = JSON.parse(window.sessionStorage.getItem("estimatedDeliveryDateCache-"+zipCode));
+    if (cache == null) cache = {};
+    cache[masterHandle] = response;
+    window.sessionStorage.setItem("estimatedDeliveryDateCache-"+zipCode,JSON.stringify(cache));
+  }
+  
+   function estimateDeliveryDate() {
+    $("#snize_results .estimatedDeliveryDate").hide();
+    const masterHandles = [];
+    $("#snize_results .snize-view-link").each(function () {
+      const urlParts = $(this).attr("href").split("/");
+      const masterHandle = urlParts[urlParts.length - 1].split('?')[0];
+      masterHandles.push(masterHandle);
+    });
+
+    function toggleLoading(isLoading) {
+      if (isLoading) $(".estimateDeliveryDateButton").addClass("working");
+      else $(".estimateDeliveryDateButton").removeClass("working");
+    }
+
+    function showError(error) {
+      $(".deliveryEstimateError").html(error);
+      $(".deliveryEstimateError").show();
+    }
+
+    $(".deliveryEstimateError").hide();
+    const deliveryPostalCode = $(".deliveryEstimateZip").val().trim();
+    var validZipTest = /(^\d{5}$)|(^\d{5}-\d{4}$)/;
+    if (!validZipTest.test(deliveryPostalCode)) {
+      showError("Please enter a valid zip code");
+      return;
+    }
+
+    toggleLoading(true);
+   
+    const validDeliveryDates = {};
+
+function processDeliveryDateResponse(response) {
+  toggleLoading(false);
+  
+  if (response.success && response.estimatedDeliveryDates?.length) {
+    const weekday = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const tomorrow = new Date(new Date().getTime() + 86400000);
+
+    response.estimatedDeliveryDates.forEach((data) => {
+      const estimatedDeliveryDate = data.estimatedDeliveryDate ? new Date(data.estimatedDeliveryDate + "T00:00:00") : null;
+      let day = estimatedDeliveryDate ? weekday[estimatedDeliveryDate.getDay()] : null;
+
+      if (estimatedDeliveryDate && estimatedDeliveryDate.getDate() === tomorrow.getDate()) {
+        day = "Tomorrow";
+      }
+
+      // Store valid delivery dates
+      if (estimatedDeliveryDate) {
+        validDeliveryDates[data.masterHandle] = `${day}, ${month[estimatedDeliveryDate.getMonth()]}. ${estimatedDeliveryDate.getDate()}`;
+      }
+
+      $("#snize_results .snize-view-link").each(function () {
+        const $productCard = $(this);
+        const urlParts = $productCard.attr("href").split("/");
+        const masterHandle = urlParts[urlParts.length - 1].split('?')[0];
+
+        if (masterHandle === data.masterHandle) {
+          const deliveryDateText = validDeliveryDates[masterHandle] || "Delivery date unavailable";
+          $(".estimatedDeliveryDateText", $productCard).html(deliveryDateText);
+
+          // Show the estimatedDeliveryDate section if there's a valid date
+          if (deliveryDateText !== "Delivery date unavailable") {
+            $(".estimatedDeliveryDate", $productCard).show(); // Show the delivery date div
+          } else {
+            $(".estimatedDeliveryDate", $productCard).hide(); // Hide if no valid date
+          }
+        }
+      });
+       //$(".estimatedDeliveryDate").html(`Get your order by <b>${day}, ${month[estimatedDeliveryDate.getMonth()]}. ${estimatedDeliveryDate.getDate()}</b>`);  
+    });
+
+    // Update products with null delivery dates
+    $("#snize_results .snize-view-link").each(function () {
+      const $productCard = $(this);
+      const urlParts = $productCard.attr("href").split("/");
+      const masterHandle = urlParts[urlParts.length - 1].split('?')[0];
+
+      if (!$(".estimatedDeliveryDateText", $productCard).html() || $(".estimatedDeliveryDateText", $productCard).html() === "Delivery date unavailable") {
+        const firstValidDeliveryDate = Object.values(validDeliveryDates)[0];
+        $(".estimatedDeliveryDateText", $productCard).html(firstValidDeliveryDate || "Delivery date unavailable");
+        
+        // Show if there's a valid first delivery date
+        if (firstValidDeliveryDate) {
+          $(".estimatedDeliveryDate", $productCard).show(); // Show the div for the first valid date
+        } else {
+          $(".estimatedDeliveryDate", $productCard).hide(); // Hide if no valid date
+        }
+      }
+    });
+
+    // Update the shipping zip code display
+    $(".shippingToZipCode").html("Shipping to zip code " + deliveryPostalCode);
+    $(".deliveryEstimateDate").show(); // Show the overall delivery estimate section
+    window.localStorage.setItem("deliveryPostalCode", deliveryPostalCode);
+    $(".popup-overlay").addClass('popup-overlay-hidden');
+  }
+}
+
+
+
+  masterHandles.forEach((masterHandle) => {
+      let cachedResponse = getEstimatedDeliveryDateCache(deliveryPostalCode,masterHandle);
+      if (cachedResponse) {
+        console.log("Using cached delivery dates")
+        processDeliveryDateResponse(cachedResponse);
+      }
+      else {
+        $.ajax({
+          type: "POST",
+          url: 'https://hpz51rjda5.execute-api.us-east-1.amazonaws.com/production/estimateDeliveryDates',
+          data: JSON.stringify({ masterHandles: [masterHandle], deliveryPostalCode }),
+          contentType: "application/json; charset=utf-8",
+          dataType: 'json',
+          success: function (response) {
+            updateEstimatedDeliveryDateCache(deliveryPostalCode, masterHandle, response);
+            //estimatedDeliveryDateCache[masterHandle] = response;
+            processDeliveryDateResponse(response);          
+          },
+          error: function (response) {
+            //console.log("Could not add items: " + response);
+            //showError("Estimated delivery date unavailable at the moment");
+            toggleLoading(false);
+          }
+        });
+      }
+    })
+  }
+</script>
+
+{% assign urlParts = request.path | split: '/' %}
+{% assign urlPartsLastIndex = urlParts.size | minus: 1 %}
+{% assign targetCollectionName = urlParts[urlPartsLastIndex] %}
+{% assign targetCollection = collections[targetCollectionName] %}
+
+{% if targetCollection == blank %}
+  {% assign targetCollection = collection %}
+{% endif %}
+
+<div class="container--large container--vertical-space-small" style="margin-top:0px;">
+  <div class="snize" id="snize_results"></div>
+</div>
+
+<div id="snize_skeleton_results">
+  <div class="snize-main-panel snize-skeleton-card">
+    <div class="snize-main-panel-controls">
+      <span class="snize-skeleton-text"></span>
+      <span class="snize-skeleton-text"></span>
+      <span class="snize-skeleton-text"></span>
+    </div>
+    <div class="snize-main-panel-dropdown"><span class="snize-skeleton-text snize-full-width"></span></div>
+  </div>
+  <div class="snize-header">
+    <span class="snize-search-results-header snize-skeleton-text snize-full-width"></span>
+  </div>
+  <div class="snize-horizontal-filters snize-product-filters">
+    <div class="snize-filters-dropdown snize-skeleton-card small">
+      <span class="snize-skeleton-text snize-full-width"></span>
+    </div>
+    <div class="snize-filters-dropdown snize-skeleton-card small">
+      <span class="snize-skeleton-text snize-full-width"></span>
+    </div>
+    <div class="snize-filters-dropdown snize-skeleton-card small">
+      <span class="snize-skeleton-text snize-full-width"></span>
+    </div>
+  </div>
+  <div class="snize-filters-sidebar snize-product-filters">
+    <div class="snize-product-filters-block snize-skeleton-card">
+      <div class="snize-product-filters-title"><span class="snize-skeleton-text snize-full-width"></span></div>
+      <div class="snize-product-filters-list">
+        <span class="snize-skeleton-text snize-full-width"></span>
+        <span class="snize-skeleton-text snize-full-width"></span>
+        <span class="snize-skeleton-text snize-full-width"></span>
+      </div>
+    </div>
+    <div class="snize-product-filters-block snize-skeleton-card">
+      <div class="snize-product-filters-title"><span class="snize-skeleton-text snize-full-width"></span></div>
+      <div class="snize-product-filters-list">
+        <span class="snize-skeleton-text snize-full-width"></span>
+        <span class="snize-skeleton-text snize-full-width"></span>
+        <span class="snize-skeleton-text snize-full-width"></span>
+      </div>
+    </div>
+    <div class="snize-product-filters-block snize-skeleton-card">
+      <div class="snize-product-filters-title"><span class="snize-skeleton-text snize-full-width"></span></div>
+      <div class="snize-product-filters-list">
+        <span class="snize-skeleton-text snize-full-width"></span>
+        <span class="snize-skeleton-text snize-full-width"></span>
+        <span class="snize-skeleton-text snize-full-width"></span>
+      </div>
+    </div>
+  </div>
+  <div class="snize-search-results-main-content">
+    <div id="snize-search-results-wrapper" class="snize-search-results-grid-mode snize-three-columns">
+      <ul class="snize-search-results-content">
+        <li class="snize-product">
+          <div class="snize-item snize-skeleton-card">
+            <div class="snize-thumbnail-wrapper">
+              <div class="snize-thumbnail"></div>
+            </div>
+            <div class="snize-overhidden">
+              <span class="snize-skeleton-text snize-full-width"></span>
+              <span class="snize-skeleton-text snize-full-width"></span>
+              <span class="snize-skeleton-text snize-full-width"></span>
+            </div>
+          </div>
+        </li>
+        <li class="snize-product">
+          <div class="snize-item snize-skeleton-card">
+            <div class="snize-thumbnail-wrapper">
+              <div class="snize-thumbnail"></div>
+            </div>
+            <div class="snize-overhidden">
+              <span class="snize-skeleton-text snize-full-width"></span>
+              <span class="snize-skeleton-text snize-full-width"></span>
+              <span class="snize-skeleton-text snize-full-width"></span>
+            </div>
+          </div>
+        </li>
+        <li class="snize-product">
+          <div class="snize-item snize-skeleton-card">
+            <div class="snize-thumbnail-wrapper">
+              <div class="snize-thumbnail"></div>
+            </div>
+            <div class="snize-overhidden">
+              <span class="snize-skeleton-text snize-full-width"></span>
+              <span class="snize-skeleton-text snize-full-width"></span>
+              <span class="snize-skeleton-text snize-full-width"></span>
+            </div>
+          </div>
+        </li>
+        <li class="snize-product">
+          <div class="snize-item snize-skeleton-card">
+            <div class="snize-thumbnail-wrapper">
+              <div class="snize-thumbnail"></div>
+            </div>
+            <div class="snize-overhidden">
+              <span class="snize-skeleton-text snize-full-width"></span>
+              <span class="snize-skeleton-text snize-full-width"></span>
+              <span class="snize-skeleton-text snize-full-width"></span>
+            </div>
+          </div>
+        </li>
+        <li class="snize-product">
+          <div class="snize-item snize-skeleton-card">
+            <div class="snize-thumbnail-wrapper">
+              <div class="snize-thumbnail"></div>
+            </div>
+            <div class="snize-overhidden">
+              <span class="snize-skeleton-text snize-full-width"></span>
+              <span class="snize-skeleton-text snize-full-width"></span>
+              <span class="snize-skeleton-text snize-full-width"></span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+<style type="text/css">
+  <!--
+      @keyframes snize-skeleton-anim {
+          0% { opacity: 1; }
+          50% { opacity: 0.5; }
+          100% { opacity: 1; }
+      }
+      #snize_skeleton_results * {
+          box-sizing: border-box;
+      }
+      /* Fix for some themes */
+      #snize_skeleton_results ul li:before,
+      #snize_skeleton_results ul li:after {
+          display: none;
+      }
+      #snize_skeleton_results .snize-skeleton-card {
+          padding: 10px;
+          border: 1px solid #eee;
+      }
+      #snize_skeleton_results .snize-skeleton-text {
+          height: 8px;
+          background: #eee;
+          border-radius: 3px;
+          display: inline-block;
+          animation: snize-skeleton-anim 2s infinite;
+      }
+      #snize_skeleton_results .snize-skeleton-text.snize-full-width:last-child {
+          width: 100%;
+      }
+      #snize_skeleton_results .snize-skeleton-text.snize-full-width:first-child:not(:last-child) {
+          width: 80%;
+      }
+      #snize_skeleton_results .snize-skeleton-text.snize-full-width:nth-child(2):not(:last-child) {
+          width: 95%;
+      }
+      #snize_skeleton_results .snize-skeleton-text.snize-full-width:last-child:not(:first-child) {
+          width: 60%;
+      }
+      #snize_skeleton_results .snize-main-panel .snize-main-panel-controls {
+          width: 70%;
+          display: inline-block;
+      }
+      #snize_skeleton_results .snize-main-panel .snize-main-panel-controls > span {
+          width: 100px;
+          margin-right: 15px;
+      }
+      #snize_skeleton_results .snize-main-panel .snize-main-panel-controls > span:nth-child(2) {
+          width: 120px;
+      }
+      #snize_skeleton_results .snize-main-panel .snize-main-panel-controls > span:nth-child(3) {
+          width: 80px;
+      }
+      #snize_skeleton_results .snize-main-panel .snize-main-panel-dropdown {
+          width: 29%;
+          text-align: right;
+          display: inline-block;
+      }
+      #snize_skeleton_results .snize-main-panel .snize-main-panel-dropdown > span {
+          max-width: 160px;
+      }
+      #snize_skeleton_results .snize-header {
+          padding: 12px 0 12px 0;
+          margin: 20px 0 15px 0;
+          width: 250px;
+      }
+      #snize_skeleton_results .snize-horizontal-filters {
+          padding: 3px;
+          margin-bottom: 26px;
+      }
+      #snize_skeleton_results .snize-horizontal-filters .snize-filters-dropdown {
+          display: inline-block;
+          width: 100px;
+          border-radius: 3px;
+          margin-right: 7px;
+          padding: 2px 15px 2px 15px;
+      }
+      #snize_skeleton_results .snize-horizontal-filters .snize-filters-dropdown:nth-child(2) {
+          width: 120px;
+      }
+      #snize_skeleton_results .snize-horizontal-filters .snize-filters-dropdown:nth-child(3) {
+          with: 80px;
+      }
+      #snize_skeleton_results .snize-filters-sidebar {
+          float: left;
+          width: 225px;
+      }
+      #snize_skeleton_results .snize-filters-sidebar > .snize-skeleton-card:not(:last-child) {
+          border-bottom: none;
+      }
+      #snize_skeleton_results .snize-filters-sidebar .snize-product-filters-title {
+          padding: 4px 0 12px 0;
+      }
+      #snize_skeleton_results .snize-filters-sidebar .snize-product-filters-title > span.snize-full-width {
+          width: 40%;
+      }
+      #snize_skeleton_results .snize-filters-sidebar .snize-product-filters-list > span {
+          margin: 1px 0 12px 0;
+      }
+      #snize_skeleton_results .snize-filters-sidebar .snize-product-filters-list > span:last-child {
+          margin-bottom: 10px;
+      }
+      #snize_skeleton_results .snize-search-results-main-content {
+          margin-left: 225px;
+      }
+      #snize_skeleton_results ul.snize-search-results-content {
+          margin: 0 0 0 -1%;
+          padding: 0 0 0 20px;
+          list-style: none;
+          white-space: nowrap;
+      }
+      #snize_skeleton_results ul.snize-search-results-content > li {
+          display: inline-block;
+      }
+      #snize_skeleton_results .snize-three-columns ul.snize-search-results-content > li {
+          width: 30.3%;
+          width: calc(100%/3 - 2%);
+      }
+      #snize_skeleton_results li.snize-product {
+          cursor: pointer;
+          margin: 0 1% 2%;
+          white-space: normal;
+      }
+      #snize_skeleton_results li.snize-product .snize-thumbnail-wrapper {
+          position: relative;
+      }
+      #snize_skeleton_results li.snize-product .snize-thumbnail-wrapper .snize-thumbnail {
+          margin: -10px -10px 0px -10px;
+          background: #eee;
+          height: 180px;
+      }
+      #snize_skeleton_results li.snize-product .snize-overhidden {
+          padding-bottom: 20px;
+          text-align: center;
+      }
+      #snize_skeleton_results li.snize-product .snize-overhidden > span {
+          margin: 15px 0 0 0;
+      }
+      #snize_skeleton_results ul.snize-search-results-content li.snize-product:nth-child(4),
+      #snize_skeleton_results ul.snize-search-results-content li.snize-product:nth-child(5) {
+          display: none;
+      }
+      /* 4-column view */
+      #snize_skeleton_results div.snize-four-columns ul.snize-search-results-content li.snize-product {
+          width: 22.5%;
+          width: calc(100%/4 - 2%);
+      }
+      #snize_skeleton_results div.snize-four-columns ul.snize-search-results-content li.snize-product:nth-child(4) {
+          display: inline-block;
+      }
+      /* 5-column view */
+      #snize_skeleton_results div.snize-five-columns ul.snize-search-results-content li.snize-product {
+          width: 17.5%;
+          width: calc(100%/5 - 2%);
+      }
+      #snize_skeleton_results div.snize-five-columns ul.snize-search-results-content li.snize-product:nth-child(4),
+      #snize_skeleton_results div.snize-five-columns ul.snize-search-results-content li.snize-product:nth-child(5) {
+          display: inline-block;
+      }
+      /* Tablet view 2-column mode */
+      @media (min-width: 768px) and (max-width: 910px) {
+          #snize_skeleton_results ul.snize-search-results-content li.snize-product {
+              width: 46%;
+              width: calc(50% - 10px);
+              min-width: 160px;
+              margin: 0 5px 10px;
+          }
+          #snize_skeleton_results ul.snize-search-results-content li.snize-product:nth-child(3) {
+              display: none;
+          }
+      }
+      /* Mobile view 2-column mode */
+      @media (max-width: 768px) {
+          #snize_skeleton_results .snize-main-panel > div.snize-main-panel-controls,
+          #snize_skeleton_results .snize-main-panel > div.snize-main-panel-dropdown {
+              text-align: left;
+              width: 100%;
+          }
+          #snize_skeleton_results .snize-main-panel .snize-main-panel-controls > span:not(:first-child) {
+             display: none;
+          }
+          #snize_skeleton_results .snize-main-panel > div.snize-main-panel-dropdown {
+              margin-top: 12px;
+          }
+          #snize_skeleton_results .snize-header {
+              margin: 3px 0 12px 0;
+          }
+          #snize_skeleton_results .snize-filters-sidebar {
+              display: none;
+          }
+          #snize_skeleton_results .snize-search-results-main-content {
+              margin-left: 0;
+          }
+          #snize_skeleton_results .snize-horizontal-filters .snize-filters-dropdown:not(:first-child) {
+              display: none;
+          }
+          #snize_skeleton_results .snize-horizontal-filters .snize-filters-dropdown:first-child {
+              padding: 10px;
+              width: 100%;
+          }
+          #snize_skeleton_results .snize-horizontal-filters .snize-filters-dropdown:first-child > span {
+              width: 100px;
+          }
+          #snize_skeleton_results .snize-horizontal-filters {
+              margin-bottom: 18px;
+          }
+          #snize_skeleton_results ul.snize-search-results-content {
+              margin: 0;
+              padding: 0;
+          }
+          #snize_skeleton_results ul.snize-search-results-content li.snize-product:nth-child(3) {
+              display: none;
+          }
+          #snize_skeleton_results ul.snize-search-results-content li.snize-product {
+              width: 46%;
+              width: calc(50% - 10px);
+              min-width: 160px;
+              margin: 0 5px 10px;
+          }
+      }
+      /* Mobile view one-column mode */
+      @media (max-width: 370px) {
+          #snize_skeleton_results ul.snize-search-results-content li.snize-product {
+              width: 96%;
+              width: calc(100% - 10px);
+          }
+          #snize_skeleton_results ul.snize-search-results-content li.snize-product:not(:first-child) {
+              display: none;
+          }
+      }
+      /* Themes hack */
+      div.grid div.grid-item.large--two-thirds.push--large--one-sixth {
+          left: 0;
+          width: 100%;
+      }
+  -->
+</style>
+<script
+  type="text/javascript"
+>
+// <![CDATA[
+(function(window, undefined) {
+  console.log("SEARCHANIZE LOADING")
+  
+  
+    var snize_results = document.getElementById('snize_results');
+    if (snize_results != null && snize_results != undefined && snize_results.innerHTML != '') {
+        return;
+    }
+  
+    sInterval = setInterval(function() {
+      /*
+        $("#snize_results .snize-price").each(function () {
+          if (!$(this).html().includes("starting at")) $(this).html("starting at " + $(this).html())
+        });
+      */
+      
+        var snize_results = document.getElementById('snize_results');
+        if (snize_results != null && snize_results != undefined && snize_results.innerHTML != '') {
+            clearInterval(sInterval);
+            var skeleton_results = document.getElementById('snize_skeleton_results');
+            skeleton_results.parentNode.removeChild(skeleton_results);
+            var deliveryEstimateContainer = document.querySelector('.deliveryEstimateContainer');            
+            if (deliveryEstimateContainer) {
+                      deliveryEstimateContainer.style.marginTop = '0';
+                      deliveryEstimateContainer.style.marginBottom = '0';
+                  if (window.innerWidth <= 992) {
+                      // Select the existing containers
+                      var deliveryEstimateContainer = document.querySelector('.deliveryEstimateContainer');
+                      var mobileFilters = document.querySelector('.snize-main-panel .snize-main-panel-mobile-filters');
+                  
+                      // Create the new wrapper div
+                      var estimateFilterWrap = document.createElement('div');
+                      estimateFilterWrap.className = 'estimate__filter--wrap';
+                  
+                      // Move the deliveryEstimateContainer and mobileFilters into the new wrapper
+                      if (deliveryEstimateContainer) {
+                          estimateFilterWrap.appendChild(deliveryEstimateContainer);
+                      }
+                      if (mobileFilters) {
+                          estimateFilterWrap.appendChild(mobileFilters);
+                      }
+                  
+                      // Append the new wrapper to the element with class 'snize-main-panel'
+                      var snizeMainPanel = document.querySelector('.snize-main-panel');
+                      if (snizeMainPanel) {
+                          snizeMainPanel.appendChild(estimateFilterWrap);
+                      }
+                  } else {
+                      var snizeCollectionMode = document.querySelector('.snize-collection-mode .snize-horizontal-wrapper');
+                      if (snizeCollectionMode) {
+                          snizeCollectionMode.insertBefore(deliveryEstimateContainer, snizeCollectionMode.firstChild);
+                      }
+                  }
+            }
+    
+            var snizeHorizontalLeft = document.querySelector('.snize-horizontal-wrapper .snize-horizontal-left');
+            var snizeFiltersSidebar = document.querySelector('.snize-filters-sidebar');
+
+            if (snizeHorizontalLeft && snizeFiltersSidebar) {
+                var resultsFound = snizeHorizontalLeft.querySelector('.snize-main-panel-collection-results-found');
+                if (resultsFound) {
+                    var text = resultsFound.textContent;
+                    var index = text.indexOf('for');
+                    if (index !== -1) {
+                        resultsFound.textContent = text.substring(0, index).trim();
+                        snizeFiltersSidebar.insertBefore(snizeHorizontalLeft, snizeFiltersSidebar.firstChild);
+                    }
+                }
+            } 
+
+            function removeAllEventListeners(element) {
+              const newElement = element.cloneNode(true);
+              element.parentNode.replaceChild(newElement, element);
+              return newElement;
+            }
+            
+            document.querySelectorAll(".snize-product-filters-title").forEach((title) => {
+              const cleanTitle = removeAllEventListeners(title);
+              const nextElement = cleanTitle.nextElementSibling;
+              if (nextElement) {
+                nextElement.removeAttribute('style');
+                nextElement.classList.add('hidden');
+              }
+            
+              cleanTitle.addEventListener("click", () => {
+                const targetList = cleanTitle.nextElementSibling;
+            
+                document.querySelectorAll(".snize-product-filters-title").forEach((otherTitle) => {
+                  const otherList = otherTitle.nextElementSibling;
+            
+                  // Reset other titles
+                  if (otherTitle !== cleanTitle) {
+                    otherTitle.classList.remove("open"); 
+                    if (otherList) {
+                      otherList.classList.remove("visible");
+                      otherList.classList.add("hidden"); 
+                    }
+                  }
+                });
+            
+                if (targetList.classList.contains("visible")) {
+                  targetList.classList.remove("visible");
+                  targetList.classList.add("hidden");
+                  cleanTitle.classList.remove("open");
+                } else {
+                  targetList.classList.remove("hidden");
+                  targetList.classList.add("visible");
+                  cleanTitle.classList.add("open");
+                }
+              });
+            });
+          
+          
+            return;
+        }
+        var grid_wrapper = document.getElementById('snize-search-results-wrapper');
+        if (grid_wrapper.offsetWidth >= 1055) {
+            grid_wrapper.className = grid_wrapper.className.replace(/(?:^|\s)snize-three-columns(?!\S)/g , '').replace(/(?:^|\s)snize-four-columns(?!\S)/g , '');
+            if (!grid_wrapper.className.match(/(?:^|\s)snize-five-columns(?!\S)/)) {
+                grid_wrapper.className += ' snize-five-columns';
+            }
+        } else if (grid_wrapper.offsetWidth >= 915) {
+            grid_wrapper.className = grid_wrapper.className.replace(/(?:^|\s)snize-three-columns(?!\S)/g , '').replace(/(?:^|\s)snize-five-columns(?!\S)/g , '');
+            if (!grid_wrapper.className.match(/(?:^|\s)snize-four-columns(?!\S)/)) {
+                grid_wrapper.className += ' snize-four-columns';
+            }
+        } else {
+            grid_wrapper.className = grid_wrapper.className.replace(/(?:^|\s)snize-four-columns(?!\S)/g , '').replace(/(?:^|\s)snize-five-columns(?!\S)/g , '');
+            if (!grid_wrapper.className.match(/(?:^|\s)snize-three-columns(?!\S)/)) {
+                grid_wrapper.className += ' snize-three-columns';
+            }
+        }        
+    }, 30);
+    setInterval(function () {
+        let foundProductCardToUpdate = false;
+        $("#snize_results .snize-view-link").each(function () {
+            const $productCard = $(this);
+            if (!$productCard.hasClass("view-altered")) {
+                $productCard.addClass("view-altered");
+                foundProductCardToUpdate = true;
+                const title = $(".snize-title", $productCard).text();
+                const price = $(".snize-price", $productCard).text();
+                const hrefArr = $productCard.attr("href").split("-");
+                const style = hrefArr[hrefArr.length - 1];
+    
+                let $offsetParent = $($productCard[0].offsetParent);
+                let snizeItemData;
+                let vendorImageHtml = '';
+                let vendorImageExists = false;
+                for (let prop in $offsetParent[0]) {
+                    if ($offsetParent[0].hasOwnProperty(prop) && $offsetParent[0][prop] && $offsetParent[0][prop].snize_item_data) {
+                        snizeItemData = $offsetParent[0][prop].snize_item_data;
+                        break;
+                    }
+                }
+    
+                function imageExists(url, callback) {
+                    const img = new Image();
+                    img.onload = () => callback(true);
+                    img.onerror = () => callback(false);
+                    img.src = url;
+                }
+    
+                function formatVendorName(vendor) {
+                    let formattedVendor = vendor.toLowerCase();
+                    formattedVendor = formattedVendor.replace(/[\s+]+/g, '_');
+                    formattedVendor = formattedVendor.replace(/^_+|_+$/g, '');
+                    return formattedVendor;
+                }
+    
+                if (snizeItemData) {
+                    const vendor = snizeItemData.vendor || "Unknown Vendor";
+                    const formattedVendor = formatVendorName(vendor);
+                    const imageUrl = `//ninjatransfers.com/cdn/shop/t/551/assets/${formattedVendor}.png`;
+    
+                    imageExists(imageUrl, (exists) => {
+                        vendorImageExists = exists;
+                        if (vendorImageExists) {
+                            vendorImageHtml = `<span class="vendor__image-wrap"><img src="${imageUrl}" alt="${vendor}"></span>`;
+                            $(`.starting-at__wrap`, $productCard).html(`starting at ${vendorImageHtml}`);
+                        }
+                    });
+                }
+
+                var _style = style
+                if(_style.indexOf("?") > 0){
+                  _style = _style.split("?");
+                  _style = _style[0];
+                }else{
+                  _style = _style;
+                }
+                let $starRatings = $($("#yotpoProductReviews .style-" + _style).html());
+                const $el = $(".yotpo-sr-bottom-line-right-panel", $starRatings);
+                if ($el.length) {
+                    const ratingCount = $el[0].innerText.trim();
+                    $el.siblings().first().append(`<div style="margin-left:5px;font-size:14px;">${ratingCount}</div>`);
+                    $el.hide();
+                }
+    
+                if ($(".yotpo-sr-star-full", $starRatings).length == 0) $starRatings = null;
+                $(".snize-overhidden", $productCard).empty();
+                $(".snize-overhidden", $productCard).append(`<div class="starting-at__wrap" style="font-size:0.9em;color: #5e5e5e;">starting at</div> {% if template.suffix == "makerflo" %}<span class="vendor__image-wrap makerflo_vendor__image-wrap"><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/makerflo-crafts.png" alt="MakerFlo Crafts"></span>{% endif %}`);
+                $(".snize-overhidden", $productCard).append(`<div style="color:#4572bb;font-weight:bold;font-size:1.4em;padding-top:5px;padding-bottom:5px;">${price}</div>`);
+                if ($starRatings) $(".snize-overhidden", $productCard).append($starRatings);
+                {% unless template.suffix == "makerflo" %} $(".snize-overhidden", $productCard).append(`<div class="estimatedDeliveryDate" style="display:none;"><div style="color:#000;font-size:0.9em;padding-top:5px;">Earliest Delivery</div><div class="estimatedDeliveryDateText" style="color:#52af61;font-weight:bold;font-size:1.2em;padding-bottom:10px;padding-top:5px;"></div></div>`); {% endunless %}
+                {% if template.suffix == "makerflo" %} $(".snize-overhidden", $productCard).append(`<div class="estimatedDelivery-makerflo" style="color:#52af61;font-weight:bold;font-size:1.2em;padding-bottom:10px;padding-top:5px;"> Next day rush delivery </div>`);{% endif %}
+                $(".snize-overhidden", $productCard).append(`<div style="color:#000;">${title}</div>`);
+            }
+        });
+        if (foundProductCardToUpdate) collectionItemsLoaded();
+    }, 30);
+    if (window.location.href.indexOf('collection=') != -1) {
+        var elements = document.getElementsByClassName('snize-search-results-page-title');
+        for (var i = 0; i < elements.length; i++) {
+            elements[i].style.display = 'none';
+        }
+    }
+})(window);
+// ]]>
+</script>
+
+<style>
+  .ProductAccordion-SizeChart .sizeChart {
+    width:100%;
+    border-spacing: 0px;
+  }
+
+  .ProductAccordion-SizeChart .sizeChart td {
+    padding:0px;
+    margin:0px;
+  }
+
+  .ProductAccordion-SizeChart .sizeChart .inInches {
+    font-size:0.8em;
+    width:auto;
+  }
+
+  @media all and (max-width: 500px) {
+    .ProductAccordion-SizeChart .sizeChart .inInches {
+      width:60px;
+    }
+  }
+
+  .ProductAccordion-SizeChart .sizeChart .inInches, .ProductAccordion-SizeChart .sizeChart .sizeHeader {
+    font-weight:bold;
+    border-bottom:2px solid #e1e1e1;
+    text-align:center;
+  }
+
+  .ProductAccordion-SizeChart .sizeChart .nameHeader {
+    text-align:center;
+  }
+
+  .ProductAccordion-SizeChart .sizeChart .nameHeader, .ProductAccordion-SizeChart .sizeChart .attributeValue {
+    border-bottom:1px solid #e1e1e1;
+    padding:2px;
+    text-align:center;
+  }
+
+  .ProductAccordion-SizeChart .sizeChart tr:last-child td {
+    border-bottom:none;
+  }
+</style>
+
+{% if targetCollection.metafields.custom.textblock_below_listing %}
+  <div class="container--large container--vertical-space-small">
+    {{ targetCollection.metafields.custom.textblock_below_listing | metafield_tag }}
+  </div>
+{% endif %}
+
+{% if targetCollection.metafields.custom.faqaccordion_below_listing %}
+  <div class="container--large container--vertical-space-small">
+    <h3>{{ targetCollection.title }} FAQs</h3>
+    {% assign faqRawText = targetCollection.metafields.custom.faqaccordion_below_listing | metafield_tag %}
+
+    {% assign processRow = false %}
+    {% assign isHeading = true %}
+    {% assign faqTextArr = faqRawText | split: '<li>' %}
+    {%- for faqText in faqTextArr -%}
+      {% if processRow %}
+        {% assign faqTextArr2 = faqText | split: '</li>' %}
+        {% if isHeading %}
+          <toggle-tab class="toggle" style="border-bottom:1px solid rgba(0, 0, 0, 0.1);">
+            <span
+              class="toggle__title"
+              data-js-title=""
+              tabindex="0"
+              aria-expanded="false"
+              role="button"
+              aria-controls="toggle-sizechart"
+            >
+              {{ faqTextArr2[0] }}
+              {% assign isHeading = false %}
+        {% else %}
+          </span>
+          <div
+            id="toggle--sizechart"
+            data-js-content=""
+            class="ProductAccordion-SizeChart toggle__content rte remove-empty-space"
+            role="region"
+          >
+            <div style="font-size:0.7em;overflow-x:auto;">
+              {{ faqTextArr2[0] }}
+            </div>
+          </div>
+          </toggle-tab>
+          {% assign isHeading = true %}
+        {% endif %}
+      {% endif %}
+      {% assign processRow = true %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+<link
+  href="//ninjatransfers.com/cdn/shop/t/197/assets/component-toggle.css?v=181901654304502621951692872374"
+  rel="stylesheet"
+  type="text/css"
+  media="all"
+>
+<script
+  src="//ninjatransfers.com/cdn/shop/t/197/assets/component-toggle.js?v=73494009530425977721692872374"
+  defer
+></script>

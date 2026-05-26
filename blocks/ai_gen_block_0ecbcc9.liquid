@@ -1,0 +1,725 @@
+{% doc %}
+  @prompt
+    Create a Shopify section with the following features:
+    
+    🔁 Scroll-triggered content changes inside a pinned layout
+    The section should include a pinned (sticky) frame that stays fixed on screen while scrolling through this section only.
+    Inside the frame is a layout with:
+    A heading: Perfect for [changing word]
+    A paragraph below the heading that updates with each word
+    An image next to the text that also updates at the same time
+    🖼 Layout:
+    Desktop: two columns
+    Left column: H1 and paragraph
+    Right column: matching image
+    Mobile: stacked layout with text above image
+    The pinned frame should remain centered and inside the section width
+    ⚙️ Content settings (repeated group):
+    Allow the merchant to add multiple “examples” (up to 5):
+    
+    Changing word for the heading (e.g. “families”, “creators”, “events”)
+    Paragraph text
+    Image upload (desktop + mobile)
+    🎛 Customization options:
+    Font size and weight controls for H1 and paragraph (desktop and mobile)
+    Image size controls (desktop and mobile)
+    Padding/margin settings for top, bottom, and sides
+    Max width setting for text container
+    Background color or gradient
+    Animation style when swapping content (fade, slide, etc.)
+    🧠 Behavior details:
+    The scroll swaps each content set while the frame stays fixed
+    After all items have been shown, the user scrolls past the section normally
+    Must be fully responsive and not overflow the container
+    Smooth transitions for both text and image changes
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+.scroll-content-block-{{ ai_gen_id }} {
+  position: relative;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+}
+
+.scroll-content-container-{{ ai_gen_id }} {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.scroll-content-sticky-{{ ai_gen_id }} {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: {{ block.settings.background_color }};
+  z-index: 1;
+}
+
+.scroll-content-wrapper-{{ ai_gen_id }} {
+  width: 100%;
+  max-width: {{ block.settings.max_width }}px;
+  margin: 0 auto;
+  padding: {{ block.settings.padding_top }}px {{ block.settings.padding_sides }}px {{ block.settings.padding_bottom }}px;
+}
+
+.scroll-content-grid-{{ ai_gen_id }} {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+.scroll-content-text-{{ ai_gen_id }} {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.scroll-content-heading-{{ ai_gen_id }} {
+  font-size: {{ block.settings.heading_size }}px;
+  font-weight: {{ block.settings.heading_weight }};
+  margin: 0;
+  color: {{ block.settings.text_color }};
+}
+
+.scroll-content-paragraph-{{ ai_gen_id }} {
+  font-size: {{ block.settings.paragraph_size }}px;
+  font-weight: {{ block.settings.paragraph_weight }};
+  margin: 0;
+  color: {{ block.settings.text_color }};
+}
+
+.scroll-content-image-{{ ai_gen_id }} {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.scroll-content-image-{{ ai_gen_id }} img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  display: block;
+}
+
+.scroll-content-image-placeholder-{{ ai_gen_id }} {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background-color: #f4f4f4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.scroll-content-image-placeholder-{{ ai_gen_id }} svg {
+  width: 50%;
+  height: 50%;
+  color: #888;
+}
+
+.scroll-content-item-{{ ai_gen_id }} {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity {{ block.settings.animation_speed }}ms ease, visibility {{ block.settings.animation_speed }}ms ease;
+}
+
+.scroll-content-item-{{ ai_gen_id }}.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.scroll-content-spacer-{{ ai_gen_id }} {
+  height: calc(100vh * {{ block.settings.content_items }});
+  width: 100%;
+  position: relative;
+}
+
+@media screen and (max-width: 749px) {
+  .scroll-content-grid-{{ ai_gen_id }} {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .scroll-content-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size_mobile }}px;
+  }
+
+  .scroll-content-paragraph-{{ ai_gen_id }} {
+    font-size: {{ block.settings.paragraph_size_mobile }}px;
+  }
+
+  .scroll-content-wrapper-{{ ai_gen_id }} {
+    padding: {{ block.settings.padding_top_mobile }}px {{ block.settings.padding_sides_mobile }}px {{ block.settings.padding_bottom_mobile }}px;
+  }
+}
+{% endstyle %}
+
+<scroll-trigger-content-{{ ai_gen_id }} {{ block.shopify_attributes }}>
+  <div class="scroll-content-block-{{ ai_gen_id }}">
+    <div class="scroll-content-container-{{ ai_gen_id }}">
+      <div class="scroll-content-sticky-{{ ai_gen_id }}">
+        <div class="scroll-content-wrapper-{{ ai_gen_id }}">
+          <div class="scroll-content-grid-{{ ai_gen_id }}">
+            <div class="scroll-content-text-{{ ai_gen_id }}">
+              <h2 class="scroll-content-heading-{{ ai_gen_id }}">
+                Perfect for
+                <span class="scroll-content-word-{{ ai_gen_id }}">
+                  {% if block.settings.word_1 != blank %}
+                    {{ block.settings.word_1 }}
+                  {% else %}
+                    everyone
+                  {% endif %}
+                </span>
+              </h2>
+              <div class="scroll-content-paragraph-{{ ai_gen_id }}">
+                {% if block.settings.paragraph_1 != blank %}
+                  {{ block.settings.paragraph_1 }}
+                {% else %}
+                  Add your content in the block settings.
+                {% endif %}
+              </div>
+            </div>
+            <div class="scroll-content-image-{{ ai_gen_id }}">
+              {% if block.settings.image_1 != blank %}
+                <img 
+                  src="{{ block.settings.image_1 | image_url: width: 800 }}"
+                  alt="{{ block.settings.word_1 }}"
+                  loading="lazy"
+                  width="{{ block.settings.image_1.width }}"
+                  height="{{ block.settings.image_1.height }}"
+                >
+              {% else %}
+                <div class="scroll-content-image-placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-content-spacer-{{ ai_gen_id }}"></div>
+  </div>
+</scroll-trigger-content-{{ ai_gen_id }}>
+
+<script>
+(function() {
+  class ScrollTriggerContent extends HTMLElement {
+    constructor() {
+      super();
+      this.contentItems = [];
+      this.currentIndex = 0;
+      this.scrollHeight = 0;
+      this.viewportHeight = 0;
+      this.sectionTop = 0;
+      this.sectionHeight = 0;
+      this.headingEl = this.querySelector('.scroll-content-word-{{ ai_gen_id }}');
+      this.paragraphEl = this.querySelector('.scroll-content-paragraph-{{ ai_gen_id }}');
+      this.imageEl = this.querySelector('.scroll-content-image-{{ ai_gen_id }}');
+      this.container = this.querySelector('.scroll-content-block-{{ ai_gen_id }}');
+      this.spacer = this.querySelector('.scroll-content-spacer-{{ ai_gen_id }}');
+      this.contentCount = {{ block.settings.content_items }};
+      this.animationStyle = '{{ block.settings.animation_style }}';
+      
+      // Prepare content items
+      this.prepareContentItems();
+      
+      // Bind methods
+      this.handleScroll = this.handleScroll.bind(this);
+      this.updateContent = this.updateContent.bind(this);
+      this.resizeHandler = this.resizeHandler.bind(this);
+    }
+    
+    connectedCallback() {
+      // Initialize after DOM is fully loaded
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => this.init());
+      } else {
+        this.init();
+      }
+    }
+    
+    init() {
+      // Calculate dimensions
+      this.calculateDimensions();
+      
+      // Add event listeners
+      window.addEventListener('scroll', this.handleScroll, { passive: true });
+      window.addEventListener('resize', this.resizeHandler, { passive: true });
+      
+      // Initial content update
+      this.updateContent(0);
+    }
+    
+    disconnectedCallback() {
+      // Clean up event listeners
+      window.removeEventListener('scroll', this.handleScroll);
+      window.removeEventListener('resize', this.resizeHandler);
+    }
+    
+    prepareContentItems() {
+      this.contentItems = [];
+      
+      for (let i = 1; i <= this.contentCount; i++) {
+        const word = this.getAttribute(`data-word-${i}`) || '';
+        const paragraph = this.getAttribute(`data-paragraph-${i}`) || '';
+        const imageUrl = this.getAttribute(`data-image-${i}`) || '';
+        const imageAlt = word || `Image ${i}`;
+        
+        if (word || paragraph || imageUrl) {
+          this.contentItems.push({
+            word,
+            paragraph,
+            imageUrl,
+            imageAlt
+          });
+        }
+      }
+    }
+    
+    calculateDimensions() {
+      this.viewportHeight = window.innerHeight;
+      this.sectionTop = this.container.getBoundingClientRect().top + window.pageYOffset;
+      this.sectionHeight = this.container.offsetHeight;
+      this.scrollHeight = this.sectionHeight - this.viewportHeight;
+      
+      // Update spacer height based on content count
+      if (this.spacer) {
+        this.spacer.style.height = `${this.viewportHeight * this.contentCount}px`;
+      }
+    }
+    
+    handleScroll() {
+      const scrollPosition = window.pageYOffset;
+      const relativeScroll = scrollPosition - this.sectionTop;
+      
+      // Calculate which content item to show based on scroll position
+      if (relativeScroll >= 0 && relativeScroll <= this.scrollHeight) {
+        const progress = relativeScroll / this.scrollHeight;
+        const index = Math.min(
+          Math.floor(progress * this.contentItems.length),
+          this.contentItems.length - 1
+        );
+        
+        if (index !== this.currentIndex) {
+          this.updateContent(index);
+        }
+      }
+    }
+    
+    updateContent(index) {
+      if (index < 0 || index >= this.contentItems.length) return;
+      
+      this.currentIndex = index;
+      const item = this.contentItems[index];
+      
+      // Update content
+      if (this.headingEl && item.word) {
+        this.headingEl.textContent = item.word;
+      }
+      
+      if (this.paragraphEl && item.paragraph) {
+        this.paragraphEl.textContent = item.paragraph;
+      }
+      
+      if (this.imageEl && item.imageUrl) {
+        // Check if there's already an image
+        const existingImg = this.imageEl.querySelector('img');
+        
+        if (existingImg) {
+          // Update existing image
+          existingImg.src = item.imageUrl;
+          existingImg.alt = item.imageAlt;
+        } else {
+          // Create new image if placeholder is showing
+          const placeholder = this.imageEl.querySelector('.scroll-content-image-placeholder-{{ ai_gen_id }}');
+          
+          if (placeholder) {
+            this.imageEl.innerHTML = `
+              <img 
+                src="${item.imageUrl}" 
+                alt="${item.imageAlt}" 
+                loading="lazy"
+              >
+            `;
+          }
+        }
+      }
+    }
+    
+    resizeHandler() {
+      this.calculateDimensions();
+    }
+  }
+  
+  customElements.define('scroll-trigger-content-{{ ai_gen_id }}', ScrollTriggerContent);
+  
+  // Initialize content data attributes
+  document.addEventListener('DOMContentLoaded', function() {
+    const component = document.querySelector('scroll-trigger-content-{{ ai_gen_id }}');
+    if (!component) return;
+    
+    {% for i in (1..5) %}
+      {% assign word_key = 'word_' | append: i %}
+      {% assign paragraph_key = 'paragraph_' | append: i %}
+      {% assign image_key = 'image_' | append: i %}
+      
+      {% if block.settings[word_key] != blank or block.settings[paragraph_key] != blank or block.settings[image_key] != blank %}
+        component.setAttribute('data-word-{{ i }}', '{{ block.settings[word_key] | escape }}');
+        component.setAttribute('data-paragraph-{{ i }}', '{{ block.settings[paragraph_key] | escape }}');
+        {% if block.settings[image_key] != blank %}
+          component.setAttribute('data-image-{{ i }}', '{{ block.settings[image_key] | image_url: width: 800 }}');
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Scroll Content",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content Items"
+    },
+    {
+      "type": "range",
+      "id": "content_items",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "default": 3,
+      "label": "Number of content items"
+    },
+    {
+      "type": "header",
+      "content": "Content Item 1"
+    },
+    {
+      "type": "text",
+      "id": "word_1",
+      "label": "Changing word",
+      "default": "families"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_1",
+      "label": "Paragraph",
+      "default": "Create beautiful content that resonates with families looking for quality products and experiences."
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image"
+    },
+    {
+      "type": "header",
+      "content": "Content Item 2"
+    },
+    {
+      "type": "text",
+      "id": "word_2",
+      "label": "Changing word",
+      "default": "creators"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_2",
+      "label": "Paragraph",
+      "default": "Empower creators with tools that help them showcase their work and connect with their audience."
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image"
+    },
+    {
+      "type": "header",
+      "content": "Content Item 3"
+    },
+    {
+      "type": "text",
+      "id": "word_3",
+      "label": "Changing word",
+      "default": "events"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_3",
+      "label": "Paragraph",
+      "default": "Promote your events with engaging visuals and compelling descriptions that drive attendance."
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image"
+    },
+    {
+      "type": "header",
+      "content": "Content Item 4"
+    },
+    {
+      "type": "text",
+      "id": "word_4",
+      "label": "Changing word"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_4",
+      "label": "Paragraph"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image"
+    },
+    {
+      "type": "header",
+      "content": "Content Item 5"
+    },
+    {
+      "type": "text",
+      "id": "word_5",
+      "label": "Changing word"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_5",
+      "label": "Paragraph"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_5",
+      "label": "Image"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 24,
+      "max": 72,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (desktop)",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 20,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (mobile)",
+      "default": 32
+    },
+    {
+      "type": "select",
+      "id": "heading_weight",
+      "label": "Heading weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size",
+      "min": 14,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Paragraph size (desktop)",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size_mobile",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Paragraph size (mobile)",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "paragraph_weight",
+      "label": "Paragraph weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Max width",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding top (desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding bottom (desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_sides",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding sides (desktop)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_top_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding top (mobile)",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding bottom (mobile)",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "padding_sides_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding sides (mobile)",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Animation"
+    },
+    {
+      "type": "select",
+      "id": "animation_style",
+      "label": "Animation style",
+      "options": [
+        {
+          "value": "fade",
+          "label": "Fade"
+        },
+        {
+          "value": "slide",
+          "label": "Slide"
+        }
+      ],
+      "default": "fade"
+    },
+    {
+      "type": "range",
+      "id": "animation_speed",
+      "min": 200,
+      "max": 1000,
+      "step": 100,
+      "unit": "ms",
+      "label": "Animation speed",
+      "default": 400
+    }
+  ],
+  "presets": [
+    {
+      "name": "Scroll Content"
+    }
+  ]
+}
+{% endschema %}

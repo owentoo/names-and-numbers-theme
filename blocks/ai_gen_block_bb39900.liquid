@@ -1,0 +1,695 @@
+{% doc %}
+  @prompt
+    Create an FAQ section with accordion-style dropdowns. Each FAQ item should include a question (heading) and answer (paragraph text). Display questions as clickable headings that expand to reveal the answer below.
+    
+    Layout:
+    
+    Stack all accordion items vertically
+    Only one item should expand at a time (optional toggle setting)
+    Include icons to indicate open/closed state
+    Add animation for smooth expand/collapse
+    Content Elements:
+    
+    Question (Heading, editable text)
+    Answer (Paragraph, editable text)
+    Icon for expand/collapse (chevron or plus/minus)
+    Customization Settings:
+    
+    Editable text for all questions and answers
+    Option to add, remove, or reorder FAQ items
+    Desktop and mobile font size and weight options for both question and answer
+    Padding and margin controls (top, bottom, sides)
+    Max width control for FAQ container
+    Background color setting
+    Text color setting
+    Option to enable/disable "only one open at a time", i need a section width and alignment and width option for the faq within and add an h1 above, Layout & Structure
+    Section heading: Frequently Asked Questions (editable h2)
+    Stack of accordion items below the heading
+    Each accordion item includes:
+    A bold, editable question (e.g., This is a FAQ question for SEO)
+    A hidden answer paragraph that expands with a toggle
+    A down/up chevron icon aligned to the right of each question
+    Only one accordion item can be open at a time (optional setting)
+    Content Elements
+    Section title (h2, editable)
+    Accordion questions (editable)
+    Accordion answers (editable rich text)
+    Expand/collapse icon (chevron up/down toggle)
+    Design & Style
+    Max-width container aligned center (set to match theme container)
+    Light grey background (#EEF7F7 or customizable)
+    Black text for questions
+    Soft animation for toggle (ease-in-out 200ms)
+    Divider line between each FAQ item
+    Mobile responsiveness: stack with same paddings
+    Icon changes direction based on state (up/down arrow)
+    Clean sans-serif font, consistent with theme, the bg color should be full width, add a container with width rules and then the existing container within that with alignment rules, add a smooth animation to open and close the accordians
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-faq-section-{{ ai_gen_id }} {
+    width: 100%;
+    background-color: {{ block.settings.background_color }};
+    padding: {{ block.settings.section_padding_top }}px 0 {{ block.settings.section_padding_bottom }}px;
+  }
+
+  .ai-faq-outer-container-{{ ai_gen_id }} {
+    max-width: {{ block.settings.section_width }}px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .ai-faq-container-{{ ai_gen_id }} {
+    max-width: {{ block.settings.container_width }}px;
+    margin: 0 auto;
+    padding: {{ block.settings.padding_top }}px {{ block.settings.padding_horizontal }}px {{ block.settings.padding_bottom }}px;
+    background-color: {{ block.settings.container_background_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+  }
+
+  .ai-faq-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_font_size }}px;
+    font-weight: {{ block.settings.heading_font_weight }};
+    color: {{ block.settings.heading_color }};
+    text-align: {{ block.settings.heading_alignment }};
+    margin-top: 0;
+    margin-bottom: {{ block.settings.heading_spacing }}px;
+  }
+
+  .ai-faq-list-{{ ai_gen_id }} {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .ai-faq-item-{{ ai_gen_id }} {
+    border-bottom: 1px solid {{ block.settings.divider_color }};
+  }
+
+  .ai-faq-item-{{ ai_gen_id }}:last-child {
+    border-bottom: none;
+  }
+
+  .ai-faq-question-{{ ai_gen_id }} {
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: {{ block.settings.question_padding }}px 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: {{ block.settings.question_font_size }}px;
+    font-weight: {{ block.settings.question_font_weight }};
+    color: {{ block.settings.question_color }};
+    transition: color 0.3s ease-in-out;
+  }
+
+  .ai-faq-question-{{ ai_gen_id }}:hover {
+    color: {{ block.settings.question_hover_color }};
+  }
+
+  .ai-faq-question-text-{{ ai_gen_id }} {
+    flex: 1;
+    margin-right: 16px;
+  }
+
+  .ai-faq-icon-{{ ai_gen_id }} {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease-in-out;
+    flex-shrink: 0;
+    color: {{ block.settings.icon_color }};
+  }
+
+  .ai-faq-item-{{ ai_gen_id }}.active .ai-faq-icon-{{ ai_gen_id }} {
+    transform: rotate(180deg);
+  }
+
+  .ai-faq-answer-{{ ai_gen_id }} {
+    height: 0;
+    overflow: hidden;
+    transition: height 0.3s ease-in-out;
+    font-size: {{ block.settings.answer_font_size }}px;
+    color: {{ block.settings.answer_color }};
+    line-height: 1.5;
+    opacity: 0;
+  }
+
+  .ai-faq-answer-inner-{{ ai_gen_id }} {
+    padding: 0 0 {{ block.settings.answer_padding }}px 0;
+  }
+
+  .ai-faq-item-{{ ai_gen_id }}.active .ai-faq-answer-{{ ai_gen_id }} {
+    opacity: 1;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-faq-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_font_size_mobile }}px;
+    }
+    
+    .ai-faq-question-{{ ai_gen_id }} {
+      font-size: {{ block.settings.question_font_size_mobile }}px;
+    }
+
+    .ai-faq-answer-{{ ai_gen_id }} {
+      font-size: {{ block.settings.answer_font_size_mobile }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-faq-section-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-faq-outer-container-{{ ai_gen_id }}">
+    <div class="ai-faq-container-{{ ai_gen_id }}">
+      {% if block.settings.heading != blank %}
+        <h2 class="ai-faq-heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h2>
+      {% endif %}
+      
+      <faq-accordion-{{ ai_gen_id }}
+        class="ai-faq-wrapper-{{ ai_gen_id }}"
+        data-single-open="{{ block.settings.single_open }}"
+      >
+        <ul class="ai-faq-list-{{ ai_gen_id }}">
+          {% for i in (1..6) %}
+            {% assign question_key = 'question_' | append: i %}
+            {% assign answer_key = 'answer_' | append: i %}
+            {% assign question = block.settings[question_key] %}
+            {% assign answer = block.settings[answer_key] %}
+            {% if question != blank and answer != blank %}
+              <li class="ai-faq-item-{{ ai_gen_id }}" data-faq-item="{{ i }}">
+                <button 
+                  class="ai-faq-question-{{ ai_gen_id }}"
+                  aria-expanded="false"
+                  aria-controls="ai-faq-answer-{{ ai_gen_id }}-{{ i }}"
+                >
+                  <span class="ai-faq-question-text-{{ ai_gen_id }}">{{ question }}</span>
+                  <svg class="ai-faq-icon-{{ ai_gen_id }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6,9 12,15 18,9"></polyline>
+                  </svg>
+                </button>
+                <div 
+                  class="ai-faq-answer-{{ ai_gen_id }}"
+                  id="ai-faq-answer-{{ ai_gen_id }}-{{ i }}"
+                  aria-hidden="true"
+                >
+                  <div class="ai-faq-answer-inner-{{ ai_gen_id }}">{{ answer }}</div>
+                </div>
+              </li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </faq-accordion-{{ ai_gen_id }}>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    class FaqAccordion{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+        this.singleOpen = this.dataset.singleOpen === 'true';
+        this.animationSpeed = 300; // Animation duration in ms
+      }
+
+      connectedCallback() {
+        this.setupEventListeners();
+      }
+
+      setupEventListeners() {
+        const questions = this.querySelectorAll('.ai-faq-question-{{ ai_gen_id }}');
+        questions.forEach(question => {
+          question.addEventListener('click', () => {
+            const faqItem = question.closest('.ai-faq-item-{{ ai_gen_id }}');
+            const answer = faqItem.querySelector('.ai-faq-answer-{{ ai_gen_id }}');
+            const isActive = faqItem.classList.contains('active');
+            
+            if (this.singleOpen) {
+              // Close all other items
+              this.querySelectorAll('.ai-faq-item-{{ ai_gen_id }}.active').forEach(item => {
+                if (item !== faqItem) {
+                  this.closeItem(item);
+                }
+              });
+            }
+            
+            if (isActive) {
+              this.closeItem(faqItem);
+            } else {
+              this.openItem(faqItem);
+            }
+          });
+        });
+      }
+
+      openItem(item) {
+        const question = item.querySelector('.ai-faq-question-{{ ai_gen_id }}');
+        const answer = item.querySelector('.ai-faq-answer-{{ ai_gen_id }}');
+        const answerInner = answer.querySelector('.ai-faq-answer-inner-{{ ai_gen_id }}');
+        
+        // Set to active state
+        item.classList.add('active');
+        question.setAttribute('aria-expanded', 'true');
+        answer.setAttribute('aria-hidden', 'false');
+        
+        // Get the height of the content
+        const height = answerInner.offsetHeight;
+        
+        // Start animation
+        answer.style.height = '0px';
+        answer.style.opacity = '0';
+        
+        // Force a reflow to ensure the initial state is applied
+        void answer.offsetWidth;
+        
+        // Apply transition
+        answer.style.height = `${height}px`;
+        answer.style.opacity = '1';
+        
+        // Clean up after animation completes
+        setTimeout(() => {
+          if (item.classList.contains('active')) {
+            answer.style.height = 'auto';
+          }
+        }, this.animationSpeed);
+      }
+
+      closeItem(item) {
+        const question = item.querySelector('.ai-faq-question-{{ ai_gen_id }}');
+        const answer = item.querySelector('.ai-faq-answer-{{ ai_gen_id }}');
+        const answerInner = answer.querySelector('.ai-faq-answer-inner-{{ ai_gen_id }}');
+        
+        // Get the current height
+        const height = answer.offsetHeight;
+        
+        // Set fixed height to allow animation
+        answer.style.height = `${height}px`;
+        
+        // Force a reflow to ensure the fixed height is applied
+        void answer.offsetWidth;
+        
+        // Start animation
+        answer.style.height = '0px';
+        answer.style.opacity = '0';
+        
+        // Update ARIA attributes
+        question.setAttribute('aria-expanded', 'false');
+        answer.setAttribute('aria-hidden', 'true');
+        
+        // Remove active class after animation completes
+        setTimeout(() => {
+          item.classList.remove('active');
+        }, this.animationSpeed);
+      }
+    }
+
+    customElements.define('faq-accordion-{{ ai_gen_id }}', FaqAccordion{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "FAQ Accordion",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Frequently Asked Questions"
+    },
+    {
+      "type": "checkbox",
+      "id": "single_open",
+      "label": "Only one item open at a time",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Section Layout"
+    },
+    {
+      "type": "range",
+      "id": "section_width",
+      "label": "Section width",
+      "min": 800,
+      "max": 1800,
+      "step": 50,
+      "unit": "px",
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "label": "Section top padding",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "label": "Section bottom padding",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Section background color",
+      "default": "#EEF7F7"
+    },
+    {
+      "type": "header",
+      "content": "FAQ Container"
+    },
+    {
+      "type": "range",
+      "id": "container_width",
+      "label": "Container width",
+      "min": 600,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "default": 1000
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Container top padding",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Container bottom padding",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_horizontal",
+      "label": "Container horizontal padding",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Container border radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "color",
+      "id": "container_background_color",
+      "label": "Container background color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "header",
+      "content": "Heading Style"
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "label": "Heading alignment",
+      "options": [
+        {"value": "left", "label": "Left"},
+        {"value": "center", "label": "Center"},
+        {"value": "right", "label": "Right"}
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "heading_font_size",
+      "label": "Heading font size",
+      "min": 20,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "heading_font_size_mobile",
+      "label": "Heading font size (mobile)",
+      "min": 18,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 28
+    },
+    {
+      "type": "select",
+      "id": "heading_font_weight",
+      "label": "Heading font weight",
+      "options": [
+        {"value": "400", "label": "Regular"},
+        {"value": "500", "label": "Medium"},
+        {"value": "600", "label": "Semi-bold"},
+        {"value": "700", "label": "Bold"}
+      ],
+      "default": "600"
+    },
+    {
+      "type": "range",
+      "id": "heading_spacing",
+      "label": "Space below heading",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "header",
+      "content": "Question Style"
+    },
+    {
+      "type": "range",
+      "id": "question_font_size",
+      "label": "Question font size",
+      "min": 14,
+      "max": 28,
+      "step": 1,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "question_font_size_mobile",
+      "label": "Question font size (mobile)",
+      "min": 14,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "question_font_weight",
+      "label": "Question font weight",
+      "options": [
+        {"value": "400", "label": "Regular"},
+        {"value": "500", "label": "Medium"},
+        {"value": "600", "label": "Semi-bold"},
+        {"value": "700", "label": "Bold"}
+      ],
+      "default": "600"
+    },
+    {
+      "type": "range",
+      "id": "question_padding",
+      "label": "Question padding",
+      "min": 10,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Answer Style"
+    },
+    {
+      "type": "range",
+      "id": "answer_font_size",
+      "label": "Answer font size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "answer_font_size_mobile",
+      "label": "Answer font size (mobile)",
+      "min": 12,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "answer_padding",
+      "label": "Answer bottom padding",
+      "min": 10,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "question_color",
+      "label": "Question color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "question_hover_color",
+      "label": "Question hover color",
+      "default": "#4a4a4a"
+    },
+    {
+      "type": "color",
+      "id": "answer_color",
+      "label": "Answer color",
+      "default": "#4a4a4a"
+    },
+    {
+      "type": "color",
+      "id": "divider_color",
+      "label": "Divider color",
+      "default": "#e0e0e0"
+    },
+    {
+      "type": "color",
+      "id": "icon_color",
+      "label": "Icon color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "FAQ Items"
+    },
+    {
+      "type": "text",
+      "id": "question_1",
+      "label": "Question 1",
+      "default": "What makes your products different?"
+    },
+    {
+      "type": "richtext",
+      "id": "answer_1",
+      "label": "Answer 1",
+      "default": "<p>Our products are crafted with sustainable materials and ethical manufacturing practices. Each item is designed to last longer and have less environmental impact than conventional alternatives.</p>"
+    },
+    {
+      "type": "text",
+      "id": "question_2",
+      "label": "Question 2",
+      "default": "How do I know which size to order?"
+    },
+    {
+      "type": "richtext",
+      "id": "answer_2",
+      "label": "Answer 2",
+      "default": "<p>We provide detailed size guides on each product page. If you're between sizes, we generally recommend sizing up. Our customer service team is also available to help with specific sizing questions.</p>"
+    },
+    {
+      "type": "text",
+      "id": "question_3",
+      "label": "Question 3",
+      "default": "What is your return policy?"
+    },
+    {
+      "type": "richtext",
+      "id": "answer_3",
+      "label": "Answer 3",
+      "default": "<p>We offer a 30-day return policy for unworn items in their original packaging. Return shipping is free for customers in the United States. International returns are accepted, but customers are responsible for return shipping costs.</p>"
+    },
+    {
+      "type": "text",
+      "id": "question_4",
+      "label": "Question 4",
+      "default": "How long does shipping take?"
+    },
+    {
+      "type": "richtext",
+      "id": "answer_4",
+      "label": "Answer 4",
+      "default": "<p>Domestic orders typically arrive within 3-5 business days. International shipping usually takes 7-14 business days, depending on the destination country and customs processing.</p>"
+    },
+    {
+      "type": "text",
+      "id": "question_5",
+      "label": "Question 5",
+      "default": "Do you ship internationally?"
+    },
+    {
+      "type": "richtext",
+      "id": "answer_5",
+      "label": "Answer 5",
+      "default": "<p>Yes, we ship to most countries worldwide. International shipping rates are calculated at checkout based on location and order weight. Please note that customers are responsible for any import duties or taxes imposed by their country.</p>"
+    },
+    {
+      "type": "text",
+      "id": "question_6",
+      "label": "Question 6",
+      "default": "How can I track my order?"
+    },
+    {
+      "type": "richtext",
+      "id": "answer_6",
+      "label": "Answer 6",
+      "default": "<p>Once your order ships, you'll receive a confirmation email with tracking information. You can also log into your account on our website to view order status and tracking details.</p>"
+    }
+  ],
+  "presets": [
+    {
+      "name": "FAQ Accordion"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,311 @@
+{%- case contentIs -%}
+  {%- when 'isCustomer' -%}
+    <!-- {{ contentIs }} START -->
+    <script>
+      const productTypeIs = `{{ section.settings.productTypeSet }}`;
+      const productTemplateIs = `{{ product.template_suffix }}`;
+      let CUSTOMER_ID = null;
+      {% if customer %}
+        CUSTOMER_ID = {{ customer.id }};
+      {% endif %}
+    </script>
+    <!-- {{ contentIs }} END -->
+
+  {%- when 'isDTFTransfer' -%}
+    <!-- {{ contentIs }} START -->
+    {% if request.path contains '/products/dtf-transfers' %}
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          var queryString = window.location.search;
+          if (queryString.indexOf('utm_content=qr-code') !== -1) {
+            window.location.href = 'https://ninjatransfers.com/discount/ImpressionsMagRidealong?redirect=/products/dtf-transfers&utm_source=impressions&utm_medium=ridealong&utm_campaign=discount-link';
+          }
+          if (queryString.indexOf('utm_campaign=ridealong-QR') !== -1) {
+            window.location.href = 'https://ninjatransfers.com/discount/GPROMagRidealong?redirect=/products/dtf-transfers&utm_source=graphics-pro&utm_medium=ridealong&utm_campaign=discount-link';
+          }
+        });
+      </script>
+    {% endif %}
+    <!-- {{ contentIs }} END -->
+
+  {%- when 'metafieldsSpecs' -%}
+    <!-- {{ contentIs }} START -->
+    {% if product.metafields.specs.default_child_color %}
+      {%- capture collectAllScripts %}
+        {{ collectAllScripts }}
+        <script>
+          const urlParams = new URLSearchParams(window.location.search);
+          const viewParam = urlParams.get('view');
+          if (viewParam) {
+            const targetUrl = window.location.href.substring(0,window.location.href.indexOf('?')) + '?variant=' + viewParam;
+            document.location = targetUrl;
+          }
+        </script>
+      {%- endcapture -%}
+    {% elsif product.metafields.specs.shirt_color %}
+      {%- capture collectAllScripts %}
+        {{ collectAllScripts }}
+        <script>
+          const currentUrl = window.location.href;
+          let pos = currentUrl.indexOf("-child");
+          if (pos >= 0) {
+            const targetUrl = currentUrl.substring(0,pos);
+            document.location = targetUrl;
+          }
+        </script>
+      {%- endcapture -%}
+    {% endif %}
+    <!-- {{ contentIs }} END -->
+
+  {%- when 'allVariants' -%}
+    <!-- {{ contentIs }} START -->
+    {%- capture allVariants -%}
+      {% for variant in product.variants %}
+        {
+          "id": {{ variant.id | json }},
+          "title": {{ variant.title | json }},
+          {% if variant.featured_image != blank %}
+            "thumb": {{ variant.featured_image | image_url: width: 100 | json }},
+            "large": {{ variant.featured_image | image_url: width: 1000 | json }},
+          {% elsif variant.image != blank %}
+            "thumb": {{ variant.image | image_url: width: 100 | json }},
+            "large": {{ variant.image | image_url: width: 1000 | json }},
+          {% else %}
+            "thumb": null,
+            "large": null,
+          {% endif %}
+          {% if variant.option1 != blank %}
+            "option1": {{ variant.option1 | json }},
+            "option1_converted": {{ variant.option1 | replace: '"', '^' | json }},
+            {% if variant.option1 contains 'Style #' %}
+              "isCustom": true,
+              {%-liquid
+                assign getSize = variant.option1 | split: 'Style #' | remove: ' ' | remove: '[' | remove: ']' | remove: '"' | remove: ','
+                assign minInches = getSize | split: '-' | first | strip | times: 1
+                assign maxInches = getSize | split: '-' | last | strip | times: 1
+              -%}
+              "minInches": {{ minInches | json }},
+              "maxInches": {{ maxInches | json }},
+            {% else %}
+              "isPopular": true,
+            {% endif %}
+          {% endif %}
+          {% if variant.option2 != blank %}
+            "option2": {{ variant.option2 | json }},
+          {% endif %}
+          {% if variant.option3 != blank %}
+            "option3": {{ variant.option3 | json }},
+          {% endif %}
+          "media_id": {{ variant.featured_media.id | json }},
+          "price": {{ variant.price | money_without_currency | json }}
+        }
+        {%- unless forloop.last -%}
+          ,
+        {%- endunless -%}
+      {% endfor %}
+    {%- endcapture -%}
+    {%- assign customVariants = '' -%}
+    {%- assign populatVariants = '' -%}
+    {% for variant in product.variants %}
+      {% if variant.option1 contains 'Style #' %}
+        {%- capture customVariants -%}
+          {{ customVariants }}
+          ,{
+            "id": {{ variant.id | json }},
+            "title": {{ variant.title | json }},
+            {% if variant.featured_image != blank %}
+              "thumb": {{ variant.featured_image | image_url: width: 100 | json }},
+              "large": {{ variant.featured_image | image_url: width: 1000 | json }},
+            {% else %}
+              "thumb": null,
+              "large": null,
+            {% endif %}
+            {% if variant.option1 != blank %}
+              "option1": {{ variant.option1 | json }},
+            {% endif %}
+            {% if variant.option2 != blank %}
+              "option2": {{ variant.option2 | json }},
+            {% endif %}
+            {% if variant.option3 != blank %}
+              "option3": {{ variant.option3 | json }},
+            {% endif %}
+            {%-liquid
+              assign getMin = variant.option1 | split: '#' | last
+              if getMin contains '-'
+                assign min = getMin | split: '-' | first
+                assign max = getMin | split: '-' | last
+              endif
+            -%}
+            {% if min != blank and max != blank %}
+              "min": {{ min | json }},
+              "max": {{ max | json }},
+            {% endif %}
+            "media_id": {{ variant.featured_media.id | json }},
+            "price": {{ variant.price | money_without_currency | json }}
+          }
+        {%- endcapture -%}
+      {% else %}
+        {%- capture populatVariants -%}
+          {{ populatVariants }}
+          ,{
+            "id": {{ variant.id | json }},
+            "title": {{ variant.title | json }},
+            {% if variant.featured_image != blank %}
+              "thumb": {{ variant.featured_image | image_url: width: 100 | json }},
+              "large": {{ variant.featured_image | image_url: width: 1000 | json }},
+            {% else %}
+              "thumb": null,
+              "large": null,
+            {% endif %}
+            {% if variant.option1 != blank %}
+              "option1": {{ variant.option1 | json }},
+            {% endif %}
+            {% if variant.option2 != blank %}
+              "option2": {{ variant.option2 | json }},
+            {% endif %}
+            {% if variant.option3 != blank %}
+              "option3": {{ variant.option3 | json }},
+            {% endif %}
+            "media_id": {{ variant.featured_media.id | json }},
+            "price": {{ variant.price | money_without_currency | json }}
+          }
+        {%- endcapture -%}
+      {% endif %}
+    {% endfor %}
+    {% if customVariants != blank %}
+      {%- assign customVariants = customVariants | remove_first: ',' -%}
+    {% endif %}
+    {% if populatVariants != blank %}
+      {%- assign populatVariants = populatVariants | remove_first: ',' -%}
+    {% endif %}
+    <script>
+      loaderGif = `{{ 'loader.gif' | asset_url }}`;
+      const allVariants = [{{ allVariants }}];
+      const allCustomVariants = [{{ customVariants }}];
+      const allPopularVariants = [{{ populatVariants }}];
+      const mainSectionID = `shopify-section-{{ section.id }}`;
+      let precutOptionAvailable = false;
+      const isPuffProduct = {{ section.settings.isPuffProduct | json }};
+      const isMagnetProduct = {{ section.settings.isMagnetProduct | json }};
+
+      {% if product.metafields.custom.min_quantity != blank %}
+        const definedQtyFromMetafield = {{ product.metafields.custom.min_quantity | json }};
+      {% endif %}
+      const isCustomStickerProduct = {{ section.settings.isCustomStickerProduct | json }};
+      const isBumperStickerProduct = {{ section.settings.isBumperStickerProduct | json }};
+      {% if section.settings.isBumperStickerProduct and product.metafields.custom.min_quantity != blank %}
+        const definedQty__metafield = {{ product.metafields.custom.min_quantity | json }};
+      {% endif %}
+    </script>
+    <!-- {{ contentIs }} END -->
+
+  {%- when 'customUploaderView' -%}
+    <!-- {{ contentIs }} START -->
+    <script>
+      $(document)
+      .on(`click`, `.customUploaderView__removeFile`, function( e ) {
+        try {
+          e.stopImmediatePropagation();
+          $( `button.filepond--file-action-button.filepond--action-revert-item-processing` ).click();
+          $( '.customUploaderView_preview' ).text( `` );
+          $( `.changeLayout [data-upload-lift]` ).show();
+          $( `.pdp__block.customDescription.hidden` ).removeClass( `hidden` );
+          $( `.customUploaderView_detail` ).removeClass( `imgAvailable` );
+        } catch ( err ) {
+          console.log( `ERROR .customUploaderView__removeFile`, err.message );
+        }
+      })
+
+      .on(`keyup blur paste`, `.customUploaderView__inputFeild_textarea`, function( e ) {
+        try {
+          e.stopImmediatePropagation();
+          const getVal = $( this ).val();
+          $( `[name="properties[Design Notes]"]` ).val( getVal );
+        } catch ( err ) {
+          console.log( `ERROR .customUploaderView__inputFeild_textarea`, err.message );
+        }
+      })
+      ;
+
+      function customUploaderView() {
+        try {
+          const infoWrapper = $( `.filepond--root.cl-upload--area.filepond--hopper .filepond--file-wrapper .filepond--file` );
+          const getData = {
+            fileName: `${ infoWrapper.find( `.filepond--file-info .filepond--file-info-main` ).text().trim() }`,
+            fileSize: `${ infoWrapper.find( `.filepond--file-info .filepond--file-info-sub` ).text().trim() }`,
+            fileStatus: `${ infoWrapper.find( `.filepond--file-status .filepond--file-status-main` ).text().trim() }`,
+            fileStatus2nd: `${ infoWrapper.find( `.filepond--file-status .filepond--file-status-sub` ).text().trim() }`,
+            designNoteLabel: $( `.cl-upload--input-field .cl-upload--label` ).text().trim(),
+            designNote: $( `[name="properties[Design Notes]"]` ).val(),
+            designPlaceholder: $( `[name="properties[Design Notes]"]` ).attr( `placeholder` ),
+          }
+
+          var element = $(".filepond--root.cl-upload--area.filepond--hopper .filepond--image-bitmap canvas");
+          if ( element.length > 0 ) {
+            console.log ( 'find',  );
+            console.log ( 'element', element );
+            html2canvas(element, {
+            dpi: 144,
+            onrendered: function (canvas) {
+                // getCanvas = canvas;
+                $( `.customUploaderView_detail` )
+                  .addClass( `imgAvailable` )
+                  .find( `.customUploaderView_preview` )
+                  .html( canvas );
+              }
+            });
+          } else {
+            const elementForVector = $( `.filepond--root.cl-upload--area.filepond--hopper .filepond--file-wrapper .filepond--file` );
+            if ( elementForVector.length > 0 ) {
+            }
+          }
+
+          $( `.customUploaderView__info_fileName` ).text( getData.fileName );
+          $( `.customUploaderView__info_fileSize` ).text( getData.fileSize );
+          $( `.customUploaderView__info_status` ).text( getData.fileStatus );
+          $( `.customUploaderView__info_status2nd` ).text( getData.fileStatus2nd );
+          $( `.customUploaderView__inputFeild_label` ).text( getData.designNoteLabel );
+          $( `.customUploaderView__inputFeild_textarea` ).attr( `placeholder`, getData.designPlaceholder ).val( getData.designNote );
+          setTimeout(() => {
+            $( `.changeLayout [data-upload-lift]` ).hide();
+          }, 100);
+        } catch ( err ) {
+          console.log( `ERROR `, err.message );
+        }
+      }
+    </script>
+    <!-- {{ contentIs }} END -->
+
+  {%- when 'isPuffTransfers' -%}
+    <!-- {{ contentIs }} START -->
+    {% if template contains "puff-transfers" %}
+      <script>
+        let inter = setInterval(function() {
+          if(document.querySelector(".filepond--drop-label .label__files")) {
+            document.querySelector(".filepond--drop-label .label__files").innerHTML = "IMPORTANT: Only upload single images<br/>no Gang Sheets accepted on this product"
+            clearInterval(inter);
+          }
+        },200)
+      </script>
+    {% endif %}
+    <!-- {{ contentIs }} END -->
+  
+  {%- when 'toolTipData' -%}
+    <script>
+      $(document).ready(function () {
+        const isEnableToolTip = {{ b.showTooltip | json }};
+        const toolTipContent = `{{ b.tooltipContent }}`;
+        const isToolTipEle = $( `tooltip-content-el` ).length;
+        if ( isToolTipEle > 0 && isEnableToolTip && toolTipContent != '' ) {
+          $( `tooltip-content-el` ).html( `
+            <div class="widthHeight__option-toolTip" style="display:inline-block;margin-left:6px;">
+              <img src="//ninja-transfers-cdn.imgix.net/info_da70c6e6-1e86-41d3-9035-2bf57d01d406_medium.svg?auto=format,compress&amp;auto=format,compress&amp;v=1678797665">
+              <div class="widthHeight__option-toolTip__content">
+                <div style="font-weight: 400;">${ toolTipContent }</div>
+              </div>
+            </div>
+          ` );
+        }
+      });
+    </script>
+{%- endcase -%}

@@ -1,0 +1,79 @@
+{%- comment -%}
+  Design Tools Redirect
+  --------------------------------------------------
+  Pair section for design-tools-sidebar. Add this to a tool
+  page template (e.g. page.tools-background-remover.json)
+  and set the matching slug. When a visitor lands on that
+  page directly, this section stashes the slug in
+  sessionStorage and client-side-redirects to the portal,
+  which reads the slug and pre-selects the matching tab.
+  No URL hash, no query string — keeps the browser address
+  bar clean.
+
+  Skips the redirect when the page is loaded inside an
+  iframe (i.e. as the portal's preview pane), so the tool
+  page renders normally there.
+{%- endcomment -%}
+
+{%- liquid
+  assign portal_url = section.settings.portal_url | default: '/pages/free-design-tools'
+  assign slug = section.settings.slug | strip
+-%}
+
+{%- if slug != blank -%}
+<script>
+  (function () {
+    // Already inside the design-tools portal (AJAX-loaded into .dts-content)?
+    // Bail — running window.location.replace from injected scripts causes an
+    // infinite redirect loop.
+    if (document.querySelector('.dts-portal')) return;
+    // AJAX-loaded into the members portal at /pages/welcome? Bail so the tool
+    // renders inline there instead of bouncing to the design-tools portal.
+    if (document.querySelector('.mp-ajax-content')) return;
+    try {
+      // Loaded inside an iframe? Don't redirect — render the page.
+      if (window.top !== window.self) return;
+    } catch (e) {
+      // Cross-origin access threw — assume embedded, do nothing.
+      return;
+    }
+    try { window.sessionStorage.setItem('dts-pending-tool', {{ slug | json }}); } catch (e) {}
+    // replace() so the tool URL doesn't pollute browser history.
+    window.location.replace({{ portal_url | json }});
+  })();
+</script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Design Tools Redirect",
+  "tag": "div",
+  "class": "design-tools-redirect-section",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Add this to a tool page template so direct visits bounce to the Free Design Tools portal with this tab pre-selected. The slug must match the menu item's label slug (e.g. \"background-remover\" for a menu item labeled \"Background Remover\")."
+    },
+    {
+      "type": "text",
+      "id": "slug",
+      "label": "Tab slug",
+      "info": "Slug stashed in sessionStorage so the portal pre-selects this tab. Lowercase, hyphenated. Must match `handle` of the corresponding menu item label."
+    },
+    {
+      "type": "url",
+      "id": "portal_url",
+      "label": "Portal URL",
+      "info": "Where to send visitors. Defaults to /pages/free-design-tools."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Design Tools Redirect"
+    }
+  ],
+  "enabled_on": {
+    "templates": ["page"]
+  }
+}
+{% endschema %}

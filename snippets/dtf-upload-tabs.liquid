@@ -1,0 +1,701 @@
+{%- comment -%}
+  DTF Upload Tabs
+  ----------------------------------------------------------------
+  Four-tab wrapper around the EXISTING upload area, AI generator,
+  and recent-designs picker so all current multi-upload behaviour
+  keeps working. After a file is selected the tabs hide themselves
+  so the regular order-selection UI takes over.
+
+  Usage (inside sections/bySizeNew.liquid, `when "fileupload"` case):
+    {% render 'dtf-upload-tabs',
+         product: product,
+         section: section,
+         block: block %}
+{%- endcomment -%}
+
+{{ 'dtf-upload-tabs.css' | asset_url | stylesheet_tag }}
+{{ 'ai-create.css' | asset_url | stylesheet_tag }}
+
+{%- comment -%}
+  Dropbox Chooser app key — replace the value below with the App key from
+  https://www.dropbox.com/developers/apps (create a Scoped, App-folder app,
+  add the store domain to "Chooser / Saver / Embedder domains").
+  Safe to ship in HTML — this is a public client-side key.
+{%- endcomment -%}
+{%- assign dropbox_app_key = 'ykparkrwwnf35hv' -%}
+
+{%- comment -%}
+  Google Drive Picker — needs two public client-side credentials from a
+  Google Cloud project (https://console.cloud.google.com/):
+    • OAuth 2.0 Client ID (Web application, add store domain(s) to
+      "Authorized JavaScript origins")
+    • API Key (restrict to "Google Picker API" under API restrictions)
+  Enable APIs: "Google Picker API" and "Google Drive API".
+  If the store customer is logged in, we pass their email as login_hint so
+  Google skips the account chooser.
+{%- endcomment -%}
+{%- assign google_client_id = '333432217986-p85aqpdu0cmh9l0ehn44sg31r1k4nlsl.apps.googleusercontent.com' -%}
+{%- assign google_api_key   = 'AIzaSyDv6DTri7BJaSHwA9s1LxAJ8qiLBqswwh8' -%}
+{%- assign customer_email   = customer.email | default: '' -%}
+
+{%- comment -%}
+  OneDrive File Picker — register an app at https://portal.azure.com:
+    1. Azure Active Directory → App registrations → New registration
+    2. Supported account types: "Accounts in any organizational directory
+       and personal Microsoft accounts"
+    3. Redirect URI (Web platform): add the storefront domain(s)
+    4. API permissions → add Microsoft Graph → Delegated → Files.Read
+    5. Copy the "Application (client) ID" below
+  The client ID is public and safe to ship in HTML.
+{%- endcomment -%}
+{%- assign onedrive_client_id = 'REPLACE_WITH_ONEDRIVE_CLIENT_ID' -%}
+{%- assign shop_origin = shop.secure_url | default: shop.url -%}
+
+{%- assign b = block.settings -%}
+{%- assign tabs_id = 'dtfut-' | append: block.id -%}
+{%- comment -%}
+  Mobile pill-tabs treatment is scoped to the v2-style PDPs:
+    • handle dtf-transfers              (legacy main DTF PDP)
+    • handle dtf-transfers-by-size-v2   (template by-size-tabs-v2)
+    • handle dtf-transfers-by-size-v3   (template by-size-bg-options)
+  All three share this snippet AND the v2 mobile look — text-only
+  pills, no Studio tab, light-blue active fill. The `.dtfut--v2` class
+  drives every difference; the CSS itself lives in
+  assets/dtf-upload-tabs.css.
+{%- endcomment -%}
+{%- assign dtfut_v2 = false -%}
+{%- if product.handle == 'dtf-transfers' or product.handle == 'dtf-transfers-by-size-v2' or product.handle == 'dtf-transfers-by-size-v3' -%}
+  {%- assign dtfut_v2 = true -%}
+{%- endif -%}
+{%- assign picker_forced_type = 'bysize' -%}
+{%- assign picker_tag_string = product.tags | join: ',' | downcase -%}
+{%- if product.template_suffix contains 'gang-sheet' or product.handle contains 'gang' or picker_tag_string contains 'gang' -%}
+  {%- assign picker_forced_type = 'gangsheet' -%}
+{%- endif -%}
+{%- comment -%}
+  Gang sheets only accept ONE design per cart item (each gang sheet is
+  its own product), so multi-select doesn't make sense — disabling
+  allow_multi forces the picker into single-select-with-replace mode
+  (toggleDesignSelection: selectedDesignIds = [sid]).
+{%- endcomment -%}
+{%- assign picker_allow_multi = true -%}
+{%- if picker_forced_type == 'gangsheet' -%}
+  {%- assign picker_allow_multi = false -%}
+{%- endif -%}
+{%- assign ds_url = b.designStudioUrl | default: '/pages/design-studio' -%}
+
+{%- comment -%}
+  Per-tab gates. Every PDP that hosts an upload box wraps it in dtfut,
+  but not every product offers Create with AI or Design Studio. These
+  flags let the parent (section / block) opt OUT of either tab so the
+  pill bar only shows what's actually supported by that product.
+
+  Default: SHOW both tabs (matches the dtf-transfers historical
+  behavior). Override by passing `show_ai_tab: false` and/or
+  `show_studio_tab: false` to the snippet, OR by setting
+  block.settings.show_ai_tab / show_studio_tab to false in schema.
+  Section-level overrides (`section.settings.show_ai_tab` etc.) also
+  work for sections that don't have block-scoped settings.
+
+  Falsy detection: any of `nil`, `false`, blank string disables the
+  tab; anything else (true, "true", missing) keeps it visible.
+{%- endcomment -%}
+{%- assign show_ai_tab = true -%}
+{%- assign show_studio_tab = true -%}
+{%- if show_ai_tab_override == false or show_ai_tab_override == 'false' -%}
+  {%- assign show_ai_tab = false -%}
+{%- endif -%}
+{%- if show_studio_tab_override == false or show_studio_tab_override == 'false' -%}
+  {%- assign show_studio_tab = false -%}
+{%- endif -%}
+{%- if b.show_ai_tab == false -%}{%- assign show_ai_tab = false -%}{%- endif -%}
+{%- if b.show_studio_tab == false -%}{%- assign show_studio_tab = false -%}{%- endif -%}
+{%- if section.settings.show_ai_tab == false -%}{%- assign show_ai_tab = false -%}{%- endif -%}
+{%- if section.settings.show_studio_tab == false -%}{%- assign show_studio_tab = false -%}{%- endif -%}
+
+<div class="dtfut{% if dtfut_v2 %} dtfut--v2{% endif %}" id="{{ tabs_id }}" data-dtfut
+  data-dtfut-dropbox-key="{{ dropbox_app_key }}"
+  data-dtfut-google-client-id="{{ google_client_id }}"
+  data-dtfut-google-api-key="{{ google_api_key }}"
+  data-dtfut-onedrive-client-id="{{ onedrive_client_id }}"
+  data-dtfut-shop-origin="{{ shop_origin }}"
+  data-dtfut-customer-email="{{ customer_email }}">
+
+  <div class="dtfut__panel-wrap">
+
+    <div class="dtfut__header">
+      <h2 class="dtfut__header-title" data-dtfut-title>Upload Your Artwork</h2>
+      <div class="dtfut__tabs" role="tablist" aria-label="Design source">
+        <button type="button"
+                class="dtfut__tab is-active"
+                role="tab"
+                data-dtfut-tab="upload"
+                data-dtfut-title-text="Upload Your Artwork"
+                aria-selected="true"
+                aria-controls="{{ tabs_id }}-upload">
+          <img class="dtfut__tab-icon" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Upload_DS.svg?v=1777402361" alt="" aria-hidden="true">
+          <span class="dtfut__tab-label">Upload</span>
+          <span class="dtfut__tab-label-short">Upload</span>
+        </button>
+        <button type="button"
+                class="dtfut__tab"
+                role="tab"
+                data-dtfut-tab="recent"
+                data-dtfut-title-text="Your Previous Designs"
+                aria-selected="false"
+                aria-controls="{{ tabs_id }}-recent">
+          <img class="dtfut__tab-icon" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Previous_designs.svg?v=1777484765" alt="" aria-hidden="true">
+          <span class="dtfut__tab-label">Previous Designs</span>
+          <span class="dtfut__tab-label-short">Previous</span>
+          <span class="dtfut__tab-count" data-dtfut-recent-count hidden>0</span>
+        </button>
+        {%- if show_ai_tab -%}
+        <button type="button"
+                class="dtfut__tab"
+                role="tab"
+                data-dtfut-tab="ai"
+                data-dtfut-title-text="Describe and Design"
+                aria-selected="false"
+                aria-controls="{{ tabs_id }}-ai">
+          <img class="dtfut__tab-icon" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Create_with_AI.svg?v=1777402306" alt="" aria-hidden="true">
+          <span class="dtfut__tab-label">Create with AI</span>
+          <span class="dtfut__tab-label-short">Create AI</span>
+        </button>
+        {%- endif -%}
+        {%- if show_studio_tab -%}
+        <button type="button"
+                class="dtfut__tab"
+                role="tab"
+                data-dtfut-tab="create"
+                data-dtfut-title-text="Design From Scratch"
+                aria-selected="false"
+                aria-controls="{{ tabs_id }}-create">
+          <img class="dtfut__tab-icon" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Design_studio.svg?v=1777484765" alt="" aria-hidden="true">
+          <span class="dtfut__tab-label">Design Studio</span>
+          <span class="dtfut__tab-label-short">Studio</span>
+        </button>
+        {%- endif -%}
+      </div>
+    </div>
+    <div class="dtfut__header-divider" aria-hidden="true"></div>
+
+    {%- comment -%} ============ TAB 1 — Upload ============ {%- endcomment -%}
+    <div class="dtfut__panel is-active"
+         id="{{ tabs_id }}-upload"
+         role="tabpanel"
+         data-dtfut-panel="upload">
+      {%- comment -%}
+        Native upload area — keeps the existing drop-zoon, #fileInput,
+        master-upload custom element, and all handlers bound by
+        pdp_transferBySize.js / ninja-multiupload.js. The login /
+        "Choose a previous design" link is hidden by CSS because Tab 2
+        handles that flow.
+      {%- endcomment -%}
+      <div class="dtfut__upload-host">
+        {% render '__multipleSnippets',
+                 product: product,
+                 section: section,
+                 block: block,
+                 contentFor: 'uploadArea' %}
+      </div>
+
+      <div class="dtfut__src-row">
+        <span class="dtfut__src-divider"></span>
+        <span class="dtfut__src-label">OR IMPORT FROM</span>
+        <span class="dtfut__src-divider"></span>
+      </div>
+      <div class="dtfut__src-btns">
+        <button type="button" class="dtfut__src-btn" data-dtfut-source="drive">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.71 3.52l-5.29 9.17 3.17 5.49 5.29-9.17-3.17-5.49z" fill="#1FA463"/><path d="M22.42 12.69L17.13 3.52h-6.34l5.29 9.17h6.34z" fill="#FFCF36"/><path d="M14.9 17.3H8.56l-1.9 3.3h10.66l1.9-3.3z" fill="#4286F4"/></svg>
+          <span>Google Drive</span>
+        </button>
+        <button type="button" class="dtfut__src-btn" data-dtfut-source="dropbox">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2l6 4-6 4-6-4 6-4zm12 0l6 4-6 4-6-4 6-4zM0 14l6-4 6 4-6 4-6-4zm18-4l6 4-6 4-6-4 6-4zM6 19l6-4 6 4-6 4-6-4z" fill="#0061FF"/></svg>
+          <span>Dropbox</span>
+        </button>
+        <button type="button" class="dtfut__src-btn" data-dtfut-source="canva">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#00C4CC"/><path d="M12.5 7.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5c1.2 0 2.3-.5 3-1.3l-1-.9c-.5.5-1.2.8-2 .8-1.7 0-3-1.3-3-3s1.3-3 3-3c.8 0 1.5.3 2 .8l1-.9c-.7-.8-1.8-1.3-3-1.5z" fill="#fff"/></svg>
+          <span>Canva</span>
+        </button>
+      </div>
+    </div>
+
+    {%- comment -%} ============ TAB 2 — Recent Designs ============ {%- endcomment -%}
+    <div class="dtfut__panel"
+         id="{{ tabs_id }}-recent"
+         role="tabpanel"
+         data-dtfut-panel="recent"
+         hidden>
+      {%- if customer -%}
+        {%- comment -%}
+          my-designs-panel is the same snippet used by the legacy
+          "Choose a previous design" modal and the standalone
+          /account/designs page. `picker: true` hides the delete/archive
+          controls and enables the USE DESIGNS selection bar. The
+          md-picker:use-designs event is bridged to the existing upload
+          pipeline in snippets/product-page-popups.liquid.
+        {%- endcomment -%}
+        <div class="dtfut__cols dtfut__cols--desktop" role="group" aria-label="Images per row">
+          <span class="dtfut__cols-label">Per row</span>
+          <button type="button" class="dtfut__cols-btn" data-dtfut-cols="3">3</button>
+          <button type="button" class="dtfut__cols-btn is-active" data-dtfut-cols="4">4</button>
+          <button type="button" class="dtfut__cols-btn" data-dtfut-cols="5">5</button>
+        </div>
+        <div class="dtfut__cols dtfut__cols--mobile" role="group" aria-label="Images per row">
+          <span class="dtfut__cols-label">Per row</span>
+          <button type="button" class="dtfut__cols-btn" data-dtfut-cols="1">1</button>
+          <button type="button" class="dtfut__cols-btn is-active" data-dtfut-cols="2">2</button>
+          <button type="button" class="dtfut__cols-btn" data-dtfut-cols="3">3</button>
+        </div>
+        {% render 'my-designs-panel', picker: true, allow_multi: picker_allow_multi, forced_type: picker_forced_type %}
+        <div class="dtfut__no-results" aria-live="polite">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="40" height="40" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <p class="dtfut__no-results-title">No matching designs</p>
+          <p class="dtfut__no-results-sub">Try a different search term.</p>
+        </div>
+      {%- else -%}
+        <div class="dtfut__recent-login">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          <h3>Log in to see your designs</h3>
+          <p>Sign in to browse and re-use artwork from your previous orders and uploads.</p>
+          <a href="/customer_authentication/login?return_to={{ product.url | url_encode }}" class="dtfut__recent-login-btn">Login</a>
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} ============ TAB 3 — Create with AI ============ {%- endcomment -%}
+    {%- if show_ai_tab -%}
+    <div class="dtfut__panel"
+         id="{{ tabs_id }}-ai"
+         role="tabpanel"
+         data-dtfut-panel="ai"
+         hidden>
+      {%- comment -%}
+        Renders the existing pink "Create a design with Ninja AI" box
+        + hidden #generativeAiStart + dialog + generative-ai-image-modal.js.
+        Clicking "Create an Image" runs the existing flow unchanged.
+      {%- endcomment -%}
+      <div class="dtfut__ai-host">
+        {%- comment -%}
+          Native block renders the hidden #generativeAiStart button, the
+          .generative-ai-area pink box, and the <dialog id="generative-ai-dialog">
+          used by generative-ai-image-modal.js. The pink box + dialog are hidden
+          in CSS; the sandbox-derived chat UI below replaces them. We still need
+          this rendered so the underlying endpoints + form/loader live in DOM
+          for the use-this-image flow.
+        {%- endcomment -%}
+        {% render '__multipleSnippets',
+                 product: product,
+                 section: section,
+                 block: block,
+                 contentFor: 'aiImageGenerator' %}
+
+        <div class="ai-chat" data-ai-panel data-ai-instance="dtfut">
+          <div class="ai-chat-thread" data-ai-thread>
+            <div class="ai-chat-header">
+              <div class="ai-chat-brand">NINJA AI</div>
+              <h2 class="ai-chat-title">Create something in seconds.</h2>
+              <p class="ai-chat-subtitle">Describe what you want or tap an idea below to see it in action.</p>
+
+              <div class="ai-chat-pills" data-ai-pills>
+                <button type="button" class="ai-chat-pill"
+                        data-ai-pill-prompt="A modern logo of a bold dumbbell icon in bright electric blue, hot pink, and neon yellow with text that says &quot;Common Ground Athletics&quot; on a pure white background">
+                  <span class="ai-chat-pill-emoji">🏋️</span>
+                  <span>Colorful gym logo</span>
+                </button>
+                <button type="button" class="ai-chat-pill"
+                        data-ai-pill-prompt="A bold modern design of a large floral bouquet in vivid pink, coral, and sage with text that says &quot;Mama&quot; in chunky serif on a white background">
+                  <span class="ai-chat-pill-emoji">🌸</span>
+                  <span>Floral mama design</span>
+                </button>
+                <button type="button" class="ai-chat-pill"
+                        data-ai-pill-prompt="A vibrant party design of streamers and stars in hot pink, electric orange, neon green, and bright blue with text that says &quot;Let&#39;s Party&quot; in wavy groovy letters on a pure white background">
+                  <span class="ai-chat-pill-emoji">✨</span>
+                  <span>Groovy party design</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ai-chat-composer">
+            <div class="ai-pop-error" data-ai-error></div>
+            <div class="ai-chat-input-wrap">
+              <textarea data-ai-prompt rows="1"
+                        placeholder="Describe your design…"></textarea>
+              <div class="ai-chat-actions">
+                <button type="button" class="ai-chat-clear" data-ai-clear aria-label="Clear prompt" hidden>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>
+                </button>
+                <button type="button" class="ai-chat-send is-empty"
+                        data-ai-generate aria-label="Generate" disabled>
+                  <svg class="ai-chat-send-icon" viewBox="0 0 20 20" fill="none"
+                       stroke="currentColor" stroke-width="2.4"
+                       stroke-linecap="round" stroke-linejoin="round"
+                       aria-hidden="true">
+                    <path d="M10 15V5M5 10l5-5 5 5"/>
+                  </svg>
+                  <span class="ai-chat-send-label">Generate</span>
+                  <span class="ai-pop-spin" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ai-chat-history is-collapsed" data-ai-history>
+            <div class="ai-chat-history-head">
+              <h3 class="ai-chat-history-title">Recently Generated</h3>
+              <button type="button" class="ai-chat-history-toggle"
+                      data-ai-history-toggle
+                      aria-expanded="false"
+                      aria-label="Show recently generated">
+                <span class="ai-chat-history-toggle-label" data-ai-history-toggle-label>Show</span>
+                <svg class="ai-chat-history-toggle-chev" viewBox="0 0 16 16" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 10l4-4 4 4"/>
+                </svg>
+              </button>
+            </div>
+            <div class="ai-chat-history-grid" data-ai-history-grid></div>
+            <div class="ai-chat-history-foot">
+              <button type="button" class="ai-chat-history-clear"
+                      data-ai-history-clear>Clear all</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {%- endif -%}{%- comment -%} /show_ai_tab {%- endcomment -%}
+
+    {%- comment -%} ============ TAB 4 — Create a Design ============ {%- endcomment -%}
+    {%- if show_studio_tab -%}
+    <div class="dtfut__panel"
+         id="{{ tabs_id }}-create"
+         role="tabpanel"
+         data-dtfut-panel="create"
+         hidden>
+      {%- comment -%}
+        The mobile "Give it a little more room?" splash was removed —
+        wireCreateOptions in dtf-upload-tabs.js now auto-opens the studio
+        in fullscreen mode on mobile so the user lands directly inside it.
+        The X close in the studio top-bar returns them to the Upload tab,
+        and clicking Design Studio again brings them back to the same canvas
+        state (the fabric canvas is preserved while hidden).
+      {%- endcomment -%}
+
+      <div class="dtfut__create">
+        <h3 class="dtfut__create-title">What would you like to create?</h3>
+        <p class="dtfut__create-sub">Start your next project by choosing one of the options below, or jump straight into a blank canvas.</p>
+        <div class="dtfut__create-options">
+          <button type="button" class="dtfut__create-option" data-dtfut-create="upload">
+            <div class="dtfut__create-icon dtfut__create-icon--upload">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            </div>
+            <h4>Upload Image</h4>
+            <small>Import your own photos and graphics to start designing.</small>
+          </button>
+          <button type="button" class="dtfut__create-option" data-dtfut-create="text">
+            <div class="dtfut__create-icon dtfut__create-icon--text">A</div>
+            <h4>Add Text</h4>
+            <small>Begin with text and start your layout from words.</small>
+          </button>
+        </div>
+        <a href="#" class="dtfut__create-skip" data-dtfut-create="blank">Skip and start from scratch &rarr;</a>
+      </div>
+    </div>
+    {%- endif -%}{%- comment -%} /show_studio_tab {%- endcomment -%}
+
+  </div>
+</div>
+<div class="dtfut-spacer" aria-hidden="true"></div>
+
+{%- comment -%}
+  Tab 4 "Create a Design" opens the native Ninja Design Studio overlay
+  ('.customTabelPopup__overlay-editor'), which is rendered on every page
+  by layout/theme.liquid via the 'v0-editor' snippet. No local dialog
+  needed — dtf-upload-tabs.js drives it directly.
+{%- endcomment -%}
+
+{{ 'dtf-upload-tabs.js' | asset_url | script_tag }}
+{{ 'ai-chat-sandbox.js' | asset_url | script_tag }}
+
+<script>
+  /* ─── Trashcan / remove-file → page reload ──────────────────────────
+     After upload the body picks up `image-uploaded`, which hides the
+     H1 + price + description + iconTextBlock + buyMoreSave on the
+     right column (see bySize.css / transferBySize.css). The per-product
+     remove-file handlers in bySize.js / bySize_popular.js / pdp_*.js
+     each strip the upload state, but reproducing the full pre-upload
+     UI from JS would require chasing every flag those handlers don't
+     reset. Simplest reliable fix: when the trashcan is clicked, let
+     the existing handler run for a beat (so any cart-state cleanup
+     fires) and then full-page-reload so the customer sees the original
+     PDP exactly as it loaded.
+
+     Only fires on the "Remove File" / "Cancel"-paired CONFIRM buttons
+     inside the "Are you sure?" modal — NEVER on a trash icon that
+     opens the modal. The trash icons (.fileRemoveBlock__removeFile
+     on by-size products, #fileremove-2 on gang sheets) intentionally
+     fire the existing per-product handlers that fade-in the modal.
+     If we intercepted them we'd skip the confirmation prompt the
+     customer expects.
+
+     Selectors:
+       #fileremove           confirm in `.customTabelPopup__overlay-2`
+                             ("Remove File" modal — gang sheets)
+       #fileremove-single    confirm in `.customTabelPopup__overlay-4`
+                             ("Remove File?" modal — by-size products)
+       .removeAllBlocks      multi-upload "clear all" — no modal,
+                             direct action, reload immediately
+
+     Capture phase + stopImmediatePropagation + synchronous reload so
+     the per-product remove handlers (which strip the upload preview
+     and re-show the native upload area in pieces) never run. With the
+     bubble suppressed and the reload kicked off immediately, the page
+     goes straight from the after-upload state to the fresh page load.
+     Safe to skip the per-product handlers: no server-side cleanup
+     happens at upload time (cart-add only fires on Add-to-Cart), so
+     reload is sufficient. */
+  (function () {
+    if (window.__ntRemoveReloadBound) return;
+    window.__ntRemoveReloadBound = true;
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+      var match = t.closest('#fileremove, #fileremove-single, .removeAllBlocks');
+      if (!match) return;
+      /* Only reload on a real user click. Synthetic clicks (from
+         `$("#fileremove").click()` calls in the `.use_design`
+         second-upload flow etc.) have `isTrusted === false` — those
+         need to fall through to the original handlers so add-to-cart,
+         toast, and the new image swap can complete. Without this
+         guard, picking a previous design as a second upload would
+         reload the page mid-flow and never finish the cart-add. */
+      if (e.isTrusted === false) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      try { window.location.reload(); } catch (_e) { window.location.href = window.location.pathname; }
+    }, true);
+  })();
+
+  /* ─── Gang-sheet "or choose a previous design" link intercept ──────
+     The link sits inside <another-upload> so it renders visually inside
+     the blue Add-Another upload box. But <another-upload> has a jQuery-
+     delegated bubble-phase click handler in pdp_transferBySize.js that
+     opens the native file picker for ANY click that bubbles up through
+     it. Inline `onclick` with stopPropagation on the link wasn't stopping
+     the bubble reliably (likely because jQuery normalizes the event and
+     the inline handler doesn't always win the race against the document-
+     level delegate).
+
+     Capture-phase listener on document fires before the bubble-phase
+     handlers anywhere downstream. We match the link, call
+     stopImmediatePropagation to kill any further listeners (capture +
+     bubble), then open the legacy `.customTabelPopup__overlay-3`
+     picker modal via the existing `.purchase_from_previous` anchor so
+     the gang-sheet modal setup runs unchanged. */
+  (function () {
+    if (window.__ntGangSheetChoosePrevBound) return;
+    window.__ntGangSheetChoosePrevBound = true;
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+      var link = t.closest('.anotherUploadGangSheet__choosePrev');
+      if (!link) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      try {
+        /* Same artwork-rights gate as the file upload path — if the
+           customer hasn't checked the agreement box, surface the
+           inline red "Please check the box above to continue" error
+           and BLOCK the picker modal from opening. Without this, the
+           "or choose a previous design" link bypassed validation; the
+           customer could swap in a second design before agreeing to
+           terms. Mirrors the gate already enforced in
+           pdp_transferBySize.js for `.anotherUploadGangSheet`. */
+        if (typeof window.__gateGangSheetUpload === 'function' && window.__gateGangSheetUpload()) {
+          return;
+        }
+        /* The "Add Another Gang Sheet" box is the SECOND-upload entry
+           point — user has a design loaded already and is picking a
+           previous design to ADD (not replace). The .use_design click
+           handler in pdp_transferBySize.js reads
+           customTabelPopup__overlay-3[data-type] to decide whether to
+           run addAnotherTransfer (cart-add the first design + load the
+           new one). We must set data-type='second_upload' AFTER firing
+           the .purchase_from_previous trigger because that handler
+           overwrites data-type from its own element's data-type attr
+           (which is 'first_upload' on the original entry-point link). */
+        var trigger = document.querySelector('a.purchase_from_previous');
+        if (trigger) trigger.click();
+        var overlay = document.querySelector('.customTabelPopup__overlay-3');
+        if (overlay) {
+          overlay.style.display = 'grid';
+          overlay.setAttribute('data-type', 'second_upload');
+        }
+      } catch (_e) { /* never break the page */ }
+    }, true);
+  })();
+
+  /* ─── Mirror upload preview into product gallery hero ──────────────
+     When the customer uploads / picks / generates an image, the
+     `#fileupload_hero` <img> src gets updated to the customer's design.
+     We want the product gallery's hero image (the first
+     .product-gallery-item) to reflect that design too — so the visible
+     "product image" on the PDP matches what the customer just put in
+     the upload preview.
+
+     Strategy: MutationObserver on `#fileupload_hero` for `src` changes.
+     Skip the initial transparent placeholder + the upload-in-progress
+     loader so the gallery only updates on real designs. Clear srcset /
+     data-srcset so the browser doesn't override our src with a stale
+     responsive variant.
+
+     EXCLUSION: Gang-sheet products. On gang sheets the product gallery
+     is the gang-sheet template + size visualization — the customer
+     uploads multiple designs to lay out within a gang sheet, so
+     replacing the gallery with the upload is wrong: it makes the
+     gallery look like one of the designs and hides the gang-sheet
+     layout. Skip the mirror when isGangPage / template suffix
+     contains 'gang'. */
+  (function () {
+    if (window.__ntVariantImageMirrorBound) return;
+    window.__ntVariantImageMirrorBound = true;
+    var _isGang = (
+      (typeof isGangPage !== 'undefined' && isGangPage) ||
+      /template-product-(?:dtf|uv)-gang-sheet/i.test(document.body.className) ||
+      /gang/i.test(document.body.className)
+    );
+    if (_isGang) return;
+    var _skipMirror = /template-product-(?:puff-transfers|puff-glitter|spangle-by-size|custom-magnets|custom-keychains|custom-stickers-2|bumper-stickers|truck-stickers|wall-graphics|indoor-floor-graphics|outdoor-floor-graphics)/i.test(document.body.className);
+    if (_skipMirror) return;
+    function isPlaceholder(src) {
+      if (!src) return true;
+      return /transparent\.png|loader\.gif|loader-2\.gif/i.test(src);
+    }
+    function mirror(src) {
+      if (isPlaceholder(src)) return;
+      var heroImgs = document.querySelectorAll(
+        '.product-gallery .product-gallery-item[data-index="0"] .lazy-image img, ' +
+        '.product-gallery .product-gallery-item[data-index="0"] img'
+      );
+      heroImgs.forEach(function (img) {
+        img.removeAttribute('srcset');
+        img.removeAttribute('data-srcset');
+        img.src = src;
+      });
+    }
+    function init() {
+      var hero = document.querySelector('#fileupload_hero');
+      if (!hero) return;
+      /* Mirror existing src in case page loaded with `?file=` param. */
+      mirror(hero.getAttribute('src'));
+      var observer = new MutationObserver(function (mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+          if (mutations[i].attributeName === 'src') {
+            mirror(hero.getAttribute('src'));
+            break;
+          }
+        }
+      });
+      observer.observe(hero, { attributes: true, attributeFilter: ['src'] });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+
+  /* ─── Auto-scroll on upload start and upload complete ────────────────
+     Watches body class changes for `file-upload-overlay-2-active` (upload
+     in progress) and `image-uploaded` (upload complete).
+
+     Desktop (width >= 768px): scrolls to page top. The ninja loader and
+     the eventual upload preview are both immediately visible because
+     desktop renders everything in two columns.
+
+     Mobile (width < 768px): scrolls so the upload preview's WIDTH
+     measurement (the "2.37"" label above the preview image) is just below
+     the sticky header. Page-top scroll buries the preview under the
+     gallery + product info on small screens; the user wants the preview
+     dimensions immediately in view after upload completes.
+
+     One-shot per state via lastUploadState to avoid scrolling on every
+     class change. */
+  (function () {
+    if (window.__ntUploadScrollTopBound) return;
+    window.__ntUploadScrollTopBound = true;
+    var lastUploadState = '';
+    function detectState() {
+      var b = document.body;
+      /* `nt-uploading-active` is set by the observer in
+         mobile-preview-size-guide-tabs.liquid the moment a file input
+         fires `change` — the most reliable "upload started" signal on
+         these tab templates. `file-upload-overlay-2-active` covers the
+         secondary-drop-zone path. */
+      if (b.classList.contains('nt-uploading-active')) return 'uploading';
+      if (b.classList.contains('file-upload-overlay-2-active')) return 'uploading';
+      if (b.classList.contains('image-uploaded')) return 'uploaded';
+      return '';
+    }
+    function isMobile() { return window.innerWidth < 768; }
+    function findPreviewAnchor() {
+      /* Walk a list of candidates and return the first one that's both
+         present and visible. On the three tab templates (by-size-tabs,
+         by-size-bg-options, uv-dtf-by-size) the mobile "Your Image /
+         Size Guide" pill bar (.nt-mptabs) is the topmost UI after upload
+         — prefer it so the tabs sit at the top of the viewport and the
+         image preview is visible just below. Falls through to the
+         file-preview wrapper on templates without the tab bar. */
+      var sels = [
+        '.nt-mptabs',
+        '.split_design.newFilePreview',
+        'file-preview',
+        '.easyzoom',
+        '.preview-block',
+        '.fileupload_preview'
+      ];
+      for (var i = 0; i < sels.length; i++) {
+        var el = document.querySelector(sels[i]);
+        if (el && el.offsetParent !== null) return el;
+      }
+      return null;
+    }
+    function stickyHeaderOffset() {
+      /* Compensate for any sticky header so the preview top isn't hidden
+         behind it. Falls back to 0 if no obvious sticky header. */
+      var hdr = document.querySelector('header.sticky, [class*="header-loaded"] header, .header-section');
+      if (!hdr) return 0;
+      var h = hdr.getBoundingClientRect().height;
+      return h > 0 && h < 200 ? h : 0;
+    }
+    function maybeScroll() {
+      var state = detectState();
+      if (!state || state === lastUploadState) return;
+      lastUploadState = state;
+      if (isMobile() && state === 'uploaded') {
+        var anchor = findPreviewAnchor();
+        if (anchor) {
+          var top = anchor.getBoundingClientRect().top + window.scrollY - stickyHeaderOffset() - 8;
+          try { window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' }); }
+          catch (_e) { window.scrollTo(0, Math.max(0, top)); }
+          return;
+        }
+      }
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      catch (_e) { window.scrollTo(0, 0); }
+    }
+    var obs = new MutationObserver(maybeScroll);
+    obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    /* Reset the tracker when both upload classes go away so a subsequent
+       upload re-triggers the scroll. */
+    new MutationObserver(function () {
+      var s = detectState();
+      if (!s) lastUploadState = '';
+    }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  })();
+</script>
+
+{% render 'ai-toolbar-redesign' %}

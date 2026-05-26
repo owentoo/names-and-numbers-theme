@@ -1,0 +1,327 @@
+{% doc %}
+  @prompt
+    i need a section with a max width a logo on the left and two text links on the left, i need horizontal padding that is outside of the max width, also need bg color option and the option for a 1px border on top and bottom independently, need deskop and mobile link text size option
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-header-bar-{{ ai_gen_id }} {
+    width: 100%;
+    background-color: {{ block.settings.background_color }};
+    padding: {{ block.settings.vertical_padding }}px {{ block.settings.horizontal_padding }}px;
+    {% if block.settings.border_top %}
+      border-top: 1px solid {{ block.settings.border_color }};
+    {% endif %}
+    {% if block.settings.border_bottom %}
+      border-bottom: 1px solid {{ block.settings.border_color }};
+    {% endif %}}
+
+  .ai-header-bar-container-{{ ai_gen_id }} {
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .ai-header-bar-logo-{{ ai_gen_id }} {
+    flex-shrink: 0;
+  }
+
+  .ai-header-bar-logo-{{ ai_gen_id }} img {
+    height: {{ block.settings.logo_height }}px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .ai-header-bar-logo-placeholder-{{ ai_gen_id }} {
+    height: {{ block.settings.logo_height }}px;
+    width: 120px;
+    background-color: #f4f4f4;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .ai-header-bar-logo-placeholder-{{ ai_gen_id }} svg {
+    width: 60px;
+    height: 60px;
+    color: #999;
+  }
+
+  .ai-header-bar-empty-state-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: #666;
+    white-space: nowrap;
+  }
+
+  .ai-header-bar-links-{{ ai_gen_id }} {
+    display: flex;
+    gap: {{ block.settings.link_spacing }}px;
+    align-items: center;
+  }
+
+  .ai-header-bar-link-{{ ai_gen_id }} {
+    color: {{ block.settings.link_color }};
+    text-decoration: none;
+    font-size: {{ block.settings.link_font_size_desktop }}px;
+    font-weight: {{ block.settings.link_font_weight }};
+    transition: color 0.3s ease;
+  }
+
+  .ai-header-bar-link-{{ ai_gen_id }}:hover {
+    color: {{ block.settings.link_hover_color }};
+  }
+
+  @media screen and (max-width: 768px) {
+    .ai-header-bar-{{ ai_gen_id }} {
+      padding: {{ block.settings.vertical_padding }}px {{ block.settings.horizontal_padding | divided_by: 2 }}px;
+    }
+
+    .ai-header-bar-links-{{ ai_gen_id }} {
+      gap: {{ block.settings.link_spacing | divided_by: 2 }}px;
+    }
+
+    .ai-header-bar-link-{{ ai_gen_id }} {
+      font-size: {{ block.settings.link_font_size_mobile }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-header-bar-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-header-bar-container-{{ ai_gen_id }}">
+    <div class="ai-header-bar-logo-{{ ai_gen_id }}">
+      {% if block.settings.logo %}
+        <img
+          src="{{ block.settings.logo | image_url: width: 300 }}"
+          alt="{{ block.settings.logo.alt | escape }}"
+          width="{{ block.settings.logo.width }}"
+          height="{{ block.settings.logo.height }}"loading="lazy"
+        >
+      {% else %}
+        <div class="ai-header-bar-logo-placeholder-{{ ai_gen_id }}">
+          {{ 'image' | placeholder_svg_tag }}<div class="ai-header-bar-empty-state-{{ ai_gen_id }}">
+            Add your logo
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="ai-header-bar-links-{{ ai_gen_id }}">
+      {% if block.settings.link_1_text != blank %}
+        <a
+          href="{{ block.settings.link_1_url }}"
+          class="ai-header-bar-link-{{ ai_gen_id }}">
+          {{ block.settings.link_1_text }}
+        </a>
+      {% endif %}
+
+      {% if block.settings.link_2_text != blank %}
+        <a
+          href="{{ block.settings.link_2_url }}"
+          class="ai-header-bar-link-{{ ai_gen_id }}"
+        >
+          {{ block.settings.link_2_text }}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Header bar",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "vertical_padding",
+      "label": "Vertical padding",
+      "min": 10,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding",
+      "label": "Horizontal padding",
+      "min": 10,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Background"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Borders"
+    },
+    {
+      "type": "checkbox",
+      "id": "border_top",
+      "label": "Show top border",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "border_bottom",
+      "label": "Show bottom border",
+      "default": false
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border color",
+      "default": "#e0e0e0"
+    },
+    {
+      "type": "header",
+      "content": "Logo"
+    },
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Logo image"
+    },
+    {
+      "type": "range",
+      "id": "logo_height",
+      "label": "Logo height",
+      "min": 30,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 50
+    },
+    {
+      "type": "header",
+      "content": "Navigation links"
+    },
+    {
+      "type": "text",
+      "id": "link_1_text",
+      "label": "First link text",
+      "default": "About"
+    },
+    {
+      "type": "url",
+      "id": "link_1_url",
+      "label": "First link URL"
+    },
+    {
+      "type": "text",
+      "id": "link_2_text",
+      "label": "Second link text",
+      "default": "Contact"
+    },
+    {
+      "type": "url",
+      "id": "link_2_url",
+      "label": "Second link URL"
+    },
+    {
+      "type": "range",
+      "id": "link_spacing",
+      "label": "Link spacing",
+      "min": 10,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "link_font_size_desktop",
+      "label": "Link font size (desktop)",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "link_font_size_mobile",
+      "label": "Link font size (mobile)",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "link_font_weight",
+      "label": "Link font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "color",
+      "id": "link_color",
+      "label": "Link color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "link_hover_color",
+      "label": "Link hover color",
+      "default": "#666666"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Header bar"
+    }
+  ],
+  "tag": null
+}
+{% endschema %}

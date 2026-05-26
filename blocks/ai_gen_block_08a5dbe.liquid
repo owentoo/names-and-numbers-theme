@@ -1,0 +1,1974 @@
+{% doc %}
+  @prompt
+    make me a section that follows the themes horizontal max width padding and margin. contained within it a need a row of link blocks each link bloc has an image and text below it, give me the option for up to 20. any overflow show arrows like neftlix, this all needs to be contained within the themes max width padding and margin, no heading, add item width, and text options for desktop and mobile. For the links i should be able to link to products, collections, or pages, don't need "Image background color". images need ratio options. add an option on how many link items to display. and only show arrow when there is overflow. text need a hover color, ALL content needs to fit with the themes max width horizontal padding and margin, wrap all link items in a wrapper that does not extend past the themes max with allow over flow with the wrapper with the arrows, copy themes left and right padding and margin, and default to 9 items, the wrapper that contains all link items can not extend past themes max width. inherit all the horizontal padding, width, and margin rules from the theme, section needs left and right padding and margin options for desktop and mobile, "Spacing - Desktop" and "Spacing - Mobile" should come from the theme defaults as well as the sections max width, add bg color and give me options for the arrows, background color should go the whole width but content is still falling outside max with of theme, content is still to wide. look at themes max width a left and right padding and margin and copy that, i don't see the arrows, only show arrows when there is overflow right or left, start by showing 12 placeholder link items., add top and bottom padding and margin options for desktop and mobile, if collection or product is selected for link item use to corresponding text and image with ability to change either, the link text should come over with the collection, link texts still not showing collection name when link type - collection is selected, if link type is page product, page, or collection it should fill in the image and text, make "Space between items" intervals of 2. and add the option to add custom arrow icon, Space between items needs desktop and mobile options, add desktop and mobile option to apply padding to the sides the text
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-link-row-wrapper-{{ ai_gen_id }} {
+    width: 100%;
+    background-color: {{ block.settings.background_color }};
+    padding-top: {{ block.settings.padding_top_desktop }}px;
+    padding-bottom: {{ block.settings.padding_bottom_desktop }}px;
+    margin-top: {{ block.settings.margin_top_desktop }}px;
+    margin-bottom: {{ block.settings.margin_bottom_desktop }}px;
+  }
+
+  .ai-link-row-{{ ai_gen_id }} {
+    width: 100%;
+    max-width: {{ settings.theme_max_width }}px;
+    margin: 0 auto;
+    padding-left: {{ block.settings.padding_horizontal_desktop }}px;
+    padding-right: {{ block.settings.padding_horizontal_desktop }}px;
+    overflow: hidden;
+  }
+
+  .ai-link-row__container-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;}
+
+  .ai-link-row__scroller-{{ ai_gen_id }} {
+    display: flex;
+    gap: {{ block.settings.gap_desktop }}px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 20px 0;
+  }
+
+  .ai-link-row__scroller-{{ ai_gen_id }}::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ai-link-row__item-{{ ai_gen_id }} {
+    flex: 0 0 {{ block.settings.desktop_item_width }}px;
+    text-decoration: none;
+    color: {{ block.settings.text_color }};
+    text-align: center;
+    transition: transform 0.3s ease;
+  }
+
+  .ai-link-row__item-{{ ai_gen_id }}:hover {
+    transform: translateY(-5px);
+  }
+
+  .ai-link-row__image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    padding-bottom: calc(100% / {{ block.settings.image_aspect_ratio }});
+    overflow: hidden;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    margin-bottom: 12px;
+  }
+
+  .ai-link-row__image-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: {{ block.settings.image_fit }};
+  }
+
+  .ai-link-row__image-wrapper-{{ ai_gen_id }} svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background-color: #f4f4f4;
+  }
+
+  .ai-link-row__text-{{ ai_gen_id }} {
+    font-size: {{ block.settings.desktop_text_size }}px;
+    font-weight: {{ block.settings.text_weight }};
+    margin-top: 10px;
+    color: {{ block.settings.text_color }};
+    transition: color 0.3s ease;
+    padding-left: {{ block.settings.text_padding_horizontal_desktop }}px;
+    padding-right: {{ block.settings.text_padding_horizontal_desktop }}px;
+  }
+
+  .ai-link-row__item-{{ ai_gen_id }}:hover .ai-link-row__text-{{ ai_gen_id }} {
+    color: {{ block.settings.text_hover_color }};
+  }
+
+  .ai-link-row__arrow-{{ ai_gen_id }} {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: {{ block.settings.arrow_size }}px;
+    height: {{ block.settings.arrow_size }}px;
+    background-color: {{ block.settings.arrow_background_color }};
+    color: {{ block.settings.arrow_color }};
+    border-radius: {{ block.settings.arrow_style }};
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    border: none;
+    opacity: 0.8;
+    transition: opacity 0.3s ease, background-color 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .ai-link-row__arrow-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.arrow_hover_background_color }};
+    opacity: 1;
+  }
+
+  .ai-link-row__arrow--prev-{{ ai_gen_id }} {
+    left: 10px;
+  }
+
+  .ai-link-row__arrow--next-{{ ai_gen_id }} {
+    right: 10px;
+  }
+
+  .ai-link-row__arrow-icon-{{ ai_gen_id }} {
+    width: calc({{ block.settings.arrow_size }}px * 0.5);
+    height: calc({{ block.settings.arrow_size }}px * 0.5);
+  }
+
+  .ai-link-row__custom-arrow-{{ ai_gen_id }} {
+    width: calc({{ block.settings.arrow_size }}px * 0.6);
+    height: calc({{ block.settings.arrow_size }}px * 0.6);
+    object-fit: contain;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-link-row-wrapper-{{ ai_gen_id }} {
+      padding-top: {{ block.settings.padding_top_mobile }}px;
+      padding-bottom: {{ block.settings.padding_bottom_mobile }}px;
+      margin-top: {{ block.settings.margin_top_mobile }}px;
+      margin-bottom: {{ block.settings.margin_bottom_mobile }}px;
+    }
+
+    .ai-link-row-{{ ai_gen_id }} {
+      padding-left: {{ block.settings.padding_horizontal_mobile }}px;
+      padding-right: {{ block.settings.padding_horizontal_mobile }}px;
+    }
+
+    .ai-link-row__scroller-{{ ai_gen_id }} {
+      gap: {{ block.settings.gap_mobile }}px;
+    }
+
+    .ai-link-row__item-{{ ai_gen_id }} {
+      flex: 0 0 {{ block.settings.mobile_item_width }}px;
+    }
+
+    .ai-link-row__text-{{ ai_gen_id }} {
+      font-size: {{ block.settings.mobile_text_size }}px;
+      padding-left: {{ block.settings.text_padding_horizontal_mobile }}px;
+      padding-right: {{ block.settings.text_padding_horizontal_mobile }}px;
+    }
+
+    .ai-link-row__arrow-{{ ai_gen_id }} {
+      width: calc({{ block.settings.arrow_size }}px * 0.8);
+      height: calc({{ block.settings.arrow_size }}px * 0.8);
+    }
+
+    .ai-link-row__arrow-icon-{{ ai_gen_id }} {
+      width: calc({{ block.settings.arrow_size }}px * 0.4);
+      height: calc({{ block.settings.arrow_size }}px * 0.4);
+    }
+
+    .ai-link-row__custom-arrow-{{ ai_gen_id }} {
+      width: calc({{ block.settings.arrow_size }}px * 0.5);
+      height: calc({{ block.settings.arrow_size }}px * 0.5);
+    }
+  }
+{% endstyle %}
+
+<div class="ai-link-row-wrapper-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-link-row-{{ ai_gen_id }}">
+    <link-row-{{ ai_gen_id }} class="ai-link-row__container-{{ ai_gen_id }}">
+      <div class="ai-link-row__scroller-{{ ai_gen_id }}" id="scroller-{{ ai_gen_id }}">
+        {% for i in (1..block.settings.items_to_show) %}
+          {% liquid
+            assign link_type_key = 'link_type_' | append: i
+            assign link_type = block.settings[link_type_key]
+            
+            assign image_key = 'image_' | append: i
+            assign custom_image = block.settings[image_key]
+            
+            assign text_key = 'text_' | append: i
+            assign custom_text = block.settings[text_key]
+            
+            assign product_key = 'product_' | append: i
+            assign product = block.settings[product_key]
+            
+            assign collection_key = 'collection_' | append: i
+            assign collection = block.settings[collection_key]
+            
+            assign page_key = 'page_' | append: i
+            assign page = block.settings[page_key]
+            
+            assign url_key = 'url_' | append: i
+            assign url = block.settings[url_key]
+            
+            assign link_url = '#'
+            assign link_text = ''
+            assign link_image = ''
+          %}
+          
+          {% case link_type %}
+            {% when 'product' %}
+              {% if product != blank %}
+                {% assign link_url = product.url %}
+                {% if custom_text != blank %}
+                  {% assign link_text = custom_text %}
+                {% else %}
+                  {% assign link_text = product.title %}
+                {% endif %}
+                {% if custom_image != blank %}
+                  {% assign link_image = custom_image %}
+                {% else %}
+                  {% assign link_image = product.featured_image %}
+                {% endif %}
+              {% endif %}
+            {% when 'collection' %}
+              {% if collection != blank %}
+                {% assign link_url = collection.url %}
+                {% if custom_text != blank %}
+                  {% assign link_text = custom_text %}
+                {% else %}
+                  {% assign link_text = collection.title %}
+                {% endif %}
+                {% if custom_image != blank %}
+                  {% assign link_image = custom_image %}
+                {% else %}
+                  {% assign link_image = collection.image %}
+                {% endif %}
+              {% endif %}
+            {% when 'page' %}
+              {% if page != blank %}
+                {% assign link_url = page.url %}
+                {% if custom_text != blank %}
+                  {% assign link_text = custom_text %}
+                {% else %}
+                  {% assign link_text = page.title %}
+                {% endif %}
+                {% if custom_image != blank %}
+                  {% assign link_image = custom_image %}
+                {% endif %}
+              {% endif %}
+            {% when 'url' %}
+              {% if url != blank %}
+                {% assign link_url = url %}
+              {% endif %}
+              {% if custom_text != blank %}
+                {% assign link_text = custom_text %}
+              {% endif %}
+              {% if custom_image != blank %}
+                {% assign link_image = custom_image %}
+              {% endif %}
+          {% endcase %}<a href="{{ link_url }}" class="ai-link-row__item-{{ ai_gen_id }}">
+            <div class="ai-link-row__image-wrapper-{{ ai_gen_id }}">
+              {% if link_image != blank %}
+                <img 
+                  src="{{ link_image | img_url: '400x' }}"
+                  alt="{{ link_text | escape }}"
+                  loading="lazy"
+                  class="ai-link-row__image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                {{ 'image' | placeholder_svg_tag }}
+              {% endif %}
+            </div>
+            {% if link_text != blank %}
+              <div class="ai-link-row__text-{{ ai_gen_id }}">{{ link_text }}</div>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+      <button class="ai-link-row__arrow-{{ ai_gen_id }} ai-link-row__arrow--prev-{{ ai_gen_id }}" id="prev-{{ ai_gen_id }}" aria-label="Previous items">
+        {% if block.settings.custom_arrow_left %}
+          <img 
+            src="{{ block.settings.custom_arrow_left | img_url: '100x' }}"
+            alt="Previous"
+            class="ai-link-row__custom-arrow-{{ ai_gen_id }}"
+          >
+        {% else %}
+          <svg class="ai-link-row__arrow-icon-{{ ai_gen_id }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        {% endif %}
+      </button>
+      <button class="ai-link-row__arrow-{{ ai_gen_id }} ai-link-row__arrow--next-{{ ai_gen_id }}" id="next-{{ ai_gen_id }}" aria-label="Next items">
+        {% if block.settings.custom_arrow_right %}
+          <img 
+            src="{{ block.settings.custom_arrow_right | img_url: '100x' }}"
+            alt="Next"
+            class="ai-link-row__custom-arrow-{{ ai_gen_id }}"
+          >
+        {% else %}
+          <svg class="ai-link-row__arrow-icon-{{ ai_gen_id }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        {% endif %}
+      </button>
+    </link-row-{{ ai_gen_id }}>
+  </div>
+</div>
+
+<script>
+  (function() {
+    class LinkRow{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+        this.scroller = this.querySelector('#scroller-{{ ai_gen_id }}');
+        this.prevButton = this.querySelector('#prev-{{ ai_gen_id }}');
+        this.nextButton = this.querySelector('#next-{{ ai_gen_id }}');
+        this.itemWidth = {{ block.settings.desktop_item_width }};
+        this.gap = {{ block.settings.gap_desktop }};
+        this.mobileBreakpoint = 749;
+      }
+
+      connectedCallback() {
+        this.setupEventListeners();
+        setTimeout(() => {
+          this.checkOverflow();
+        }, 100);
+      }
+
+      setupEventListeners() {
+        if (this.prevButton && this.nextButton && this.scroller) {
+          this.prevButton.addEventListener('click', () => this.scroll(-1));
+          this.nextButton.addEventListener('click', () => this.scroll(1));
+          this.scroller.addEventListener('scroll', () => this.updateArrowStates());
+          
+          window.addEventListener('resize', () => {
+            setTimeout(() => {
+              this.checkOverflow();
+              this.updateGapForScreenSize();
+            }, 100);
+          });
+          
+          this.updateGapForScreenSize();
+        }
+      }
+
+      updateGapForScreenSize() {
+        const isMobile = window.innerWidth <= this.mobileBreakpoint;
+        this.gap = isMobile ? {{ block.settings.gap_mobile }} : {{ block.settings.gap_desktop }};
+      }
+
+      scroll(direction) {
+        if (!this.scroller) return;
+        
+        const isMobile = window.innerWidth <= this.mobileBreakpoint;
+        const width = isMobile ? {{ block.settings.mobile_item_width }} : this.itemWidth;
+        const scrollAmount = (width + this.gap) * {{ block.settings.scroll_items }} * direction;
+        
+        this.scroller.scrollBy({
+          left: scrollAmount,
+          behavior: 'smooth'
+        });
+      }
+
+      checkOverflow() {
+        if (!this.scroller || !this.prevButton || !this.nextButton) return;
+        
+        const hasOverflow = this.scroller.scrollWidth > this.scroller.clientWidth;
+        
+        if (hasOverflow) {
+          this.updateArrowStates();
+        } else {
+          this.prevButton.style.display = 'none';
+          this.nextButton.style.display = 'none';
+        }
+      }
+
+      updateArrowStates() {
+        if (!this.scroller || !this.prevButton || !this.nextButton) return;
+        
+        const atStart = this.scroller.scrollLeft <= 10;
+        const atEnd = this.scroller.scrollLeft >= this.scroller.scrollWidth - this.scroller.clientWidth - 10;
+        const hasOverflow = this.scroller.scrollWidth > this.scroller.clientWidth;
+        
+        if (!hasOverflow) {
+          this.prevButton.style.display = 'none';
+          this.nextButton.style.display = 'none';
+          return;
+        }
+        
+        this.prevButton.style.display = atStart ? 'none' : 'flex';
+        this.nextButton.style.display = atEnd ? 'none' : 'flex';
+      }
+    }
+
+    customElements.define('link-row-{{ ai_gen_id }}', LinkRow{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Link Row",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Spacing - Desktop"
+    },
+    {
+      "type": "range",
+      "id": "padding_top_desktop",
+      "min": 0,
+      "max": 150,
+      "step": 5,
+      "unit": "px",
+      "label": "Top padding",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_desktop",
+      "min": 0,
+      "max": 150,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom padding",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "margin_top_desktop",
+      "min": 0,
+      "max": 150,
+      "step": 5,
+      "unit": "px",
+      "label": "Top margin",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom_desktop",
+      "min": 0,
+      "max": 150,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom margin",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_horizontal_desktop",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Horizontal padding",
+      "default": 32
+    },
+    {
+      "type": "header",
+      "content": "Spacing - Mobile"
+    },
+    {
+      "type": "range",
+      "id": "padding_top_mobile",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Top padding",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_mobile",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom padding",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "margin_top_mobile",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Top margin",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom_mobile",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom margin",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_horizontal_mobile",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "label": "Horizontal padding",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "range",
+      "id": "items_to_show",
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "label": "Number of items to show",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "desktop_item_width",
+      "min": 100,
+      "max": 300,
+      "step": 10,
+      "unit": "px",
+      "label": "Item width (desktop)",
+      "default": 180
+    },
+    {
+      "type": "range",
+      "id": "mobile_item_width",
+      "min": 80,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Item width (mobile)",
+      "default": 140
+    },
+    {
+      "type": "range",
+      "id": "gap_desktop",
+      "min": 10,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "label": "Space between items (desktop)",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "gap_mobile",
+      "min": 8,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Space between items (mobile)",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Image Settings"
+    },
+    {
+      "type": "select",
+      "id": "image_aspect_ratio",
+      "label": "Image aspect ratio",
+      "options": [
+        {
+          "value": "0.666667",
+          "label": "Portrait (2:3)"
+        },
+        {
+          "value": "0.83333",
+          "label": "Portrait (5:6)"
+        },
+        {
+          "value": "1",
+          "label": "Square (1:1)"
+        },
+        {
+          "value": "1.33333",
+          "label": "Landscape (4:3)"
+        },
+        {
+          "value": "1.777778",
+          "label": "Landscape (16:9)"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "select",
+      "id": "image_fit",
+      "label": "Image fit",
+      "options": [
+        {
+          "value": "cover",
+          "label": "Cover"
+        },
+        {
+          "value": "contain",
+          "label": "Contain"
+        }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Image border radius",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Text Settings"
+    },
+    {
+      "type": "range",
+      "id": "desktop_text_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (desktop)",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "mobile_text_size",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (mobile)",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "text_padding_horizontal_desktop",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Text horizontal padding (desktop)",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "text_padding_horizontal_mobile",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Text horizontal padding (mobile)",
+      "default": 0
+    },
+    {
+      "type": "select",
+      "id": "text_weight",
+      "label": "Text weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "500"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_hover_color",
+      "label": "Text hover color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Navigation Arrows"
+    },
+    {
+      "type": "range",
+      "id": "arrow_size",
+      "min": 30,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Arrow size",
+      "default": 40
+    },
+    {
+      "type": "select",
+      "id": "arrow_style",
+      "label": "Arrow style",
+      "options": [
+        {
+          "value": "50%",
+          "label": "Circle"
+        },
+        {
+          "value": "8px",
+          "label": "Rounded square"
+        },
+        {
+          "value": "0",
+          "label": "Square"
+        }
+      ],
+      "default": "50%"
+    },
+    {
+      "type": "range",
+      "id": "scroll_items",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "label": "Items to scroll",
+      "default": 3
+    },
+    {
+      "type": "color",
+      "id": "arrow_color",
+      "label": "Arrow color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "arrow_background_color",
+      "label": "Arrow background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "arrow_hover_background_color",
+      "label": "Arrow hover background",
+      "default": "#f0f0f0"
+    },
+    {
+      "type": "image_picker",
+      "id": "custom_arrow_left",
+      "label": "Custom left arrow icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "custom_arrow_right",
+      "label": "Custom right arrow icon"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 1"
+    },
+    {
+      "type": "select",
+      "id": "link_type_1",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_1",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_1",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_1",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_1",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_1",
+      "label": "Custom text (overrides default)",
+      "default": "Link 1"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 2"
+    },
+    {
+      "type": "select",
+      "id": "link_type_2",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_2",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_2",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_2",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_2",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_2",
+      "label": "Custom text (overrides default)",
+      "default": "Link 2"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 3"
+    },
+    {
+      "type": "select",
+      "id": "link_type_3",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_3",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_3",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_3",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_3",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_3",
+      "label": "Custom text (overrides default)",
+      "default": "Link 3"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 4"
+    },
+    {
+      "type": "select",
+      "id": "link_type_4",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_4",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_4",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_4",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_4",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_4",
+      "label": "Custom text (overrides default)",
+      "default": "Link 4"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 5"
+    },
+    {
+      "type": "select",
+      "id": "link_type_5",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_5",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_5",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_5",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_5",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_5",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_5",
+      "label": "Custom text (overrides default)",
+      "default": "Link 5"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 6"
+    },
+    {
+      "type": "select",
+      "id": "link_type_6",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_6",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_6",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_6",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_6",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_6",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_6",
+      "label": "Custom text (overrides default)",
+      "default": "Link 6"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 7"
+    },
+    {
+      "type": "select",
+      "id": "link_type_7",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_7",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_7",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_7",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_7",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_7",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_7",
+      "label": "Custom text (overrides default)",
+      "default": "Link 7"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 8"
+    },
+    {
+      "type": "select",
+      "id": "link_type_8",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_8",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_8",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_8",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_8",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_8",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_8",
+      "label": "Custom text (overrides default)",
+      "default": "Link 8"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 9"
+    },
+    {
+      "type": "select",
+      "id": "link_type_9",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_9",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_9",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_9",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_9",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_9",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_9",
+      "label": "Custom text (overrides default)",
+      "default": "Link 9"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 10"
+    },
+    {
+      "type": "select",
+      "id": "link_type_10",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_10",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_10",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_10",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_10",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_10",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_10",
+      "label": "Custom text (overrides default)",
+      "default": "Link 10"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 11"
+    },
+    {
+      "type": "select",
+      "id": "link_type_11",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_11",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_11",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_11",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_11",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_11",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_11",
+      "label": "Custom text (overrides default)",
+      "default": "Link 11"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 12"
+    },
+    {
+      "type": "select",
+      "id": "link_type_12",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_12",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_12",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_12",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_12",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_12",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_12",
+      "label": "Custom text (overrides default)",
+      "default": "Link 12"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 13"
+    },
+    {
+      "type": "select",
+      "id": "link_type_13",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_13",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_13",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_13",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_13",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_13",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_13",
+      "label": "Custom text (overrides default)"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 14"
+    },
+    {
+      "type": "select",
+      "id": "link_type_14",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_14",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_14",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_14",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_14",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_14",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_14",
+      "label": "Custom text (overrides default)"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 15"
+    },
+    {
+      "type": "select",
+      "id": "link_type_15",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_15",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_15",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_15",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_15",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_15",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_15",
+      "label": "Custom text (overrides default)"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 16"
+    },
+    {
+      "type": "select",
+      "id": "link_type_16",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_16",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_16",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_16",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_16",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_16",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_16",
+      "label": "Custom text (overrides default)"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 17"
+    },
+    {
+      "type": "select",
+      "id": "link_type_17",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_17",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_17",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_17",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_17",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_17",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_17",
+      "label": "Custom text (overrides default)"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 18"
+    },
+    {
+      "type": "select",
+      "id": "link_type_18",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_18",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_18",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_18",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_18",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_18",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_18",
+      "label": "Custom text (overrides default)"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 19"
+    },
+    {
+      "type": "select",
+      "id": "link_type_19",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_19",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_19",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_19",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_19",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_19",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_19",
+      "label": "Custom text (overrides default)"
+    },
+    {
+      "type": "header",
+      "content": "Link Item 20"
+    },
+    {
+      "type": "select",
+      "id": "link_type_20",
+      "label": "Link type",
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "collection",
+          "label": "Collection"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "url",
+          "label": "Custom URL"
+        }
+      ],
+      "default": "url"
+    },
+    {
+      "type": "product",
+      "id": "product_20",
+      "label": "Product"
+    },
+    {
+      "type": "collection",
+      "id": "collection_20",
+      "label": "Collection"
+    },
+    {
+      "type": "page",
+      "id": "page_20",
+      "label": "Page"
+    },
+    {
+      "type": "url",
+      "id": "url_20",
+      "label": "Custom URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_20",
+      "label": "Custom image (overrides default)"
+    },
+    {
+      "type": "text",
+      "id": "text_20",
+      "label": "Custom text (overrides default)"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Link Row"
+    }
+  ]
+}
+{% endschema %}

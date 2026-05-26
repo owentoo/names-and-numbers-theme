@@ -1,0 +1,743 @@
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-video-grid-{{ ai_gen_id }} {
+    padding-top: {{ block.settings.padding_top }}px;
+    padding-bottom: {{ block.settings.padding_bottom }}px;
+    background-color: {{ block.settings.background_color }};
+  }
+
+  .ai-video-grid-container-{{ ai_gen_id }} {
+    max-width: {{ settings.theme_max_width }}px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .ai-video-grid-header-{{ ai_gen_id }} {
+    text-align: center;
+    margin-bottom: {{ block.settings.header_spacing }}px;
+  }
+
+  .ai-video-grid-title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.title_size }}px;
+    color: {{ block.settings.title_color }};
+    margin: 0 0 {{ block.settings.title_spacing }}px;
+    font-weight: 600;
+  }
+
+  .ai-video-grid-subtitle-{{ ai_gen_id }} {
+    font-size: {{ block.settings.subtitle_size }}px;
+    color: {{ block.settings.subtitle_color }};
+    margin: 0;
+    opacity: 0.8;
+  }
+
+  .ai-video-grid-cards-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    gap: {{ block.settings.grid_gap }}px;
+  }
+
+  .ai-video-card-{{ ai_gen_id }} {
+    position: relative;
+    background-color: {{ block.settings.card_background }};
+    border-radius: {{ block.settings.card_border_radius }}px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .ai-video-card-{{ ai_gen_id }}:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .ai-video-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .ai-video-element-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-video-poster-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.3s ease;
+    z-index: 2;
+  }
+
+  .ai-video-poster-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  .ai-video-poster-placeholder-{{ ai_gen_id }} svg {
+    width: 60px;
+    height: 60px;
+    opacity: 0.5;
+  }
+
+  .ai-video-play-button-{{ ai_gen_id }} {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 3;
+    transition: all 0.3s ease;
+  }
+
+  .ai-video-play-button-{{ ai_gen_id }}:hover {
+    background-color: rgba(255, 255, 255, 1);
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+
+  .ai-video-play-button-{{ ai_gen_id }} svg {
+    width: 24px;
+    height: 24px;
+    margin-left: 2px;
+  }
+
+  .ai-video-card-content-{{ ai_gen_id }} {
+    padding: {{ block.settings.card_padding }}px;
+  }
+
+  .ai-video-card-title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.card_title_size }}px;
+    color: {{ block.settings.card_title_color }};
+    margin: 0 0 {{ block.settings.card_text_spacing }}px;
+    font-weight: 600;
+  }
+
+  .ai-video-card-description-{{ ai_gen_id }} {
+    font-size: {{ block.settings.card_description_size }}px;
+    color: {{ block.settings.card_description_color }};
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .ai-video-wrapper-{{ ai_gen_id }}.playing .ai-video-poster-{{ ai_gen_id }},
+  .ai-video-wrapper-{{ ai_gen_id }}.playing .ai-video-poster-placeholder-{{ ai_gen_id }},
+  .ai-video-wrapper-{{ ai_gen_id }}.playing .ai-video-play-button-{{ ai_gen_id }} {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media screen and (max-width: 990px) {
+    .ai-video-grid-cards-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_tablet }}, 1fr);
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-video-grid-cards-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+    }
+
+    .ai-video-grid-title-{{ ai_gen_id }} {
+      font-size: calc({{ block.settings.title_size }}px * 0.8);
+    }
+
+    .ai-video-grid-subtitle-{{ ai_gen_id }} {
+      font-size: calc({{ block.settings.subtitle_size }}px * 0.9);
+    }
+  }
+{% endstyle %}<ai-video-grid-{{ ai_gen_id }} {{ block.shopify_attributes }}>
+  <div class="ai-video-grid-{{ ai_gen_id }}">
+    <div class="ai-video-grid-container-{{ ai_gen_id }}">
+
+    {% if block.settings.title != blank or block.settings.subtitle != blank %}
+      <div class="ai-video-grid-header-{{ ai_gen_id }}">
+        {% if block.settings.title != blank %}
+          <h2 class="ai-video-grid-title-{{ ai_gen_id }}">{{ block.settings.title }}</h2>
+        {% endif %}
+        {% if block.settings.subtitle != blank %}
+          <div class="ai-video-grid-subtitle-{{ ai_gen_id }}">{{ block.settings.subtitle }}</div>
+        {% endif %}
+      </div>
+    {% endif %}<div class="ai-video-grid-cards-{{ ai_gen_id }}">
+      {% for i in (1..6) %}
+        {% liquid
+          assign video_key = 'video_' | append: i
+          assign poster_key = 'poster_' | append: i
+          assign title_key = 'card_title_' | append: i
+          assign description_key = 'card_description_' | append: i
+          
+          assign video = block.settings[video_key]
+          assign poster = block.settings[poster_key]
+          assign card_title = block.settings[title_key]
+          assign card_description = block.settings[description_key]
+        %}
+
+        {% if video != blank or poster != blank or card_title != blank or card_description != blank %}
+          <div class="ai-video-card-{{ ai_gen_id }}">
+            <div class="ai-video-wrapper-{{ ai_gen_id }}" data-video-index="{{ i }}">
+              {% if video != blank %}
+                <video 
+                  class="ai-video-element-{{ ai_gen_id }}"
+                  muted
+                  loop
+                  preload="metadata"
+                >
+                  <source src="{{ video }}" type="video/mp4">
+                </video>
+              {% endif %}
+
+              {% if poster != blank %}
+                <img 
+                  src="{{ poster | image_url: width: 600 }}"
+                  alt="{{ card_title | escape }}"
+                  class="ai-video-poster-{{ ai_gen_id }}"
+                  loading="lazy"
+                width="600"
+                  height="600"
+                >
+              {% else %}
+                <div class="ai-video-poster-placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if video != blank %}
+                <button 
+                  class="ai-video-play-button-{{ ai_gen_id }}"
+                  aria-label="Play video"
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </button>
+              {% endif %}
+            </div>
+
+            {% if card_title != blank or card_description != blank %}
+              <div class="ai-video-card-content-{{ ai_gen_id }}">
+                {% if card_title != blank %}
+                  <h3 class="ai-video-card-title-{{ ai_gen_id }}">{{ card_title }}</h3>
+                {% endif %}
+                {% if card_description != blank %}
+                  <div class="ai-video-card-description-{{ ai_gen_id }}">{{ card_description }}</div>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+    </div> <!-- container -->
+  </div> <!-- padded wrapper -->
+</ai-video-grid-{{ ai_gen_id }}>
+<script>
+  (function() {
+    class AiVideoGrid{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+        this.videos = new Map();
+      }
+
+      connectedCallback() {
+        this.initializeVideos();
+        this.setupEventListeners();
+      }
+
+      initializeVideos() {
+        const videoWrappers = this.querySelectorAll('.ai-video-wrapper-{{ ai_gen_id }}');
+        
+        videoWrappers.forEach((wrapper) => {
+          const video = wrapper.querySelector('.ai-video-element-{{ ai_gen_id }}');
+          const playButton = wrapper.querySelector('.ai-video-play-button-{{ ai_gen_id }}');
+          
+          if (video) {
+            this.videos.set(wrapper, {
+              element: video,
+              isPlaying: false
+            });
+          }
+        });
+      }
+
+      setupEventListeners() {
+        this.videos.forEach((videoData, wrapper) => {
+          const playButton = wrapper.querySelector('.ai-video-play-button-{{ ai_gen_id }}');
+          
+          if (playButton) {
+            playButton.addEventListener('click', () => this.toggleVideo(wrapper));
+          }
+
+          wrapper.addEventListener('mouseenter', () => {
+            if (!videoData.isPlaying) {
+              this.playVideo(wrapper);
+            }
+          });
+
+          wrapper.addEventListener('mouseleave', () => {
+            if (videoData.isPlaying) {
+              this.pauseVideo(wrapper);
+            }
+          });
+
+          videoData.element.addEventListener('ended', () => {
+            this.pauseVideo(wrapper);
+          });
+        });
+      }
+
+      toggleVideo(wrapper) {
+        const videoData = this.videos.get(wrapper);
+        if (!videoData) return;
+
+        if (videoData.isPlaying) {
+          this.pauseVideo(wrapper);
+        } else {
+          this.playVideo(wrapper);
+        }
+      }
+
+      playVideo(wrapper) {
+        const videoData = this.videos.get(wrapper);
+        if (!videoData) return;
+
+        this.pauseAllVideos();
+        
+        videoData.element.play().then(() => {
+          wrapper.classList.add('playing');
+          videoData.isPlaying = true;
+        }).catch((error) => {
+          console.warn('Video play failed:', error);
+        });
+      }
+
+      pauseVideo(wrapper) {
+        const videoData = this.videos.get(wrapper);
+        if (!videoData) return;
+
+        videoData.element.pause();
+        videoData.element.currentTime = 0;
+        wrapper.classList.remove('playing');
+        videoData.isPlaying = false;
+      }
+
+      pauseAllVideos() {
+        this.videos.forEach((videoData, wrapper) => {
+          if (videoData.isPlaying) {
+            this.pauseVideo(wrapper);
+          }
+        });
+      }
+    }
+
+    customElements.define('ai-video-grid-{{ ai_gen_id }}', AiVideoGrid{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Interactive Video Grid",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section Header"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Featured Videos"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Discover our latest video content"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "label": "Title size",
+      "min": 20,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "subtitle_size",
+      "label": "Subtitle size",
+      "min": 14,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle color",
+      "default": "#666666"
+    },
+    {
+      "type": "range",
+      "id": "title_spacing",
+      "label": "Title bottom spacing",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "header_spacing",
+      "label": "Header bottom spacing",
+      "min": 20,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 48
+    },
+    {
+      "type": "header",
+      "content": "Grid Layout"
+    },
+    {
+      "type": "select",
+      "id": "columns_desktop",
+      "label": "Columns on desktop",
+      "options": [
+        {"value": "2", "label": "2"},
+        {"value": "3", "label": "3"},
+        {"value": "4", "label": "4"}
+      ],
+      "default": "3"
+    },
+    {
+      "type": "select",
+      "id": "columns_tablet",
+      "label": "Columns on tablet",
+      "options": [
+        {"value": "2", "label": "2"},
+        {"value": "3", "label": "3"}
+      ],
+      "default": "2"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns on mobile",
+      "options": [
+        {"value": "1", "label": "1"},
+        {"value": "2", "label": "2"}
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "label": "Grid gap",
+      "min": 10,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "header",
+      "content": "Card Styling"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Section background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "card_background",
+      "label": "Card background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "label": "Card border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "card_padding",
+      "label": "Card content padding",
+      "min": 10,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+  "type": "range",
+  "id": "padding_top",
+  "label": "Padding Top",
+  "min": 0,
+  "max": 100,
+  "step": 4,
+  "unit": "px",
+  "default": 40
+},
+{
+  "type": "range",
+  "id": "padding_bottom",
+  "label": "Padding Bottom",
+  "min": 0,
+  "max": 100,
+  "step": 4,
+  "unit": "px",
+  "default": 40
+},
+    {
+      "type": "range",
+      "id": "section_padding",
+      "label": "Section padding",
+      "min": 20,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "header",
+      "content": "Card Text"
+    },
+    {
+      "type": "range",
+      "id": "card_title_size",
+      "label": "Card title size",
+      "min": 14,
+      "max": 28,
+      "step": 1,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "card_description_size",
+      "label": "Card description size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "color",
+      "id": "card_title_color",
+      "label": "Card title color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "card_description_color",
+      "label": "Card description color",
+      "default": "#666666"
+    },
+    {
+      "type": "range",
+      "id": "card_text_spacing",
+      "label": "Card text spacing",
+      "min": 4,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Video Card 1"
+    },
+    {
+      "type": "url",
+      "id": "video_1",
+      "label": "Video file URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "poster_1",
+      "label": "Poster image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_1",
+      "label": "Card title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_1",
+      "label": "Card description"
+    },
+    {
+      "type": "header",
+      "content": "Video Card 2"
+    },
+    {
+      "type": "url",
+      "id": "video_2",
+      "label": "Video file URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "poster_2",
+      "label": "Poster image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_2",
+      "label": "Card title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_2",
+      "label": "Card description"
+    },
+    {
+      "type": "header",
+      "content": "Video Card 3"
+    },
+    {
+      "type": "url",
+      "id": "video_3",
+      "label": "Video file URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "poster_3",
+      "label": "Poster image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_3",
+      "label": "Card title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_3",
+      "label": "Card description"
+    },
+    {
+      "type": "header",
+      "content": "Video Card 4"
+    },
+    {
+      "type": "url",
+      "id": "video_4",
+      "label": "Video file URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "poster_4",
+      "label": "Poster image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_4",
+      "label": "Card title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_4",
+      "label": "Card description"
+    },
+    {
+      "type": "header",
+      "content": "Video Card 5"
+    },
+    {
+      "type": "url",
+      "id": "video_5",
+      "label": "Video file URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "poster_5",
+      "label": "Poster image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_5",
+      "label": "Card title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_5",
+      "label": "Card description"
+    },
+    {
+      "type": "header",
+      "content": "Video Card 6"
+    },
+    {
+      "type": "url",
+      "id": "video_6",
+      "label": "Video file URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "poster_6",
+      "label": "Poster image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_6",
+      "label": "Card title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_6",
+      "label": "Card description"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Interactive Video Grid"
+    }
+  ],
+  "tag": null
+}
+{% endschema %}

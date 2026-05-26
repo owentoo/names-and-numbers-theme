@@ -1,0 +1,1076 @@
+{%- comment -%} cache-bust: {{ 'now' | date: '%s' }} {%- endcomment -%}
+{%- comment -%}
+  Scroll CTA Popup — small fixed-position card that slides in once
+  the visitor has scrolled past a configurable percentage of the page.
+
+  Behaviors:
+    • Click X       → dismisses for the rest of the session
+    • Click "Get it" → smooth-scrolls to the configured target selector
+                       (defaults to the variant picker / questionnaire)
+
+  Designed for PDPs like /products/free-samples to nudge undecided
+  visitors back to the form.
+{%- endcomment -%}
+
+{%- liquid
+  assign bg_color      = section.settings.bg_color      | default: '#0a0a0a'
+  assign text_color    = section.settings.text_color    | default: '#ffffff'
+  assign muted_color   = section.settings.muted_color   | default: '#cbd5e1'
+  assign btn_bg        = section.settings.btn_bg        | default: '#ffffff'
+  assign btn_text      = section.settings.btn_text      | default: '#0a0a0a'
+  assign btn_hover_bg  = section.settings.btn_hover_bg  | default: '#f3f4f6'
+  assign close_color   = section.settings.close_color   | default: '#9ca3af'
+-%}
+
+<style>
+  .scroll-cta-{{ section.id }} {
+    position: fixed;
+    {% if section.settings.position == 'bottom-left' %}left{% else %}right{% endif %}: {{ section.settings.side_offset }}px;
+    bottom: {{ section.settings.bottom_offset }}px;
+    z-index: {{ section.settings.z_index }};
+    max-width: {{ section.settings.max_width }}px;
+    width: calc(100vw - 32px);
+    background: {{ bg_color }};
+    color: {{ text_color }};
+    border-radius: {{ section.settings.border_radius }}px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    padding: {{ section.settings.padding }}px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transform: translateY(20px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform .35s cubic-bezier(.2,.7,.2,1), opacity .35s ease;
+  }
+  .scroll-cta-{{ section.id }}.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .scroll-cta-{{ section.id }}.is-dismissed {
+    display: none;
+  }
+  .scroll-cta-{{ section.id }} .scroll-cta__row {
+    display: flex;
+    align-items: center;
+    gap: {{ section.settings.gap }}px;
+  }
+  .scroll-cta-{{ section.id }} .scroll-cta__copy {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-right: 28px;
+  }
+  .scroll-cta-{{ section.id }} .scroll-cta__title {
+    font-size: {{ section.settings.title_size }}px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 6px;
+    color: {{ text_color }};
+  }
+  .scroll-cta-{{ section.id }} .scroll-cta__body {
+    font-size: {{ section.settings.body_size }}px;
+    line-height: 1.4;
+    margin: 0;
+    color: {{ muted_color }};
+  }
+  .scroll-cta-{{ section.id }} .scroll-cta__btn {
+    flex: 0 0 auto;
+    background: {{ btn_bg }};
+    color: {{ btn_text }};
+    border: 0;
+    border-radius: {{ section.settings.btn_radius }}px;
+    padding: {{ section.settings.btn_padding_y }}px {{ section.settings.btn_padding_x }}px;
+    font-size: {{ section.settings.btn_font_size }}px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color .15s ease;
+    font-family: inherit;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .scroll-cta-{{ section.id }} .scroll-cta__btn:hover,
+  .scroll-cta-{{ section.id }} .scroll-cta__btn:focus-visible {
+    background: {{ btn_hover_bg }};
+    outline: none;
+  }
+  .scroll-cta-{{ section.id }} .scroll-cta__close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: transparent;
+    border: 0;
+    color: {{ close_color }};
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    font-family: inherit;
+    border-radius: 4px;
+  }
+  .scroll-cta-{{ section.id }} .scroll-cta__close:hover,
+  .scroll-cta-{{ section.id }} .scroll-cta__close:focus-visible {
+    color: {{ text_color }};
+    outline: none;
+  }
+  .scroll-cta-{{ section.id }} .scroll-cta__close svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+
+  @media (max-width: 749px) {
+    .scroll-cta-{{ section.id }} {
+      {% if section.settings.position == 'bottom-left' %}left{% else %}right{% endif %}: {{ section.settings.side_offset_mobile }}px;
+      bottom: {{ section.settings.bottom_offset_mobile }}px;
+      padding: {{ section.settings.padding_mobile }}px;
+      max-width: calc(100vw - {{ section.settings.side_offset_mobile | times: 2 }}px);
+    }
+    .scroll-cta-{{ section.id }} .scroll-cta__title {
+      font-size: {{ section.settings.title_size_mobile }}px;
+    }
+    .scroll-cta-{{ section.id }} .scroll-cta__body {
+      font-size: {{ section.settings.body_size_mobile }}px;
+    }
+  }
+</style>
+
+<div
+  class="scroll-cta-{{ section.id }}"
+  data-scroll-cta
+  data-trigger-percent="{{ section.settings.trigger_percent }}"
+  data-target="{{ section.settings.scroll_target | escape }}"
+  data-scroll-offset="{{ section.settings.scroll_offset }}"
+  data-show-anchor="{{ section.settings.show_anchor_selector | escape }}"
+  data-hide-anchor="{{ section.settings.hide_anchor_selector | escape }}"
+  data-storage-key="scroll-cta-{{ section.id }}-dismissed"
+  role="dialog"
+  aria-live="polite"
+  aria-label="{{ section.settings.aria_label | default: 'Promotion' | escape }}"
+  hidden
+>
+  <button type="button" class="scroll-cta__close" data-scroll-cta-close aria-label="Close">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
+  <div class="scroll-cta__row">
+    <div class="scroll-cta__copy">
+      {%- if section.settings.title != blank -%}
+        <p class="scroll-cta__title">{{ section.settings.title }}</p>
+      {%- endif -%}
+      {%- if section.settings.body != blank -%}
+        <p class="scroll-cta__body">{{ section.settings.body }}</p>
+      {%- endif -%}
+    </div>
+    <button type="button" class="scroll-cta__btn" data-scroll-cta-action>
+      {{ section.settings.button_text | default: 'Get it' }}
+    </button>
+  </div>
+</div>
+
+<script>
+  (function() {
+    var el = document.querySelector('.scroll-cta-{{ section.id }}');
+    if (!el) return;
+
+    var triggerPercent = parseFloat(el.getAttribute('data-trigger-percent')) || 50;
+    var targetSelector = el.getAttribute('data-target') || '';
+    var scrollOffset   = parseInt(el.getAttribute('data-scroll-offset'), 10) || 0;
+    var showAnchorSel  = el.getAttribute('data-show-anchor') || '';
+    var hideAnchorSel  = el.getAttribute('data-hide-anchor') || '';
+    var storageKey     = el.getAttribute('data-storage-key');
+    var dismissed      = false;
+
+    /* Already dismissed earlier in this session? Stay hidden. */
+    try {
+      if (sessionStorage.getItem(storageKey) === '1') {
+        el.classList.add('is-dismissed');
+        return;
+      }
+    } catch (e) { /* sessionStorage may be blocked — fall through */ }
+
+    el.removeAttribute('hidden');
+
+    function getScrollPercent() {
+      var doc = document.documentElement;
+      var body = document.body;
+      var scrollTop = window.pageYOffset || doc.scrollTop || body.scrollTop || 0;
+      var scrollHeight = Math.max(
+        body.scrollHeight, doc.scrollHeight,
+        body.offsetHeight, doc.offsetHeight,
+        body.clientHeight, doc.clientHeight
+      );
+      var viewport = window.innerHeight || doc.clientHeight;
+      var scrollable = scrollHeight - viewport;
+      if (scrollable <= 0) return 0;
+      return (scrollTop / scrollable) * 100;
+    }
+
+    function maybeShow() {
+      if (dismissed) return;
+      var pct = getScrollPercent();
+      var isVisible = el.classList.contains('is-visible');
+      /* Show once the visitor crosses the trigger; hide again when they
+         scroll back above it. The dismissed flag (set by clicking X or
+         the CTA) is checked above so a permanent dismissal still wins. */
+      if (pct >= triggerPercent && !isVisible) {
+        el.classList.add('is-visible');
+      } else if (pct < triggerPercent && isVisible) {
+        el.classList.remove('is-visible');
+      }
+    }
+
+    function dismiss() {
+      dismissed = true;
+      el.classList.remove('is-visible');
+      /* Hide entirely after the transition so it doesn't intercept clicks. */
+      setTimeout(function() {
+        el.classList.add('is-dismissed');
+      }, 400);
+      try { sessionStorage.setItem(storageKey, '1'); } catch (e) {}
+    }
+
+    function findTarget() {
+      if (!targetSelector) return null;
+      /* Comma-separated list of selectors — first match wins. */
+      var parts = targetSelector.split(',');
+      for (var i = 0; i < parts.length; i++) {
+        var sel = parts[i].trim();
+        if (!sel) continue;
+        try {
+          var node = document.querySelector(sel);
+          if (node) return node;
+        } catch (e) { /* invalid selector — skip */ }
+      }
+      return null;
+    }
+
+    function scrollToTarget() {
+      var target = findTarget();
+      if (target) {
+        var rect = target.getBoundingClientRect();
+        var top = rect.top + (window.pageYOffset || document.documentElement.scrollTop) - scrollOffset;
+        window.scrollTo({ top: top < 0 ? 0 : top, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    var closeBtn  = el.querySelector('[data-scroll-cta-close]');
+    var actionBtn = el.querySelector('[data-scroll-cta-action]');
+
+    if (closeBtn)  closeBtn.addEventListener('click', dismiss);
+    if (actionBtn) actionBtn.addEventListener('click', function() {
+      scrollToTarget();
+      /* After the user accepts the CTA, the popup has done its job —
+         hide it for the rest of the session so it doesn't reappear. */
+      dismiss();
+    });
+
+    /* Anchor mode: preferred when both selectors are set AND match
+       elements on the page. The popup shows only when:
+         (a) the show-anchor has been reached (sticky), AND
+         (b) the hide-anchor has been fully scrolled past — its bottom
+             edge is above the viewport top.
+
+       Earlier we used `isIntersecting` for the hide condition, but that
+       flag is false in two opposite states: the user is *above* the ATC
+       (popup should hide — they're still on their way to it) AND the
+       user is *below* the ATC (popup should show — it's been passed).
+       Position-based check disambiguates: only "past" if rect.bottom<0.
+       Dismissed flag still wins. */
+    function tryAnchorMode() {
+      if (!showAnchorSel || !hideAnchorSel) return false;
+      if (!('IntersectionObserver' in window)) return false;
+      var showEl, hideEl;
+      try {
+        showEl = document.querySelector(showAnchorSel);
+        hideEl = document.querySelector(hideAnchorSel);
+      } catch (e) { return false; }
+      if (!showEl || !hideEl) return false;
+
+      var showSeen = false;
+      var hidePassed = false;  // true once the hide anchor is fully above the viewport
+
+      function update() {
+        if (dismissed) return;
+        var isVisible = el.classList.contains('is-visible');
+        var shouldShow = showSeen && hidePassed;
+        if (shouldShow && !isVisible) el.classList.add('is-visible');
+        else if (!shouldShow && isVisible) el.classList.remove('is-visible');
+      }
+
+      new IntersectionObserver(function(entries) {
+        for (var i = 0; i < entries.length; i++) {
+          var entry = entries[i];
+          /* Sticky: count as "seen" once the show anchor has overlapped
+             the viewport OR been scrolled past entirely (deep-linked
+             below the anchor still counts). */
+          if (entry.isIntersecting) showSeen = true;
+          else if (entry.boundingClientRect.bottom < 0) showSeen = true;
+        }
+        update();
+      }).observe(showEl);
+
+      new IntersectionObserver(function(entries) {
+        var entry = entries[entries.length - 1];
+        /* "Passed" = the hide anchor's bottom edge is above the viewport
+           top. While the user is at or above the hide anchor — even if
+           it's currently below the fold — bottom is positive and the
+           popup stays hidden. */
+        hidePassed = entry.boundingClientRect.bottom < 0;
+        update();
+      }).observe(hideEl);
+
+      return true;
+    }
+
+    if (!tryAnchorMode()) {
+      /* Fallback: scroll-percent trigger with symmetric show/hide on
+         scroll up. rAF-throttled so we're not running on every event. */
+      var ticking = false;
+      function onScroll() {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(function() {
+          maybeShow();
+          ticking = false;
+        });
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      /* Run once in case the visitor lands deep-linked past the trigger. */
+      maybeShow();
+    }
+  })();
+</script>
+
+{%- comment -%}
+  ────────────────────────────────────────────────────────────────
+  Questionnaire Progress + Checkmarks
+  ────────────────────────────────────────────────────────────────
+  Bundled into this section because it ships on the same template
+  and the standalone section file (sections/questionnaire-progress
+  .liquid) was being silently dropped from the rendered page even
+  after a successful CLI push — most likely a stale page-cache
+  issue. Until that clears, this co-located implementation gives
+  the user the feature reliably.
+
+  The CSS and JS below are independent of the popup above. They
+  watch for <questions-block> to appear in the product form, then
+  inject:
+    1. A green checkmark badge next to each question label
+    2. A "X of N completed" progress bar at the top of the form
+{%- endcomment -%}
+
+<style>
+  /* Progress bar */
+  questions-block .sampleQuestions__progress { margin: -4px 0 22px; }
+  questions-block .sampleQuestions__progress-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 8px;
+  }
+  questions-block .sampleQuestions__progress-label {
+    font-size: 13px; font-weight: 600; color: #4b5563;
+    line-height: 1.2; letter-spacing: 0.01em;
+  }
+  questions-block .sampleQuestions__progress-count {
+    font-weight: 700; color: #111111; font-variant-numeric: tabular-nums;
+  }
+  questions-block .sampleQuestions__progress-percent {
+    font-size: 12px; font-weight: 700; color: #6b7280;
+    letter-spacing: 0.04em; font-variant-numeric: tabular-nums;
+  }
+  questions-block .sampleQuestions__progress-label[data-complete="true"],
+  questions-block .sampleQuestions__progress-label[data-complete="true"] .sampleQuestions__progress-count,
+  questions-block .sampleQuestions__progress-percent[data-complete="true"] {
+    color: #15803d;
+  }
+  questions-block .sampleQuestions__progress-track {
+    position: relative; height: 8px; background: #f1f5f9;
+    border-radius: 999px; overflow: hidden;
+  }
+  questions-block .sampleQuestions__progress-fill {
+    position: absolute; inset: 0 auto 0 0; width: 0%;
+    background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+    border-radius: 999px;
+    transition: width .45s cubic-bezier(.2,.7,.2,1);
+  }
+  questions-block .sampleQuestions__progress-fill::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+    opacity: 0; transition: opacity .25s ease;
+  }
+  questions-block .sampleQuestions__progress-fill[data-just-changed="true"]::after { opacity: 1; }
+
+  /* Question label keeps the inline text. The upstream CSS in
+     main-product.liquid puts a red asterisk via ::after on
+     .sampleQuestions__question — disable that and re-add it
+     on the new inner text span so we can hide it once the
+     question is complete. */
+  questions-block .sampleQuestions__item:has(.sampleQuestions__select[required]) .sampleQuestions__question::after {
+    display: none !important;
+  }
+  questions-block .sampleQuestions__item:has(.sampleQuestions__select[required]) .sampleQuestions__question-text::after {
+    content: ' *'; color: #dc2626; margin-left: 2px; font-weight: 700;
+    transition: opacity .2s ease;
+  }
+  /* Once the question is answered the asterisk is redundant — hide it. */
+  questions-block .sampleQuestions__item.is-complete .sampleQuestions__question-text::after {
+    opacity: 0;
+  }
+
+  /* Wrap around the <select> so we can absolutely-position the
+     check badge inside the dropdown without disturbing the
+     existing dropdown chevron — the chevron stays put so the
+     user knows they can still re-open the menu and change
+     their answer. */
+  questions-block .sampleQuestions__select-wrap {
+    position: relative;
+  }
+  /* Make room for the check badge to the LEFT of the chevron. */
+  questions-block .sampleQuestions__item.is-complete .sampleQuestions__select {
+    padding-right: 76px;
+    border-color: #bbf7d0;
+    background-color: #f0fdf4;
+  }
+  questions-block .sampleQuestions__item.is-complete .sampleQuestions__select:focus {
+    border-color: #15803d; box-shadow: 0 0 0 3px rgba(22,163,74,0.18);
+  }
+
+  questions-block .sampleQuestions__check {
+    position: absolute;
+    top: 50%;
+    /* The chevron sits at right:16px and is 16px wide. Anchor
+       the badge just to its left with a small breathing gap. */
+    right: 42px;
+    transform: translateY(-50%) scale(0.5);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 999px;
+    background: #16a34a; color: #ffffff;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+    box-shadow: 0 0 0 0 rgba(22,163,74, 0.35);
+  }
+  questions-block .sampleQuestions__check svg {
+    width: 16px; height: 16px; stroke-width: 3;
+  }
+  questions-block .sampleQuestions__item.is-complete .sampleQuestions__check {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+  questions-block .sampleQuestions__check[data-just-changed="true"] {
+    animation: sq-pulse .55s ease-out;
+  }
+  @keyframes sq-pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(22,163,74, 0.45); }
+    100% { box-shadow: 0 0 0 12px rgba(22,163,74, 0);   }
+  }
+
+  /* Attention pulse on the *next* unanswered dropdown after the
+     user just answered a question. Runs twice, then settles. */
+  questions-block .sampleQuestions__select.sq-attention {
+    animation: sq-attention 1.5s ease-in-out 2;
+  }
+  @keyframes sq-attention {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(1,154,255, 0);
+      border-color: #e5e7eb;
+    }
+    50% {
+      box-shadow: 0 0 0 6px rgba(1,154,255, 0.18);
+      border-color: #019AFF;
+    }
+  }
+
+  /* Greyed-out CTA until every question is answered. The button
+     stays clickable on purpose — the existing click handler in
+     main-product.liquid already runs sampleValidation() and shows
+     red error markers, so clicking while incomplete still gives
+     useful feedback. The grey state is just a strong visual cue. */
+  .product__cart-functions .flex-buttons[data-sq-incomplete] button[data-main-product-add-to-cart],
+  .product__cart-functions .flex-buttons[data-sq-incomplete] .ProductForm__AddToCart,
+  .product__cart-functions .flex-buttons[data-sq-incomplete] [type="submit"] {
+    background-color: #cbd5e1 !important;
+    background-image: none !important;
+    border-color: #cbd5e1 !important;
+    color: #ffffff !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transition: background-color .3s ease, border-color .3s ease, color .3s ease, opacity .3s ease;
+  }
+  .product__cart-functions .flex-buttons[data-sq-incomplete] button[data-main-product-add-to-cart]:hover,
+  .product__cart-functions .flex-buttons[data-sq-incomplete] .ProductForm__AddToCart:hover,
+  .product__cart-functions .flex-buttons[data-sq-incomplete] [type="submit"]:hover {
+    background-color: #94a3b8 !important;
+    border-color: #94a3b8 !important;
+  }
+  /* Soft pulse the moment the form becomes complete so the
+     newly-enabled button draws the eye. */
+  .product__cart-functions .flex-buttons[data-sq-just-ready] button[data-main-product-add-to-cart] {
+    animation: sq-cta-ready .9s ease-out 1;
+  }
+  @keyframes sq-cta-ready {
+    0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(62,174,255, 0.45); }
+    50%  { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(62,174,255, 0); }
+    100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(62,174,255, 0); }
+  }
+
+  @media (max-width: 749px) {
+    questions-block .sampleQuestions__progress { margin: -2px 0 18px; }
+    questions-block .sampleQuestions__progress-label { font-size: 12px; }
+    questions-block .sampleQuestions__progress-percent { font-size: 11px; }
+    questions-block .sampleQuestions__check {
+      width: 24px; height: 24px; right: 40px;
+    }
+    questions-block .sampleQuestions__check svg { width: 14px; height: 14px; }
+    questions-block .sampleQuestions__item.is-complete .sampleQuestions__select {
+      padding-right: 72px;
+    }
+  }
+</style>
+
+<script>
+  (function() {
+    var INJECTED_FLAG = '__sqProgressInjected';
+    var ALL_DONE_LABEL = 'All set — ready to claim your pack';
+    var CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+    function injectInto(block) {
+      if (!block || block[INJECTED_FLAG]) return false;
+      var items = block.querySelectorAll('.sampleQuestions__item');
+      if (!items.length) return false;
+      block[INJECTED_FLAG] = true;
+
+      items.forEach(function(item) {
+        /* 1. Wrap the question label's text in a span so the
+              red asterisk (still applied via ::after in the
+              upstream CSS) can be selectively faded out once
+              the question is answered. */
+        var label = item.querySelector('.sampleQuestions__question');
+        if (label && label.dataset.sqEnhanced !== '1') {
+          var existingText = label.textContent.trim();
+          label.textContent = '';
+          var textSpan = document.createElement('span');
+          textSpan.className = 'sampleQuestions__question-text';
+          textSpan.textContent = existingText;
+          label.appendChild(textSpan);
+          label.dataset.sqEnhanced = '1';
+        }
+
+        /* 2. Wrap the <select> in a positioning container and
+              place the check badge inside it on the right
+              edge — overlaying where the dropdown chevron sat. */
+        var sel = item.querySelector('.sampleQuestions__select');
+        if (sel && !sel.parentNode.classList.contains('sampleQuestions__select-wrap')) {
+          var wrap = document.createElement('div');
+          wrap.className = 'sampleQuestions__select-wrap';
+          sel.parentNode.insertBefore(wrap, sel);
+          wrap.appendChild(sel);
+          var check = document.createElement('span');
+          check.className = 'sampleQuestions__check';
+          check.setAttribute('data-sq-check', '');
+          check.setAttribute('aria-hidden', 'true');
+          check.innerHTML = CHECK_SVG;
+          wrap.appendChild(check);
+        }
+      });
+
+      var firstItem = block.querySelector('.sampleQuestions__item');
+      if (firstItem && !block.querySelector('[data-sq-progress]')) {
+        var total = items.length;
+        var progress = document.createElement('div');
+        progress.className = 'sampleQuestions__progress';
+        progress.setAttribute('data-sq-progress', '');
+        progress.setAttribute('data-sq-total', String(total));
+        progress.setAttribute('role', 'status');
+        progress.setAttribute('aria-live', 'polite');
+        progress.innerHTML =
+          '<div class="sampleQuestions__progress-row">' +
+            '<span class="sampleQuestions__progress-label" data-sq-label>' +
+              '<span class="sampleQuestions__progress-count" data-sq-count>0</span> of ' + total + ' completed' +
+            '</span>' +
+            '<span class="sampleQuestions__progress-percent" data-sq-percent>0%</span>' +
+          '</div>' +
+          '<div class="sampleQuestions__progress-track">' +
+            '<div class="sampleQuestions__progress-fill" data-sq-fill style="width:0%"></div>' +
+          '</div>';
+        firstItem.parentNode.insertBefore(progress, firstItem);
+      }
+
+      block.addEventListener('change', function(e) {
+        if (e.target && e.target.classList && e.target.classList.contains('sampleQuestions__select')) {
+          updateProgress(block, e.target);
+        }
+      });
+
+      updateProgress(block, null);
+      return true;
+    }
+
+    function updateProgress(block, changedSelect) {
+      var items = block.querySelectorAll('.sampleQuestions__item');
+      var total = items.length;
+      if (!total) return;
+      var completed = 0;
+      items.forEach(function(item) {
+        var sel = item.querySelector('.sampleQuestions__select');
+        var check = item.querySelector('[data-sq-check]');
+        var isComplete = !!(sel && sel.value);
+        var wasComplete = item.classList.contains('is-complete');
+        item.classList.toggle('is-complete', isComplete);
+        if (isComplete) completed++;
+        if (check && isComplete && !wasComplete && sel === changedSelect) {
+          check.setAttribute('data-just-changed', 'true');
+          setTimeout(function() { check.removeAttribute('data-just-changed'); }, 600);
+        }
+      });
+
+      var bar = block.querySelector('[data-sq-progress]');
+      if (!bar) return;
+      var pct = Math.round((completed / total) * 100);
+      var fill  = bar.querySelector('[data-sq-fill]');
+      var pctEl = bar.querySelector('[data-sq-percent]');
+      var label = bar.querySelector('[data-sq-label]');
+      var allDone = (completed === total);
+
+      if (fill)  fill.style.width = pct + '%';
+      if (pctEl) pctEl.textContent = pct + '%';
+      if (label) {
+        if (allDone) {
+          label.textContent = ALL_DONE_LABEL;
+        } else {
+          label.innerHTML =
+            '<span class="sampleQuestions__progress-count" data-sq-count>' + completed + '</span> of ' + total + ' completed';
+        }
+        label.setAttribute('data-complete', allDone ? 'true' : 'false');
+      }
+      if (pctEl) pctEl.setAttribute('data-complete', allDone ? 'true' : 'false');
+
+      if (fill && changedSelect) {
+        fill.setAttribute('data-just-changed', 'true');
+        setTimeout(function() { fill.removeAttribute('data-just-changed'); }, 500);
+      }
+
+      /* Sync the Add-to-Cart button's "greyed out" state. There
+         can be more than one .flex-buttons container on the page
+         (mobile-vs-desktop variants), so we update them all. */
+      var ctaContainers = document.querySelectorAll('.product__cart-functions .flex-buttons');
+      ctaContainers.forEach(function(ctaEl) {
+        var wasIncomplete = ctaEl.hasAttribute('data-sq-incomplete');
+        if (allDone) {
+          ctaEl.removeAttribute('data-sq-incomplete');
+          /* Brief celebratory pulse the FIRST time we transition
+             from incomplete → complete. Skip it on initial render
+             (changedSelect == null) so we don't pulse on a back-
+             button restore where everything was already filled. */
+          if (wasIncomplete && changedSelect) {
+            ctaEl.setAttribute('data-sq-just-ready', '1');
+            setTimeout(function() { ctaEl.removeAttribute('data-sq-just-ready'); }, 1000);
+          }
+        } else {
+          ctaEl.setAttribute('data-sq-incomplete', '1');
+        }
+      });
+
+      /* Direct the user's eye to the next unanswered question by
+         pulsing its dropdown. Only fires from a real user change
+         event (not the initial render) and never re-pulses one
+         that's already been pulsed for the same fill state. */
+      if (changedSelect && !allDone) {
+        var nextSelect = null;
+        var foundChanged = false;
+        for (var i = 0; i < items.length; i++) {
+          var s = items[i].querySelector('.sampleQuestions__select');
+          if (!s) continue;
+          if (foundChanged && !s.value) { nextSelect = s; break; }
+          if (s === changedSelect) foundChanged = true;
+        }
+        /* If the user answered out of order, fall back to the first
+           unanswered select anywhere in the list. */
+        if (!nextSelect) {
+          for (var j = 0; j < items.length; j++) {
+            var s2 = items[j].querySelector('.sampleQuestions__select');
+            if (s2 && !s2.value) { nextSelect = s2; break; }
+          }
+        }
+        if (nextSelect) {
+          /* Force-restart the animation by removing then re-adding
+             the class on the next frame. */
+          nextSelect.classList.remove('sq-attention');
+          void nextSelect.offsetWidth;
+          nextSelect.classList.add('sq-attention');
+          setTimeout(function(el) {
+            return function() { el.classList.remove('sq-attention'); };
+          }(nextSelect), 3200);
+        }
+      }
+    }
+
+    function tryInject() {
+      return injectInto(document.querySelector('questions-block'));
+    }
+
+    function init() {
+      if (tryInject()) return;
+      var attempts = 0;
+      var poll = setInterval(function() {
+        attempts++;
+        if (tryInject() || attempts >= 40) clearInterval(poll);
+      }, 150);
+      if (typeof MutationObserver !== 'undefined') {
+        var mo = new MutationObserver(function() {
+          if (tryInject()) { mo.disconnect(); clearInterval(poll); }
+        });
+        mo.observe(document.body, { childList: true, subtree: true });
+        setTimeout(function() { mo.disconnect(); }, 30000);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Scroll CTA Popup",
+  "tag": "section",
+  "class": "section--scroll-cta-popup",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Copy"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Still thinking?"
+    },
+    {
+      "type": "textarea",
+      "id": "body",
+      "label": "Body",
+      "default": "Claim your free pack in 20 seconds."
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "Get it"
+    },
+    {
+      "type": "text",
+      "id": "aria_label",
+      "label": "Accessible label",
+      "info": "Read by screen readers when the popup appears.",
+      "default": "Free sample reminder"
+    },
+    {
+      "type": "header",
+      "content": "Behavior"
+    },
+    {
+      "type": "range",
+      "id": "trigger_percent",
+      "label": "Show after scrolling % of page",
+      "info": "Used only when no Show anchor is configured (or its element isn't on the page).",
+      "min": 10,
+      "max": 90,
+      "step": 5,
+      "unit": "%",
+      "default": 50
+    },
+    {
+      "type": "text",
+      "id": "show_anchor_selector",
+      "label": "Show anchor (CSS selector)",
+      "info": "When this element scrolls into view, the popup appears (and stays once seen until the Hide anchor is visible). Leave empty to use the % trigger above."
+    },
+    {
+      "type": "text",
+      "id": "hide_anchor_selector",
+      "label": "Hide anchor (CSS selector)",
+      "info": "When this element is visible in the viewport, the popup hides. Pair with the Show anchor for element-driven show/hide."
+    },
+    {
+      "type": "text",
+      "id": "scroll_target",
+      "label": "Scroll target (CSS selector)",
+      "info": "Where the \"Get it\" button scrolls to. Comma-separate fallbacks — first match wins. Empty = scroll to top.",
+      "default": "[id^=\"Variants-template\"], #product, #main"
+    },
+    {
+      "type": "range",
+      "id": "scroll_offset",
+      "label": "Scroll offset",
+      "info": "Pixels of breathing room above the target (e.g. for sticky header).",
+      "min": 0,
+      "max": 200,
+      "step": 4,
+      "unit": "px",
+      "default": 80
+    },
+    {
+      "type": "header",
+      "content": "Position"
+    },
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Corner",
+      "options": [
+        { "value": "bottom-right", "label": "Bottom right" },
+        { "value": "bottom-left",  "label": "Bottom left" }
+      ],
+      "default": "bottom-right"
+    },
+    {
+      "type": "range",
+      "id": "side_offset",
+      "label": "Distance from side (desktop)",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "bottom_offset",
+      "label": "Distance from bottom (desktop)",
+      "min": 0,
+      "max": 120,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "side_offset_mobile",
+      "label": "Distance from side (mobile)",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "bottom_offset_mobile",
+      "label": "Distance from bottom (mobile)",
+      "min": 0,
+      "max": 120,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "z_index",
+      "label": "Stacking order (z-index)",
+      "min": 100,
+      "max": 9900,
+      "step": 100,
+      "default": 1000
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Title color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "muted_color",
+      "label": "Body text color",
+      "default": "#cbd5e1"
+    },
+    {
+      "type": "color",
+      "id": "btn_bg",
+      "label": "Button background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "btn_text",
+      "label": "Button text",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "btn_hover_bg",
+      "label": "Button hover background",
+      "default": "#f3f4f6"
+    },
+    {
+      "type": "color",
+      "id": "close_color",
+      "label": "Close icon color",
+      "default": "#9ca3af"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max width (desktop)",
+      "min": 240,
+      "max": 520,
+      "step": 10,
+      "unit": "px",
+      "default": 340
+    },
+    {
+      "type": "range",
+      "id": "padding",
+      "label": "Padding (desktop)",
+      "min": 12,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile",
+      "label": "Padding (mobile)",
+      "min": 10,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Gap between text and button",
+      "min": 4,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Corner radius",
+      "min": 0,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Type sizes"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "label": "Title size (desktop)",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "body_size",
+      "label": "Body size (desktop)",
+      "min": 11,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "title_size_mobile",
+      "label": "Title size (mobile)",
+      "min": 12,
+      "max": 22,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "body_size_mobile",
+      "label": "Body size (mobile)",
+      "min": 11,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 13
+    },
+    {
+      "type": "header",
+      "content": "Button"
+    },
+    {
+      "type": "range",
+      "id": "btn_radius",
+      "label": "Button corner radius",
+      "info": "Set to the max value for a fully rounded pill.",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "btn_padding_y",
+      "label": "Button vertical padding",
+      "min": 6,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "btn_padding_x",
+      "label": "Button horizontal padding",
+      "min": 8,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "btn_font_size",
+      "label": "Button font size",
+      "min": 11,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    }
+  ],
+  "presets": [
+    {
+      "name": "Scroll CTA Popup"
+    }
+  ]
+}
+{% endschema %}

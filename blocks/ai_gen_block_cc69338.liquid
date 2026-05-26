@@ -1,0 +1,492 @@
+{% doc %}
+  @prompt
+    Create a 3-step image process section with the following structure:
+    
+    Section title: "Our Process"
+    
+    3 equal columns in one row on desktop, stacked on mobile
+    
+    Each column includes:
+    
+    Image (default state)
+    
+    Hover image (appears only when hovered)
+    
+    Step title (heading)
+    
+    Short description (1–2 lines max)
+    
+    Functionality:
+    
+    When a user hovers over the default image, it smoothly crossfades to the hover image.
+    
+    Use transition: opacity 0.3s ease-in-out or similar for animation.
+    
+    Keep the image size and layout consistent between default and hover states.
+    
+    Use rounded corners and a light shadow for styling.
+    
+    Section must be fully responsive.
+    
+    CMS Controls:
+    
+    Each column should allow the merchant to:
+    
+    Upload a default image
+    
+    Upload a hover image
+    
+    Add a title (text field)
+    
+    Add a description (text field), control over proportions of the image blocks, give me option for image block colors, including transparent, image blocks should only be the image i upload
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-process-section-{{ ai_gen_id }} {
+    padding: 60px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .ai-process-title-{{ ai_gen_id }} {
+    text-align: center;
+    font-size: {{ block.settings.title_size }}px;
+    color: {{ block.settings.title_color }};
+    margin: 0 0 50px;
+    font-weight: 600;
+  }
+
+  .ai-process-grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+
+  .ai-process-column-{{ ai_gen_id }} {
+    text-align: center;
+  }
+
+  .ai-process-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    margin-bottom: 24px;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    overflow: hidden;
+    {% if block.settings.image_shadow %}
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    {% endif %}
+    {% if block.settings.image_border_width > 0 %}
+      border: {{ block.settings.image_border_width }}px solid {{ block.settings.image_border_color }};
+    {% endif %}
+    background-color: {{ block.settings.image_background }};
+  }
+
+  .ai-process-image-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    {% if block.settings.image_fit == 'cover' %}
+      object-fit: cover;
+    {% elsif block.settings.image_fit == 'contain' %}
+      object-fit: contain;
+    {% else %}
+      object-fit: fill;
+    {% endif %}
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  .ai-process-image-default-{{ ai_gen_id }} {
+    opacity: 1;
+  }
+
+  .ai-process-image-hover-{{ ai_gen_id }} {
+    opacity: 0;
+  }
+
+  .ai-process-column-{{ ai_gen_id }}:hover .ai-process-image-default-{{ ai_gen_id }} {
+    opacity: 0;
+  }
+
+  .ai-process-column-{{ ai_gen_id }}:hover .ai-process-image-hover-{{ ai_gen_id }} {
+    opacity: 1;
+  }
+
+  .ai-process-step-title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.step_title_size }}px;
+    color: {{ block.settings.step_title_color }};
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+
+  .ai-process-step-description-{{ ai_gen_id }} {
+    font-size: {{ block.settings.step_description_size }}px;
+    color: {{ block.settings.step_description_color }};
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  @media screen and (max-width: 768px) {
+    .ai-process-section-{{ ai_gen_id }} {
+      padding: 40px 20px;
+    }
+
+    .ai-process-title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.title_size | times: 0.8 }}px;
+      margin-bottom: 30px;
+    }
+
+    .ai-process-grid-{{ ai_gen_id }} {
+      grid-template-columns: 1fr;
+      gap: 30px;
+    }
+
+    .ai-process-image-wrapper-{{ ai_gen_id }} {
+      aspect-ratio: {{ block.settings.mobile_image_aspect_ratio }};
+      margin-bottom: 20px;
+    }
+
+    .ai-process-step-title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.step_title_size | times: 0.9 }}px;
+    }
+
+    .ai-process-step-description-{{ ai_gen_id }} {
+      font-size: {{ block.settings.step_description_size | times: 0.9 }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-process-section-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  {% if block.settings.section_title != blank %}
+    <h2 class="ai-process-title-{{ ai_gen_id }}">{{ block.settings.section_title }}</h2>
+  {% endif %}
+
+  <div class="ai-process-grid-{{ ai_gen_id }}">
+    {% for i in (1..3) %}
+      {% liquid
+        assign step_title_key = 'step_' | append: i | append: '_title'
+        assign step_description_key = 'step_' | append: i | append: '_description'
+        assign default_image_key = 'step_' | append: i | append: '_default_image'
+        assign hover_image_key = 'step_' | append: i | append: '_hover_image'
+
+        assign step_title = block.settings[step_title_key]
+        assign step_description = block.settings[step_description_key]
+        assign default_image = block.settings[default_image_key]
+        assign hover_image = block.settings[hover_image_key]
+      %}
+
+      <div class="ai-process-column-{{ ai_gen_id }}">
+        {% if default_image %}
+          <div class="ai-process-image-wrapper-{{ ai_gen_id }}">
+            <img
+              src="{{ default_image | image_url: width: 400 }}"
+              alt="{{ step_title | escape }}"
+              class="ai-process-image-{{ ai_gen_id }} ai-process-image-default-{{ ai_gen_id }}"
+              loading="lazy"
+              width="400"
+              height="400"
+            >
+
+            {% if hover_image %}
+              <img
+                src="{{ hover_image | image_url: width: 400 }}"
+                alt="{{ step_title | escape }} - hover"
+                class="ai-process-image-{{ ai_gen_id }} ai-process-image-hover-{{ ai_gen_id }}"
+                loading="lazy"
+                width="400"
+                height="400"
+              >
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if step_title != blank %}
+          <h3 class="ai-process-step-title-{{ ai_gen_id }}">{{ step_title }}</h3>
+        {% endif %}
+
+        {% if step_description != blank %}
+          <p class="ai-process-step-description-{{ ai_gen_id }}">{{ step_description }}</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "3-Step Process Section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section Settings"
+    },
+    {
+      "type": "text",
+      "id": "section_title",
+      "label": "Section title",
+      "default": "Our Process"
+    },
+    {
+      "type": "header",
+      "content": "Image Proportions"
+    },
+    {
+      "type": "select",
+      "id": "image_aspect_ratio",
+      "label": "Desktop image aspect ratio",
+      "options": [
+        {
+          "value": "1",
+          "label": "Square (1:1)"
+        },
+        {
+          "value": "1.33333",
+          "label": "Landscape (4:3)"
+        },
+        {
+          "value": "1.777778",
+          "label": "Wide (16:9)"
+        },
+        {
+          "value": "0.75",
+          "label": "Portrait (3:4)"
+        },
+        {
+          "value": "0.666667",
+          "label": "Tall (2:3)"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "select",
+      "id": "mobile_image_aspect_ratio",
+      "label": "Mobile image aspect ratio",
+      "options": [
+        {
+          "value": "1",
+          "label": "Square (1:1)"
+        },
+        {
+          "value": "1.33333",
+          "label": "Landscape (4:3)"
+        },
+        {
+          "value": "1.777778",
+          "label": "Wide (16:9)"
+        },
+        {
+          "value": "0.75",
+          "label": "Portrait (3:4)"
+        },
+        {
+          "value": "0.666667",
+          "label": "Tall (2:3)"
+        }
+      ],
+      "default": "1.33333"
+    },
+    {
+      "type": "select",
+      "id": "image_fit",
+      "label": "Image fit",
+      "options": [
+        {
+          "value": "cover",
+          "label": "Cover (crop to fill)"
+        },
+        {
+          "value": "contain",
+          "label": "Contain (fit within bounds)"
+        },
+        {
+          "value": "fill",
+          "label": "Fill (stretch to fit)"
+        }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "header",
+      "content": "Image Block Styling"
+    },
+    {
+      "type": "color",
+      "id": "image_background",
+      "label": "Image block background color",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "label": "Image border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "image_border_width",
+      "label": "Image border width",
+      "min": 0,
+      "max": 5,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "color",
+      "id": "image_border_color",
+      "label": "Image border color",
+      "default": "#e0e0e0"
+    },
+    {
+      "type": "checkbox",
+      "id": "image_shadow",
+      "label": "Show image shadow",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "label": "Section title size",
+      "min": 20,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 36
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Section title color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "step_title_size",
+      "label": "Step title size",
+      "min": 14,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "color",
+      "id": "step_title_color",
+      "label": "Step title color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "step_description_size",
+      "label": "Step description size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "step_description_color",
+      "label": "Step description color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Step 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "step_1_default_image",
+      "label": "Default image"
+    },
+    {
+      "type": "image_picker",
+      "id": "step_1_hover_image",
+      "label": "Hover image"
+    },
+    {
+      "type": "text",
+      "id": "step_1_title",
+      "label": "Step title",
+      "default": "Step 1"
+    },
+    {
+      "type": "textarea",
+      "id": "step_1_description",
+      "label": "Step description",
+      "default": "Brief description of the first step in your process."
+    },
+    {
+      "type": "header",
+      "content": "Step 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "step_2_default_image",
+      "label": "Default image"
+    },
+    {
+      "type": "image_picker",
+      "id": "step_2_hover_image",
+      "label": "Hover image"
+    },
+    {
+      "type": "text",
+      "id": "step_2_title",
+      "label": "Step title",
+      "default": "Step 2"
+    },
+    {
+      "type": "textarea",
+      "id": "step_2_description",
+      "label": "Step description",
+      "default": "Brief description of the second step in your process."
+    },
+    {
+      "type": "header",
+      "content": "Step 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "step_3_default_image",
+      "label": "Default image"
+    },
+    {
+      "type": "image_picker",
+      "id": "step_3_hover_image",
+      "label": "Hover image"
+    },
+    {
+      "type": "text",
+      "id": "step_3_title",
+      "label": "Step title",
+      "default": "Step 3"
+    },
+    {
+      "type": "textarea",
+      "id": "step_3_description",
+      "label": "Step description",
+      "default": "Brief description of the third step in your process."
+    }
+  ],
+  "presets": [
+    {
+      "name": "3-Step Process Section"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,325 @@
+{%- comment -%}
+  Mobile Rotating Announcement Bar
+  - Shows only on mobile (< 1180px)
+  - Rotates through configurable message blocks on a single line
+  - Placeholders (sourced from the hidden .headerCountdown_mobile produced by
+    snippets/countdown.liquid via the announcement-bar section):
+      [TIMER]  -> the live hh:mm:ss countdown (inline)
+      [DATE]   -> delivery label, e.g. "Fri, Apr. 17"
+{%- endcomment -%}
+
+{%- liquid
+  assign _is_blanks_page = false
+  if request.page_type == 'collection'
+    if collection.metafields.custom.apparel_filters == true
+      assign _is_blanks_page = true
+    endif
+  elsif request.page_type == 'product'
+    for _c in product.collections
+      if _c.metafields.custom.apparel_filters == true
+        assign _is_blanks_page = true
+        break
+      endif
+    endfor
+  endif
+  assign _bar_mode = section.settings.bar_mode | default: 'transfers'
+  assign _show_this_bar = false
+  if _bar_mode == 'blanks' and _is_blanks_page
+    assign _show_this_bar = true
+  elsif _bar_mode == 'transfers' and _is_blanks_page == false
+    assign _show_this_bar = true
+  elsif _bar_mode == 'always'
+    assign _show_this_bar = true
+  endif
+-%}
+
+{%- if _show_this_bar -%}
+
+<div
+  class="mrb-wrapper"
+  id="mrb-{{ section.id }}"
+  data-interval="{{ section.settings.rotation_interval | times: 1000 }}"
+  style="
+    --mrb-bg: {{ section.settings.background_color }};
+    --mrb-text: {{ section.settings.text_color }};
+    --mrb-pad-y-mobile: {{ section.settings.vertical_padding_mobile | default: section.settings.vertical_padding | default: 8 }}px;
+    --mrb-pad-y-tablet: {{ section.settings.vertical_padding_tablet | default: 12 }}px;
+    --mrb-font-mobile: {{ section.settings.font_size_mobile | default: section.settings.font_size | default: 13 }}px;
+    --mrb-font-tablet: {{ section.settings.font_size_tablet | default: 16 }}px;
+  ">
+  {%- if section.blocks.size > 0 -%}
+    <div class="mrb-track">
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'message' -%}
+          {%- assign has_live = false -%}
+          {%- if block.settings.content contains '[TIMER]' or block.settings.content contains '[DATE]' -%}
+            {%- assign has_live = true -%}
+          {%- endif -%}
+          <div
+            class="mrb-slide{% if forloop.first %} mrb-slide--active{% endif %}"
+            data-index="{{ forloop.index0 }}"
+            data-has-live="{% if has_live %}1{% else %}0{% endif %}"
+            {{ block.shopify_attributes }}>
+            {{ block.settings.content }}
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
+</div>
+
+<style>
+  .mrb-wrapper {
+    display: none;
+    width: 100%;
+    background: var(--mrb-bg, #d5f0ff);
+    color: var(--mrb-text, #000);
+    overflow: hidden;
+    position: relative;
+  }
+  @media (max-width: 1198px) {
+    .mrb-wrapper { display: block; }
+    /* Kill the 1px white border between the announcement bar and this rotating bar */
+    announcement-bar.announcemen-wrapper { border-bottom: 0 !important; }
+  }
+  .mrb-track {
+    position: relative;
+    min-height: calc(var(--mrb-font-mobile, 13px) * 1.6 + (var(--mrb-pad-y-mobile, 8px) * 2));
+  }
+  .mrb-slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    /* Horizontal padding uses --gutter-container so the bar's inner edge
+       aligns with other container--large elements (header, nav, hero). */
+    padding: var(--mrb-pad-y-mobile, 8px) var(--gutter-container, 20px);
+    font-size: var(--mrb-font-mobile, 13px);
+    line-height: 1.35;
+    font-weight: 400;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.35s ease-in-out, visibility 0.35s ease-in-out;
+    pointer-events: none;
+  }
+  @media (min-width: 768px) and (max-width: 1198px) {
+    .mrb-track { min-height: calc(var(--mrb-font-tablet, 16px) * 1.6 + (var(--mrb-pad-y-tablet, 12px) * 2)); }
+    .mrb-slide {
+      font-size: var(--mrb-font-tablet, 16px);
+      padding: var(--mrb-pad-y-tablet, 12px) var(--gutter-container, 30px);
+    }
+  }
+  .mrb-slide.mrb-slide--active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .mrb-slide p { margin: 0; display: inline; }
+  .mrb-slide strong, .mrb-slide b { font-weight: 700; }
+  .mrb-slide .mrb-timer,
+  .mrb-slide .mrb-date { font-weight: 700; font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  (function(){
+    var root = document.getElementById('mrb-{{ section.id }}');
+    if (!root) return;
+
+    var slides = root.querySelectorAll('.mrb-slide');
+    if (!slides.length) return;
+
+    var interval = parseInt(root.getAttribute('data-interval'), 10) || 4000;
+    var current = 0;
+
+    // Cache original content so we can re-inject [TIMER]/[DATE] each tick
+    slides.forEach(function(s){ s.setAttribute('data-template', s.innerHTML); });
+
+    function getLiveParts(){
+      var src = document.querySelector('.headerCountdown_mobile');
+      if (!src) return { timer: '', date: '' };
+      var t = src.querySelector('time');
+      var d = src.querySelector('date');
+      var timerText = '';
+      if (t) {
+        // Pull only the numeric spans (skip the ":" separator parts).
+        var nums = t.querySelectorAll('.countdown-part:not(.grt-countdonw-dot) .countdown-number');
+        if (nums.length >= 3) {
+          timerText = nums[0].textContent + 'h ' + nums[1].textContent + 'm ' + nums[2].textContent + 's';
+        } else {
+          timerText = (t.textContent || '').trim();
+        }
+      }
+      return {
+        timer: timerText,
+        date:  d ? d.textContent : ''
+      };
+    }
+
+    function renderSlide(slide){
+      if (slide.getAttribute('data-has-live') !== '1') return;
+      var tpl = slide.getAttribute('data-template') || '';
+      var p = getLiveParts();
+      var html = tpl
+        .replace(/\[TIMER\]/g, '<span class="mrb-timer">' + p.timer + '</span>')
+        .replace(/\[DATE\]/g,  '<span class="mrb-date">'  + p.date  + '</span>');
+      slide.innerHTML = html;
+    }
+
+    // Initial render of active slide
+    renderSlide(slides[0]);
+
+    function advance(){
+      var prev = slides[current];
+      current = (current + 1) % slides.length;
+      var next = slides[current];
+      renderSlide(next);
+      prev.classList.remove('mrb-slide--active');
+      next.classList.add('mrb-slide--active');
+    }
+
+    // Live-update the countdown text on the active slide every second
+    setInterval(function(){
+      var active = slides[current];
+      if (active && active.getAttribute('data-has-live') === '1') {
+        renderSlide(active);
+      }
+    }, 1000);
+
+    if (slides.length > 1) {
+      setInterval(advance, interval);
+    }
+  })();
+</script>
+
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Mobile Rotating Bar",
+  "tag": "section",
+  "class": "mobile-rotating-bar-section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "bar_mode",
+      "label": "Show this bar on",
+      "options": [
+        { "value": "blanks",    "label": "Blanks pages only (apparel_filters = true)" },
+        { "value": "transfers", "label": "All other pages (Transfers, DTF, etc.)" },
+        { "value": "always",    "label": "Always — all pages" }
+      ],
+      "default": "transfers"
+    },
+    {
+      "type": "header",
+      "content": "Appearance"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#d5f0ff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "font_size_mobile",
+      "label": "Font size — Mobile (≤767)",
+      "min": 10,
+      "max": 18,
+      "step": 1,
+      "default": 13
+    },
+    {
+      "type": "range",
+      "id": "font_size_tablet",
+      "label": "Font size — Tablet (768–1198)",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "vertical_padding_mobile",
+      "label": "Vertical padding — Mobile (≤767)",
+      "min": 4,
+      "max": 20,
+      "step": 1,
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "vertical_padding_tablet",
+      "label": "Vertical padding — Tablet (768–1198)",
+      "min": 4,
+      "max": 28,
+      "step": 1,
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Rotation"
+    },
+    {
+      "type": "range",
+      "id": "rotation_interval",
+      "label": "Rotation interval (seconds)",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "paragraph",
+      "content": "Use [TIMER] for the live countdown (e.g. 02h 15m 44s) and [DATE] for the delivery date (e.g. Fri, Apr. 17). Both are pulled from the existing countdown logic."
+    }
+  ],
+  "max_blocks": 5,
+  "blocks": [
+    {
+      "type": "message",
+      "name": "Message",
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Content",
+          "default": "<p>Free Shipping on Orders $75+</p>",
+          "info": "Placeholders: [TIMER] and [DATE]."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Mobile Rotating Bar",
+      "blocks": [
+        {
+          "type": "message",
+          "settings": {
+            "content": "<p>Order in [TIMER] for Fastest Delivery [DATE]</p>"
+          }
+        },
+        {
+          "type": "message",
+          "settings": {
+            "content": "<p><strong>Free Shipping</strong> on orders over <strong>$75</strong></p>"
+          }
+        }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "groups": ["header", "footer"]
+  }
+}
+{% endschema %}

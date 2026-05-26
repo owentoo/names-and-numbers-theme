@@ -1,0 +1,469 @@
+{%- comment -%}
+  Gate the section on simple customer-presence — the source of truth for
+  this page is the ninja_rewards.* metafield namespace (tier_label,
+  trailing_spend, next_tier_gap), all of which gracefully default to
+  White Belt / 0 below. The legacy klaviyo.loyalty_opt_in gate suppressed
+  the bar even when ninja_rewards data was set; we no longer read any
+  klaviyo metafields here.
+{%- endcomment -%}
+{% if customer %}
+{%- liquid
+  assign current_tier     = customer.metafields.ninja_rewards.tier_label | default: 'White Belt'
+  assign remaining_cents  = customer.metafields.ninja_rewards.next_tier_gap | default: 0
+
+  case current_tier
+    when 'White Belt'
+      assign tier_threshold  = 250
+      assign next_tier       = 'Yellow Belt'
+      assign tier_name_color = '#b0bec5'
+      assign next_tier_color = '#f5c800'
+      assign next_tier_bubble_color = '#f5c800'
+      assign tier_faint_color = '#dde3e9'
+      assign current_tier_index = 0
+    when 'Yellow Belt'
+      assign tier_threshold  = 1000
+      assign next_tier       = 'Blue Belt'
+      assign tier_name_color = '#f5c800'
+      assign next_tier_color = '#2196d4'
+      assign next_tier_bubble_color = '#2196d4'
+      assign tier_faint_color = 'rgba(245,200,0,0.22)'
+      assign current_tier_index = 1
+    when 'Blue Belt'
+      assign tier_threshold  = 4000
+      assign next_tier       = 'Black Belt'
+      assign tier_name_color = '#2196d4'
+      assign next_tier_color = '#2a2d35'
+      assign next_tier_bubble_color = '#ffffff'
+      assign tier_faint_color = 'rgba(33,150,212,0.22)'
+      assign current_tier_index = 2
+    when 'Black Belt'
+      assign tier_threshold  = 4000
+      assign next_tier       = ''
+      assign tier_name_color = '#2a2d35'
+      assign next_tier_color = ''
+      assign next_tier_bubble_color = '#ffffff'
+      assign tier_faint_color = 'rgba(42,45,53,0.22)'
+      assign current_tier_index = 3
+  endcase
+
+  assign tier_threshold_cents = tier_threshold | times: 100
+  assign spent_cents          = customer.metafields.ninja_rewards.trailing_spend | default: 0
+  if spent_cents < 0
+    assign spent_cents = 0
+  endif
+
+  assign yellow_active = false
+  assign blue_active   = false
+  assign black_active  = false
+  if current_tier == 'Yellow Belt' or current_tier == 'Blue Belt' or current_tier == 'Black Belt'
+    assign yellow_active = true
+  endif
+  if current_tier == 'Blue Belt' or current_tier == 'Black Belt'
+    assign blue_active = true
+  endif
+  if current_tier == 'Black Belt'
+    assign black_active = true
+  endif
+
+  assign yellow_achieved = false
+  assign blue_achieved   = false
+  assign black_achieved  = false
+  if current_tier == 'Yellow Belt' or current_tier == 'Blue Belt' or current_tier == 'Black Belt'
+    assign yellow_achieved = true
+  endif
+  if current_tier == 'Blue Belt' or current_tier == 'Black Belt'
+    assign blue_achieved = true
+  endif
+  if current_tier == 'Black Belt'
+    assign black_achieved = true
+  endif
+
+  case current_tier
+    when 'White Belt'
+      assign tier_fill_pct = spent_cents | times: 100 | divided_by: 25000.0 | round
+    when 'Yellow Belt'
+      assign tier_fill_pct = spent_cents | minus: 25000 | times: 100 | divided_by: 75000.0 | round
+    when 'Blue Belt'
+      assign tier_fill_pct = spent_cents | minus: 100000 | times: 100 | divided_by: 300000.0 | round
+    when 'Black Belt'
+      assign tier_fill_pct = 100
+  endcase
+  if tier_fill_pct > 100
+    assign tier_fill_pct = 100
+  endif
+  if tier_fill_pct < 0
+    assign tier_fill_pct = 0
+  endif
+
+  assign segment_start_pct = current_tier_index | times: 25
+  assign fill_in_bar = tier_fill_pct | times: 25 | divided_by: 100.0
+  assign fill_end_pct = segment_start_pct | plus: fill_in_bar
+  assign segment_end_pct = segment_start_pct | plus: 25
+  assign marker_pos = fill_end_pct | plus: segment_end_pct | divided_by: 2.0 | round
+-%}
+
+<style>
+  .ltsb-wrap {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f0f4f8;
+    border-radius: 20px;
+    padding: 18px 36px 16px;
+    max-width: 1400px;
+    margin: 0 auto 8px;
+  }
+  .ltsb-tier-label { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 6px; }
+  .ltsb-tier-desc  { font-size: 14px; color: #333; line-height: 1.6; }
+  .ltsb-tier-desc strong { color: #111; }
+
+  .ltsb-promo-section { margin-top: 16px; }
+
+  .ltsb-track-wrap {
+    position: relative;
+    padding-top: 60px;
+    margin-bottom: 8px;
+  }
+
+  .ltsb-segments {
+    display: flex; height: 30px;
+    border-radius: 99px; overflow: visible; gap: 4px;
+  }
+  .ltsb-seg {
+    flex: 1; height: 100%; opacity: 0.18;
+    border-radius: 99px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .ltsb-seg.ltsb-done { opacity: 0.55; }
+
+  .ltsb-marker {
+    position: absolute; top: 0;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .ltsb-marker-bubble {
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 14px; font-weight: 700;
+    padding: 7px 13px; border-radius: 6px;
+    letter-spacing: 0.2px;
+    position: relative;
+    text-align: center;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .ltsb-marker-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #1a1a1a;
+    border-bottom: none;
+  }
+
+  /* Milestone cards grid */
+  .ltsb-milestones {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-top: 36px;
+    padding: 24px 4px;
+  }
+  .ltsb-milestone {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    position: relative;
+    overflow: visible;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .ltsb-milestone.ltsb-current {
+    z-index: 2;
+    margin: -20px -4px;
+    outline: 4px solid var(--ring-color, rgba(0,0,0,0.2));
+    box-shadow: 0 12px 32px rgba(0,0,0,0.18), 0 24px 48px rgba(0,0,0,0.12);
+  }
+  .ltsb-milestone.ltsb-unlocked { opacity: 0.45; }
+
+  /* Floating pill label */
+  .ltsb-card-label {
+    position: absolute; top: 14px; left: 14px;
+    background: #000; color: #fff;
+    font-size: 0.65rem; font-weight: 800;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 99px;
+    z-index: 3; white-space: nowrap;
+  }
+
+  .ltsb-card-header {
+    padding: 24px 20px 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px 16px 0 0;
+  }
+  .ltsb-belt-img {
+    width: 140px; height: 140px;
+    object-fit: contain;
+    display: block; margin: 0 auto 10px;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.18));
+  }
+  .ltsb-name {
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .ltsb-pct {
+    font-size: 3rem; font-weight: 900;
+    letter-spacing: -0.04em; line-height: 1;
+  }
+  .ltsb-cash-label {
+    font-size: 0.7rem; font-weight: 600;
+    margin-top: 2px;
+  }
+  .ltsb-card-body {
+    padding: 16px 20px 20px;
+    background: #fff;
+    border-radius: 0 0 16px 16px;
+  }
+  .ltsb-status-text {
+    font-size: 0.85rem; font-weight: 500; color: #94a3b8;
+  }
+  .ltsb-status-text.ltsb-status--unlocked { color: #16a34a; font-weight: 600; }
+  .ltsb-status-text.ltsb-status--spent    { color: #16a34a; font-weight: 700; font-size: 0.95rem; }
+  .ltsb-status-away {
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+</style>
+
+<div class="ltsb-wrap">
+
+  <div class="ltsb-tier-label">Tier status</div>
+  <div class="ltsb-tier-desc">
+    You are a <strong style="color:{{ tier_name_color }};">{{ current_tier }}</strong> through the next earning period.
+    {%- if next_tier != blank -%}
+      <br>Spend <strong>{{ remaining_cents | times: 100 | money }}</strong> to unlock <strong style="color:{{ next_tier_color }};">{{ next_tier }}</strong>.
+    {%- else -%}
+      <br>You've reached the <strong>highest tier!</strong>
+    {%- endif -%}
+  </div>
+
+  <div class="ltsb-promo-section">
+
+    <div class="ltsb-track-wrap">
+
+      <div class="ltsb-marker" style="left:{% if current_tier == 'Black Belt' %}88{% else %}{{ marker_pos }}{% endif %}%;">
+        <div class="ltsb-marker-bubble">
+          {%- if current_tier == 'Black Belt' -%}
+            You've reached our Top Tier! &#127942;
+          {%- else -%}
+            {{ remaining_cents | times: 100 | money }} to
+            <span style="color:{{ next_tier_bubble_color }}; display:block; margin-top:2px;">{{ next_tier }}</span>
+          {%- endif -%}
+        </div>
+      </div>
+
+      <div class="ltsb-segments">
+        {%- comment -%}White segment{%- endcomment -%}
+        {%- if current_tier == 'White Belt' -%}
+          <div class="ltsb-seg ltsb-active" style="background:linear-gradient(to right,#b0bec5 {{ tier_fill_pct }}%,{{ tier_faint_color }} {{ tier_fill_pct }}%); opacity:1; box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>
+        {%- else -%}
+          <div class="ltsb-seg ltsb-done" style="background:#b0bec5; opacity:0.55;"></div>
+        {%- endif -%}
+        {%- comment -%}Yellow segment{%- endcomment -%}
+        {%- if current_tier == 'Yellow Belt' -%}
+          <div class="ltsb-seg" style="background:linear-gradient(to right,#f5c800 {{ tier_fill_pct }}%,{{ tier_faint_color }} {{ tier_fill_pct }}%); opacity:1; box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>
+        {%- elsif yellow_achieved -%}
+          <div class="ltsb-seg ltsb-done" style="background:#f5c800;"></div>
+        {%- else -%}
+          <div class="ltsb-seg" style="background:#f5c800;"></div>
+        {%- endif -%}
+        {%- comment -%}Blue segment{%- endcomment -%}
+        {%- if current_tier == 'Blue Belt' -%}
+          <div class="ltsb-seg" style="background:linear-gradient(to right,#2196d4 {{ tier_fill_pct }}%,{{ tier_faint_color }} {{ tier_fill_pct }}%); opacity:1; box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>
+        {%- elsif blue_achieved -%}
+          <div class="ltsb-seg ltsb-done" style="background:#2196d4;"></div>
+        {%- else -%}
+          <div class="ltsb-seg" style="background:#2196d4;"></div>
+        {%- endif -%}
+        {%- comment -%}Black segment{%- endcomment -%}
+        {%- if current_tier == 'Black Belt' -%}
+          <div class="ltsb-seg" style="background:#2a2d35; opacity:1; box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>
+        {%- else -%}
+          <div class="ltsb-seg" style="background:#2a2d35;"></div>
+        {%- endif -%}
+      </div>
+
+    </div>
+
+    <div class="ltsb-milestones">
+
+      <!-- White Belt -->
+      <div class="ltsb-milestone{% if current_tier == 'White Belt' %} ltsb-current{% elsif yellow_active %} ltsb-unlocked{% endif %}"{% if current_tier == 'White Belt' %} style="--ring-color: rgba(176,190,197,0.6);"{% endif %}>
+        {%- if current_tier == 'White Belt' -%}<span class="ltsb-card-label">Current</span>{%- endif -%}
+        <div class="ltsb-card-header" style="background: linear-gradient(160deg, #f9f9f9 0%, #e4e4e4 100%);">
+          <img class="ltsb-belt-img" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/White_Ninja.png?v=1773801925" alt="White Belt" width="140" loading="lazy">
+          <div class="ltsb-name" style="color:#000;">White Belt</div>
+          <div class="ltsb-pct" style="color:#000;">2%</div>
+          <div class="ltsb-cash-label" style="color:rgba(0,0,0,0.45);">Cash Back*</div>
+        </div>
+        <div class="ltsb-card-body">
+          {%- if current_tier == 'White Belt' -%}
+            <div class="ltsb-status-text ltsb-status--spent">{{ spent_cents | times: 100 | money }} spent in last 12 months</div>
+          {%- elsif yellow_active -%}
+            <div class="ltsb-status-text ltsb-status--unlocked">&#10003; Unlocked</div>
+          {%- else -%}
+            <div class="ltsb-status-text">Sign Up</div>
+          {%- endif -%}
+        </div>
+      </div>
+
+      <!-- Yellow Belt -->
+      {%- assign yb_hex = 'e6c800' -%}
+      <div class="ltsb-milestone{% if current_tier == 'Yellow Belt' %} ltsb-current{% elsif blue_active %} ltsb-unlocked{% endif %}"{% if current_tier == 'Yellow Belt' %} style="--ring-color: rgba(245,200,0,0.7);"{% endif %}>
+        {%- if current_tier == 'Yellow Belt' -%}<span class="ltsb-card-label">Current</span>{%- endif -%}
+        {%- if current_tier == 'White Belt' -%}<span class="ltsb-card-label">Next</span>{%- endif -%}
+        <div class="ltsb-card-header" style="background: linear-gradient(160deg, #fef0a0 0%, #e6c800 100%);">
+          <img class="ltsb-belt-img" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/yellow-ninja-200226.png?v=1771528293" alt="Yellow Belt" width="140" loading="lazy">
+          <div class="ltsb-name" style="color:#000;">Yellow Belt</div>
+          <div class="ltsb-pct" style="color:#000;">4%</div>
+          <div class="ltsb-cash-label" style="color:rgba(0,0,0,0.45);">Cash Back*</div>
+        </div>
+        <div class="ltsb-card-body">
+          {%- if current_tier == 'Yellow Belt' -%}
+            <div class="ltsb-status-text ltsb-status--spent">{{ spent_cents | times: 100 | money }} spent in last 12 months</div>
+          {%- elsif current_tier == 'White Belt' -%}
+            <div class="ltsb-status-away" style="background:#{{ yb_hex }}18; color:#d4a800;">{{ remaining_cents | times: 100 | money }} away</div>
+          {%- elsif blue_active -%}
+            <div class="ltsb-status-text ltsb-status--unlocked">&#10003; Unlocked</div>
+          {%- else -%}
+            <div class="ltsb-status-text">Spend $250 within 12 months</div>
+          {%- endif -%}
+        </div>
+      </div>
+
+      <!-- Blue Belt -->
+      {%- assign bb_hex = '2196d4' -%}
+      <div class="ltsb-milestone{% if current_tier == 'Blue Belt' %} ltsb-current{% elsif black_active %} ltsb-unlocked{% endif %}"{% if current_tier == 'Blue Belt' %} style="--ring-color: rgba(33,150,212,0.6);"{% endif %}>
+        {%- if current_tier == 'Blue Belt' -%}<span class="ltsb-card-label">Current</span>{%- endif -%}
+        {%- if current_tier == 'Yellow Belt' -%}<span class="ltsb-card-label">Next</span>{%- endif -%}
+        <div class="ltsb-card-header" style="background: linear-gradient(160deg, #6bb8f7 0%, #1580d0 100%);">
+          <img class="ltsb-belt-img" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/blue-ninja-200226.png?v=1771528293" alt="Blue Belt" width="140" loading="lazy">
+          <div class="ltsb-name" style="color:rgba(255,255,255,0.85);">Blue Belt</div>
+          <div class="ltsb-pct" style="color:#fff;">6%</div>
+          <div class="ltsb-cash-label" style="color:rgba(255,255,255,0.6);">Cash Back*</div>
+        </div>
+        <div class="ltsb-card-body">
+          {%- if current_tier == 'Blue Belt' -%}
+            <div class="ltsb-status-text ltsb-status--spent">{{ spent_cents | times: 100 | money }} spent in last 12 months</div>
+          {%- elsif current_tier == 'Yellow Belt' -%}
+            <div class="ltsb-status-away" style="background:#{{ bb_hex }}18; color:#2196d4;">{{ remaining_cents | times: 100 | money }} away</div>
+          {%- elsif black_active -%}
+            <div class="ltsb-status-text ltsb-status--unlocked">&#10003; Unlocked</div>
+          {%- else -%}
+            <div class="ltsb-status-text">Spend $1,000 within 12 months</div>
+          {%- endif -%}
+        </div>
+      </div>
+
+      <!-- Black Belt -->
+      {%- assign blk_hex = '2a2d35' -%}
+      <div class="ltsb-milestone{% if current_tier == 'Black Belt' %} ltsb-current{% endif %}"{% if current_tier == 'Black Belt' %} style="--ring-color: rgba(42,45,53,0.5);"{% endif %}>
+        {%- if current_tier == 'Black Belt' -%}<span class="ltsb-card-label">Current</span>{%- endif -%}
+        {%- if current_tier == 'Blue Belt' -%}<span class="ltsb-card-label">Next</span>{%- endif -%}
+        <div class="ltsb-card-header" style="background: linear-gradient(160deg, #5a6270 0%, #2c3239 100%);">
+          <img class="ltsb-belt-img" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/black-ninja-200226.png?v=1771528293" alt="Black Belt" width="140" loading="lazy">
+          <div class="ltsb-name" style="color:rgba(255,255,255,0.85);">Black Belt</div>
+          <div class="ltsb-pct" style="color:#fff;">10%</div>
+          <div class="ltsb-cash-label" style="color:rgba(255,255,255,0.6);">Cash Back*</div>
+        </div>
+        <div class="ltsb-card-body">
+          {%- if current_tier == 'Black Belt' -%}
+            <div class="ltsb-status-text ltsb-status--spent">{{ spent_cents | times: 100 | money }} spent in last 12 months</div>
+          {%- elsif current_tier == 'Blue Belt' -%}
+            <div class="ltsb-status-away" style="background:#{{ blk_hex }}18; color:#2a2d35;">{{ remaining_cents | times: 100 | money }} away</div>
+          {%- else -%}
+            <div class="ltsb-status-text">Spend $4,000 within 12 months</div>
+          {%- endif -%}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endif %}
+
+{% comment %} Move Rewards history button into hero section, hide dark my-rewards section {% endcomment %}
+<script>
+(function() {
+  function setupRewardsHistoryProxy() {
+    var heroWidget = document.querySelector('.yotpo-widget-hero-section');
+    var rewardsWidget = document.querySelector('.yotpo-widget-my-rewards-widget');
+    if (!heroWidget || !rewardsWidget) return false;
+    var originalBtn = rewardsWidget.querySelector('button.yotpo-secondary-button');
+    if (!originalBtn) return false;
+    var textAndButtons = heroWidget.querySelector('.yotpo-text-and-buttons');
+    if (!textAndButtons) return false;
+    if (textAndButtons.querySelector('.nt-rewards-history-proxy')) return true;
+    var vueAttr = null;
+    for (var i = 0; i < originalBtn.attributes.length; i++) {
+      if (originalBtn.attributes[i].name.indexOf('data-v-') === 0) {
+        vueAttr = originalBtn.attributes[i].name;
+        break;
+      }
+    }
+    var proxyBtn = document.createElement('button');
+    proxyBtn.className = 'nt-rewards-history-proxy ' + originalBtn.className;
+    if (vueAttr) proxyBtn.setAttribute(vueAttr, '');
+    proxyBtn.setAttribute('style', originalBtn.getAttribute('style') || '');
+    proxyBtn.textContent = originalBtn.textContent.trim();
+    proxyBtn.addEventListener('click', function() { originalBtn.click(); });
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-top:20px; text-align:center;';
+    wrap.appendChild(proxyBtn);
+    textAndButtons.appendChild(wrap);
+    var parentSection = rewardsWidget.closest('.shopify-section');
+    if (parentSection) {
+      parentSection.style.height = '0';
+      parentSection.style.overflow = 'hidden';
+      parentSection.style.minHeight = '0';
+      parentSection.style.padding = '0';
+      parentSection.style.margin = '0';
+    }
+    return true;
+  }
+  if (!setupRewardsHistoryProxy()) {
+    var obs = new MutationObserver(function() {
+      if (setupRewardsHistoryProxy()) obs.disconnect();
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+    setTimeout(function() { obs.disconnect(); }, 15000);
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Loyalty Tier Status Bar",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "keychain_preview_image",
+      "label": "Ninja Keychain Preview Image",
+      "info": "Product image shown on hover/tap for the Free Ninja Keychain perk (Blue Belt)"
+    },
+    {
+      "type": "image_picker",
+      "id": "dojo_defender_preview_image",
+      "label": "Ninja Dojo Defender Preview Image",
+      "info": "Product image shown on hover/tap for the Free Ninja Dojo Defender perk (Black Belt)"
+    }
+  ]
+}
+{% endschema %}

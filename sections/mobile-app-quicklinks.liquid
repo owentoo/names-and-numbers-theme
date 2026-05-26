@@ -1,0 +1,120 @@
+<style>
+  .maq-section {
+    display: none;
+    padding: {{ section.settings.padding_top }}px 16px {{ section.settings.padding_bottom }}px;
+    background: #f5f7fb;
+  }
+  @media (max-width: 767px) {
+    .maq-section { display: block; }
+  }
+  .maq-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .maq-card {
+    background: #ffffff;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 8px;
+    text-decoration: none;
+    color: #111;
+    gap: 8px;
+  }
+  .maq-card:hover { opacity: 0.85; }
+  .maq-icon-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .maq-icon-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .maq-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    color: #111;
+    line-height: 1.3;
+  }
+</style>
+
+<div class="maq-section">
+  <div class="maq-grid">
+    {%- for block in section.blocks -%}
+      {%- assign b = block.settings -%}
+      {%- comment -%}
+        If this quick link is the "Reordering Made Easy" tile, route it
+        to /pages/welcome with the my-orders tab pre-selected. The
+        my-orders-content.liquid section reads `?tab=my-orders` and
+        activates that tab on portal load. Match is loose (label
+        contains "Reorder") so the merchandiser can edit the label and
+        keep the deep-link behavior. The link setting can stay
+        `/pages/welcome` in the theme editor — we just append the
+        query string here when it's missing.
+      {%- endcomment -%}
+      {%- assign maq_link = b.link -%}
+      {%- assign maq_label_norm = b.label | downcase -%}
+      {%- assign maq_has_tab_param = false -%}
+      {%- if maq_link contains 'tab=' -%}{%- assign maq_has_tab_param = true -%}{%- endif -%}
+      {%- if maq_label_norm contains 'reorder' and maq_link contains '/pages/welcome' and maq_has_tab_param == false -%}
+        {%- if maq_link contains '?' -%}
+          {%- assign maq_link = maq_link | append: '&tab=my-orders' -%}
+        {%- else -%}
+          {%- assign maq_link = maq_link | append: '?tab=my-orders' -%}
+        {%- endif -%}
+      {%- endif -%}
+      <a href="{{ maq_link }}" class="maq-card" {{ block.shopify_attributes }}>
+        <div class="maq-icon-wrap" style="background-color: {{ b.icon_bg }};">
+          {%- if b.icon_image != blank -%}
+            <img src="{{ b.icon_image | image_url: width: 104 }}" alt="{{ b.label }}" width="52" height="52" loading="lazy">
+          {%- endif -%}
+        </div>
+        <span class="maq-label">{{ b.label }}</span>
+      </a>
+    {%- endfor -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Quick Links Grid",
+  "settings": [
+    { "type": "range", "id": "padding_top",    "label": "Padding Top",    "min": 0, "max": 60, "step": 4, "unit": "px", "default": 16 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding Bottom", "min": 0, "max": 60, "step": 4, "unit": "px", "default": 16 }
+  ],
+  "blocks": [
+    {
+      "type": "link",
+      "name": "Quick Link",
+      "settings": [
+        { "type": "text",         "id": "label",      "label": "Label",           "default": "Upload Design" },
+        { "type": "image_picker", "id": "icon_image", "label": "Icon Image" },
+        { "type": "color",        "id": "icon_bg",    "label": "Icon Background", "default": "#dce8fb" },
+        { "type": "url",          "id": "link",       "label": "Link" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Quick Links Grid",
+      "blocks": [
+        { "type": "link", "settings": { "label": "Upload Design", "icon_bg": "#dce8fb" } },
+        { "type": "link", "settings": { "label": "My Orders",     "icon_bg": "#e8e0fa" } },
+        { "type": "link", "settings": { "label": "Track Order",   "icon_bg": "#e0f5e8" } },
+        { "type": "link", "settings": { "label": "Free Sample",   "icon_bg": "#fdf0e0" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

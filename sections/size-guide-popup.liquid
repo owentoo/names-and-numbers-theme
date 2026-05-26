@@ -1,0 +1,450 @@
+{%-liquid
+  assign ss = section.settings
+  assign sb = section.blocks
+-%}
+<link rel="stylesheet" href="{{ '__popup.css' | asset_url }}">
+{%- comment -%}
+<div class="container" style="text-align: center;">
+  <a href="javascript://" class="popupTrigger__">Click here  {{ product.handle }}</a>
+</div>
+{%- endcomment -%}
+{%- capture popupData -%}
+  {%- assign makeCounter = 1 -%}
+  {% for block in sb %}
+    {%- assign b = block.settings -%}
+    {% if b.itemName_1 != blank and b.width_1 != blank and b.height_1 != blank and b.showAt_1 != blank and b.img_1 != blank %}
+      {%- assign img_1 = b.img_1 | image_url: width: 600 -%}
+      <option
+        value="{{ b.itemName_1 | handleize }}"
+        item-name="{{ b.itemName_1 | escape }}"
+        width="{{ b.width_1 | escape }}"
+        height="{{ b.height_1 | escape }}"
+        shown-at="{{ b.showAt_1 | escape }}"
+        img="{{ img_1 }}"
+      >
+        {{ b.itemName_1 }}
+      </option>
+    {% endif %}
+    {% if b.itemName_2 != blank and b.width_2 != blank and b.height_2 != blank and b.showAt_2 != blank and b.img_2 != blank %}
+      {%- assign img_2 = b.img_2 | image_url: width: 600 -%}
+      <option
+        value="{{ b.itemName_2 | handleize }}"
+        item-name="{{ b.itemName_2 | escape }}"
+        width="{{ b.width_2 | escape }}"
+        height="{{ b.height_2 | escape }}"
+        shown-at="{{ b.showAt_2 | escape }}"
+        img="{{ img_2 }}"
+      >
+        {{ b.itemName_2 }}
+      </option>
+    {% endif %}
+    {% if b.itemName_3 != blank and b.width_3 != blank and b.height_3 != blank and b.showAt_3 != blank and b.img_3 != blank %}
+      {%- assign img_3 = b.img_3 | image_url: width: 600 -%}
+      <option
+        value="{{ b.itemName_3 | handleize }}"
+        item-name="{{ b.itemName_3 | escape }}"
+        width="{{ b.width_3 | escape }}"
+        height="{{ b.height_3 | escape }}"
+        shown-at="{{ b.showAt_3 | escape }}"
+        img="{{ img_3 }}"
+      >
+        {{ b.itemName_3 }}
+      </option>
+    {% endif %}
+    {% if b.itemName_4 != blank and b.width_4 != blank and b.height_4 != blank and b.showAt_4 != blank and b.img_4 != blank %}
+      {%- assign img_4 = b.img_4 | image_url: width: 600 -%}
+      <option
+        value="{{ b.itemName_4 | handleize }}"
+        item-name="{{ b.itemName_4 | escape }}"
+        width="{{ b.width_4 | escape }}"
+        height="{{ b.height_4 | escape }}"
+        shown-at="{{ b.showAt_4 | escape }}"
+        img="{{ img_4 }}"
+      >
+        {{ b.itemName_4 }}
+      </option>
+    {% endif %}
+  {% endfor %}
+{%- endcapture -%}
+
+<popup-size-guide class="hidden">
+  <popup>
+    <popup-close>
+      <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+    </popup-close>
+    <div class="content-area">
+      {% if ss.title != blank %}
+        <div class="content-area__title">{{ ss.title }}</div>
+      {% endif %}
+      {% if popupData != blank %}
+        <div class="content-area__label">Product</div>
+        <select class="content-area__select">
+          {{ popupData }}
+          {%- comment -%}
+          {% for pro in ss.prodsList %}
+            {%-liquid
+              if forloop.first
+                assign maxWidth = pro.metafields.custom.suggested_max_width | times: 1 | round: 0
+                assign maxHeight = pro.metafields.custom.suggested_max_height | times: 1 | round: 0
+                assign shownAt = maxWidth | append: ' x ' | append: maxHeight | append: ' inches'
+                assign getImg = pro.metafields.custom.size_guide_image | image_url: width: 600
+                assign getTitle = pro.title
+              endif
+            -%}
+            <option value="{{ pro.handle }}" {% if product.handle == pro.handle %}selected{% endif %}>{{ pro.title | remove: '"' }}</option>
+          {% endfor %}
+          {%- endcomment -%}
+        </select>
+      {% endif %}
+
+      <div class="content-area__label">Suggested Max Width</div>
+      <div class="content-area__value" type="width"></div>
+
+      <div class="content-area__label">Suggested Max Height</div>
+      <div class="content-area__value" type="height"></div>
+
+      <div class="content-area__label">Shown At</div>
+      <div class="content-area__value" type="shownAt"></div>
+    </div>
+
+    <div class="image-area">
+      <div class="popupClose">
+        <popup-close>
+          <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+        </popup-close>
+      </div>
+      <img src="" alt="{{ getTitle | escape }}">
+    </div>
+  </popup>
+</popup-size-guide>
+
+<style>
+  {% if ss.layout_desktop == 'leftContent' %}
+    popup-size-guide popup .content-area {
+      order: 1;
+    }
+    popup-size-guide popup .image-area {
+      order: 2;
+    }
+  {% elsif ss.layout_desktop == 'leftImage' %}
+    popup-size-guide popup .content-area {
+      order: 2;
+    }
+    popup-size-guide popup .image-area {
+      order: 1;
+    }
+  {% endif %}
+  @media ( max-width: 768px ) {
+    {% if ss.layout_mobile == 'leftContent' %}
+      popup-size-guide popup .content-area {
+        order: 1;
+      }
+      popup-size-guide popup .image-area {
+        order: 2;
+      }
+    {% elsif ss.layout_mobile == 'leftImage' %}
+      popup-size-guide popup .content-area {
+        order: 2;
+      }
+      popup-size-guide popup .image-area {
+        order: 1;
+      }
+    {% endif %}
+  }
+  .content-area__select {
+    position: relative;
+    appearance: auto;
+  }
+</style>
+
+<script>
+  $( document )
+  {% if ss.triggerType == 'click' or ss.triggerType == 'change' and ss.popupTrigger != blank %}
+    .on(`{{ ss.triggerType }}`, `{{ ss.popupTrigger }}`, function( e ) {
+      try {
+        e.stopImmediatePropagation();
+        $( `body` ).addClass( `setOverlay` );
+        const selected_option = $( `popup-size-guide .content-area__select option:selected` );
+        $( `popup-size-guide .image-area > img` ).attr('src', `${ selected_option.attr( `img` ) }`);
+        $( `popup-size-guide .content-area__value[type="width"]` ).text( `${ selected_option.attr( `width` ) }` );
+        $( `popup-size-guide .content-area__value[type="height"]` ).text( `${ selected_option.attr( `height` ) }` );
+        $( `popup-size-guide .content-area__value[type="shownAt"]` ).text( `${ selected_option.attr( `shown-at` ) }` );
+        $( `popup-size-guide` ).removeClass( `hidden` );
+      } catch ( err ) {
+        console.log( `ERROR {{ ss.popupTrigger }}`, err.message );
+      }
+    })
+  {% endif %}
+  .mouseup(function( e ) {
+    try {
+      const container		=		$( `popup-size-guide popup` );
+      if ( !container.is( e.target ) && container.has( e.target ).length === 0 ) {
+        const isPopup = $( `popup-size-guide.hidden` ).length;
+        if ( isPopup == 0 ) {
+          $( `body` ).removeClass( `setOverlay` );
+          $( `popup-size-guide` ).addClass( `hidden` );
+        }
+      }
+    } catch ( err ) {
+      console.log( `ERROR `, err.message );
+    }
+  })
+  .on(`click`, `popup-size-guide popup popup-close`, function( e ) {
+    try {
+      e.stopImmediatePropagation();
+      $( `body` ).removeClass( `setOverlay` );
+      $( `popup-size-guide` ).addClass( `hidden` );
+    } catch ( err ) {
+      console.log( `ERROR popup-size-guide popup popup-close`, err.message );
+    }
+  })
+  .on(`change`, `popup-size-guide popup .content-area .content-area__select`,async function( e ) {
+    try {
+      e.stopImmediatePropagation();
+      const contentArea = $( this ).closest( `.content-area` );
+      const selected_option = $( `popup-size-guide .content-area__select option:selected` );
+      $( `popup-size-guide .image-area > img` ).attr('src', `${ selected_option.attr( `img` ) }`);
+      $( `popup-size-guide .content-area__value[type="width"]` ).text( `${ selected_option.attr( `width` ) }` );
+      $( `popup-size-guide .content-area__value[type="height"]` ).text( `${ selected_option.attr( `height` ) }` );
+      $( `popup-size-guide .content-area__value[type="shownAt"]` ).text( `${ selected_option.attr( `shown-at` ) }` );
+      // const getHandle = $( this ).val();
+      // // console.log ( 'getHandle', getHandle );
+      // if ( typeof getHandle !== 'undefined' && getHandle ) {
+      //   const getData = await getRequest( `/products/${ getHandle }?view=getsizeguide__helper` );
+      //   if ( typeof getData !== 'undefined' && getData ) {
+      //     // console.log ( 'getData', getData );
+      //     if ( typeof getData.getImg !== 'undefined' && getData.getImg ) {
+      //       contentArea.closest( `popup` ).find( `.image-area > img` ).attr({'src': `${ getData.getImg }`, 'alt': `${ getData.getTitle }`});
+      //     }
+      //     if ( typeof getData.maxWidth !== 'undefined' && getData.maxWidth ) {
+      //       contentArea.find( `.content-area__value[type="width"]` ).text( `${ getData.maxWidth } inches` );
+      //     }
+      //     if ( typeof getData.maxHeight !== 'undefined' && getData.maxHeight ) {
+      //       contentArea.find( `.content-area__value[type="height"]` ).text( `${ getData.maxHeight } inches` );
+      //     }
+      //     if ( typeof getData.shownAt !== 'undefined' && getData.shownAt ) {
+      //       contentArea.find( `.content-area__value[type="shownAt"]` ).text( `${ getData.shownAt }` );
+      //     }
+      //   }
+      // }
+    } catch ( err ) {
+      console.log( `ERROR popup-size-guide popup .content-area .content-area__select`, err.message );
+    }
+  })
+  ;
+</script>
+
+{% schema %}
+{
+  "name": "Popup Size Guide",
+  "class": "section",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "select",
+      "id": "triggerType",
+      "label": "Trigger Type",
+      "default": "click",
+      "options": [
+        {
+          "value": "click",
+          "label": "Click"
+        },
+        {
+          "value": "change",
+          "label": "change"
+        }
+      ]
+    },
+    {
+      "type": "textarea",
+      "id": "popupTrigger",
+      "label": "Popup Trigger",
+      "default": "a.size-guide-trigger",
+      "info": "Selector for event trigger"
+    },
+    {
+      "type": "range",
+      "id": "popupMaxWidth",
+      "label": "Popup Max Width",
+      "unit": "px",
+      "min": 250,
+      "max": 1000,
+      "step": 10,
+      "default": 1000
+    },
+    {
+      "type": "select",
+      "id": "layout_desktop",
+      "label": "Layout for Desktop",
+      "options": [
+        {
+          "value": "leftContent",
+          "label": "Content left & right Image"
+        },
+        {
+          "value": "leftImage",
+          "label": "Content Image & right Content"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "layout_mobile",
+      "label": "Layout for Mobile",
+      "options": [
+        {
+          "value": "leftContent",
+          "label": "Content Top & Image Bottom"
+        },
+        {
+          "value": "leftImage",
+          "label": "Image Top & Content Bottom"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Size Guide"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "item",
+      "name": "Item",
+      "settings": [
+        {
+          "type": "text",
+          "id": "itemName_1",
+          "label": "Item Name 1",
+          "default": "Hat (Front)"
+        },
+        {
+          "type": "text",
+          "id": "width_1",
+          "label": "Suggested max width 1",
+          "default": "8 inches"
+        },
+        {
+          "type": "text",
+          "id": "height_1",
+          "label": "Suggested max height 1",
+          "default": "8 inches"
+        },
+        {
+          "type": "text",
+          "id": "showAt_1",
+          "label": "Shown At 1",
+          "default": "8 x 8 inches"
+        },
+        {
+          "type": "image_picker",
+          "id": "img_1",
+          "label": "Image 1",
+          "info": "Upload Square Image"
+        },
+        {
+          "type": "text",
+          "id": "itemName_2",
+          "label": "Item Name 2",
+          "default": "Hat (Front)"
+        },
+        {
+          "type": "text",
+          "id": "width_2",
+          "label": "Suggested max width 2",
+          "default": "8 inches"
+        },
+        {
+          "type": "text",
+          "id": "height_2",
+          "label": "Suggested max height 2",
+          "default": "8 inches"
+        },
+        {
+          "type": "text",
+          "id": "showAt_2",
+          "label": "Shown At 2",
+          "default": "8 x 8 inches"
+        },
+        {
+          "type": "image_picker",
+          "id": "img_2",
+          "label": "Image 2",
+          "info": "Upload Square Image"
+        },
+        {
+          "type": "text",
+          "id": "itemName_3",
+          "label": "Item Name 3",
+          "default": "Hat (Front)"
+        },
+        {
+          "type": "text",
+          "id": "width_3",
+          "label": "Suggested max width 3",
+          "default": "8 inches"
+        },
+        {
+          "type": "text",
+          "id": "height_3",
+          "label": "Suggested max height 3",
+          "default": "8 inches"
+        },
+        {
+          "type": "text",
+          "id": "showAt_3",
+          "label": "Shown At 3",
+          "default": "8 x 8 inches"
+        },
+        {
+          "type": "image_picker",
+          "id": "img_3",
+          "label": "Image 3",
+          "info": "Upload Square Image"
+        },
+        {
+          "type": "text",
+          "id": "itemName_4",
+          "label": "Item Name 4",
+          "default": "Hat (Front)"
+        },
+        {
+          "type": "text",
+          "id": "width_4",
+          "label": "Suggested max width 4",
+          "default": "8 inches"
+        },
+        {
+          "type": "text",
+          "id": "height_4",
+          "label": "Suggested max height 4",
+          "default": "8 inches"
+        },
+        {
+          "type": "text",
+          "id": "showAt_4",
+          "label": "Shown At 4",
+          "default": "8 x 8 inches"
+        },
+        {
+          "type": "image_picker",
+          "id": "img_4",
+          "label": "Image 4",
+          "info": "Upload Square Image"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Popup Size Guide"
+    }
+  ]
+}
+{% endschema %}

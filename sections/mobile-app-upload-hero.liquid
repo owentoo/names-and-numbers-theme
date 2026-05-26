@@ -1,0 +1,675 @@
+{% assign section_id = section.id | replace: '_', '' | downcase %}
+
+<link rel="stylesheet" href="{{ '__blanksUploadHelper.css' | asset_url }}">
+<link rel="stylesheet" href="{{ 'display_classes.css' | asset_url }}">
+
+<style>
+  .mau-wrap-{{ section_id }} {
+    display: none;
+    padding: {{ section.settings.padding_top }}px {{ section.settings.padding_h }}px {{ section.settings.padding_bottom }}px;
+    background: {{ section.settings.bg_color }};
+  }
+  @media (max-width: 767px) {
+    .mau-wrap-{{ section_id }} { display: block; }
+  }
+
+  .mau-wrap-{{ section_id }} .uploadBox__layout {
+    min-height: {{ section.settings.box_height }}px;
+    border-radius: {{ section.settings.border_radius }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mau-wrap-{{ section_id }} .uploadBox__layout::after {
+    border-radius: calc({{ section.settings.border_radius }}px - 2px);
+  }
+  .mau-wrap-{{ section_id }} .uploadBox__content {
+    position: relative;
+    top: unset;
+    transform: unset;
+    max-width: 100%;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .mau-wrap-{{ section_id }} .uploadBox__icon img {
+    width: {{ section.settings.icon_size }}px;
+    height: auto;
+    margin-bottom: 12px;
+  }
+  .mau-wrap-{{ section_id }} .uploadBox__contentTitle {
+    font-size: {{ section.settings.title_size }}px;
+    font-weight: 700;
+    color: {{ section.settings.title_color }};
+    margin-bottom: 6px;
+  }
+  .mau-wrap-{{ section_id }} .uploadBox__contentText {
+    font-size: {{ section.settings.sub_size }}px;
+    color: {{ section.settings.sub_color }};
+    margin-bottom: 0;
+  }
+  .mau-wrap-{{ section_id }} .uploadBox__contentButton {
+    margin-top: {{ section.settings.btn_margin_top }}px;
+    border-radius: {{ section.settings.btn_radius }}px;
+    background-color: {{ section.settings.btn_bg }};
+    color: {{ section.settings.btn_text_color }};
+    font-size: {{ section.settings.btn_font_size }}px;
+    padding: 12px 32px;
+    display: inline-block;
+    cursor: pointer;
+  }
+  .mau-wrap-{{ section_id }} .uploadBox__contentButton:hover {
+    background-color: {{ section.settings.btn_bg | color_darken: 8 }};
+  }
+  .mau-prevdesign-{{ section_id }} {
+    margin-top: 12px;
+    font-size: 13px;
+    color: {{ section.settings.prev_link_color }};
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+  }
+  .mau-prevdesign-{{ section_id }}:hover { text-decoration: underline; }
+
+  .mau-spinner-{{ section_id }} {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #cce8ff;
+    border-top-color: {{ section.settings.btn_bg }};
+    border-radius: 50%;
+    animation: mau-spin-{{ section_id }} 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes mau-spin-{{ section_id }} { to { transform: rotate(360deg); } }
+
+  .mau-error-{{ section_id }} {
+    display: none;
+    text-align: center;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #c0392b;
+    background: #fdecea;
+    border-radius: 8px;
+    margin-top: 8px;
+  }
+
+  /* ── "Your Designs" modal — full screen sheet ── */
+  #mau-designs-modal-{{ section_id }} {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .mau-sheet-{{ section_id }} {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    height: 96vh;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 -4px 32px rgba(0,0,0,0.18);
+  }
+  /* ── Header ── */
+  .mau-sheet-head-{{ section_id }} {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 16px 0;
+    flex-shrink: 0;
+  }
+  .mau-sheet-title-{{ section_id }} {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+  }
+  .mau-sheet-close-{{ section_id }} {
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+  /* ── Tabs ── */
+  .mau-tabs-{{ section_id }} {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #ddd;
+    padding: 12px 16px 0;
+    flex-shrink: 0;
+  }
+  .mau-tab-{{ section_id }} {
+    font-weight: 700;
+    padding: 0 10px 10px 0;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 15px;
+    color: #111;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: inherit;
+  }
+  .mau-tab-{{ section_id }}.active {
+    color: #03a3f7;
+    border-bottom-color: #03a3f7;
+  }
+  /* ── Scrollable body ── */
+  .mau-body-{{ section_id }} {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 12px;
+  }
+  /* ── Toolbar ── */
+  .mau-toolbar-{{ section_id }} {
+    display: flex;
+    gap: 8px;
+    padding: 14px 0 10px;
+    align-items: center;
+  }
+  .mau-search-wrap-{{ section_id }} {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0 10px;
+    gap: 6px;
+    min-width: 0;
+    background: #fff;
+  }
+  .mau-search-wrap-{{ section_id }} svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .mau-search-input-{{ section_id }} {
+    border: none;
+    outline: none;
+    font-size: 14px;
+    width: 100%;
+    padding: 8px 0;
+    background: transparent;
+  }
+  .mau-sort-wrap-{{ section_id }} {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0 10px;
+    white-space: nowrap;
+    font-size: 13px;
+    flex-shrink: 0;
+    background: #fff;
+  }
+  .mau-sort-wrap-{{ section_id }} select,
+  .mau-sort-wrap-{{ section_id }} select:focus,
+  .mau-sort-select-{{ section_id }} {
+    border: none !important;
+    outline: none !important;
+    font-size: 13px !important;
+    background: #ffffff !important;
+    background-image: none !important;
+    padding: 8px 0 8px 4px !important;
+    -webkit-appearance: auto !important;
+    appearance: auto !important;
+  }
+  /* ── Design grid ── */
+  .mau-grid-{{ section_id }} {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding-bottom: 8px;
+    list-style: none;
+    margin: 0;
+    padding-left: 0;
+  }
+  @media (min-width: 480px) { .mau-grid-{{ section_id }} { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 700px) { .mau-grid-{{ section_id }} { grid-template-columns: repeat(4, 1fr); } }
+  .mau-card-{{ section_id }} {
+    border: 3px solid #fff;
+    border-radius: 10px;
+    word-break: break-word;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .mau-card-{{ section_id }}.selected {
+    border-color: #03a3f7;
+    background: #e6f6ff;
+  }
+  /* checkbox top-right */
+  .mau-card-check-{{ section_id }} {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 9;
+    width: 22px;
+    height: 22px;
+    border: 2px solid #bbb;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .mau-card-{{ section_id }}.selected .mau-card-check-{{ section_id }} {
+    background: #03a3f7;
+    border-color: #03a3f7;
+  }
+  .mau-card-check-{{ section_id }}::after {
+    content: '';
+    display: none;
+    width: 5px;
+    height: 9px;
+    border: 2px solid #fff;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg) translateY(-1px);
+  }
+  .mau-card-{{ section_id }}.selected .mau-card-check-{{ section_id }}::after { display: block; }
+  /* image area — checkered bg */
+  .mau-img-wrap-{{ section_id }} {
+    height: 160px;
+    background: #f2f2f2 url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbD0iI0M1QzVDNSIgZD0iTTAgMGg0djRIMHpNMCA4aDR2NEgwek0xNiA4aC00VjRoNHpNMTYgMTZoLTR2LTRoNHpNOCAwaDR2NEg4ek04IDhoNHY0SDh6TTggOEg0VjRoNHpNOCAxNkg0di00aDR6Ii8+PHBhdGggZmlsbD0iIzlCOUI5QiIgZD0iTTQgMGg0djRINHpNNCA4aDR2NEg0ek0xMiA4SDhWNGg0ek0xMiAxNkg4di00aDR6TTEyIDBoNHY0aC00ek0xMiA4aDR2NGgtNHpNNCA4SDBWNGg0ek00IDE2SDB2LTRoNHoiLz48L3N2Zz4=") center center;
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-bottom: 1px solid #eee;
+  }
+  .mau-img-wrap-{{ section_id }} img {
+    max-width: 90%;
+    max-height: 90%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+  /* card info */
+  .mau-card-info-{{ section_id }} {
+    padding: 8px;
+  }
+  .mau-card-name-{{ section_id }} {
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mau-card-meta-{{ section_id }} {
+    font-size: 11px;
+    color: #555;
+    margin: 0;
+    line-height: 1.4;
+  }
+  /* ── USE DESIGNS footer ── */
+  .mau-footer-{{ section_id }} {
+    padding: 10px 12px 12px;
+    flex-shrink: 0;
+    border-top: 1px solid #eee;
+    background: #fff;
+  }
+  .mau-use-btn-{{ section_id }} {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    background: #03a3f7;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .mau-use-btn-{{ section_id }}:disabled {
+    background: #b0d9f5;
+    cursor: not-allowed;
+  }
+  .mau-use-btn-{{ section_id }}:not(:disabled):hover { background: #0291dc; }
+  /* ── Loading / empty ── */
+  .mau-loader-{{ section_id }} { display: block; margin: 32px auto; }
+  .mau-empty-{{ section_id }} { text-align: center; padding: 32px 0; color: #888; font-size: 14px; }
+
+  /* ────────────────────────────────
+     Outer tabs: Upload | Previous Designs
+     Sits above the upload box and switches between the
+     `.mauh-panel--upload` and `.mauh-panel--previous` panels.
+     Styled to match the dtfut pill bar used on PDP mobile tabs.
+  ──────────────────────────────── */
+  .mauh-tabs-{{ section_id }} {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    margin: 0 0 12px;
+    background: #F3F3F3;
+    border-radius: 999px;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+  }
+  .mauh-tab-{{ section_id }} {
+    flex: 1;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: #111;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mauh-tab-{{ section_id }}.is-active {
+    background: #fff;
+    color: #019AFF;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+  .mauh-panel-{{ section_id }} { display: block; }
+  .mauh-panel-{{ section_id }}[hidden] { display: none; }
+  /* Inline previous-designs panel — gets the modal's body content but
+     without modal positioning. Constrained max-height so the page
+     doesn't grow too tall on a customer with hundreds of designs. */
+  .mauh-prev-panel-{{ section_id }} {
+    background: #fff;
+    border-radius: {{ section.settings.border_radius }}px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: {{ section.settings.box_height }}px;
+  }
+</style>
+
+<div class="mau-wrap-{{ section_id }}" {{ section.shopify_attributes }}>
+
+  {%- comment -%}
+    Two-tab pill bar — Upload (current upload box) and Previous Designs
+    (formerly modal content, now inline as a panel). Logged-out
+    customers don't have any previous designs to show, so the tab strip
+    is hidden for them and the upload box renders standalone.
+  {%- endcomment -%}
+  {% if customer %}
+  <div class="mauh-tabs-{{ section_id }}" role="tablist" aria-label="Choose how to start">
+    <button type="button" class="mauh-tab-{{ section_id }} is-active" data-mauh-tab="upload" role="tab" aria-selected="true">Upload</button>
+    <button type="button" class="mauh-tab-{{ section_id }}" data-mauh-tab="previous" role="tab" aria-selected="false">Previous Designs</button>
+  </div>
+  {% endif %}
+
+  <div class="mauh-panel-{{ section_id }}" data-mauh-panel="upload">
+  <div class="uploadBox">
+    <div
+      class="uploadBox__layout"
+      id="mau-dropzone-{{ section_id }}"
+      role="button"
+      tabindex="0"
+      aria-label="Upload your design file"
+    >
+      <div class="uploadBox__content">
+
+        <div class="uploadBox__icon">
+          <img
+            src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/image_9_89553aea-5c53-4c9d-be87-f468e46ee459.png?auto=format,compress&v=1757090125"
+            alt="Upload"
+            width="{{ section.settings.icon_size }}"
+            loading="lazy"
+          >
+        </div>
+
+        <h4 class="uploadBox__contentTitle">{{ section.settings.box_title }}</h4>
+        <p class="uploadBox__contentText">{{ section.settings.box_subtitle }}</p>
+
+        <label
+          for="mau-fileinput-{{ section_id }}"
+          class="uploadBox__contentButton"
+        >
+          <span class="mau-btn-text-{{ section_id }}">{{ section.settings.btn_label }}</span>
+          <span class="mau-btn-loading-{{ section_id }}" style="display:none;">
+            <span class="mau-spinner-{{ section_id }}"></span>{{ section.settings.uploading_text }}
+          </span>
+        </label>
+
+        <div class="mau-error-{{ section_id }}" id="mau-error-{{ section_id }}"></div>
+
+        {% if customer %}
+          {%- comment -%}
+            Hidden for logged-in users — the Previous Designs tab above
+            replaces this redundant link. Kept in DOM so the existing JS
+            handler (line ~577 in this file) still binds; we just don't
+            show it. Logged-out users still see the "Login to see
+            previous designs" link below since they don't have the tab
+            bar.
+          {%- endcomment -%}
+          <button
+            type="button"
+            class="mau-prevdesign-{{ section_id }}"
+            id="mau-prev-btn-{{ section_id }}"
+            style="display:none;"
+          >
+            {{ section.settings.prev_design_text }}
+          </button>
+        {% else %}
+          <a
+            href="/customer_authentication/login?return_to={{ shop.url }}/products/dtf-transfers"
+            class="mau-prevdesign-{{ section_id }}"
+          >
+            {{ section.settings.login_text }}
+          </a>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+  <input
+    type="file"
+    id="mau-fileinput-{{ section_id }}"
+    accept="image/png,image/jpg,image/jpeg,application/pdf,image/tiff,image/svg+xml,application/postscript,.eps"
+    style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;"
+    aria-hidden="true"
+  >
+
+  </div> {%- comment -%} /.mauh-panel--upload {%- endcomment -%}
+
+  {%- comment -%}
+    Previous Designs panel — same `my-designs-panel` picker the
+    dtf-transfers PDP renders in its Previous Designs tab. `picker:
+    true` enables selection mode (the USE DESIGNS action bar). When
+    the customer picks a design and confirms, the snippet dispatches a
+    `md-picker:use-designs` CustomEvent on the container. The JS at
+    the bottom of this section listens for that event and reuses the
+    existing `redirectWithFile(...)` helper — same destination as a
+    fresh upload.
+  {%- endcomment -%}
+  {% if customer %}
+  <div class="mauh-panel-{{ section_id }} mauh-prev-panel-{{ section_id }}" data-mauh-panel="previous" hidden>
+    {%- comment -%}
+      `forced_type: 'bysize'` locks the panel to By Size only. The
+      snippet hides the All Types / By Size / Gang Sheet pill bar
+      (see md-container--forced-type rules in my-designs-panel
+      CSS / JS) and filters the grid to By Size designs only. The
+      All Images / Purchases / Uploads / Archive source filter still
+      shows so the customer can scope by where the design came from.
+    {%- endcomment -%}
+    {% render 'my-designs-panel', picker: true, forced_type: 'bysize' %}
+  </div>
+  {% endif %}
+
+</div>
+
+{%- comment -%}
+  Legacy "Your Designs" modal removed — Tab 2 above (Previous Designs)
+  now renders `my-designs-panel` inline, matching the dtf-transfers
+  PDP. The modal's separate Orders/Uploads tabs, search, sort, and
+  USE DESIGNS button are all provided by the my-designs-panel snippet
+  itself (it's the same UI). Keeping this comment + the empty
+  {% if customer %} branch below as a marker so the file structure
+  stays grep-able.
+{%- endcomment -%}
+{% if customer %}
+<!-- ── (Legacy modal removed; my-designs-panel is rendered inline in Tab 2) ── -->
+{% endif %}
+
+<script>
+(function() {
+  var NINJA_API   = 'https://hpz51rjda5.execute-api.us-east-1.amazonaws.com/production';
+  var IMGIX_HOST  = 'ninjauploads-production.imgix.net';
+  var REDIRECT    = {{ section.settings.redirect_url | json }};
+  var CUSTOMER_ID = {{ customer.id | default: 0 | json }};
+
+  /* ────────────────────────────────
+     Upload flow (Browse / drag-drop)
+  ──────────────────────────────── */
+  var wrap      = document.getElementById('mau-dropzone-{{ section_id }}');
+  var fileInput = document.getElementById('mau-fileinput-{{ section_id }}');
+  var btnText   = document.querySelectorAll('.mau-btn-text-{{ section_id }}');
+  var btnLoad   = document.querySelectorAll('.mau-btn-loading-{{ section_id }}');
+  var errBox    = document.getElementById('mau-error-{{ section_id }}');
+
+  if (fileInput && wrap) {
+    wrap.addEventListener('dragover', function(e) { e.preventDefault(); wrap.classList.add('drop-zone--over'); });
+    ['dragleave','dragend'].forEach(function(ev) { wrap.addEventListener(ev, function() { wrap.classList.remove('drop-zone--over'); }); });
+    wrap.addEventListener('drop', function(e) {
+      e.preventDefault(); wrap.classList.remove('drop-zone--over');
+      var f = e.dataTransfer && e.dataTransfer.files;
+      if (f && f.length) handleFile(f[0]);
+    });
+    fileInput.addEventListener('change', function() { if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]); });
+  }
+
+  function showError(msg) {
+    errBox.textContent = msg; errBox.style.display = 'block';
+    btnText.forEach(function(el) { el.style.display = ''; });
+    btnLoad.forEach(function(el) { el.style.display = 'none'; });
+  }
+  function setLoading(on) {
+    btnText.forEach(function(el) { el.style.display = on ? 'none' : ''; });
+    btnLoad.forEach(function(el) { el.style.display = on ? 'inline' : 'none'; });
+    errBox.style.display = 'none';
+  }
+
+  async function handleFile(file) {
+    setLoading(true);
+    try {
+      var ext  = (file.name.split('.').pop() || 'png').toLowerCase();
+      var name = 'app-' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
+      var presignRes  = await fetch(NINJA_API + '/uploads/getPresignedUploadUrl?file_name=' + encodeURIComponent(name) + '&file_type=' + encodeURIComponent(file.type));
+      if (!presignRes.ok) throw new Error('Could not prepare upload.');
+      var presignData = await presignRes.json();
+      if (!presignData || !presignData.url) throw new Error('No upload URL returned.');
+      var putRes = await fetch(presignData.url, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+      if (!putRes.ok) throw new Error('Upload failed. Please try again.');
+      redirectWithFile('https://' + IMGIX_HOST + '/' + name + '?auto=format,compress');
+    } catch(err) {
+      showError(err.message || 'Something went wrong. Please try again.');
+      fileInput.value = '';
+    }
+  }
+
+  function redirectWithFile(url) {
+    window.location.href = REDIRECT + (REDIRECT.indexOf('?') >= 0 ? '&' : '?') + 'file=' + encodeURIComponent(url);
+  }
+
+  /* ────────────────────────────────
+     Outer Upload | Previous Designs tabs
+     Tab 1 (Upload)  = the upload box markup above
+     Tab 2 (Previous Designs) = inline my-designs-panel snippet (same
+     picker dtf-transfers uses). When the customer picks a design and
+     hits USE DESIGNS, my-designs-panel dispatches an
+     `md-picker:use-designs` CustomEvent whose `detail.items` array
+     contains the selection. We grab the first item's `.file` URL and
+     pipe it through the same `redirectWithFile(...)` helper a fresh
+     upload uses — that takes the customer to the configured product
+     page with `?file=…` so the picked design is applied there.
+  ──────────────────────────────── */
+  {% if customer %}
+  var outerTabs   = document.querySelectorAll('.mauh-tab-{{ section_id }}');
+  var outerPanels = document.querySelectorAll('.mauh-panel-{{ section_id }}');
+  function setOuterTab(name) {
+    outerTabs.forEach(function (t) {
+      var isActive = t.getAttribute('data-mauh-tab') === name;
+      t.classList.toggle('is-active', isActive);
+      t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    outerPanels.forEach(function (p) {
+      var match = p.getAttribute('data-mauh-panel') === name;
+      if (match) p.removeAttribute('hidden');
+      else p.setAttribute('hidden', '');
+    });
+  }
+  outerTabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      setOuterTab(this.getAttribute('data-mauh-tab'));
+    });
+  });
+
+  /* Listen for my-designs-panel selection. The panel dispatches the
+     CustomEvent on its own container, but it bubbles to document. */
+  document.addEventListener('md-picker:use-designs', function (e) {
+    var items = (e.detail && e.detail.items) || [];
+    if (!items.length) return;
+    var pickedUrl = items[0] && items[0].file;
+    if (!pickedUrl) return;
+    redirectWithFile(pickedUrl);
+  });
+  {% endif %}
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Upload Hero",
+  "settings": [
+    { "type": "header", "content": "Layout" },
+    { "type": "range", "id": "padding_top",    "label": "Padding Top",       "min": 0, "max": 60, "step": 4, "unit": "px", "default": 16 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding Bottom",    "min": 0, "max": 60, "step": 4, "unit": "px", "default": 16 },
+    { "type": "range", "id": "padding_h",      "label": "Padding Left/Right","min": 0, "max": 40, "step": 4, "unit": "px", "default": 16 },
+    { "type": "color", "id": "bg_color",       "label": "Section Background","default": "#ffffff" },
+    { "type": "range", "id": "box_height",     "label": "Box Min Height",    "min": 160, "max": 500, "step": 10, "unit": "px", "default": 260 },
+    { "type": "range", "id": "border_radius",  "label": "Box Corner Radius", "min": 0, "max": 32, "step": 2,  "unit": "px", "default": 16 },
+    { "type": "range", "id": "icon_size",      "label": "Icon Size",         "min": 40, "max": 120, "step": 4, "unit": "px", "default": 72 },
+
+    { "type": "header", "content": "Text" },
+    { "type": "text",  "id": "box_title",    "label": "Title",          "default": "Upload your file(s)" },
+    { "type": "text",  "id": "box_subtitle", "label": "Subtitle",       "default": "Drag and drop file(s) here or click to browse" },
+    { "type": "range", "id": "title_size",   "label": "Title Font Size","min": 12, "max": 28, "step": 1, "unit": "px", "default": 18 },
+    { "type": "range", "id": "sub_size",     "label": "Subtitle Font Size","min": 10, "max": 18, "step": 1, "unit": "px", "default": 14 },
+    { "type": "color", "id": "title_color",  "label": "Title Color",    "default": "#111111" },
+    { "type": "color", "id": "sub_color",    "label": "Subtitle Color", "default": "#50616b" },
+
+    { "type": "header", "content": "Browse Button" },
+    { "type": "text",  "id": "btn_label",      "label": "Button Label",      "default": "Browse" },
+    { "type": "text",  "id": "uploading_text", "label": "Uploading Label",   "default": "Uploading…" },
+    { "type": "color", "id": "btn_bg",         "label": "Button Background", "default": "#3eaeff" },
+    { "type": "color", "id": "btn_text_color", "label": "Button Text Color", "default": "#ffffff" },
+    { "type": "range", "id": "btn_font_size",  "label": "Button Font Size",  "min": 12, "max": 22, "step": 1, "unit": "px", "default": 15 },
+    { "type": "range", "id": "btn_radius",     "label": "Button Radius",     "min": 0, "max": 32, "step": 2, "unit": "px", "default": 10 },
+    { "type": "range", "id": "btn_margin_top", "label": "Button Margin Top", "min": 8, "max": 40, "step": 2, "unit": "px", "default": 22 },
+
+    { "type": "header", "content": "Previous Design" },
+    { "type": "text",  "id": "prev_design_text", "label": "Logged-in Link Text",  "default": "Choose a previously uploaded design" },
+    { "type": "text",  "id": "login_text",        "label": "Logged-out Text",      "default": "Login to see previous designs" },
+    { "type": "color", "id": "prev_link_color",   "label": "Link Color",           "default": "#3eaeff" },
+
+    { "type": "header", "content": "Upload & Redirect" },
+    { "type": "text",  "id": "redirect_url", "label": "Redirect URL after upload", "default": "https://ninjatransfers.com/products/dtf-transfers" }
+  ],
+  "presets": [{ "name": "Upload Hero" }]
+}
+{% endschema %}

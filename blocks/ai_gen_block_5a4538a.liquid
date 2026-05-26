@@ -1,0 +1,823 @@
+{% doc %}
+  @prompt
+    create me a four column grid with an mage and a heading and para text in each. images should have all setting like ratio and radius, all text should have weight and size option. section should hve a bg color and max width, as well as padding and margins, bg color needs to go full width, and add a gradient bg option. and a h2 and para above it all with alignment options, all text needs alignment option, everything needs mobile and desktop rules, i don't need tablet rules.
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+.four-column-section-{{ ai_gen_id }} {
+  background-color: {{ block.settings.background_color }};
+  {% if block.settings.enable_gradient %}
+    background-image: linear-gradient({{ block.settings.gradient_direction }}deg, {{ block.settings.gradient_color_1 }}, {{ block.settings.gradient_color_2 }});
+  {% endif %}
+  padding: {{ block.settings.padding_top }}px 0 {{ block.settings.padding_bottom }}px;
+  margin: {{ block.settings.margin_top }}px 0 {{ block.settings.margin_bottom }}px;
+  width: 100%;
+}
+
+.four-column-section__inner-{{ ai_gen_id }} {
+  max-width: {{ block.settings.max_width }}px;
+  margin: 0 auto;
+  padding: 0 {{ block.settings.padding_horizontal }}px;
+}
+
+.four-column-section__header-{{ ai_gen_id }} {
+  text-align: {{ block.settings.header_alignment }};
+  margin-bottom: {{ block.settings.header_bottom_margin }}px;
+}
+
+.four-column-section__title-{{ ai_gen_id }} {
+  font-size: {{ block.settings.title_size }}px;
+  font-weight: {{ block.settings.title_weight }};
+  color: {{ block.settings.title_color }};
+  margin-top: 0;
+  margin-bottom: {{ block.settings.title_bottom_margin }}px;
+}
+
+.four-column-section__subtitle-{{ ai_gen_id }} {
+  font-size: {{ block.settings.subtitle_size }}px;
+  font-weight: {{ block.settings.subtitle_weight }};
+  color: {{ block.settings.subtitle_color }};
+  line-height: 1.5;
+  margin: 0;
+}
+
+.four-column-grid__container-{{ ai_gen_id }} {
+  display: grid;
+  grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+  gap: {{ block.settings.column_gap }}px;
+}
+
+.four-column-grid__column-{{ ai_gen_id }} {
+  display: flex;
+  flex-direction: column;
+}
+
+.four-column-grid__image-wrapper-{{ ai_gen_id }} {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: {{ block.settings.image_border_radius }}px;
+  margin-bottom: {{ block.settings.image_bottom_margin }}px;
+}
+
+.four-column-grid__image-wrapper-{{ ai_gen_id }}::before {
+  content: "";
+  display: block;
+  padding-bottom: calc(100% / ({{ block.settings.image_aspect_ratio }}));
+}
+
+.four-column-grid__image-{{ ai_gen_id }} {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: {{ block.settings.image_fit }};
+  object-position: center;
+}
+
+.four-column-grid__image-placeholder-{{ ai_gen_id }} {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f4f4f4;
+}
+
+.four-column-grid__image-placeholder-{{ ai_gen_id }} svg {
+  width: 50%;
+  height: 50%;
+}
+
+.four-column-grid__heading-{{ ai_gen_id }} {
+  font-size: {{ block.settings.heading_size }}px;
+  font-weight: {{ block.settings.heading_weight }};
+  margin-top: 0;
+  margin-bottom: {{ block.settings.heading_bottom_margin }}px;
+  color: {{ block.settings.heading_color }};
+  text-align: {{ block.settings.column_text_alignment }};
+}
+
+.four-column-grid__text-{{ ai_gen_id }} {
+  font-size: {{ block.settings.text_size }}px;
+  font-weight: {{ block.settings.text_weight }};
+  line-height: 1.5;
+  color: {{ block.settings.text_color }};
+  text-align: {{ block.settings.column_text_alignment }};
+}
+
+@media screen and (max-width: 749px) {
+  .four-column-section__title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.title_size_mobile }}px;
+    text-align: {{ block.settings.header_alignment_mobile }};
+  }
+  
+  .four-column-section__subtitle-{{ ai_gen_id }} {
+    font-size: {{ block.settings.subtitle_size_mobile }}px;
+    text-align: {{ block.settings.header_alignment_mobile }};
+  }
+  
+  .four-column-section__header-{{ ai_gen_id }} {
+    text-align: {{ block.settings.header_alignment_mobile }};
+  }
+  
+  .four-column-grid__container-{{ ai_gen_id }} {
+    grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+    gap: {{ block.settings.column_gap_mobile }}px;
+  }
+  
+  .four-column-grid__heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size_mobile }}px;
+    text-align: {{ block.settings.column_text_alignment_mobile }};
+  }
+  
+  .four-column-grid__text-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text_size_mobile }}px;
+    text-align: {{ block.settings.column_text_alignment_mobile }};
+  }
+  
+  .four-column-section-{{ ai_gen_id }} {
+    padding: {{ block.settings.padding_top_mobile }}px 0 {{ block.settings.padding_bottom_mobile }}px;
+  }
+  
+  .four-column-section__inner-{{ ai_gen_id }} {
+    padding: 0 {{ block.settings.padding_horizontal_mobile }}px;
+  }
+}
+{% endstyle %}
+
+<div class="four-column-section-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="four-column-section__inner-{{ ai_gen_id }}">
+    {% if block.settings.title != blank or block.settings.subtitle != blank %}
+      <div class="four-column-section__header-{{ ai_gen_id }}">
+        {% if block.settings.title != blank %}
+          <h2 class="four-column-section__title-{{ ai_gen_id }}">{{ block.settings.title }}</h2>
+        {% endif %}
+        
+        {% if block.settings.subtitle != blank %}
+          <div class="four-column-section__subtitle-{{ ai_gen_id }}">{{ block.settings.subtitle }}</div>
+        {% endif %}
+      </div>
+    {% endif %}
+    
+    <div class="four-column-grid__container-{{ ai_gen_id }}">
+      {% for i in (1..4) %}
+        {% liquid
+          assign image_key = 'image_' | append: i
+          assign heading_key = 'heading_' | append: i
+          assign text_key = 'text_' | append: i
+          
+          assign image = block.settings[image_key]
+          assign heading = block.settings[heading_key]
+          assign text = block.settings[text_key]
+        %}
+        
+        <div class="four-column-grid__column-{{ ai_gen_id }}">
+          <div class="four-column-grid__image-wrapper-{{ ai_gen_id }}">
+            {% if image != blank %}
+              <img
+                src="{{ image | image_url: width: 600 }}"
+                alt="{{ image.alt | escape }}"
+                width="{{ image.width }}"
+                height="{{ image.height }}"
+                loading="lazy"
+                class="four-column-grid__image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="four-column-grid__image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          
+          {% if heading != blank %}
+            <h3 class="four-column-grid__heading-{{ ai_gen_id }}">{{ heading }}</h3>
+          {% endif %}
+          
+          {% if text != blank %}
+            <div class="four-column-grid__text-{{ ai_gen_id }}">{{ text }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Four Column Grid",
+  "tag": null,
+  "class": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section Header"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Our Features"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Discover what makes our products stand out from the competition."
+    },
+    {
+      "type": "select",
+      "id": "header_alignment",
+      "label": "Header alignment (Desktop)",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "header_alignment_mobile",
+      "label": "Header alignment (Mobile)",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 20,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Title size (Desktop)",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "title_size_mobile",
+      "min": 16,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Title size (Mobile)",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "title_weight",
+      "min": 400,
+      "max": 900,
+      "step": 100,
+      "label": "Title weight",
+      "default": 700
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "title_bottom_margin",
+      "min": 0,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Title bottom margin",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "subtitle_size",
+      "min": 14,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Subtitle size (Desktop)",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "subtitle_size_mobile",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Subtitle size (Mobile)",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "subtitle_weight",
+      "min": 300,
+      "max": 700,
+      "step": 100,
+      "label": "Subtitle weight",
+      "default": 400
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle color",
+      "default": "#333333"
+    },
+    {
+      "type": "range",
+      "id": "header_bottom_margin",
+      "min": 20,
+      "max": 80,
+      "step": 5,
+      "unit": "px",
+      "label": "Header bottom margin",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "Background Settings"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_gradient",
+      "label": "Enable gradient background",
+      "default": false
+    },
+    {
+      "type": "color",
+      "id": "gradient_color_1",
+      "label": "Gradient color 1",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "gradient_color_2",
+      "label": "Gradient color 2",
+      "default": "#f5f5f5"
+    },
+    {
+      "type": "range",
+      "id": "gradient_direction",
+      "min": 0,
+      "max": 180,
+      "step": 10,
+      "label": "Gradient direction",
+      "default": 90
+    },
+    {
+      "type": "header",
+      "content": "Layout Settings - Desktop"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Maximum width",
+      "default": 1200
+    },
+    {
+      "type": "select",
+      "id": "columns_desktop",
+      "label": "Columns on desktop",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        },
+        {
+          "value": "3",
+          "label": "3"
+        },
+        {
+          "value": "4",
+          "label": "4"
+        }
+      ],
+      "default": "4"
+    },
+    {
+      "type": "range",
+      "id": "column_gap",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Column gap (Desktop)",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Top padding (Desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom padding (Desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_horizontal",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Horizontal padding (Desktop)",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Layout Settings - Mobile"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns on mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "column_gap_mobile",
+      "min": 10,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "label": "Column gap (Mobile)",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "padding_top_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Top padding (Mobile)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom padding (Mobile)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_horizontal_mobile",
+      "min": 0,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "label": "Horizontal padding (Mobile)",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Top margin",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom margin",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Image Settings"
+    },
+    {
+      "type": "range",
+      "id": "image_aspect_ratio",
+      "min": 0.5,
+      "max": 2,
+      "step": 0.1,
+      "label": "Image aspect ratio",
+      "default": 1
+    },
+    {
+      "type": "select",
+      "id": "image_fit",
+      "label": "Image fit",
+      "options": [
+        {
+          "value": "cover",
+          "label": "Cover"
+        },
+        {
+          "value": "contain",
+          "label": "Contain"
+        }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Image border radius",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "image_bottom_margin",
+      "min": 0,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Image bottom margin",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Text Settings"
+    },
+    {
+      "type": "select",
+      "id": "column_text_alignment",
+      "label": "Column text alignment (Desktop)",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "select",
+      "id": "column_text_alignment_mobile",
+      "label": "Column text alignment (Mobile)",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 16,
+      "max": 36,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading size (Desktop)",
+      "default": 22
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 14,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading size (Mobile)",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "heading_weight",
+      "min": 400,
+      "max": 900,
+      "step": 100,
+      "label": "Heading weight",
+      "default": 700
+    },
+    {
+      "type": "range",
+      "id": "heading_bottom_margin",
+      "min": 0,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "label": "Heading bottom margin",
+      "default": 10
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (Desktop)",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "min": 12,
+      "max": 16,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (Mobile)",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "text_weight",
+      "min": 300,
+      "max": 700,
+      "step": 100,
+      "label": "Text weight",
+      "default": 400
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#333333"
+    },
+    {
+      "type": "header",
+      "content": "Column 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "heading_1",
+      "label": "Heading",
+      "default": "Feature 1"
+    },
+    {
+      "type": "textarea",
+      "id": "text_1",
+      "label": "Text",
+      "default": "Share information about this feature to engage your customers."
+    },
+    {
+      "type": "header",
+      "content": "Column 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "heading_2",
+      "label": "Heading",
+      "default": "Feature 2"
+    },
+    {
+      "type": "textarea",
+      "id": "text_2",
+      "label": "Text",
+      "default": "Share information about this feature to engage your customers."
+    },
+    {
+      "type": "header",
+      "content": "Column 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "heading_3",
+      "label": "Heading",
+      "default": "Feature 3"
+    },
+    {
+      "type": "textarea",
+      "id": "text_3",
+      "label": "Text",
+      "default": "Share information about this feature to engage your customers."
+    },
+    {
+      "type": "header",
+      "content": "Column 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "heading_4",
+      "label": "Heading",
+      "default": "Feature 4"
+    },
+    {
+      "type": "textarea",
+      "id": "text_4",
+      "label": "Text",
+      "default": "Share information about this feature to engage your customers."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Four Column Grid"
+    }
+  ]
+}
+{% endschema %}

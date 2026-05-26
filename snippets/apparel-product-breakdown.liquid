@@ -1,0 +1,282 @@
+{% if product.metafields.specs.customer_metrics %}
+<style>
+ .toggle__title.toggleTitleBreakdown {
+  margin: 0;
+  margin-bottom: 2rem;
+}
+
+.customerMetric table {
+  border: none !important;
+}
+.customerMetric table tr {
+  border: none !important;
+}
+.customerMetric table td {
+  border: none !important;
+}
+.template-product-blanks
+  #customerMetricsContainer
+  .customerMetric
+  table
+  td
+  canvas {
+  width: 168px;
+  height: 112px;
+  display: none;
+}
+
+#customerMetricsContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+}
+
+.metricguage-bar-fill {
+  width: 30px;
+  height: 6px;
+  background-color: #ccc;
+  margin-top: 0 !important;
+  flex-grow: 1;
+}
+
+.metricguage-bar-fill.active {
+  background-color: #6fadcf;
+  height: 10px;
+}
+
+.metricguage-bar ul {
+  gap: 3px;
+  list-style: none;
+}
+
+.metricName {
+  text-align: left;
+  font-size: 15px;
+  margin-bottom: 1rem;
+}
+
+.metricguage-bar {
+  margin-bottom: 0.5rem;
+}
+
+.ninja-label {
+  font-size: 13px;
+  text-transform: capitalize;
+  flex-basis: 33%;
+  flex-grow: 1;
+}
+.customerMetric td {
+  padding: 0 !important;
+}
+#customerMetricsContainer .customerMetric:nth-child(3) .metricName {
+  text-transform: capitalize;
+}
+
+tr.ninja-labels-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.centerLabel.ninja-label {
+  text-align: center;
+}
+
+.rightLabel.ninja-label {
+  text-align: end;
+}
+
+@media (max-width: 600px) {
+  .template-product-blanks .apparel-bottom table .leftCol {
+    padding-right: 0px;
+  }
+  .template-product-blanks #customerMetricsContainer .customerMetric {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+  .template-product-blanks #customerMetricsContainer .customerMetric table td {
+    padding: 5px 5px 8px;
+  }
+  .template-product-blanks
+    #customerMetricsContainer
+    .customerMetric
+    table
+    td
+    canvas {
+    object-fit: contain !important;
+    width: 130px !important;
+    height: auto !important;
+  }
+  .template-product-blanks #customerMetricsContainer .customerMetric .leftLabel,
+  .template-product-blanks
+    #customerMetricsContainer
+    .customerMetric
+    .centerLabel,
+  .template-product-blanks
+    #customerMetricsContainer
+    .customerMetric
+    .rightLabel {
+    padding: 0 !important;
+  }
+}
+@media (max-width: 1023px) {
+  .template-product-blanks #customerMetricsContainer {
+    /* display: grid !important; */
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+</style>
+
+  <script src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/gauge.min.js?v=1695839208"></script>
+  <toggle-tab class="toggle" style="border-bottom:1px solid rgba(0, 0, 0, 0.1);position:relative;">
+    <!-- <span
+      class="toggle__title toggleTitleBreakdown"
+      data-js-title=""
+      tabindex="0"
+      aria-expanded="false"
+      role="button"
+      aria-controls="toggle-breakdown"
+    >
+      Breakdown
+    </span> -->
+    <div
+      id="toggle--breakdown"
+      data-js-content=""
+      class="ProductAccordion-Breakdown toggle__content rte remove-empty-space"
+      role="region"
+    >
+      <div id="customerMetricsContainer" style="display:none;font-size:0.8em;text-align:center;">
+        <div class="customerMetric" style="width:100%;display:inline-block;">
+          <div class="metricName" style="font-weight:bold;"></div>
+          <div>
+            <table style="width:100%;">
+              <tr>
+                <td colspan="3" style="text-align:center;">
+                  <canvas style="width: 168px; height: 112px;"></canvas>
+                  <div class="metricguage-bar">
+                    <ul style="padding: 0; margin: 0; display: flex; justify-content: center; align-items: center;">
+                      <li class="metricguage-bar-fill"></li>
+                      <li class="metricguage-bar-fill"></li>
+                      <li class="metricguage-bar-fill"></li>
+                      <li class="metricguage-bar-fill"></li>
+                      <li class="metricguage-bar-fill"></li>
+                      <li class="metricguage-bar-fill"></li>
+                      <li class="metricguage-bar-fill"></li>
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+              <tr class="ninja-labels-wrap">
+                <td class="leftLabel ninja-label" ></td>
+                <td class="centerLabel ninja-label"></td>
+                <td class="rightLabel ninja-label"></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </toggle-tab>
+
+  <script>
+    let gaugesAlreadyInit = false;
+    function checkForInitGauges() {
+      if (!gaugesAlreadyInit) {
+        if ($("#toggle--breakdown").is(":visible")) {
+          gaugesAlreadyInit = true;
+          initGauges();
+        } else setTimeout(checkForInitGauges, 100);
+      }
+    }
+
+    let toggleTabInit = false;
+    function checkForToggleInit() {
+      if (!toggleTabInit) {
+        if ($(".toggleTitleBreakdown .toggle__icon").length) {
+          toggleTabInit = true;
+          setTimeout(function () {
+            $(".toggleTitleBreakdown").parent()[0].onClickHandler();
+          }, 100);
+        } else setTimeout(checkForToggleInit, 100);
+      }
+    }
+
+    checkForInitGauges();
+    checkForToggleInit();
+
+    function initGauges() {
+      const customerMetrics = {{ product.metafields.specs.customer_metrics }};
+      const $customerMetricsContainer = $("#customerMetricsContainer");
+      const customerMetricTemplateHtml = $(".customerMetric", $customerMetricsContainer).parent().html();
+      $customerMetricsContainer.empty();
+      $customerMetricsContainer.show();
+
+      customerMetrics.forEach((metric) => {
+        const $metric = $(customerMetricTemplateHtml);
+        $(".metricName", $metric).html(metric.name);
+        let leftLabel, centerLabel, rightLabel;
+
+        if (metric.labels.length === 1) centerLabel = metric.labels[0];
+        else if (metric.labels.length === 2) {
+          leftLabel = metric.labels[0];
+          rightLabel = metric.labels[1];
+        } else if (metric.labels.length === 3) {
+          leftLabel = metric.labels[0];
+          centerLabel = metric.labels[1];
+          rightLabel = metric.labels[2];
+        }
+
+        $(".leftLabel", $metric).html(leftLabel);
+        $(".centerLabel", $metric).html(centerLabel);
+        $(".rightLabel", $metric).html(rightLabel);
+        $customerMetricsContainer.append($metric);
+
+        // Set up the gauge
+        var opts = {
+          angle: 0.15, // The span of the gauge arc
+          lineWidth: 0.44, // The line thickness
+          radiusScale: 1, // Relative radius
+          pointer: {
+            length: 0.6, // Relative to gauge radius
+            strokeWidth: 0.035, // The thickness
+            color: '#000000' // Fill color
+          },
+          limitMax: false,
+          limitMin: false,
+          colorStart: '#6FADCF', // Colors
+          colorStop: '#8FC0DA',
+          strokeColor: '#E0E0E0',
+          generateGradient: true,
+          highDpiSupport: true, // High resolution support
+        };
+
+        var target = $("canvas", $metric)[0];
+        var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
+        gauge.maxValue = 100; // set max gauge value
+        gauge.setMinValue(0); // Prefer setter over gauge.minValue = 0
+        gauge.animationSpeed = 1; // set animation speed
+        gauge.set(parseInt(metric.percent)); // set actual value
+
+        // Change fill bar color based on exact percentage
+        const percent = parseInt(metric.percent);
+        const fillBars = $(".metricguage-bar-fill", $metric);
+        const indexToChange = Math.floor(percent / 14.28);
+
+        // Change color of the specific fill bar that matches the percentage
+        if (indexToChange < fillBars.length) {
+          $(fillBars[indexToChange]).addClass('active');
+        }
+      });
+    }
+  </script>
+{% else %}
+  <script>
+    $(".accordion__title").each(function () {
+      if ($(this)[0].innerText == "Breakdown") {
+        $(this).closest(".accordion").hide();
+      }      
+    });
+  </script>
+{% endif %}

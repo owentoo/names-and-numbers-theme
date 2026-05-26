@@ -1,0 +1,673 @@
+{% doc %}
+  @prompt
+    i need a section with four steps, each step has an image with a number in a box inside the image and two lines of text below each image give me desktop and mobile optiopns. , section needs max width in px, with horizontal padding that falls within max width for desktop and mobile. , text needs alignment options.  , all text needs size options for desktop and mobile, Space below image, Space between steps both need desktop and mobile options, both lines of text nee color options. number box should have alignments to corners only and padding from edge option for desktop and mobile , number box Background color needs opacity option. and all padding should be it multiples of 2 and 5 , i don't see background color box
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% liquid
+  assign bg_color_rgb = block.settings.number_box_bg_color | color_extract: 'red' | append: ', ' | append: block.settings.number_box_bg_color | color_extract: 'green' | append: ', ' | append: block.settings.number_box_bg_color | color_extract: 'blue'
+  assign bg_opacity = block.settings.number_box_bg_opacity | divided_by: 100.0
+%}
+
+{% style %}
+  .ai-steps-container-{{ ai_gen_id }} {
+    display: block;
+    width: 100%;
+    padding: {{ block.settings.section_padding }}px 0;
+  }
+
+  .ai-steps-inner-{{ ai_gen_id }} {
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    padding: 0 {{ block.settings.desktop_horizontal_padding }}px;
+  }
+
+  .ai-steps-grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.desktop_columns }}, 1fr);
+    gap: {{ block.settings.desktop_grid_gap }}px;
+  }
+
+  .ai-step-item-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ai-step-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    margin-bottom: {{ block.settings.desktop_image_text_spacing }}px;
+  }
+
+  .ai-step-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: auto;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    display: block;
+  }
+
+  .ai-step-image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    aspect-ratio: 1;
+    background-color: #f4f4f4;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-step-image-placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-step-number-box-{{ ai_gen_id }} {
+    position: absolute;
+    background-color: rgba({{ bg_color_rgb }}, {{ bg_opacity }});
+    color: {{ block.settings.number_box_text_color }};
+    width: {{ block.settings.number_box_size }}px;
+    height: {{ block.settings.number_box_size }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: {{ block.settings.desktop_number_font_size }}px;
+    font-weight: 700;
+    border-radius: {{ block.settings.number_box_border_radius }}px;
+    font-family: {{ block.settings.number_font.family }}, {{ block.settings.number_font.fallback_families }};
+  }
+
+  {% if block.settings.number_box_position == 'top-left' %}
+    .ai-step-number-box-{{ ai_gen_id }} {
+      top: {{ block.settings.desktop_number_box_padding }}px;
+      left: {{ block.settings.desktop_number_box_padding }}px;
+    }
+  {% elsif block.settings.number_box_position == 'top-right' %}
+    .ai-step-number-box-{{ ai_gen_id }} {
+      top: {{ block.settings.desktop_number_box_padding }}px;
+      right: {{ block.settings.desktop_number_box_padding }}px;
+    }
+  {% elsif block.settings.number_box_position == 'bottom-left' %}
+    .ai-step-number-box-{{ ai_gen_id }} {
+      bottom: {{ block.settings.desktop_number_box_padding }}px;
+      left: {{ block.settings.desktop_number_box_padding }}px;
+    }
+  {% elsif block.settings.number_box_position == 'bottom-right' %}
+    .ai-step-number-box-{{ ai_gen_id }} {
+      bottom: {{ block.settings.desktop_number_box_padding }}px;
+      right: {{ block.settings.desktop_number_box_padding }}px;
+    }
+  {% endif %}
+
+  .ai-step-text-wrapper-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: {{ block.settings.text_line_spacing }}px;
+    width: 100%;
+    text-align: {{ block.settings.text_alignment }};
+  }
+
+  .ai-step-text-line-{{ ai_gen_id }} {
+    margin: 0;
+    font-family: {{ block.settings.text_font.family }}, {{ block.settings.text_font.fallback_families }};
+  }
+
+  .ai-step-text-line-{{ ai_gen_id }}:first-child {
+    font-size: {{ block.settings.desktop_text_line_1_size }}px;
+    font-weight: {{ block.settings.text_line_1_weight }};
+    color: {{ block.settings.text_line_1_color }};
+  }
+
+  .ai-step-text-line-{{ ai_gen_id }}:last-child {
+    font-size: {{ block.settings.desktop_text_line_2_size }}px;
+    font-weight: {{ block.settings.text_line_2_weight }};
+    color: {{ block.settings.text_line_2_color }};
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-steps-inner-{{ ai_gen_id }} {
+      padding: 0 {{ block.settings.mobile_horizontal_padding }}px;
+    }
+
+    .ai-steps-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.mobile_columns }}, 1fr);
+      gap: {{ block.settings.mobile_grid_gap }}px;
+    }
+
+    .ai-step-image-wrapper-{{ ai_gen_id }} {
+      margin-bottom: {{ block.settings.mobile_image_text_spacing }}px;
+    }
+
+    .ai-step-number-box-{{ ai_gen_id }} {
+      width: {{ block.settings.mobile_number_box_size }}px;
+      height: {{ block.settings.mobile_number_box_size }}px;
+      font-size: {{ block.settings.mobile_number_font_size }}px;
+    }
+
+    {% if block.settings.number_box_position == 'top-left' %}
+      .ai-step-number-box-{{ ai_gen_id }} {
+        top: {{ block.settings.mobile_number_box_padding }}px;
+        left: {{ block.settings.mobile_number_box_padding }}px;
+      }
+    {% elsif block.settings.number_box_position == 'top-right' %}
+      .ai-step-number-box-{{ ai_gen_id }} {
+        top: {{ block.settings.mobile_number_box_padding }}px;
+        right: {{ block.settings.mobile_number_box_padding }}px;
+      }
+    {% elsif block.settings.number_box_position == 'bottom-left' %}
+      .ai-step-number-box-{{ ai_gen_id }} {
+        bottom: {{ block.settings.mobile_number_box_padding }}px;
+        left: {{ block.settings.mobile_number_box_padding }}px;
+      }
+    {% elsif block.settings.number_box_position == 'bottom-right' %}
+      .ai-step-number-box-{{ ai_gen_id }} {
+        bottom: {{ block.settings.mobile_number_box_padding }}px;
+        right: {{ block.settings.mobile_number_box_padding }}px;
+      }
+    {% endif %}
+
+    .ai-step-text-line-{{ ai_gen_id }}:first-child {
+      font-size: {{ block.settings.mobile_text_line_1_size }}px;
+    }
+
+    .ai-step-text-line-{{ ai_gen_id }}:last-child {
+      font-size: {{ block.settings.mobile_text_line_2_size }}px;
+    }
+
+    .ai-step-text-wrapper-{{ ai_gen_id }} {
+      text-align: {{ block.settings.mobile_text_alignment }};
+    }
+  }
+{% endstyle %}
+
+<div class="ai-steps-container-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-steps-inner-{{ ai_gen_id }}">
+    <div class="ai-steps-grid-{{ ai_gen_id }}">
+      {% for i in (1..4) %}
+        {% liquid
+          assign image_key = 'step_' | append: i | append: '_image'
+          assign text_1_key = 'step_' | append: i | append: '_text_line_1'
+          assign text_2_key = 'step_' | append: i | append: '_text_line_2'
+          
+          assign step_image = block.settings[image_key]
+          assign step_text_1 = block.settings[text_1_key]
+          assign step_text_2 = block.settings[text_2_key]
+        %}
+        
+        <div class="ai-step-item-{{ ai_gen_id }}">
+          <div class="ai-step-image-wrapper-{{ ai_gen_id }}">
+            {% if step_image %}
+              <img
+                src="{{ step_image | image_url: width: 800 }}"
+                alt="{{ step_image.alt | escape }}"
+                loading="lazy"
+                width="{{ step_image.width }}"
+                height="{{ step_image.height }}"
+                class="ai-step-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="ai-step-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+            
+            <div class="ai-step-number-box-{{ ai_gen_id }}">
+              {{ i }}
+            </div>
+          </div>
+          
+          <div class="ai-step-text-wrapper-{{ ai_gen_id }}">
+            {% if step_text_1 != blank %}
+              <p class="ai-step-text-line-{{ ai_gen_id }}">{{ step_text_1 }}</p>
+            {% endif %}
+            {% if step_text_2 != blank %}
+              <p class="ai-step-text-line-{{ ai_gen_id }}">{{ step_text_2 }}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Four steps",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "desktop_horizontal_padding",
+      "label": "Desktop horizontal padding",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "mobile_horizontal_padding",
+      "label": "Mobile horizontal padding",
+      "min": 0,
+      "max": 50,
+      "step": 10,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "select",
+      "id": "desktop_columns",
+      "label": "Desktop columns",
+      "options": [
+        { "value": "2", "label": "2" },
+        { "value": "4", "label": "4" }
+      ],
+      "default": "4"
+    },
+    {
+      "type": "select",
+      "id": "mobile_columns",
+      "label": "Mobile columns",
+      "options": [
+        { "value": "1", "label": "1" },
+        { "value": "2", "label": "2" }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "range",
+      "id": "desktop_grid_gap",
+      "label": "Desktop space between steps",
+      "min": 10,
+      "max": 60,
+      "step": 10,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "mobile_grid_gap",
+      "label": "Mobile space between steps",
+      "min": 10,
+      "max": 60,
+      "step": 10,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "section_padding",
+      "label": "Section padding",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "Images"
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "desktop_image_text_spacing",
+      "label": "Desktop space below image",
+      "min": 10,
+      "max": 50,
+      "step": 10,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "mobile_image_text_spacing",
+      "label": "Mobile space below image",
+      "min": 10,
+      "max": 50,
+      "step": 10,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Number box"
+    },
+    {
+      "type": "select",
+      "id": "number_box_position",
+      "label": "Position",
+      "options": [
+        { "value": "top-left", "label": "Top left" },
+        { "value": "top-right", "label": "Top right" },
+        { "value": "bottom-left", "label": "Bottom left" },
+        { "value": "bottom-right", "label": "Bottom right" }
+      ],
+      "default": "top-left"
+    },
+    {
+      "type": "range",
+      "id": "desktop_number_box_padding",
+      "label": "Desktop padding from edge",
+      "min": 0,
+      "max": 50,
+      "step": 10,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "mobile_number_box_padding",
+      "label": "Mobile padding from edge",
+      "min": 0,
+      "max": 40,
+      "step": 10,
+      "unit": "px",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "number_box_size",
+      "label": "Desktop size",
+      "min": 30,
+      "max": 80,
+      "step": 10,
+      "unit": "px",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "mobile_number_box_size",
+      "label": "Mobile size",
+      "min": 20,
+      "max": 70,
+      "step": 10,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "desktop_number_font_size",
+      "label": "Desktop font size",
+      "min": 14,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "mobile_number_font_size",
+      "label": "Mobile font size",
+      "min": 12,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "font_picker",
+      "id": "number_font",
+      "label": "Font",
+      "default": "inter_n7"
+    },
+    {
+      "type": "color",
+      "id": "number_box_bg_color",
+      "label": "Background color",
+      "default": "#019aff"
+    },
+    {
+      "type": "range",
+      "id": "number_box_bg_opacity",
+      "label": "Background opacity",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "%",
+      "default": 90
+    },
+    {
+      "type": "color",
+      "id": "number_box_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "number_box_border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Text"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Desktop alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "mobile_text_alignment",
+      "label": "Mobile alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "font_picker",
+      "id": "text_font",
+      "label": "Font",
+      "default": "inter_n4"
+    },
+    {
+      "type": "range",
+      "id": "desktop_text_line_1_size",
+      "label": "Desktop line 1 size",
+      "min": 12,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "mobile_text_line_1_size",
+      "label": "Mobile line 1 size",
+      "min": 10,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "text_line_1_weight",
+      "label": "Line 1 weight",
+      "min": 400,
+      "max": 700,
+      "step": 100,
+      "default": 600
+    },
+    {
+      "type": "color",
+      "id": "text_line_1_color",
+      "label": "Line 1 color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "desktop_text_line_2_size",
+      "label": "Desktop line 2 size",
+      "min": 12,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "mobile_text_line_2_size",
+      "label": "Mobile line 2 size",
+      "min": 10,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "text_line_2_weight",
+      "label": "Line 2 weight",
+      "min": 400,
+      "max": 700,
+      "step": 100,
+      "default": 400
+    },
+    {
+      "type": "color",
+      "id": "text_line_2_color",
+      "label": "Line 2 color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "text_line_spacing",
+      "label": "Space between lines",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Step 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "step_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "step_1_text_line_1",
+      "label": "Text line 1",
+      "default": "Upload Your Design"
+    },
+    {
+      "type": "text",
+      "id": "step_1_text_line_2",
+      "label": "Text line 2",
+      "default": "Choose your file and size"
+    },
+    {
+      "type": "header",
+      "content": "Step 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "step_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "step_2_text_line_1",
+      "label": "Text line 1",
+      "default": "We Print & Ship"
+    },
+    {
+      "type": "text",
+      "id": "step_2_text_line_2",
+      "label": "Text line 2",
+      "default": "Fast turnaround guaranteed"
+    },
+    {
+      "type": "header",
+      "content": "Step 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "step_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "step_3_text_line_1",
+      "label": "Text line 1",
+      "default": "Press Your Transfer"
+    },
+    {
+      "type": "text",
+      "id": "step_3_text_line_2",
+      "label": "Text line 2",
+      "default": "Follow simple instructions"
+    },
+    {
+      "type": "header",
+      "content": "Step 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "step_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "step_4_text_line_1",
+      "label": "Text line 1",
+      "default": "Enjoy Your Product"
+    },
+    {
+      "type": "text",
+      "id": "step_4_text_line_2",
+      "label": "Text line 2",
+      "default": "Professional results every time"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Four steps"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,112 @@
+{%- liquid
+  assign option_count = p.options.size
+  assign swatch_name_lc = swatch_option_name | strip | downcase
+  assign swatch_option_index = ''
+  assign shirt_style = p.metafields.specs.shirt_style | strip
+
+  for opt in p.options_with_values
+    assign opt_name_lc = opt.name | strip | downcase
+    if opt_name_lc == swatch_name_lc
+      assign swatch_option_index = forloop.index0
+      break
+    endif
+  endfor
+
+  assign size_option_index = ''
+  for opt in p.options_with_values
+    assign opt_name_lc = opt.name | strip | downcase
+    if opt_name_lc contains 'size'
+      assign size_option_index = forloop.index0
+      break
+    endif
+  endfor
+
+  if size_option_index == '' and option_count > 1
+    assign fallback_size_index = 0
+    if swatch_option_index == 0
+      assign fallback_size_index = 1
+    endif
+    assign size_option_index = fallback_size_index
+  endif
+
+  assign use_parent_child_flow = false
+  assign pdp_selected_color_key = p.metafields.specs.shirt_color | default: v.metafields.specs.shirt_color | strip | downcase
+  assign pdp_selected_color_name = p.metafields.specs.shirt_color | default: v.metafields.specs.shirt_color | strip
+  assign pdp_first_color_key = ''
+  assign pdp_first_color_name = ''
+  assign pdp_product_handle = p.handle
+
+  if shirt_style != blank
+    assign use_parent_child_flow = true
+    capture pdp_product_handle
+      assign style_slug = shirt_style | downcase
+      if style_slug != blank and p.handle contains style_slug
+        echo p.handle | split: style_slug | first | append: style_slug
+      else
+        echo p.handle
+      endif
+    endcapture
+
+    assign seen_color_keys = '|'
+    for product_option in p.options_with_values
+      for product_option_value in product_option.values
+        assign color_variant = product_option_value.variant
+        if color_variant != blank
+          assign inventory_qty = color_variant.inventory_quantity
+          if localization.country.iso_code == 'CA'
+            assign inventory_qty = color_variant.metafields.custom.ss_ca_inventory | default: color_variant.inventory_quantity
+          endif
+          if inventory_qty > 0
+            if color_variant.metafields.specs.shirt_color == blank
+              assign c_name = color_variant.option1 | strip
+            else
+              assign c_name = color_variant.metafields.specs.shirt_color | strip
+            endif
+            assign c_key = c_name | downcase
+            if c_key != blank
+              assign c_token = '|' | append: c_key | append: '|'
+              unless seen_color_keys contains c_token
+                assign seen_color_keys = seen_color_keys | append: c_key | append: '|'
+
+                if pdp_first_color_key == blank
+                  assign pdp_first_color_key = c_key
+                  assign pdp_first_color_name = c_name
+                endif
+                if pdp_selected_color_key == c_key
+                  assign pdp_selected_color_name = c_name
+                endif
+              endunless
+            endif
+          endif
+        endif
+      endfor
+    endfor
+
+    assign selected_color_token = '|' | append: pdp_selected_color_key | append: '|'
+    unless seen_color_keys contains selected_color_token
+      assign pdp_selected_color_key = pdp_first_color_key
+      assign pdp_selected_color_name = pdp_first_color_name
+    endunless
+
+    if pdp_first_color_key == blank
+      assign use_parent_child_flow = false
+    endif
+  endif
+-%}
+
+{%- if use_parent_child_flow -%}
+  {%- render 'grt-upsell-variant-options-parent-child',
+    p: p,
+    pdp_product_handle: pdp_product_handle,
+    pdp_selected_color_key: pdp_selected_color_key,
+    pdp_selected_color_name: pdp_selected_color_name
+  -%}
+{%- else -%}
+  {%- render 'grt-upsell-variant-options-normal',
+    p: p,
+    v: v,
+    option_count: option_count,
+    swatch_option_index: swatch_option_index,
+    size_option_index: size_option_index
+  -%}
+{%- endif -%}

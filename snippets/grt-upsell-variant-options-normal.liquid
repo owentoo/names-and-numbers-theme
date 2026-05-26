@@ -1,0 +1,86 @@
+{%- liquid
+  assign color_pairs = ''
+  assign seen_color_keys = '|'
+  for vr in p.variants
+    assign c_name = vr.metafields.specs.shirt_color | default: vr.option1 | strip
+    assign c_key = c_name | downcase
+    assign c_hex = vr.metafields.specs.shirt_prim_hex | strip
+    if c_hex != blank and c_hex != '0' and c_key != blank
+      unless c_hex contains '#'
+        assign c_hex = '#' | append: c_hex
+      endunless
+      assign c_token = '|' | append: c_key | append: '|'
+      unless seen_color_keys contains c_token
+        if color_pairs != blank
+          assign color_pairs = color_pairs | append: ','
+        endif
+        capture color_pair
+          echo c_key | json
+          echo ':'
+          echo c_hex | json
+        endcapture
+        assign color_pairs = color_pairs | append: color_pair
+        assign seen_color_keys = seen_color_keys | append: c_key | append: '|'
+      endunless
+    endif
+  endfor
+-%}
+
+<div
+  class="grt-variant-options"
+  data-variant-options
+  data-variant-flow="normal"
+  data-option-count="{{ option_count }}"
+  {% if swatch_option_index != '' %}data-color-option-index="{{ swatch_option_index }}"{% endif %}
+  {% if size_option_index != '' %}data-size-option-index="{{ size_option_index }}"{% endif %}
+  {% if swatch_option_index != '' %}data-swatch-option-index="{{ swatch_option_index }}"{% endif %}
+>
+  {%- for opt in p.options_with_values -%}
+    {% assign opt_name = opt.name | downcase %}
+    <div class="grt-opt">
+      <div class="grt-product-modal__label">{{ opt.name }}</div>
+
+      <div class="grt-opt__pills" data-option-index="{{ forloop.index0 }}">
+        {%- for val in opt.values -%}
+          <button
+            type="button"
+            class="button grt-variant-pill{% if v.options[forloop.parentloop.index0] == val %} is-active{% endif %}"
+            data-option-index="{{ forloop.parentloop.index0 }}"
+            data-option-value="{{ val | escape }}"
+            title="{{ val }}"
+          >
+            {{ val }}
+          </button>
+        {%- endfor -%}
+      </div>
+    </div>
+  {%- endfor -%}
+
+  <script type="application/json" data-variants-json>
+    [
+      {%- for vr in p.variants -%}
+        {%- assign inventory_qty = vr.inventory_quantity -%}
+        {%- assign tier_pricing = vr.metafields.custom.tier_pricing -%}
+        {%- if localization.country.iso_code == "CA" -%}
+          {%- assign inventory_qty = vr.metafields.custom.ss_ca_inventory | default: vr.inventory_quantity -%}
+          {%- assign tier_pricing = vr.metafields.custom.tier_pricing_ca | default: vr.metafields.custom.tier_pricing -%}
+        {%- endif -%}
+        {
+          "id": {{ vr.id | json }},
+          "available": {{ vr.available | json }},
+          "inventory": {{ inventory_qty | json }},
+          "price": {{ vr.price | json }},
+          "compare_at_price": {{ vr.compare_at_price | json }},
+          "tier_pricing": {{ tier_pricing | json }},
+          "option1": {{ vr.option1 | json }},
+          "option2": {{ vr.option2 | json }},
+          "option3": {{ vr.option3 | json }},
+          "image": {%- if vr.image -%}{{ vr.image | image_url: width: 832 | json }}{%- else -%}null{%- endif -%}
+        }{%- unless forloop.last -%},{%- endunless -%}
+      {%- endfor -%}
+    ]
+  </script>
+  <script type="application/json" data-color-map-json>
+    { {{ color_pairs }} }
+  </script>
+</div>

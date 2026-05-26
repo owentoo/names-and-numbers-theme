@@ -1,0 +1,590 @@
+{%- if section.settings.show_banner -%}
+
+  {%- liquid
+    assign bw = section.settings.accent_border_width | append: 'px'
+    assign ac = section.settings.accent_color
+    assign bp = section.settings.accent_border_position
+
+    case bp
+      when 'left_right'
+        assign border_style = 'border-left:' | append: bw | append: ' solid ' | append: ac | append: ';border-right:' | append: bw | append: ' solid ' | append: ac | append: ';'
+      when 'left'
+        assign border_style = 'border-left:' | append: bw | append: ' solid ' | append: ac | append: ';'
+      when 'right'
+        assign border_style = 'border-right:' | append: bw | append: ' solid ' | append: ac | append: ';'
+      when 'bottom'
+        assign border_style = 'border-bottom:' | append: bw | append: ' solid ' | append: ac | append: ';'
+      else
+        assign border_style = ''
+    endcase
+  -%}
+
+  <div class="blanks-trust-banner__mobile{% if section.settings.hide_on_mobile %} blanks-trust-banner__mobile--hide{% endif %}" data-slide-speed="{{ section.settings.mobile_slide_speed | times: 1000 }}" role="region" aria-label="Trust information">
+    <div class="blanks-trust-banner__mobile-ticker blanks-trust-banner__mobile-ticker--{{ section.settings.mobile_transition_style }}">
+      {%- assign mobile_slide_idx = 0 -%}
+      {%- for i in (1..5) -%}
+        {%- assign mfield_key = 'field_' | append: i -%}
+        {%- assign mval = section.settings[mfield_key] -%}
+        {%- if mval != blank -%}
+          <div class="blanks-trust-banner__mobile-slide{% if mobile_slide_idx == 0 %} is-active{% endif %}">
+            {%- if section.settings.mobile_show_icon -%}
+              <svg class="blanks-trust-banner__mobile-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            {%- endif -%}
+            <span>{{ mval | escape }}</span>
+          </div>
+          {%- assign mobile_slide_idx = mobile_slide_idx | plus: 1 -%}
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+
+  <div class="blanks-trust-banner__container" style="background: {{ section.settings.container_bg_color }};">
+    <div class="blanks-trust-banner{% if section.settings.hide_on_mobile %} blanks-trust-banner--hide-mobile{% endif %}" style="
+      background: {{ section.settings.bg_color }};
+      {{ border_style }}
+      border-radius: {{ section.settings.border_radius }}px;
+      padding: {{ section.settings.padding_vertical }}px 0;
+      margin-top: {{ section.settings.margin_top }}px;
+      margin-bottom: {{ section.settings.margin_bottom }}px;
+      box-shadow: {{ section.settings.box_shadow }};
+    ">
+    {%- for i in (1..5) -%}
+      {%- assign field_key = 'field_' | append: i -%}
+      {%- assign icon_key = 'field_' | append: i | append: '_icon' -%}
+      {%- assign val = section.settings[field_key] -%}
+      {%- assign icon = section.settings[icon_key] -%}
+      {%- if val != blank -%}
+        {%- if forloop.first == false -%}
+          {%- if section.settings.divider_style != 'none' -%}
+            <span class="blanks-trust-banner__divider" style="background: {{ section.settings.divider_color }};{% if section.settings.divider_style == 'dotted' %}background:none;border-left:1px dotted {{ section.settings.divider_color }};width:0;{% endif %}"></span>
+          {%- endif -%}
+        {%- endif -%}
+        <span class="blanks-trust-banner__item{% if i == 1 %} blanks-trust-banner__item--primary{% endif %}" style="
+          color: {% if i == 1 %}{{ section.settings.field_1_color }}{% else %}{{ section.settings.text_color }}{% endif %};
+          font-size: {% if i == 1 %}{{ section.settings.font_size | plus: 1 }}px{% else %}{{ section.settings.font_size }}px{% endif %};
+          font-weight: {% if i == 1 %}800{% else %}{{ section.settings.font_weight }}{% endif %};
+          letter-spacing: {{ section.settings.letter_spacing | divided_by: 100.0 }}em;
+          {% if section.settings.text_uppercase %}text-transform:uppercase;{% else %}text-transform:none;{% endif %}
+        ">
+          {%- case icon -%}
+            {%- when 'truck' -%}
+              <svg class="blanks-trust-banner__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2" ry="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            {%- when 'checkmark' -%}
+              <svg class="blanks-trust-banner__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            {%- when 'clock' -%}
+              <svg class="blanks-trust-banner__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {%- when 'return' -%}
+              <svg class="blanks-trust-banner__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            {%- when 'star' -%}
+              <svg class="blanks-trust-banner__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            {%- when 'shield' -%}
+              <svg class="blanks-trust-banner__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          {%- endcase -%}
+          {{ val | escape }}
+        </span>
+      {%- endif -%}
+    {%- endfor -%}
+    </div>
+  </div>
+
+  <style>
+    .blanks-pdp-trust-banner-section {
+      background: transparent !important;
+    }
+    .template-product-blanks .main-content,
+    .template-product-blanks .mount-app {
+      background-color: #fff !important;
+    }
+    .template-product-blanks .blanks-pdp-trust-banner-section + .shopify-section .container--vertical-space-small {
+      padding-top: 0;
+      margin-top: 0;
+    }
+    .blanks-trust-banner__container {
+      width: 100%;
+      max-width: var(--theme-max-width, 1400px);
+      margin: 0 auto;
+      padding-left: var(--gutter-container, 40px);
+      padding-right: var(--gutter-container, 40px);
+      box-sizing: border-box;
+    }
+    .blanks-trust-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 32px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .blanks-trust-banner__item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      line-height: 1.3;
+      white-space: nowrap;
+    }
+    .blanks-trust-banner__icon {
+      flex-shrink: 0;
+    }
+    .blanks-trust-banner__divider {
+      width: 1px;
+      height: 14px;
+      flex-shrink: 0;
+      margin-left: -16px;
+      margin-right: -16px;
+    }
+    .blanks-trust-banner__mobile {
+      display: none;
+    }
+    @media (max-width: 749px) {
+      .blanks-trust-banner__container {
+        display: none !important;
+      }
+      .blanks-trust-banner--hide-mobile {
+        display: none !important;
+      }
+      .blanks-trust-banner__mobile--hide {
+        display: none !important;
+      }
+      .blanks-trust-banner__mobile {
+        display: block;
+        background: {{ section.settings.mobile_bg_color }};
+        color: {{ section.settings.mobile_text_color }};
+        padding: {{ section.settings.mobile_padding_vertical }}px 16px;
+        margin: 0;
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+      }
+      .blanks-trust-banner__mobile-ticker {
+        position: relative;
+        min-height: {{ section.settings.mobile_font_size | plus: 4 }}px;
+      }
+      .blanks-trust-banner__mobile-slide {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: {{ section.settings.mobile_font_size }}px;
+        font-weight: {{ section.settings.mobile_font_weight }};
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        line-height: 1.3;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        white-space: nowrap;
+        transition: opacity 400ms ease, transform 400ms ease;
+        will-change: opacity, transform;
+      }
+      .blanks-trust-banner__mobile-ticker--fade .blanks-trust-banner__mobile-slide { opacity: 0; }
+      .blanks-trust-banner__mobile-ticker--fade .blanks-trust-banner__mobile-slide.is-active { opacity: 1; }
+      .blanks-trust-banner__mobile-ticker--slide-left .blanks-trust-banner__mobile-slide { opacity: 0; transform: translateX(20px); }
+      .blanks-trust-banner__mobile-ticker--slide-left .blanks-trust-banner__mobile-slide.is-active { opacity: 1; transform: translateX(0); }
+      .blanks-trust-banner__mobile-ticker--slide-up .blanks-trust-banner__mobile-slide { opacity: 0; transform: translateY(12px); }
+      .blanks-trust-banner__mobile-ticker--slide-up .blanks-trust-banner__mobile-slide.is-active { opacity: 1; transform: translateY(0); }
+      .blanks-trust-banner__mobile-icon { flex-shrink: 0; }
+    }
+  </style>
+
+  <script>
+    (function() {
+      var tickers = document.querySelectorAll('.blanks-trust-banner__mobile');
+      if (!tickers.length) return;
+      tickers.forEach(function(ticker) {
+        var slidesWrap = ticker.querySelector('.blanks-trust-banner__mobile-ticker');
+        if (!slidesWrap) return;
+        var slides = slidesWrap.querySelectorAll('.blanks-trust-banner__mobile-slide');
+        if (slides.length <= 1) return;
+        var speed = parseInt(ticker.getAttribute('data-slide-speed'), 10) || 3000;
+        var idx = 0;
+        setInterval(function() {
+          slides[idx].classList.remove('is-active');
+          idx = (idx + 1) % slides.length;
+          slides[idx].classList.add('is-active');
+        }, speed);
+      });
+    })();
+  </script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Blanks PDP Trust Banner",
+  "class": "blanks-pdp-trust-banner-section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_banner",
+      "label": "Show banner",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Fields"
+    },
+    {
+      "type": "text",
+      "id": "field_1",
+      "label": "Field 1 (accent)",
+      "default": "FASTER DELIVERY & LOWER PRICES"
+    },
+    {
+      "type": "select",
+      "id": "field_1_icon",
+      "label": "Field 1 icon",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "truck", "label": "Truck" },
+        { "value": "checkmark", "label": "Checkmark" },
+        { "value": "clock", "label": "Clock" },
+        { "value": "return", "label": "Return arrow" },
+        { "value": "star", "label": "Star" },
+        { "value": "shield", "label": "Shield" }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "text",
+      "id": "field_2",
+      "label": "Field 2",
+      "default": "BULK DISCOUNT AT $99"
+    },
+    {
+      "type": "select",
+      "id": "field_2_icon",
+      "label": "Field 2 icon",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "truck", "label": "Truck" },
+        { "value": "checkmark", "label": "Checkmark" },
+        { "value": "clock", "label": "Clock" },
+        { "value": "return", "label": "Return arrow" },
+        { "value": "star", "label": "Star" },
+        { "value": "shield", "label": "Shield" }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "text",
+      "id": "field_3",
+      "label": "Field 3",
+      "default": "FREE SHIPPING AT $50"
+    },
+    {
+      "type": "select",
+      "id": "field_3_icon",
+      "label": "Field 3 icon",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "truck", "label": "Truck" },
+        { "value": "checkmark", "label": "Checkmark" },
+        { "value": "clock", "label": "Clock" },
+        { "value": "return", "label": "Return arrow" },
+        { "value": "star", "label": "Star" },
+        { "value": "shield", "label": "Shield" }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "text",
+      "id": "field_4",
+      "label": "Field 4",
+      "default": "NO MINIMUMS"
+    },
+    {
+      "type": "select",
+      "id": "field_4_icon",
+      "label": "Field 4 icon",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "truck", "label": "Truck" },
+        { "value": "checkmark", "label": "Checkmark" },
+        { "value": "clock", "label": "Clock" },
+        { "value": "return", "label": "Return arrow" },
+        { "value": "star", "label": "Star" },
+        { "value": "shield", "label": "Shield" }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "text",
+      "id": "field_5",
+      "label": "Field 5",
+      "default": "FREE 45-DAY RETURNS"
+    },
+    {
+      "type": "select",
+      "id": "field_5_icon",
+      "label": "Field 5 icon",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "truck", "label": "Truck" },
+        { "value": "checkmark", "label": "Checkmark" },
+        { "value": "clock", "label": "Clock" },
+        { "value": "return", "label": "Return arrow" },
+        { "value": "star", "label": "Star" },
+        { "value": "shield", "label": "Shield" }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent border color",
+      "default": "#fba500"
+    },
+    {
+      "type": "color",
+      "id": "field_1_color",
+      "label": "Field 1 text color",
+      "default": "#fba500"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color (fields 2-5)",
+      "default": "#1a1a1a"
+    },
+    {
+      "type": "color",
+      "id": "divider_color",
+      "label": "Divider color",
+      "default": "#e0c89a"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Font size",
+      "info": "Field 1 renders 1px larger",
+      "min": 10,
+      "max": 16,
+      "step": 1,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "font_weight",
+      "label": "Font weight (fields 2-5)",
+      "info": "Field 1 is always 800",
+      "min": 400,
+      "max": 800,
+      "step": 100,
+      "default": 700
+    },
+    {
+      "type": "range",
+      "id": "letter_spacing",
+      "label": "Letter spacing",
+      "min": 0,
+      "max": 12,
+      "step": 1,
+      "default": 3,
+      "unit": "%"
+    },
+    {
+      "type": "checkbox",
+      "id": "text_uppercase",
+      "label": "Uppercase text",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "color",
+      "id": "container_bg_color",
+      "label": "Container background color",
+      "info": "Background behind the banner",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Margin top",
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "default": 8,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Margin bottom",
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "default": 8,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_vertical",
+      "label": "Vertical padding",
+      "min": 4,
+      "max": 20,
+      "step": 1,
+      "default": 10,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "accent_border_width",
+      "label": "Accent border width",
+      "info": "Set to 0 to remove accent borders",
+      "min": 0,
+      "max": 8,
+      "step": 1,
+      "default": 4,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "accent_border_position",
+      "label": "Accent border position",
+      "options": [
+        { "value": "left_right", "label": "Left & right" },
+        { "value": "left", "label": "Left only" },
+        { "value": "right", "label": "Right only" },
+        { "value": "bottom", "label": "Bottom" },
+        { "value": "none", "label": "None" }
+      ],
+      "default": "left_right"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "divider_style",
+      "label": "Divider style",
+      "options": [
+        { "value": "solid", "label": "Solid" },
+        { "value": "dotted", "label": "Dotted" },
+        { "value": "none", "label": "None" }
+      ],
+      "default": "solid"
+    },
+    {
+      "type": "text",
+      "id": "box_shadow",
+      "label": "Box shadow",
+      "info": "CSS box-shadow value",
+      "default": "0 2px 8px rgba(0,0,0,0.08)"
+    },
+    {
+      "type": "header",
+      "content": "Mobile ticker"
+    },
+    {
+      "type": "color",
+      "id": "mobile_bg_color",
+      "label": "Mobile background",
+      "default": "#fba500"
+    },
+    {
+      "type": "color",
+      "id": "mobile_text_color",
+      "label": "Mobile text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "mobile_font_size",
+      "label": "Mobile font size",
+      "min": 10,
+      "max": 16,
+      "step": 1,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "mobile_font_weight",
+      "label": "Mobile font weight",
+      "min": 400,
+      "max": 800,
+      "step": 100,
+      "default": 700
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_vertical",
+      "label": "Mobile vertical padding",
+      "min": 4,
+      "max": 20,
+      "step": 1,
+      "default": 8,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "mobile_slide_speed",
+      "label": "Mobile slide speed",
+      "info": "Seconds each slide is visible",
+      "min": 1,
+      "max": 8,
+      "step": 0.5,
+      "default": 3,
+      "unit": "s"
+    },
+    {
+      "type": "select",
+      "id": "mobile_transition_style",
+      "label": "Mobile transition style",
+      "options": [
+        { "value": "fade", "label": "Fade" },
+        { "value": "slide-left", "label": "Slide left" },
+        { "value": "slide-up", "label": "Slide up" }
+      ],
+      "default": "fade"
+    },
+    {
+      "type": "checkbox",
+      "id": "mobile_show_icon",
+      "label": "Show checkmark icon",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Visibility"
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_on_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "Blanks PDP Trust Banner"
+    }
+  ]
+}
+{% endschema %}

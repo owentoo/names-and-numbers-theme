@@ -1,0 +1,238 @@
+{% layout none %}
+
+{%- assign page_url = content_for_header | split:'"pageurl":"' | last | split:'"' | first | split: request.host | last | replace:'\/','/' | replace:'%20',' ' | replace:'\u0026','&' -%}
+{%- assign param_color = blank -%}
+
+{%- for i in (1..1) -%}
+  {%- unless page_url contains "?" -%}{% break %}{%- endunless -%}
+  {%- assign query_string = page_url | split:'?' | last -%}
+  {%- assign qry_parts = query_string | split:'&' -%}
+  {%- for part in qry_parts -%}
+    {%- assign key_and_value = part | split:'=' -%}
+    {%- if key_and_value.size > 1 and key_and_value[0] == 'variant' -%}
+      {%- assign parsed_variant = key_and_value[1] | url_decode -%}
+      {%- assign param_arr = parsed_variant | split:'_' -%}
+      {%- assign param_color = param_arr[0] | strip -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor -%}
+
+{%- assign shirt_style = product.metafields.specs.shirt_style | strip -%}
+{%- assign style_category = 'style-' | append: shirt_style -%}
+{%- assign style_collection = collections[style_category] -%}
+{%- if style_collection == blank -%}
+  {%- assign style_collection = product.collections | where: 'handle', style_category | first -%}
+{%- endif -%}
+{%- assign size_option_index = 0 -%}
+{%- if product.options.size > 1 -%}
+  {%- assign size_option_index = 1 -%}
+{%- endif -%}
+{%- for option_name in product.options -%}
+  {%- assign option_name_lc = option_name | strip | downcase -%}
+  {%- if option_name_lc contains 'size' -%}
+    {%- assign size_option_index = forloop.index0 -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- assign size_option_name = product.options[size_option_index] | default: 'Variant' -%}
+{%- assign selected_color_key = param_color | strip | downcase -%}
+{%- assign eligible_color_keys = '|' -%}
+{%- for product_option in product.options_with_values -%}
+  {%- for product_option_value in product_option.values -%}
+    {%- assign color_variant = product_option_value.variant -%}
+    {%- if color_variant == blank -%}
+      {%- continue -%}
+    {%- endif -%}
+    {%- assign inventory_qty = color_variant.inventory_quantity -%}
+    {%- if localization.country.iso_code == 'CA' -%}
+      {%- assign inventory_qty = color_variant.metafields.custom.ss_ca_inventory | default: color_variant.inventory_quantity -%}
+    {%- endif -%}
+    {%- if inventory_qty <= 0 -%}
+      {%- continue -%}
+    {%- endif -%}
+    {%- if color_variant.metafields.specs.shirt_color == blank -%}
+      {%- assign eligible_color_name = color_variant.option1 | strip -%}
+    {%- else -%}
+      {%- assign eligible_color_name = color_variant.metafields.specs.shirt_color | strip -%}
+    {%- endif -%}
+    {%- assign eligible_color_key = eligible_color_name | downcase -%}
+    {%- if eligible_color_key == blank -%}
+      {%- continue -%}
+    {%- endif -%}
+    {%- assign eligible_color_token = '|' | append: eligible_color_key | append: '|' -%}
+    {%- unless eligible_color_keys contains eligible_color_token -%}
+      {%- assign eligible_color_keys = eligible_color_keys | append: eligible_color_key | append: '|' -%}
+    {%- endunless -%}
+  {%- endfor -%}
+{%- endfor -%}
+
+{
+  "product_handle": {{ product.handle | json }},
+  "shirt_style": {{ shirt_style | json }},
+  "size_option_name": {{ size_option_name | json }},
+  "selected_color_key": {{ selected_color_key | json }},
+  "colors": [
+    {%- assign seen_color_keys = '|' -%}
+    {%- assign first_color_output = true -%}
+    {%- assign rendered_color_count = 0 -%}
+    {%- assign sorted_style_products = blank -%}
+    {%- if style_collection != blank -%}
+      {%- paginate style_collection.products by 1000 -%}
+        {%- assign sorted_style_products = style_collection.products | sort: 'url' -%}
+        {%- for product_option in product.options_with_values -%}
+          {%- for product_option_value in product_option.values -%}
+            {%- assign color_variant = product_option_value.variant -%}
+            {%- if color_variant == blank -%}
+              {%- continue -%}
+            {%- endif -%}
+            {%- assign inventory_qty = color_variant.inventory_quantity -%}
+            {%- if localization.country.iso_code == 'CA' -%}
+              {%- assign inventory_qty = color_variant.metafields.custom.ss_ca_inventory | default: color_variant.inventory_quantity -%}
+            {%- endif -%}
+            {%- if inventory_qty <= 0 -%}
+              {%- continue -%}
+            {%- endif -%}
+            {%- if color_variant.metafields.specs.shirt_color == blank -%}
+              {%- assign color_name = color_variant.option1 | strip -%}
+            {%- else -%}
+              {%- assign color_name = color_variant.metafields.specs.shirt_color | strip -%}
+            {%- endif -%}
+            {%- assign color_query = color_variant.option1 | strip -%}
+            {%- if color_query == blank -%}
+              {%- assign color_query = color_name -%}
+            {%- endif -%}
+            {%- assign color_key = color_name | downcase -%}
+            {%- if color_key == blank -%}
+              {%- continue -%}
+            {%- endif -%}
+            {%- assign color_token = '|' | append: color_key | append: '|' -%}
+            {%- if seen_color_keys contains color_token -%}
+              {%- continue -%}
+            {%- endif -%}
+            {%- assign seen_color_keys = seen_color_keys | append: color_key | append: '|' -%}
+            {%- assign color_hex = color_variant.metafields.specs.shirt_prim_hex | strip -%}
+            {%- if color_hex == blank or color_hex == '0' -%}
+              {%- assign color_hex = '000000' -%}
+            {%- endif -%}
+            {%- unless color_hex contains '#' -%}
+              {%- assign color_hex = '#' | append: color_hex -%}
+            {%- endunless -%}
+            {%- assign color_secondary_hex = color_variant.metafields.specs.shirt_sec_hex | strip -%}
+            {%- if color_secondary_hex != blank and color_secondary_hex != '0' and color_secondary_hex.size == 5 -%}
+              {%- assign color_secondary_hex = color_secondary_hex | append: '0' -%}
+            {%- endif -%}
+            {%- if color_secondary_hex != blank and color_secondary_hex != '0' -%}
+              {%- unless color_secondary_hex contains '#' -%}
+                {%- assign color_secondary_hex = '#' | append: color_secondary_hex -%}
+              {%- endunless -%}
+            {%- endif -%}
+            {%- assign matched_handle = product.handle -%}
+            {%- assign matched_variant_id = color_variant.id -%}
+            {%- assign matched_available = color_variant.available -%}
+            {%- for style_product in sorted_style_products -%}
+              {%- assign style_color_name = style_product.metafields.specs.shirt_color | strip -%}
+              {%- assign style_color_key = style_color_name | downcase -%}
+              {%- if style_color_key != color_key -%}
+                {%- continue -%}
+              {%- endif -%}
+              {%- assign style_inventory_total = 0 -%}
+              {%- for style_variant in style_product.variants -%}
+                {%- assign style_inventory_qty = style_variant.inventory_quantity -%}
+                {%- if localization.country.iso_code == 'CA' -%}
+                  {%- assign style_inventory_qty = style_variant.metafields.custom.ss_ca_inventory | default: style_variant.inventory_quantity -%}
+                {%- endif -%}
+                {%- assign style_inventory_total = style_inventory_total | plus: style_inventory_qty -%}
+              {%- endfor -%}
+              {%- if style_inventory_total <= 0 -%}
+                {%- continue -%}
+              {%- endif -%}
+              {%- assign matched_handle = style_product.handle -%}
+              {%- assign matched_variant_id = style_product.selected_or_first_available_variant.id | default: style_product.variants.first.id -%}
+              {%- assign matched_available = style_product.available -%}
+              {%- break -%}
+            {%- endfor -%}
+            {%- unless first_color_output -%},{%- endunless -%}
+            {%- assign first_color_output = false -%}
+            {%- assign rendered_color_count = rendered_color_count | plus: 1 -%}
+            {
+              "key": {{ color_key | json }},
+              "name": {{ color_name | json }},
+              "query": {{ color_query | json }},
+              "handle": {{ matched_handle | json }},
+              "variantId": {{ matched_variant_id | json }},
+              "available": {{ matched_available | json }},
+              "colorHex": {{ color_hex | json }},
+              "colorSecondaryHex": {{ color_secondary_hex | default: '' | json }}
+            }
+          {%- endfor -%}
+        {%- endfor -%}
+      {%- endpaginate -%}
+    {%- else -%}
+    {%- for product_option in product.options_with_values -%}
+      {%- for product_option_value in product_option.values -%}
+        {%- assign color_variant = product_option_value.variant -%}
+        {%- if color_variant == blank -%}
+          {%- continue -%}
+        {%- endif -%}
+        {%- assign inventory_qty = color_variant.inventory_quantity -%}
+        {%- if localization.country.iso_code == 'CA' -%}
+          {%- assign inventory_qty = color_variant.metafields.custom.ss_ca_inventory | default: color_variant.inventory_quantity -%}
+        {%- endif -%}
+        {%- if inventory_qty <= 0 -%}
+          {%- continue -%}
+        {%- endif -%}
+        {%- if color_variant.metafields.specs.shirt_color == blank -%}
+          {%- assign color_name = color_variant.option1 | strip -%}
+        {%- else -%}
+          {%- assign color_name = color_variant.metafields.specs.shirt_color | strip -%}
+        {%- endif -%}
+        {%- assign color_query = color_variant.option1 | strip -%}
+        {%- if color_query == blank -%}
+          {%- assign color_query = color_name -%}
+        {%- endif -%}
+        {%- assign color_key = color_name | downcase -%}
+        {%- if color_key == blank -%}
+          {%- continue -%}
+        {%- endif -%}
+        {%- assign color_token = '|' | append: color_key | append: '|' -%}
+        {%- if seen_color_keys contains color_token -%}
+          {%- continue -%}
+        {%- endif -%}
+        {%- assign seen_color_keys = seen_color_keys | append: color_key | append: '|' -%}
+        {%- assign color_hex = color_variant.metafields.specs.shirt_prim_hex | strip -%}
+        {%- if color_hex == blank or color_hex == '0' -%}
+          {%- assign color_hex = '000000' -%}
+        {%- endif -%}
+        {%- unless color_hex contains '#' -%}
+          {%- assign color_hex = '#' | append: color_hex -%}
+        {%- endunless -%}
+        {%- assign color_secondary_hex = color_variant.metafields.specs.shirt_sec_hex | strip -%}
+        {%- if color_secondary_hex != blank and color_secondary_hex != '0' and color_secondary_hex.size == 5 -%}
+          {%- assign color_secondary_hex = color_secondary_hex | append: '0' -%}
+        {%- endif -%}
+        {%- if color_secondary_hex != blank and color_secondary_hex != '0' -%}
+          {%- unless color_secondary_hex contains '#' -%}
+            {%- assign color_secondary_hex = '#' | append: color_secondary_hex -%}
+          {%- endunless -%}
+        {%- endif -%}
+        {%- assign matched_handle = product.handle -%}
+        {%- assign matched_variant_id = color_variant.id -%}
+        {%- assign matched_available = color_variant.available -%}
+        {%- unless first_color_output -%},{%- endunless -%}
+        {%- assign first_color_output = false -%}
+        {%- assign rendered_color_count = rendered_color_count | plus: 1 -%}
+        {
+          "key": {{ color_key | json }},
+          "name": {{ color_name | json }},
+          "query": {{ color_query | json }},
+          "handle": {{ matched_handle | json }},
+          "variantId": {{ matched_variant_id | json }},
+          "available": {{ matched_available | json }},
+          "colorHex": {{ color_hex | json }},
+          "colorSecondaryHex": {{ color_secondary_hex | default: '' | json }}
+        }
+      {%- endfor -%}
+    {%- endfor -%}
+    {%- endif -%}
+  ]
+}

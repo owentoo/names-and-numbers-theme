@@ -1,0 +1,3040 @@
+{%- layout 'theme-fast' -%}
+{%- comment -%}
+  ============================================================================
+  home-v2 landing page — Phase 3 content swap (homepage content)
+  ============================================================================
+
+  SOURCE
+    audits/captures/homepage-content-block.html
+      (extracted + cleaned 2026-04-27 from
+       audits/captures/homepage-rendered-2026-04-27.html — a rendered capture
+       of the live homepage at /?preview_theme_id=145580490835, which uses
+       templates/index.json on staging theme 145580490835).
+
+  BUILT
+    2026-04-27 on staging theme 145580490835 ("Brian | Homepage Speed").
+    Replaces the prior content body (home-v2's 14 hp-* sections, captured
+    2026-04-24 from /pages/home-v2). Backup of prior content at
+    audits/captures/page.home-v2.liquid.backup-2026-04-27.
+
+  LAYOUT
+    {% layout 'theme-fast' %} — unchanged from prior version. Continues to use:
+      - Hardcoded simplified header, announcement bar, and footer
+      - Inlined consolidated CSS (theme.css + hp-*.css + testimonialsHome.css
+        + ugc-hero-njs stylesheet block + 4 new CSS files for homepage
+        sections: blockContent.css, component-video-background.css, faqHome.css,
+        getStarted.css)
+      - rbi/rbiSetSize shim (added 2026-04-27 to support media-with-text-overlay)
+      - GTM-5R28GKW + Hotjar preserved; content_for_header omitted
+      - Wave B Part 2 intercepts (Intercom polling, Klaviyo MutationObserver)
+    See layout/theme-fast.liquid.
+
+  HOMEPAGE TEMPLATE INSTANCE ID (NEW)
+    Original Shopify section IDs are baked into the inlined HTML. The homepage
+    template instance ID is:
+
+      19643135131731
+
+    (Different from the prior home-v2 instance ID 19643137196115. When this
+    template was the home-v2 content body it used the latter; the swap to
+    homepage content brings the new ID with it. Both IDs are static strings
+    in the rendered HTML below — promotion to a different theme requires
+    global search-replace of 19643135131731.)
+
+  HARDCODED SELECTORS (promotion caveat — see CLAUDE.md follow-up #11)
+    These section IDs are referenced by inline scripts in the content body:
+
+      #shopify-section-template--19643135131731__faq_home_CzVrEU
+          — targeted by vanilla faq-home click-delegation script
+            (toggles .open on .faqHome__item when its <question> child is clicked)
+
+      #shopify-section-template--19643135131731__ss_video_with_text_2_fjp89E
+          — targeted by vanilla video-lazy IntersectionObserver
+            (swaps data-src → src on the section's video.lazy element)
+
+    Plus three other inline scripts that don't depend on section IDs:
+      - AI features card #1 custom element (feature-cards-auvbnauzu...)
+      - AI features card #2 custom element (feature-cards-av01kwu1...)
+      - rbi.push + rbiSetSize calls (rely on shim defined in theme-fast.liquid)
+
+    On any theme migration: re-extract the content block from a fresh rendered
+    capture of the new theme's homepage, OR find/replace 19643135131731 with
+    the new theme's generated section ID.
+
+  RENDERED SECTIONS (11 of 13 — social-widget empty, testimonials-home removed
+  2026-04-27 due to persistent overflow + height-collapse issues; CSS still
+  inlined in theme-fast.liquid as dead-weight, see follow-up note)
+    1. ninja-rewards-stats         (shared with prior home-v2)
+    2. ugc-hero-njs                (shared with prior home-v2)
+    3. block-content               (NEW — 6-block icon row)
+    4. _blocks (AI heading)        (NEW — Shopify AI-generated)
+    5. text-columns-images         (NEW)
+    6. ss-video-with-text-2        (NEW — Section Store premium block, has
+                                    lazy-loaded background video)
+    7. _blocks (AI product grid)   (NEW — Shopify AI-generated)
+    8. _blocks (AI features)       (NEW — Shopify AI-generated; defines
+                                    feature-cards-* custom elements with
+                                    mobile click + desktop hover video logic)
+    9. media-with-text-overlay     (NEW — facility hero w/ video bg)
+    10. faq-home                   (NEW — different from prior hp-faq;
+                                    uses <question> custom tag)
+    11. get-started                (NEW — final CTA)
+
+  RELATED DOCS
+    CLAUDE.md (repo root) — Active performance sprint, Wave B status.
+    CLAUDE.md Known issues / follow-ups:
+      #6  — countdown simplification (announcement bar)
+      #11 — hardcoded template instance ID (this section)
+      #12 — promotion-to-live checklist
+  ============================================================================
+{%- endcomment -%}
+
+    <section id="shopify-section-template--19643135131731__ninja_rewards_stats_home" class="shopify-section ninja-rewards-stats">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<style>
+  .ninja-rewards-stats {
+    order: -2;
+  }
+  .nrs-wrap {
+    background: #1d2433;
+    width: 100%;
+    padding-top: 20px;
+    padding-bottom: 12px;
+    padding-left: 24px;
+    padding-right: 24px;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .nrs-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-left: 0px;
+    padding-right: 0px;
+    text-align: left;
+  }
+
+  /* ── Heading ── */
+  .nrs-heading {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 0 0 12px 0;
+  }
+  .nrs-heading .nrs-welcome {
+    color: #ffffff;
+    font-weight: 400;
+  }
+  .nrs-heading .nrs-name {
+    color: #ffffff;
+    font-weight: 700;
+  }
+
+  /* ── Stats Row ── */
+  .nrs-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  .nrs-stat {
+    text-align: left;
+    padding-left: 24px;
+    border-left: 1px solid rgba(0,0,0,0.1);
+  }
+  .nrs-stat:first-child {
+    border-left: none;
+    padding-left: 0;
+  }
+
+  /* ── Label / Value / Sub ── */
+  .nrs-label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 8px;
+    white-space: nowrap;
+  }
+  .nrs-value {
+    font-size: 14px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .nrs-earning-short { display: none; }
+
+  /* ── VIP Perks Row ── */
+  .nrs-perks {
+    border-top: 1px solid rgba(0,0,0,0.1);
+    margin-top: 20px;
+    padding-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .nrs-perks-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 20px;
+    border-right: 1px solid rgba(0,0,0,0.1);
+    margin-right: 20px;
+    flex-shrink: 0;
+  }
+  .nrs-perks-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .nrs-perks-icon svg {
+    width: 12px;
+    height: 12px;
+    stroke: #fff;
+    stroke-width: 2.5;
+    fill: none;
+  }
+  .nrs-perks-label-text {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .nrs-perks-list {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .nrs-perk-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 20px;
+    padding: 5px 12px 5px 8px;
+    border-width: 1px;
+    border-style: solid;
+  }
+  .nrs-perk-check {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .nrs-perk-check svg {
+    width: 8px;
+    height: 8px;
+    stroke-width: 2.5;
+    fill: none;
+  }
+  .nrs-perk-text {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* ── Desktop inline layout ── */
+  @media (min-width: 641px) {
+    .nrs-wrap {
+      padding-left: 0;
+      padding-right: 0;
+    }
+    .nrs-inner {
+      max-width: 1400px;
+      padding-left: 40px;
+      padding-right: 40px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .nrs-perks {
+      width: 100%;
+    }
+    .nrs-heading {
+      margin: 0;
+      white-space: nowrap;
+      flex-shrink: 0;
+      padding-right: 24px;
+      border-right: none;
+      margin-right: 0;
+      line-height: 1;
+    }
+    .nrs-grid {
+      display: flex;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+    .nrs-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .nrs-stat:first-child {
+      border-left: none;
+      padding-left: 0;
+    }
+    .nrs-label {
+      margin-bottom: 0;
+      line-height: 1;
+    }
+    .nrs-value {
+      line-height: 1;
+    }
+  }
+
+  /* ── Mobile toggle (hidden on desktop) ── */
+  .nrs-perks-toggle {
+    display: none;
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 640px) {
+    .nrs-wrap {
+      padding-top: 8px;
+      padding-bottom: 0px;
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    .nrs-inner {
+      display: block;
+      max-width: none;
+      padding-left: 0px;
+      padding-right: 0px;
+      position: relative;
+    }
+    .nrs-heading {
+      font-size: 18px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .nrs-heading .nrs-welcome {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #ffffff;
+    }
+    .nrs-heading .nrs-name {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: #ffffff;
+    }
+    /* Tier stat floats to top-right next to heading */
+    .nrs-stat--tier {
+      position: absolute;
+      top: 0;
+      right: 0;
+      text-align: right;
+      border-left: none !important;
+      padding-left: 0 !important;
+      flex: none !important;
+    }
+    /* Hide Earning and Next Tier stats on mobile */
+    .nrs-stat--earning,
+    .nrs-stat--next {
+      display: none !important;
+    }
+    /* Balance / Ninja Cash floats to top-center between name and tier */
+    .nrs-stat--balance {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      border-left: none !important;
+      padding-left: 0 !important;
+      flex: none !important;
+    }
+    .nrs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .nrs-stat {
+      padding-left: 0;
+      border-left: none;
+    }
+    .nrs-label {
+      font-size: 10px;
+      margin-bottom: 4px;
+    }
+    .nrs-value {
+      font-size: 18px;
+      white-space: nowrap;
+    }
+    .nrs-earning-full { display: none; }
+    .nrs-earning-short { display: inline; }
+    /* Hide <details> toggle completely on mobile */
+    .nrs-perks-toggle {
+      display: none !important;
+    }
+    /* Show desktop perks row on mobile, restyled for mobile */
+    .nrs-perks--desktop {
+      display: flex !important;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+      border-top: 1px solid rgba(0,0,0,0.1);
+      margin-top: 4px;
+      padding-top: 6px;
+    }
+    .nrs-perks--desktop .nrs-perks-label {
+      border-right: none;
+      margin-right: 4px;
+      padding-right: 0;
+      flex-shrink: 0;
+    }
+    .nrs-perks--desktop .nrs-perks-icon {
+      width: 20px;
+      height: 20px;
+    }
+    .nrs-perks--desktop .nrs-perks-icon svg {
+      width: 11px;
+      height: 11px;
+    }
+    .nrs-perks--desktop .nrs-perks-label-text {
+      font-size: 11px;
+    }
+    .nrs-perks--desktop .nrs-perks-list {
+      display: contents;
+    }
+    .nrs-perks--desktop .nrs-perk-pill {
+      border-radius: 20px;
+      padding: 5px 12px 5px 8px;
+    }
+    .nrs-perks--desktop .nrs-perk-check {
+      width: 15px;
+      height: 15px;
+    }
+    .nrs-perks--desktop .nrs-perk-check svg {
+      width: 7px;
+      height: 7px;
+    }
+    .nrs-perks--desktop .nrs-perk-text {
+      font-size: 11px;
+      white-space: normal;
+      line-height: 1.3;
+    }
+  }
+</style>
+
+
+
+
+</section><section id="shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY" class="shopify-section hero-section-root">
+
+<!-- ── Dynamic styles (scoped to this section instance) ── -->
+<style>
+  #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY {
+    background: #0a0a0a;
+    overflow-x: hidden;
+  }
+  #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero h1 {
+    font-size: 48px;
+    line-height: 1.1;
+    color: #ffffff;
+  }
+  #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero .subtitle {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #9ca3af;
+    opacity: 1.0;
+  }
+  #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero .feature {
+    font-size: 14px;
+    line-height: 1.4;
+    color: #d1d5db;
+    opacity: 1.0;
+  }
+  #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero .feature svg,
+  #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero .feature .feature-custom-icon {
+    width: 20px;
+    height: 20px;
+  }
+  #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero {
+    min-height: 600px;
+    max-height: 600px;
+  }
+
+  /* Rotating word keyframes */@keyframes rotateWord_template--19643135131731__ugc_hero_njs_dtAfBY {
+      0% { opacity: 0; transform: translateY(10px); }
+      2.142857142857143% { opacity: 1; transform: translateY(0); }
+      12.142857142857142% { opacity: 1; transform: translateY(0); }
+      14.285714285714286% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 0; transform: translateY(10px); }
+    }#shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .rotating-word-0 {
+          animation: rotateWord_template--19643135131731__ugc_hero_njs_dtAfBY 10500ms infinite;
+          animation-delay: 0ms;
+        }#shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .rotating-word-1 {
+          animation: rotateWord_template--19643135131731__ugc_hero_njs_dtAfBY 10500ms infinite;
+          animation-delay: 1500ms;
+        }#shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .rotating-word-2 {
+          animation: rotateWord_template--19643135131731__ugc_hero_njs_dtAfBY 10500ms infinite;
+          animation-delay: 3000ms;
+        }#shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .rotating-word-3 {
+          animation: rotateWord_template--19643135131731__ugc_hero_njs_dtAfBY 10500ms infinite;
+          animation-delay: 4500ms;
+        }#shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .rotating-word-4 {
+          animation: rotateWord_template--19643135131731__ugc_hero_njs_dtAfBY 10500ms infinite;
+          animation-delay: 6000ms;
+        }#shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .rotating-word-5 {
+          animation: rotateWord_template--19643135131731__ugc_hero_njs_dtAfBY 10500ms infinite;
+          animation-delay: 7500ms;
+        }#shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .rotating-word-6 {
+          animation: rotateWord_template--19643135131731__ugc_hero_njs_dtAfBY 10500ms infinite;
+          animation-delay: 9000ms;
+        }@media (max-width: 768px) {
+    #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero {
+      min-height: auto;
+      max-height: none;
+    }
+    #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero h1 {
+      font-size: 28px;
+      line-height: 1.15;
+    }
+    #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero .subtitle {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero .feature {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero .feature svg,
+    #shopify-section-template--19643135131731__ugc_hero_njs_dtAfBY .hero .feature .feature-custom-icon {
+      width: 16px;
+      height: 16px;
+    }
+  }
+</style>
+
+<!-- ── Hero markup ── -->
+<div class="hero">
+  <div class="hero-left"><div class="badge">
+        <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+        <strong style="color: #ffffff;">4.9</strong> <span style="color: #9ca3af;">Based on 35,000+ Reviews</span>
+      </div><h1>DTF Transfers Trusted by
+        <span class="count">500,000+</span>
+        <span class="rotating-wrapper"><span class="rotating-word rotating-word-0"
+                    style="color: #63f2ff;"
+                    >Businesses</span><span class="rotating-word rotating-word-1"
+                    style="color: #48ea23;"
+                    >Side Hustlers</span><span class="rotating-word rotating-word-2"
+                    style="color: #ffd740;"
+                    >Printshops</span><span class="rotating-word rotating-word-3"
+                    style="color: #f8a3ff;"
+                    >Makers</span><span class="rotating-word rotating-word-4"
+                    style="color: #ff3057;"
+                    >Brands</span><span class="rotating-word rotating-word-5"
+                    style="color: #b388ff;"
+                    >Crafters</span><span class="rotating-word rotating-word-6"
+                    style="color: #fba500;"
+                    >Designers</span></span></h1>
+
+    <p class="subtitle">Print any design on any product, material, or color—with 100+ wash durability. Make more for less, with screen print quality in just 10 seconds.</p><div class="features"><div class="feature" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                  </svg>100% Satisfaction
+          </div><div class="feature" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                  </svg>No Minimums or Art Fees
+          </div><div class="feature" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                  </svg>Free & Fast Delivery
+          </div></div><div class="buttons"><a href="/products/dtf-transfers"
+             class="btn btn-primary"
+             style="--btn-bg: #019aff; --btn-text: #ffffff; --btn-border: #ffffff;"
+             >Order Transfers by Size<svg class="btn-arrow" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10h10"/><path d="M11 6l4 4-4 4"/></svg>
+          </a><a href="/products/build-your-own-gang-sheet"
+             class="btn btn-secondary"
+             style="--btn-bg: #019aff; --btn-text: #ffffff; --btn-border: #ffffff;"
+             >Build a Gang Sheet<svg class="btn-arrow" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10h10"/><path d="M11 6l4 4-4 4"/></svg>
+          </a><a href="/collections/blank-apparel"
+             class="btn btn-secondary btn-mobile-only"
+             style="--btn-bg: #019aff; --btn-text: #ffffff; --btn-border: #ffffff;"
+             >Shop Blanks<svg class="btn-arrow" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10h10"/><path d="M11 6l4 4-4 4"/></svg>
+          </a></div></div>
+
+  <!-- Hero image — replaced 2026-05-07 with optimized PNG (transparency required for dark bg) -->
+  <div class="hero-image-wrap">
+    <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/hero_f923145a-3544-479d-a44d-3e0bbe04c6d8.png?v=1778162182"
+         alt="Side hustlers and small businesses with their DTF transfer prints"
+         width="600"
+         height="530"
+         loading="eager"
+         fetchpriority="high"
+         decoding="async">
+  </div>
+</div>
+
+
+
+
+</section><div id="shopify-section-template--19643135131731__block_content_TRgERH" class="shopify-section can-be-fullwidth merged-section supports-absolute-header">
+
+  <div class="container--large">
+    <div class="blockContent">
+      
+        <div class="blockContent__title titleAlignDesktop__center titleAlignMobile__center">
+          <h2>
+            The Leader in Custom DTF Transfers
+          </h2>
+        </div>
+      
+
+      <div class="blockContent__wrap"><div class="blockContent__item" bid="item_8UPKB4">
+            <div class="blockContent__item__iconWrap">
+              
+                <img src="//ninja-transfers-cdn.imgix.net/award_star_24dp_171717_FILL0_wght400_GRAD0_opsz24_1.svg?auto=format,compress&v=1725286597" loading="lazy" alt="">
+              
+            </div>
+
+            <div class="blockContent__item__content">
+              
+                <div class="blockContent__item__title">
+                  100% Quality Guaranteed
+                </div>
+              
+              
+                <div class="blockContent__item__text">
+                  We stand behind our DTF transfers. Perfect prints, free art review, and zero hidden fees.
+                </div>
+              
+            </div>
+
+          </div><div class="blockContent__item" bid="item_DzE7yW">
+            <div class="blockContent__item__iconWrap">
+              
+                <img src="//ninja-transfers-cdn.imgix.net/note_stack_24dp_171717_FILL0_wght400_GRAD0_opsz24_1.svg?auto=format,compress&v=1725286698" loading="lazy" alt="">
+              
+            </div>
+
+            <div class="blockContent__item__content">
+              
+                <div class="blockContent__item__title">
+                  No Minimums
+                </div>
+              
+              
+                <div class="blockContent__item__text">
+                  Order exactly what you need with no minimum quantity required for any purchase.
+                </div>
+              
+            </div>
+
+          </div><div class="blockContent__item" bid="item_fxLKPW">
+            <div class="blockContent__item__iconWrap">
+              
+                <img src="//ninja-transfers-cdn.imgix.net/bolt_24dp_171717_FILL0_wght400_GRAD0_opsz24_1.svg?auto=format,compress&v=1725286770" loading="lazy" alt="">
+              
+            </div>
+
+            <div class="blockContent__item__content">
+              
+                <div class="blockContent__item__title">
+                  Super Fast Shipping
+                </div>
+              
+              
+                <div class="blockContent__item__text">
+                  Lightning-fast production and reliable delivery mean your DTF transfers can arrive as soon as next day.
+                </div>
+              
+            </div>
+
+          </div><div class="blockContent__item" bid="item_WUQYh8">
+            <div class="blockContent__item__iconWrap">
+              
+                <img src="//ninja-transfers-cdn.imgix.net/wb_sunny_24dp_171717_FILL0_wght400_GRAD0_opsz24_1.svg?auto=format,compress&v=1725286819" loading="lazy" alt="">
+              
+            </div>
+
+            <div class="blockContent__item__content">
+              
+                <div class="blockContent__item__title">
+                  Unmatched Color & Detail
+                </div>
+              
+              
+                <div class="blockContent__item__text">
+                  Our VIVID AF DTF transfers produce up to 16.7 million colors with stunning detail and vibrancy.
+                </div>
+              
+            </div>
+
+          </div><div class="blockContent__item" bid="item_mw4akK">
+            <div class="blockContent__item__iconWrap">
+              
+                <img src="//ninja-transfers-cdn.imgix.net/Heat_2.png?auto=format,compress&v=1773082269" loading="lazy" alt="">
+              
+            </div>
+
+            <div class="blockContent__item__content">
+              
+                <div class="blockContent__item__title">
+                  Works with a Heatpress, Iron, or Cricut
+                </div>
+              
+              
+                <div class="blockContent__item__text">
+                  Achieve smooth, professional results with our easy press-and-peel application process.
+                </div>
+              
+            </div>
+
+          </div><div class="blockContent__item" bid="item_ciH4k8">
+            <div class="blockContent__item__iconWrap">
+              
+                <img src="//ninja-transfers-cdn.imgix.net/arming_countdown_24dp_171717_FILL0_wght400_GRAD0_opsz24_1.svg?auto=format,compress&v=1725286912" loading="lazy" alt="">
+              
+            </div>
+
+            <div class="blockContent__item__content">
+              
+                <div class="blockContent__item__title">
+                  Lab-Tested Durability
+                </div>
+              
+              
+                <div class="blockContent__item__text">
+                  Our DTF transfers are tested to last 100+ washes without fading, cracking, or peeling.
+                </div>
+              
+            </div>
+
+          </div></div>
+    </div>
+  </div><style>
+    
+
+
+
+
+
+
+    
+    #shopify-section-template--19643135131731__block_content_TRgERH {
+      margin-top: 60px;
+      margin-bottom: 48px;
+
+      padding-top: 0px;
+      padding-bottom: 0px;
+    }
+    @media (max-width: 1024px) {
+      #shopify-section-template--19643135131731__block_content_TRgERH {
+        margin-top: 36px;
+        margin-bottom: 36px;
+
+        padding-top: 0px;
+        padding-bottom: 0px;
+      }
+    }
+    @media (max-width: 600px) {
+      #shopify-section-template--19643135131731__block_content_TRgERH {
+        margin-top: 36px;
+        margin-bottom: 36px;
+
+        padding-top: 0px;
+        padding-bottom: 0px;
+      }
+    }
+    #shopify-section-template--19643135131731__block_content_TRgERH .blockContent__wrap .blockContent__item {
+      width: calc( 33% - 20px );
+    }
+    @media (max-width: 1024px) {
+      #shopify-section-template--19643135131731__block_content_TRgERH .blockContent__wrap .blockContent__item {
+        width: calc( 33% - 20px );
+      }
+    }
+    @media (max-width: 600px) {
+      #shopify-section-template--19643135131731__block_content_TRgERH .blockContent__wrap .blockContent__item {
+        width: calc( 100% - 20px );
+      }
+    }
+  </style>
+
+
+
+<style> #shopify-section-template--19643135131731__block_content_TRgERH h2 {font-weight: 700;} </style></div><div id="shopify-section-template--19643135131731__1771017660ba0b655b" class="shopify-section"><div id="shopify-block-ANk9Wdy8yeDJ4OFo2Q__ai_gen_block_944b58f_VVgzEj" class="shopify-block">
+
+
+<style data-shopify>
+  .ai-heading-section-ank9wdy8yedj4ofo2qaigenblock944b58fvvgzej {
+    display: block;
+    width: 100%;
+    background-color: #fafafa;
+    padding: 50px 20px;
+  }
+
+  .ai-heading-section__container-ank9wdy8yedj4ofo2qaigenblock944b58fvvgzej {
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .ai-heading-section__title-ank9wdy8yedj4ofo2qaigenblock944b58fvvgzej {
+    font-size: 32px;
+    color: #000000;
+    margin: 0 0 20px 0;
+    line-height: 1.2;
+  }
+
+  .ai-heading-section__description-ank9wdy8yedj4ofo2qaigenblock944b58fvvgzej {
+    font-size: 16px;
+    color: #666666;
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-heading-section__title-ank9wdy8yedj4ofo2qaigenblock944b58fvvgzej {
+      font-size: calc(32px * 0.8);
+    }
+
+    .ai-heading-section__description-ank9wdy8yedj4ofo2qaigenblock944b58fvvgzej {
+      font-size: calc(16px * 0.9);
+    }
+  }
+</style>
+
+<div class="ai-heading-section-ank9wdy8yedj4ofo2qaigenblock944b58fvvgzej" >
+  <div class="ai-heading-section__container-ank9wdy8yedj4ofo2qaigenblock944b58fvvgzej">
+    
+      <h1 class="ai-heading-section__title-ank9wdy8yedj4ofo2qaigenblock944b58fvvgzej">
+        What is DTF?
+      </h1>
+    
+
+    
+      <div class="ai-heading-section__description-ank9wdy8yedj4ofo2qaigenblock944b58fvvgzej">
+        Direct to Film (DTF) Transfers are incredibly vivid and high quality transfers that can be applied to almost any Product, Material, and Color with just a heat press, cricut, or iron!  Millions trust DTF Transfers for their events, team, merch, crafts, gifts, and more!   DTF saves you money, time, and allows you to customize products the way you want.
+      </div>
+    
+  </div>
+</div>
+
+
+</div>
+
+
+</div><div id="shopify-section-template--19643135131731__text_columns_images_mCMNp3" class="shopify-section mount-css-slider"><div class="container--large container--vertical-space-small remove-empty-space  grid_gap_spacing">
+
+  <style>
+    .grid_gap_spacing .grid{grid-gap: 32px; grid-template-columns: repeat(var(--visible-cols), calc( (100% - 32px * (var(--visible-cols) - 1)) / var(--visible-cols) )); }
+  </style><div class="section-heading section-heading--left section-heading--one-row gutter-bottom--large"><div class="section-heading__text remove-empty-space"><h2 class="section-heading__title text-font--secondary text-size--large">
+            The Ninja Transfers DTF Process
+          </h2><span class="section-heading__subheading text-size--small text-color--opacity">Faster. Simpler. Satisfaction Guaranteed.</span></div></div><css-slider data-options='{
+        "selector": ".js-slider-item",
+        "groupCells": true,
+        "navigationDOM": "<span class=\"css-slider-button css-slider-prev\" style=\"display:none\"><svg fill=\"none\" height=\"11\" viewBox=\"0 0 6 11\" width=\"6\" xmlns=\"http://www.w3.org/2000/svg\"><path clip-rule=\"evenodd\" d=\"m4.32845 10.0708-4.18198-4.18194c-.195261-.19526-.195261-.51185 0-.70711l4.18198-4.181979c.19527-.195262.51185-.195262.70711 0 .19526.195259.19526.511849 0 .707109l-3.32843 3.32842s-.70713.4647-.00002 1l3.32845 3.32843c.19526.19526.19526.51185 0 .70707-.19526.1953-.51185.1953-.70711 0z\" fill=\"#000\" fill-rule=\"evenodd\"/></svg></span><span class=\"css-slider-button css-slider-next\" style=\"display:none\"><svg fill=\"none\" height=\"11\" viewBox=\"0 0 6 11\" width=\"6\" xmlns=\"http://www.w3.org/2000/svg\"><path clip-rule=\"evenodd\" d=\"m.853555.999962 4.181985 4.181978c.19526.19526.19526.51185 0 .70711l-4.181983 4.18195c-.195263.1953-.511845.1953-.707108 0-.1952631-.19523-.1952632-.51181 0-.70708l3.328431-3.32842s.70713-.4647.00002-1l-3.328453-3.32843c-.1952626-.19526-.1952627-.51185 0-.707108.195263-.195262.511845-.195262.707108 0z\" fill=\"#000\" fill-rule=\"evenodd\"/></svg></span>",
+        "thumbnailsDOM": "<div class=\"css-slider-dot-navigation\" style=\"display:none;--size:3\"></div>"
+      }'
+      class="css-slider css-slider--bottom-navigation"
+    ><div class="grid  grid--slider  grid-3 grid-lap-2 grid-palm-1 grid-palm-1 grid--align-items-stretch">
+<div id="element-image_E4DLdJ" class="card card--animation text-align--center js-slider-item" ><div 
+                class="card__image"
+                style="padding-top:66.66666666666667%"
+              ><figure 
+	class="lazy-image 
+		 lazy-image--background 
+		
+		
+		lazy-image--animation lazy-image--to-reveal
+	" 
+	 data-ratio="1.5" style="padding-top: 66.66666666666667%" 
+	data-crop="false"
+>
+
+	 
+	<img
+	  src="//ninja-transfers-cdn.imgix.net/DTFProcessStep1_e7e97544-6a36-4976-8bb2-ce38a097a9c5.png?auto=format,compress&v=1769635090&w=480" alt="Upload Your Design &amp; Order Online"
+	  srcset=",//ninja-transfers-cdn.imgix.net/DTFProcessStep1_e7e97544-6a36-4976-8bb2-ce38a097a9c5.png?crop=center&h=240&auto=format,compress&v=1769635090&w=360 360w,//ninja-transfers-cdn.imgix.net/DTFProcessStep1_e7e97544-6a36-4976-8bb2-ce38a097a9c5.png?crop=center&h=280&auto=format,compress&v=1769635090&w=420 420w,//ninja-transfers-cdn.imgix.net/DTFProcessStep1_e7e97544-6a36-4976-8bb2-ce38a097a9c5.png?crop=center&h=320&auto=format,compress&v=1769635090&w=480 480w,//ninja-transfers-cdn.imgix.net/DTFProcessStep1_e7e97544-6a36-4976-8bb2-ce38a097a9c5.png?crop=center&h=427&auto=format,compress&v=1769635090&w=640 640w,//ninja-transfers-cdn.imgix.net/DTFProcessStep1_e7e97544-6a36-4976-8bb2-ce38a097a9c5.png?crop=center&h=560&auto=format,compress&v=1769635090&w=840 840w,//ninja-transfers-cdn.imgix.net/DTFProcessStep1_e7e97544-6a36-4976-8bb2-ce38a097a9c5.png?crop=center&h=720&auto=format,compress&v=1769635090&w=1080 1080w"
+      class="img "
+	  width="1186"
+	  height="800"
+		data-ratio="1.5"
+	  sizes="(max-width: 767px) calc(100vw - 20px), (max-width: 1400px) 33vw, 466px"
+		
+			loading="lazy"
+		
+		
+		
+		onload="this.parentNode.classList.add('lazyloaded');imageReveal.observe(this.parentNode);"
+ 	/>
+
+</figure></div>
+              
+                <div class="gutter--regular spacing--small remove-empty-space text-align--center"><div>
+                      <h2 class="text-font--primary text-size--large" style="margin-bottom:0">
+                        <span class="text-animation--underline-thin">Upload Your Design &amp; Order Online</span>
+                      </h2>
+                    </div><div class="text-size--small text-color--opacity">From simple graphics to high-detail artwork, upload any design with unlimited colors. We convert it into a high-quality DTF transfer, ready to press.</div></div>
+              
+</div>
+<style data-shopify>
+    #element-image_E4DLdJ {
+      --color-borders-cards: #ffffff;
+    }
+  </style>
+<style data-shopify>
+    #element-image_E4DLdJ {
+      --border-radius-cards: 12px;
+    }
+  </style>
+
+<div id="element-image_4aXLLA" class="card card--animation text-align--center js-slider-item" ><div 
+                class="card__image"
+                style="padding-top:66.66666666666667%"
+              ><figure 
+	class="lazy-image 
+		 lazy-image--background 
+		
+		
+		lazy-image--animation lazy-image--to-reveal
+	" 
+	 data-ratio="1.5" style="padding-top: 66.66666666666667%" 
+	data-crop="false"
+>
+
+	 
+	<img
+	  src="//ninja-transfers-cdn.imgix.net/NTStep2.png?auto=format,compress&v=1771530653&w=480" alt="Print &amp; Shipped in 24–48 Hours"
+	  srcset=",//ninja-transfers-cdn.imgix.net/NTStep2.png?crop=center&h=240&auto=format,compress&v=1771530653&w=360 360w,//ninja-transfers-cdn.imgix.net/NTStep2.png?crop=center&h=280&auto=format,compress&v=1771530653&w=420 420w,//ninja-transfers-cdn.imgix.net/NTStep2.png?crop=center&h=320&auto=format,compress&v=1771530653&w=480 480w,//ninja-transfers-cdn.imgix.net/NTStep2.png?crop=center&h=427&auto=format,compress&v=1771530653&w=640 640w,//ninja-transfers-cdn.imgix.net/NTStep2.png?crop=center&h=560&auto=format,compress&v=1771530653&w=840 840w,//ninja-transfers-cdn.imgix.net/NTStep2.png?crop=center&h=720&auto=format,compress&v=1771530653&w=1080 1080w"
+      class="img "
+	  width="1186"
+	  height="800"
+		data-ratio="1.5"
+	  sizes="(max-width: 767px) calc(100vw - 20px), (max-width: 1400px) 33vw, 466px"
+		
+			loading="lazy"
+		
+		
+		
+		onload="this.parentNode.classList.add('lazyloaded');imageReveal.observe(this.parentNode);"
+ 	/>
+
+</figure></div>
+              
+                <div class="gutter--regular spacing--small remove-empty-space text-align--center"><div>
+                      <h2 class="text-font--primary text-size--large" style="margin-bottom:0">
+                        <span class="text-animation--underline-thin">Print &amp; Shipped in 24–48 Hours</span>
+                      </h2>
+                    </div><div class="text-size--small text-color--opacity">We produce your transfer using our proprietary DTF process for sharp detail, vibrant color, and consistent, professional-grade results.</div></div>
+              
+</div>
+<style data-shopify>
+    #element-image_4aXLLA {
+      --color-borders-cards: #ffffff;
+    }
+  </style>
+<style data-shopify>
+    #element-image_4aXLLA {
+      --border-radius-cards: 12px;
+    }
+  </style>
+
+<div id="element-image_wCf3Hg" class="card card--animation text-align--center js-slider-item" ><div 
+                class="card__image"
+                style="padding-top:66.66666666666667%"
+              ><figure 
+	class="lazy-image 
+		 lazy-image--background 
+		
+		
+		lazy-image--animation lazy-image--to-reveal
+	" 
+	 data-ratio="1.5" style="padding-top: 66.66666666666667%" 
+	data-crop="false"
+>
+
+	 
+	<img
+	  src="//ninja-transfers-cdn.imgix.net/NT_Step_3.png?auto=format,compress&v=1771528573&w=480" alt="Heat Press or Iron when Ready"
+	  srcset=",//ninja-transfers-cdn.imgix.net/NT_Step_3.png?crop=center&h=240&auto=format,compress&v=1771528573&w=360 360w,//ninja-transfers-cdn.imgix.net/NT_Step_3.png?crop=center&h=280&auto=format,compress&v=1771528573&w=420 420w,//ninja-transfers-cdn.imgix.net/NT_Step_3.png?crop=center&h=320&auto=format,compress&v=1771528573&w=480 480w,//ninja-transfers-cdn.imgix.net/NT_Step_3.png?crop=center&h=427&auto=format,compress&v=1771528573&w=640 640w,//ninja-transfers-cdn.imgix.net/NT_Step_3.png?crop=center&h=560&auto=format,compress&v=1771528573&w=840 840w,//ninja-transfers-cdn.imgix.net/NT_Step_3.png?crop=center&h=720&auto=format,compress&v=1771528573&w=1080 1080w"
+      class="img "
+	  width="1186"
+	  height="800"
+		data-ratio="1.5"
+	  sizes="(max-width: 767px) calc(100vw - 20px), (max-width: 1400px) 33vw, 466px"
+		
+			loading="lazy"
+		
+		
+		
+		onload="this.parentNode.classList.add('lazyloaded');imageReveal.observe(this.parentNode);"
+ 	/>
+
+</figure></div>
+              
+                <div class="gutter--regular spacing--small remove-empty-space text-align--center"><div>
+                      <h2 class="text-font--primary text-size--large" style="margin-bottom:0">
+                        <span class="text-animation--underline-thin">Heat Press or Iron when Ready</span>
+                      </h2>
+                    </div><div class="text-size--small text-color--opacity">Press at 310°F / 155°C with medium pressure for 12–15 seconds. Repress for 5 seconds for maximum durability. Unused transfers store long-term without loss of quality.</div></div>
+              
+</div>
+<style data-shopify>
+    #element-image_wCf3Hg {
+      --color-borders-cards: #ffffff;
+    }
+  </style>
+<style data-shopify>
+    #element-image_wCf3Hg {
+      --border-radius-cards: 12px;
+    }
+  </style>
+
+
+  </div></css-slider></div>
+
+<style>
+  
+  
+</style>
+
+
+<style> #shopify-section-template--19643135131731__text_columns_images_mCMNp3 .text-font--primary.text-size--large {font-weight: 600;} </style></div><div id="shopify-section-template--19643135131731__ss_video_with_text_2_fjp89E" class="shopify-section">
+<style data-shopify>.section-template--19643135131731__ss_video_with_text_2_fjp89E {
+    border-top: solid #000000 0px;
+    border-bottom: solid #000000 0px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    margin-left: 0rem;
+    margin-right: 0rem;
+    border-radius: 0px;
+    overflow: hidden;
+  }
+  
+  .section-template--19643135131731__ss_video_with_text_2_fjp89E-settings {
+    margin: 0 auto;
+    padding-top: 27px;
+    padding-bottom: 27px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .video-body-template--19643135131731__ss_video_with_text_2_fjp89E {
+    display: grid;
+  }
+
+  .video-content-template--19643135131731__ss_video_with_text_2_fjp89E {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: start;
+    padding: 40px 20px;
+    grid-area: content;
+  }
+
+  .video-media-template--19643135131731__ss_video_with_text_2_fjp89E {
+    position: relative;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.25s ease 0s;
+    box-sizing: border-box !important;
+    grid-area: video;
+  }
+
+  .video-media-template--19643135131731__ss_video_with_text_2_fjp89E img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    margin: 0;
+    border: 0;
+    box-shadow: 0;
+  }
+  
+  @media(min-width: 1024px) {
+
+    .section-template--19643135131731__ss_video_with_text_2_fjp89E {
+      margin-top: 0px;
+      margin-bottom: 0px;
+      margin-left: 0rem;
+      margin-right: 0rem;
+      border-radius: 0px;
+    }
+    
+    .section-template--19643135131731__ss_video_with_text_2_fjp89E-settings {
+      padding: 0 5rem;
+      padding-top: 36px;
+      padding-bottom: 36px;
+      padding-left: 5rem;
+      padding-right: 5rem;
+    }
+
+    .video-content-template--19643135131731__ss_video_with_text_2_fjp89E {
+      justify-content: center;
+      align-items: start;
+      padding: 20px 50px;      
+    }
+  }</style>
+  <style>
+    .section-template--19643135131731__ss_video_with_text_2_fjp89E-settings {
+      max-width: 1500px;
+    }
+  </style>
+
+
+
+
+
+
+
+  <style>
+    .video-media-template--19643135131731__ss_video_with_text_2_fjp89E {
+      aspect-ratio: auto;
+    }
+  </style>
+ 
+
+
+  <style>
+    @media (min-width: 1024px) {
+      .video-media-template--19643135131731__ss_video_with_text_2_fjp89E {
+        aspect-ratio: auto;
+      }
+    }
+    
+  </style>
+ 
+
+
+  <style>
+    .video-body-template--19643135131731__ss_video_with_text_2_fjp89E {
+      grid-template-columns: 1fr;
+      grid-template-areas: 
+        "video" 
+        "content"; 
+      height: 100%;
+    }
+  </style>
+
+
+  
+  
+    <style>
+      @media (min-width: 1024px) {
+        .video-body-template--19643135131731__ss_video_with_text_2_fjp89E {
+          grid-template-columns: 1fr 50%;
+          grid-template-areas: "content video";
+        }
+      }
+    </style>
+    
+
+
+
+    
+      <style>
+        @font-face {
+  font-family: Inter;
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("//ninjatransfers.com/cdn/fonts/inter/inter_n7.02711e6b374660cfc7915d1afc1c204e633421e4.woff2") format("woff2"),
+       url("//ninjatransfers.com/cdn/fonts/inter/inter_n7.6dab87426f6b8813070abd79972ceaf2f8d3b012.woff") format("woff");
+}
+
+
+        .video-heading-heading_T9CzM8 {
+          margin-top: 26px;
+          text-align: start;
+          position: relative;
+          z-index: 2;
+        }
+      
+        .video-heading-heading_T9CzM8 * {
+          margin: 0;
+          font-size: 24px;
+          color: #000000;
+          line-height: 130%;
+          text-transform: unset;
+        }
+
+        @media(min-width: 1024px) {
+          
+          .video-heading-heading_T9CzM8 {
+            margin-top: 26px;
+            text-align: start;
+          }
+        
+          .video-heading-heading_T9CzM8 * {
+            font-size: 32px;
+          }
+        }          
+      </style>
+        
+      
+        <style>
+          .video-heading-heading_T9CzM8 * {
+            font-family: Inter, sans-serif;
+            font-weight: 700;
+            font-style: normal;
+          }
+        </style>
+      
+
+    
+
+     
+      <style>
+        @font-face {
+  font-family: "Josefin Sans";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("//ninjatransfers.com/cdn/fonts/josefin_sans/josefinsans_n4.70f7efd699799949e6d9f99bc20843a2c86a2e0f.woff2") format("woff2"),
+       url("//ninjatransfers.com/cdn/fonts/josefin_sans/josefinsans_n4.35d308a1bdf56e5556bc2ac79702c721e4e2e983.woff") format("woff");
+}
+
+        
+        .video-text-text_kE9MGM {
+          margin-top: 18px;
+          text-align: start;
+          position: relative;
+          z-index: 2;
+        }
+      
+        .video-text-text_kE9MGM * {
+          margin: 0;
+          font-size: 14px;
+          color: #000000;
+          line-height: 170%;
+          text-transform: unset;
+        }
+
+        @media(min-width: 1024px) {
+          
+          .video-text-text_kE9MGM {
+            margin-top: 18px;
+            text-align: start;
+          }
+      
+          .video-text-text_kE9MGM * {
+            font-size: 15px;
+          }
+          
+        }
+      </style>
+
+        
+
+    
+
+    
+      <style>
+        @font-face {
+  font-family: Inter;
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("//ninjatransfers.com/cdn/fonts/inter/inter_n7.02711e6b374660cfc7915d1afc1c204e633421e4.woff2") format("woff2"),
+       url("//ninjatransfers.com/cdn/fonts/inter/inter_n7.6dab87426f6b8813070abd79972ceaf2f8d3b012.woff") format("woff");
+}
+
+
+        .video-button-button_B6fGAC {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          max-width: fit-content;
+          gap: 10px;
+          width: 100%;
+          margin: 0;
+          margin-top: 30px;
+          font-size: 14px;
+          color: #ffffff;
+          line-height: 100%;
+          text-align: center;
+          text-transform: unset;
+          text-decoration: none;
+          padding: 16px 24px;
+          border-radius: 8px;
+          transition: all 0.3s ease 0s;
+          background-color: transparent;
+          border: 0px;
+          cursor: pointer;
+        }
+
+        .video-button-inner-button_B6fGAC {
+          margin: 0px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          text-decoration: none;
+        }
+
+        .video-button-button_B6fGAC:hover {
+          color: #ffffff;
+          transition: all 0.25s ease 0s;
+        }
+
+        .video-button-button_B6fGAC svg {
+          width: 14px;
+          height: 14px;
+        }
+
+        .video-button-button_B6fGAC svg path {
+          fill: #ffffff;
+          transition: all 0.25s ease 0s;
+        }
+
+        .video-button-button_B6fGAC:hover svg path {
+          fill: #ffffff;
+          transition: all 0.25s ease 0s;
+        }
+
+        @media (min-width: 1024px) {
+          .video-button-button_B6fGAC {
+            margin-top: 30px;
+            padding: 16px 24px;
+            font-size: 14px;
+          }
+        }
+      </style>
+
+        
+
+      
+        <style>
+          .video-button-button_B6fGAC {
+            font-family: Inter, sans-serif;
+            font-weight: 700;
+            font-style: normal;
+          }
+        </style>
+      
+
+      
+        <style>
+          .video-button-button_B6fGAC {
+            transition: all 0.3s ease 0s;
+            background-color: #019aff;
+          }
+      
+          .video-button-button_B6fGAC:hover {
+            transition: all 0.3s ease 0s;
+            background-color: #0180c2;
+          }
+        </style>
+         
+  
+
+
+<div class="section-template--19643135131731__ss_video_with_text_2_fjp89E video-template--19643135131731__ss_video_with_text_2_fjp89E" style="background-color:#fafafa; background-image: ;">
+    <div class="section-template--19643135131731__ss_video_with_text_2_fjp89E-settings">
+      <div class="video-body-template--19643135131731__ss_video_with_text_2_fjp89E">
+        <div class="video-content-template--19643135131731__ss_video_with_text_2_fjp89E">
+          
+            
+                
+                  <div class="video-heading-heading_T9CzM8">
+                    <h3>Pressing DTF Transfers Has Never Been Easier</h3>
+                  </div>
+                    
+                
+          
+            
+              
+                
+                  <div class="video-text-text_kE9MGM">
+                    <p>With our proprietary Ninja Peel Technology, our DTF Transfers give you professional results in just 13 seconds. Now you can press on Anything!</p>
+                  </div>
+                   
+              
+          
+            
+              
+                                 
+                  <a href="/pages/heat-press-instructions-for-dtf-transfers" class="video-button-button_B6fGAC">
+                    <p class="video-button-inner-button_B6fGAC">
+                      See Pressing Instructions
+                      
+                    </p>
+                  </a>     
+                   
+            
+          
+        </div>
+        <div class="video-media-template--19643135131731__ss_video_with_text_2_fjp89E">
+          
+          
+
+              <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/DTF_Ninja_Peel.png?v=1747077033"
+                   alt="DTF transfer being pressed with Ninja Peel technology"
+                   width="640"
+                   height="480"
+                   loading="lazy"
+                   decoding="async">
+          
+        </div>
+      </div>
+    </div>
+</div>
+                            
+
+
+
+
+</div><div id="shopify-section-template--19643135131731__1747843825072ee6f9" class="shopify-section">
+
+
+<style data-shopify>
+  .ai-product-grid-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    width: 100%;
+    max-width: 1350px;
+    margin: 0 auto;
+    padding: 60px 20px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-grid-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+      padding: 40px 16px;
+    }
+  }
+
+  .ai-product-grid-heading-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    font-size: 32px;
+    text-align: left;
+    margin-bottom: 40px;
+    color: #000000;
+    font-weight: 600;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-grid-heading-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+      font-size: 22px;
+      text-align: center;
+      margin-bottom: 24px;
+      
+    }
+  }
+
+  
+
+  .ai-product-grid-container-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  @media screen and (max-width: 989px) {
+    .ai-product-grid-container-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-grid-container-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+      grid-template-columns: repeat(1, 1fr);
+      gap: 20px;
+    }
+  }
+
+  .ai-product-card-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 14px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    
+  }
+
+  .ai-product-card-aslfrwefpteevwxdaraigenblock5264ec0kanyw8:hover {
+    transform: translateY(-4px);
+    
+  }
+
+  .ai-product-card-pill-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    position: absolute;
+    z-index: 2;
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-card-pill-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+      
+    }
+  }
+
+  
+
+  .ai-product-card-image-wrapper-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    position: relative;
+    width: 100%;
+    padding-bottom: 90%;
+    overflow: hidden;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+
+  .ai-product-card-image-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-product-card-placeholder-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-product-card-placeholder-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 svg {
+    width: 50%;
+    height: 50%;
+    opacity: 0.3;
+  }
+
+  .ai-product-card-content-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    text-align: left;
+  }
+
+  .ai-product-card-title-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .ai-product-card-price-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #17af14;
+    margin-bottom: 8px;
+  }
+
+  .ai-product-card-subtext-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    font-size: 14px;
+    color: #666666;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  .ai-product-card-cta-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 26px;
+    background-color: #019aff;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    margin-top: auto;
+    
+      align-self: flex-start;
+    
+  }
+
+  .ai-product-card-cta-aslfrwefpteevwxdaraigenblock5264ec0kanyw8:hover {
+    background-color: #0074c1;
+    color: #ffffff;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-card-cta-aslfrwefpteevwxdaraigenblock5264ec0kanyw8 {
+      
+    }
+  }
+
+  
+</style>
+
+<div class="ai-product-grid-aslfrwefpteevwxdaraigenblock5264ec0kanyw8" >
+  
+    <h2 class="ai-product-grid-heading-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">Select the DTF Product That Works Best for You</h2>
+  
+
+  <div class="ai-product-grid-container-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">
+    
+      
+
+      
+        <a
+          href="/products/dtf-transfers"
+          class="ai-product-card-aslfrwefpteevwxdaraigenblock5264ec0kanyw8"
+          
+        >
+          
+            <span
+              class="ai-product-card-pill-aslfrwefpteevwxdaraigenblock5264ec0kanyw8"
+              style="background-color: #019aff; color: #ffffff; top: 26px; left: 26px;"
+            >
+              Most Popular
+            </span>
+          
+
+          <div class="ai-product-card-image-wrapper-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">
+            
+              <img
+                src="//ninja-transfers-cdn.imgix.net/DTF-transfers-by-size-v2-4.png?auto=format,compress&v=1761761472&w=640"
+                alt="DTF Transfers By Size"
+                class="ai-product-card-image-aslfrwefpteevwxdaraigenblock5264ec0kanyw8"
+                loading="lazy"
+                width="800"
+                height="720"
+              >
+            
+          </div>
+
+          <div class="ai-product-card-content-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">
+            
+              <h3 class="ai-product-card-title-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">DTF Transfers By Size</h3>
+            
+
+            
+              <div class="ai-product-card-price-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">As low as $0.02 per sq. inch</div>
+            
+
+            
+              <div class="ai-product-card-subtext-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">Print any design on any garment, material, or color with incredible durability. By Size makes ordering simple.</div>
+            
+
+            
+              <span class="ai-product-card-cta-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">
+                Upload Designs
+              </span>
+            
+          </div>
+        </a>
+      
+    
+      
+
+      
+        <a
+          href="/products/build-your-own-gang-sheet"
+          class="ai-product-card-aslfrwefpteevwxdaraigenblock5264ec0kanyw8"
+          
+        >
+          
+            <span
+              class="ai-product-card-pill-aslfrwefpteevwxdaraigenblock5264ec0kanyw8"
+              style="background-color: #019aff; color: #ffffff; top: 26px; left: 26px;"
+            >
+              Easily Design & Build Online
+            </span>
+          
+
+          <div class="ai-product-card-image-wrapper-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">
+            
+              <img
+                src="//ninja-transfers-cdn.imgix.net/product-hero-gangsheet-builder-notext_1.png?auto=format,compress&v=1763572576&w=640"
+                alt="Build a DTF Gang Sheet"
+                class="ai-product-card-image-aslfrwefpteevwxdaraigenblock5264ec0kanyw8"
+                loading="lazy"
+                width="800"
+                height="720"
+              >
+            
+          </div>
+
+          <div class="ai-product-card-content-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">
+            
+              <h3 class="ai-product-card-title-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">Build a DTF Gang Sheet</h3>
+            
+
+            
+              <div class="ai-product-card-price-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">As low as $0.02 per sq. inch</div>
+            
+
+            
+              <div class="ai-product-card-subtext-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">Create custom DTF gang sheets with our easy-to-use Ninja Gang Sheet Builder.</div>
+            
+
+            
+              <span class="ai-product-card-cta-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">
+                Build a DTF Gang Sheet
+              </span>
+            
+          </div>
+        </a>
+      
+    
+      
+
+      
+        <a
+          href="/products/premium-dtf-gang-sheets"
+          class="ai-product-card-aslfrwefpteevwxdaraigenblock5264ec0kanyw8"
+          
+        >
+          
+            <span
+              class="ai-product-card-pill-aslfrwefpteevwxdaraigenblock5264ec0kanyw8"
+              style="background-color: #019aff; color: #ffffff; top: 26px; left: 26px;"
+            >
+              For Pros - Print Ready Files
+            </span>
+          
+
+          <div class="ai-product-card-image-wrapper-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">
+            
+              <img
+                src="//ninja-transfers-cdn.imgix.net/product-hero-gangsheet-upload-notext_1.png?auto=format,compress&v=1763572865&w=640"
+                alt="Upload a DTF Gang Sheet"
+                class="ai-product-card-image-aslfrwefpteevwxdaraigenblock5264ec0kanyw8"
+                loading="lazy"
+                width="800"
+                height="720"
+              >
+            
+          </div>
+
+          <div class="ai-product-card-content-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">
+            
+              <h3 class="ai-product-card-title-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">Upload a DTF Gang Sheet</h3>
+            
+
+            
+              <div class="ai-product-card-price-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">As low as $0.02 per sq. inch</div>
+            
+
+            
+              <div class="ai-product-card-subtext-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">Upload your ready-to-print template (AI, PNG, PDF) to create vibrant and durable Ninja DTF Gang Sheets.</div>
+            
+
+            
+              <span class="ai-product-card-cta-aslfrwefpteevwxdaraigenblock5264ec0kanyw8">
+                Upload DTF Gang Sheet
+              </span>
+            
+          </div>
+        </a>
+      
+    
+      
+
+      
+    
+      
+
+      
+    
+      
+
+      
+    
+      
+
+      
+    
+      
+
+      
+    
+      
+
+      
+    
+      
+
+      
+    
+      
+
+      
+    
+      
+
+      
+    
+  </div>
+</div>
+
+
+
+</div><div id="shopify-section-template--19643135131731__176530172991cf1430" class="shopify-section">
+
+
+<style data-shopify>
+  .ai-features-section-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    background-color: #ffffff;
+    padding: 200px 0;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-section-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+      padding: 40px 0;
+    }
+  }
+
+  .ai-features-container-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 20px;
+    
+  }
+
+  .ai-features-header-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-header-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+      margin-bottom: 30px;
+    }
+  }
+
+  .ai-features-heading-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    font-family: Inter, sans-serif;
+    font-weight: 700;
+    font-size: 32px;
+    color: #000000;
+    margin: 0 0 16px;
+    line-height: 1.2;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-heading-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+      font-size: 32px;
+    }
+  }
+
+  .ai-features-subheading-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    font-family: Inter, sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    color: #666666;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-subheading-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+      font-size: 16px;
+    }
+  }
+
+  .ai-features-grid-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-grid-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+  }
+
+  .ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    position: relative;
+    height: 360px;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.4s ease;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+      height: 250px;
+      border-radius: 12px;
+    }
+  }
+
+  
+    .ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4:hover {
+      transform: scale(1.05);
+    }
+  
+
+  .ai-features-card-media-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .ai-features-card-image-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.4s ease;
+  }
+
+  .ai-features-card-image-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    opacity: 1;
+  }
+
+
+  .ai-features-card-overlay-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    
+      background: linear-gradient(to top, #000000, transparent);
+      opacity: 1;
+    
+    pointer-events: none;
+  }
+
+  .ai-features-card-content-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 24px;
+    z-index: 2;
+    display: flex;
+    align-items: flex-end;
+    min-height: 120px;
+  }
+
+  .ai-features-card-text-wrapper-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    position: relative;
+    width: 100%;
+  }
+
+  .ai-features-card-title-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    font-family: Inter, sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.3;
+    opacity: 1;
+    transition: opacity 0.4s ease;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-card-title-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+      font-size: 18px;
+    }
+  }
+
+  .ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4:hover .ai-features-card-title-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    opacity: 0;
+  }
+
+  .ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4.active .ai-features-card-title-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    opacity: 0;
+  }
+
+  .ai-features-card-subtitle-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    font-family: Inter, sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    color: #e0e0e0;
+    margin: 0;
+    line-height: 1.4;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-card-subtitle-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+      font-size: 14px;
+    }
+  }
+
+  .ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4:hover .ai-features-card-subtitle-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    opacity: 1;
+  }
+
+  .ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4.active .ai-features-card-subtitle-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    opacity: 1;
+  }
+
+  .ai-features-card-placeholder-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-features-card-placeholder-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 svg {
+    width: 100%;
+    height: 100%;
+    max-width: 200px;
+    max-height: 200px;
+  }
+</style>
+
+<feature-cards-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4 class="ai-features-section-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4" >
+  <div class="ai-features-container-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+    
+      <div class="ai-features-header-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+        
+          <h2 class="ai-features-heading-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">Features of our DTF Transfers</h2>
+        
+        
+          <p class="ai-features-subheading-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">No more second guessing your artwork, style, or colors. Our premium DTF transfers are brighter, sharper, stretchier, and more durable than any other company.</p>
+        
+      </div>
+    
+
+    <div class="ai-features-grid-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+      
+        
+
+        <div class="ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4" data-card-id="1">
+          <div class="ai-features-card-media-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+            
+              <img
+                src="//ninja-transfers-cdn.imgix.net/space-girl-Edit.jpg?auto=format,compress&v=1743109792&w=640"
+                alt=""
+                class="ai-features-card-image-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4"
+                loading="lazy"
+                width="800"
+                height="600"
+              >
+            
+
+            
+            
+          </div>
+
+          <div class="ai-features-card-overlay-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4"></div>
+
+          <div class="ai-features-card-content-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+            <div class="ai-features-card-text-wrapper-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+              
+                <h3 class="ai-features-card-title-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">Incredible Image Quality</h3>
+              
+              
+                <p class="ai-features-card-subtitle-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">Our DTF inks deliver richer colors and a wider gamut, with weekly G7-certified calibration for precise, high-quality DTF transfers.</p>
+              
+            </div>
+          </div>
+        </div>
+      
+        
+
+        <div class="ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4" data-card-id="2">
+          <div class="ai-features-card-media-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+            
+              <img
+                src="//ninja-transfers-cdn.imgix.net/sharp_detail_dtf.png?auto=format,compress&v=1746480706&w=640"
+                alt=""
+                class="ai-features-card-image-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4"
+                loading="lazy"
+                width="800"
+                height="600"
+              >
+            
+
+            
+            
+          </div>
+
+          <div class="ai-features-card-overlay-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4"></div>
+
+          <div class="ai-features-card-content-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+            <div class="ai-features-card-text-wrapper-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+              
+                <h3 class="ai-features-card-title-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">Super Fine Details</h3>
+              
+              
+                <p class="ai-features-card-subtitle-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">Our transfers capture details as fine as 3 pixels, delivering cleaner edges and sharper text—even on separated elements.</p>
+              
+            </div>
+          </div>
+        </div>
+      
+        
+
+        <div class="ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4" data-card-id="3">
+          <div class="ai-features-card-media-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+            
+              <img
+                src="//ninja-transfers-cdn.imgix.net/Any_Fabric.png?auto=format,compress&v=1773349583&w=640"
+                alt=""
+                class="ai-features-card-image-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4"
+                loading="lazy"
+                width="800"
+                height="600"
+              >
+            
+
+            
+            
+          </div>
+
+          <div class="ai-features-card-overlay-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4"></div>
+
+          <div class="ai-features-card-content-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+            <div class="ai-features-card-text-wrapper-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+              
+                <h3 class="ai-features-card-title-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">Works on All Fabrics</h3>
+              
+              
+                <p class="ai-features-card-subtitle-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">Any fabric. Any design. Ninja Transfers deliver vibrant, long-lasting prints with one clean press.</p>
+              
+            </div>
+          </div>
+        </div>
+      
+        
+
+        <div class="ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4" data-card-id="4">
+          <div class="ai-features-card-media-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+            
+              <img
+                src="//ninja-transfers-cdn.imgix.net/Diff_Shirt_Same_Design.png?auto=format,compress&v=1692129683&w=640"
+                alt=""
+                class="ai-features-card-image-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4"
+                loading="lazy"
+                width="800"
+                height="600"
+              >
+            
+
+            
+            
+          </div>
+
+          <div class="ai-features-card-overlay-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4"></div>
+
+          <div class="ai-features-card-content-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+            <div class="ai-features-card-text-wrapper-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">
+              
+                <h3 class="ai-features-card-title-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">Any Design on Any Color</h3>
+              
+              
+                <p class="ai-features-card-subtitle-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4">DTF transfers are easier, cleaner, brighter, more durable, and more flexible than any transfer you've worked with before.</p>
+              
+            </div>
+          </div>
+        </div>
+      
+    </div>
+  </div>
+</feature-cards-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4>
+
+<script>
+  (function() {
+    class FeatureCardsauvbnauzumhj3uhordaigenblockcbc731fkkzyf4 extends HTMLElement {
+      constructor() {
+        super();
+        this.isMobile = window.matchMedia('(max-width: 749px)').matches;
+      }
+
+      connectedCallback() {
+        this.cards = this.querySelectorAll('.ai-features-card-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4');
+        this.setupEventListeners();
+      }
+
+      setupEventListeners() {
+        this.cards.forEach((card) => {
+          const video = card.querySelector('.ai-features-card-video-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4');
+          
+          if (this.isMobile) {
+            card.addEventListener('click', () => {
+              const isActive = card.classList.contains('active');
+              
+              this.cards.forEach((c) => {
+                c.classList.remove('active');
+                const v = c.querySelector('.ai-features-card-video-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4');
+                if (v) {
+                  v.pause();
+                  v.currentTime = 0;
+                }
+              });
+
+              if (!isActive) {
+                card.classList.add('active');
+                if (video) {
+                  video.play();
+                }
+              }
+            });
+          } else {
+            card.addEventListener('mouseenter', () => {
+              if (video) {
+                video.play();
+              }
+            });
+
+            card.addEventListener('mouseleave', () => {
+              if (video) {
+                video.pause();
+                video.currentTime = 0;
+              }
+            });
+          }
+        });
+      }
+    }
+
+    customElements.define('feature-cards-auvbnauzumhj3uhordaigenblockcbc731fkkzyf4', FeatureCardsauvbnauzumhj3uhordaigenblockcbc731fkkzyf4);
+  })();
+</script>
+
+
+
+
+<style data-shopify>
+  .ai-height-section-aetdiduq5zmfbsnpkdaigenblock1b0a628kwmdnn {
+    width: 100%;
+    height: 2vh;
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .ai-height-section-content-aetdiduq5zmfbsnpkdaigenblock1b0a628kwmdnn {
+    max-width: 800px;
+    text-align: center;
+    color: #000000;
+  }
+
+  .ai-height-section-heading-aetdiduq5zmfbsnpkdaigenblock1b0a628kwmdnn {
+    font-size: 48px;
+    margin: 0 0 16px;
+    font-family: Inter, sans-serif;
+    font-weight: 700;
+    font-style: normal;
+  }
+
+  .ai-height-section-text-aetdiduq5zmfbsnpkdaigenblock1b0a628kwmdnn {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-height-section-aetdiduq5zmfbsnpkdaigenblock1b0a628kwmdnn {
+      height: 2vh;
+    }
+
+    .ai-height-section-heading-aetdiduq5zmfbsnpkdaigenblock1b0a628kwmdnn {
+      font-size: calc(48px * 0.7);
+    }
+
+    .ai-height-section-text-aetdiduq5zmfbsnpkdaigenblock1b0a628kwmdnn {
+      font-size: calc(16px * 0.9);
+    }
+  }
+</style>
+
+<div class="ai-height-section-aetdiduq5zmfbsnpkdaigenblock1b0a628kwmdnn" >
+  <div class="ai-height-section-content-aetdiduq5zmfbsnpkdaigenblock1b0a628kwmdnn">
+    
+    
+  </div>
+</div>
+
+
+
+
+<style data-shopify>
+  .ai-features-section-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    background-color: #f2f2f2;
+    padding: 200px 0;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-section-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+      padding: 100px 0;
+    }
+  }
+
+  .ai-features-container-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 20px;
+    
+  }
+
+  .ai-features-header-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    text-align: center;
+    margin-bottom: 55px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-header-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+      margin-bottom: 30px;
+    }
+  }
+
+  .ai-features-heading-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    font-family: Inter, sans-serif;
+    font-weight: 700;
+    font-size: 32px;
+    color: #000000;
+    margin: 0 0 8px;
+    line-height: 1.2;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-heading-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+      font-size: 32px;
+    }
+  }
+
+  .ai-features-subheading-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    font-family: Inter, sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-subheading-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+      font-size: 16px;
+    }
+  }
+
+  .ai-features-grid-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-grid-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+  }
+
+  .ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    position: relative;
+    height: 360px;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.4s ease;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+      height: 250px;
+      border-radius: 12px;
+    }
+  }
+
+  
+    .ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd:hover {
+      transform: scale(1.05);
+    }
+  
+
+  .ai-features-card-media-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .ai-features-card-image-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.4s ease;
+  }
+
+  .ai-features-card-image-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    opacity: 1;
+  }
+
+
+  .ai-features-card-overlay-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    
+      background: linear-gradient(to top, #000000, transparent);
+      opacity: 1;
+    
+    pointer-events: none;
+  }
+
+  .ai-features-card-content-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 24px;
+    z-index: 2;
+    display: flex;
+    align-items: flex-end;
+    min-height: 120px;
+  }
+
+  .ai-features-card-text-wrapper-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    position: relative;
+    width: 100%;
+  }
+
+  .ai-features-card-title-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    font-family: Inter, sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.3;
+    opacity: 1;
+    transition: opacity 0.4s ease;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-card-title-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+      font-size: 18px;
+    }
+  }
+
+  .ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd:hover .ai-features-card-title-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    opacity: 0;
+  }
+
+  .ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd.active .ai-features-card-title-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    opacity: 0;
+  }
+
+  .ai-features-card-subtitle-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    font-family: Inter, sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    color: #e0e0e0;
+    margin: 0;
+    line-height: 1.4;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-features-card-subtitle-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+      font-size: 14px;
+    }
+  }
+
+  .ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd:hover .ai-features-card-subtitle-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    opacity: 1;
+  }
+
+  .ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd.active .ai-features-card-subtitle-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    opacity: 1;
+  }
+
+  .ai-features-card-placeholder-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-features-card-placeholder-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd svg {
+    width: 100%;
+    height: 100%;
+    max-width: 200px;
+    max-height: 200px;
+  }
+</style>
+
+<feature-cards-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd class="ai-features-section-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd" >
+  <div class="ai-features-container-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+    
+
+    <div class="ai-features-grid-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+      
+        
+
+        <div class="ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd" data-card-id="1">
+          <div class="ai-features-card-media-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+            
+              <img
+                src="//ninja-transfers-cdn.imgix.net/mets-fan_5860c822-8ad8-4c0d-b735-28e3d8bcfb87.jpg?auto=format,compress&v=1744150485&w=640"
+                alt=""
+                class="ai-features-card-image-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd"
+                loading="lazy"
+                width="800"
+                height="600"
+              >
+            
+
+            
+            
+          </div>
+
+          <div class="ai-features-card-overlay-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd"></div>
+
+          <div class="ai-features-card-content-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+            <div class="ai-features-card-text-wrapper-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+              
+                <h3 class="ai-features-card-title-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">No Borders Necessary</h3>
+              
+              
+                <p class="ai-features-card-subtitle-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">See the crisp, borderless quality DTF transfers offer with these prints — ideal for replacing vinyl, screen printing, sublimation, and more.</p>
+              
+            </div>
+          </div>
+        </div>
+      
+        
+
+        <div class="ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd" data-card-id="2">
+          <div class="ai-features-card-media-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+            
+              <img
+                src="//ninja-transfers-cdn.imgix.net/white_4e9dd133-ec5b-46a7-8769-aa709f327ff1.png?auto=format,compress&v=1765230652&w=640"
+                alt=""
+                class="ai-features-card-image-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd"
+                loading="lazy"
+                width="800"
+                height="600"
+              >
+            
+
+            
+            
+          </div>
+
+          <div class="ai-features-card-overlay-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd"></div>
+
+          <div class="ai-features-card-content-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+            <div class="ai-features-card-text-wrapper-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+              
+                <h3 class="ai-features-card-title-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">Crisp Bright Whites</h3>
+              
+              
+                <p class="ai-features-card-subtitle-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">Our specially formulated DTF inks deliver deeper colors, a wider color range, and the brightest white ink in the DTF industry</p>
+              
+            </div>
+          </div>
+        </div>
+      
+        
+
+        <div class="ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd" data-card-id="3">
+          <div class="ai-features-card-media-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+            
+              <img
+                src="//ninja-transfers-cdn.imgix.net/Stretchable_soft_flexible_DTF_transfers.jpg?auto=format,compress&v=1692743423&w=640"
+                alt=""
+                class="ai-features-card-image-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd"
+                loading="lazy"
+                width="800"
+                height="600"
+              >
+            
+
+            
+            
+          </div>
+
+          <div class="ai-features-card-overlay-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd"></div>
+
+          <div class="ai-features-card-content-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+            <div class="ai-features-card-text-wrapper-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+              
+                <h3 class="ai-features-card-title-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">100+ Wash Durability</h3>
+              
+              
+                <p class="ai-features-card-subtitle-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">Our DTF transfers stretch without cracking and hold up over 100+ washes, thanks to our premium film, ink, powder, and pressing process.</p>
+              
+            </div>
+          </div>
+        </div>
+      
+        
+
+        <div class="ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd" data-card-id="4">
+          <div class="ai-features-card-media-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+            
+              <img
+                src="//ninja-transfers-cdn.imgix.net/DTF_Color_and_Detail.png?auto=format,compress&v=1745861444&w=640"
+                alt=""
+                class="ai-features-card-image-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd"
+                loading="lazy"
+                width="800"
+                height="600"
+              >
+            
+
+            
+            
+          </div>
+
+          <div class="ai-features-card-overlay-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd"></div>
+
+          <div class="ai-features-card-content-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+            <div class="ai-features-card-text-wrapper-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">
+              
+                <h3 class="ai-features-card-title-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">9 Color Printing</h3>
+              
+              
+                <p class="ai-features-card-subtitle-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd">VIVID AF expands CMYK with RGBO and white to unlock 16.7 million colors, delivering brighter, more saturated prints and higher-definition detail — at no extra cost.</p>
+              
+            </div>
+          </div>
+        </div>
+      
+    </div>
+  </div>
+</feature-cards-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd>
+
+<script>
+  (function() {
+    class FeatureCardsav01kwu1ya05waxpqnaigenblockcbc731f6lwebd extends HTMLElement {
+      constructor() {
+        super();
+        this.isMobile = window.matchMedia('(max-width: 749px)').matches;
+      }
+
+      connectedCallback() {
+        this.cards = this.querySelectorAll('.ai-features-card-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd');
+        this.setupEventListeners();
+      }
+
+      setupEventListeners() {
+        this.cards.forEach((card) => {
+          const video = card.querySelector('.ai-features-card-video-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd');
+          
+          if (this.isMobile) {
+            card.addEventListener('click', () => {
+              const isActive = card.classList.contains('active');
+              
+              this.cards.forEach((c) => {
+                c.classList.remove('active');
+                const v = c.querySelector('.ai-features-card-video-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd');
+                if (v) {
+                  v.pause();
+                  v.currentTime = 0;
+                }
+              });
+
+              if (!isActive) {
+                card.classList.add('active');
+                if (video) {
+                  video.play();
+                }
+              }
+            });
+          } else {
+            card.addEventListener('mouseenter', () => {
+              if (video) {
+                video.play();
+              }
+            });
+
+            card.addEventListener('mouseleave', () => {
+              if (video) {
+                video.pause();
+                video.currentTime = 0;
+              }
+            });
+          }
+        });
+      }
+    }
+
+    customElements.define('feature-cards-av01kwu1ya05waxpqnaigenblockcbc731f6lwebd', FeatureCardsav01kwu1ya05waxpqnaigenblockcbc731f6lwebd);
+  })();
+</script>
+
+
+
+    <style>
+        .section-wrapper-adhjvtlazutdhugzrzaigenblockstarttgqwqw{background: #ffffff; padding: 80px 0px;}
+        .section-wrapper-adhjvtlazutdhugzrzaigenblockstarttgqwqw .grt-height-block{background: #ffffff;}
+        @media(max-width:768px){
+            .section-wrapper-adhjvtlazutdhugzrzaigenblockstarttgqwqw{padding: 40px 0px;}
+        }
+    </style>
+    
+    
+        </div>
+    
+
+
+
+
+</div><div id="shopify-section-template--19643135131731__media_with_text_overlay_FAzPK4" class="shopify-section mount-video-background supports-absolute-header"><div id="section-template--19643135131731__media_with_text_overlay_FAzPK4" class="">
+  
+  <div class="container--large remove-empty-space"></div>
+
+  <div class="container--large remove-empty-space  container--fullwidth "><div class=""><div id="element-image_ABetNd" class="card card--no-background element--height-small align-content align-content--horizontal-left align-content--vertical-middle" >
+
+            
+              <div class="container--large remove-empty-space align-content align-content--horizontal-left align-content--vertical-middle" style="z-index:9">
+            
+
+            <div class="card__text  gutter-bottom--large gutter-top--large  spacing--custom remove-empty-space" style="--spacing:18px"><span class="text-size--regular">We Understand Consistency, Quality, and Speed Matter Most</span><h3 class="text-font--heading heading-size--small">
+                  <span class=" text-animation--underline  underline-mobile">The Largest Linearized Fleet of 100+ DTF Printers</span>
+                </h3><span class="text-size--regular">G7 Color Standardized</span>
+                <br style="display: block;">
+              
+</div>
+
+            
+              </div>
+            
+
+            <div class="card__image card__image--background  card__image--with-overlay  card__image--with-overlay-forced  " aria-hidden="true">
+
+                <div id="video-background-template--19643135131731__media_with_text_overlay_FAzPK4-image_ABetNd" class="video-background" style="display:block">
+                  <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Printers.png?v=1777388492"
+                       alt="Ninja Transfers' DTF printer fleet — the largest linearized DTF printing facility"
+                       width="1918"
+                       height="376"
+                       loading="lazy"
+                       decoding="async"
+                       class="video-text__static-image">
+
+                </div></div><style data-shopify>
+    #element-image_ABetNd {
+      --color-background-cards: #000000;
+    }
+  </style>
+<style data-shopify>
+    #element-image_ABetNd {
+      --color-text-cards: #ffffff;
+      --color-foreground-cards: #000;
+      --color-secondary-text-cards: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+<style data-shopify>
+    #element-image_ABetNd {
+      --color-borders-cards: none;
+    }
+  </style>
+</div>
+
+      </div></div>
+  
+</div>
+
+<style data-shopify>
+  @media screen and (min-width: 640px) {
+    #section-template--19643135131731__media_with_text_overlay_FAzPK4 .card__text {
+      max-width: 90%;
+    }
+  }
+</style>
+
+
+<style> #shopify-section-template--19643135131731__media_with_text_overlay_FAzPK4 {padding-top: 60px;} </style></div><div id="shopify-section-template--19643135131731__faq_home_CzVrEU" class="shopify-section can-be-fullwidth merged-section supports-absolute-header">
+
+
+  <div class="container--large">
+    <div class="faqHome">
+      
+        <h2 class="faqHome__title">
+          Frequently Asked Questions
+        </h2>
+      
+
+      <div class="faqHome__wrap"><div class="faqHome__item " bid="qa_39YHdB">
+            <question>
+              What is a DTF transfer?
+            </question>
+            <answer>DTF stands for Direct-to-Film, a printing method where your design is printed onto a special film and then heat pressed onto a garment. DTF transfers work on a wide range of fabrics—including cotton, polyester, blends, and more—and can be applied in about 12-15 seconds with a heat press.</answer>
+          </div><div class="faqHome__item " bid="qa_BrRrWw">
+            <question>
+              What is the minimum I can order?
+            </question>
+            <answer>No Minimums! Whether you need 1 or 100,000 we can do it!</answer>
+          </div><div class="faqHome__item " bid="qa_8ERyRm">
+            <question>
+              What kind of press do I need?
+            </question>
+            <answer>You can use the iron you have lying around your house or an industrial level heat press or anything in between. Learn more on our <a href="https://ninjatransfers.com/pages/application-instructions-for-dtf-transfers-heat-sources" title="Application Instructions for DTF Transfers | Heat Sources">How to Press</a> page.</answer>
+          </div><div class="faqHome__item " bid="qa_w7ePqi">
+            <question>
+              What sizes are available?
+            </question>
+            <answer>We have sizes from 2" X 2" to 24" X 30 feet</answer>
+          </div><div class="faqHome__item " bid="qa_iEwBxk">
+            <question>
+              How do transfers hold up in the wash?
+            </question>
+            <answer>Ninja Transfers have been rigorously tested and verified by third party to ensure long-lasting durability. After undergoing 100 machine wash cycles (80°F, normal cycle, line dry) on a 100% cotton shirt, the transfers were evaluated for color retention, peeling, cracking, and overall integrity. The results were overwhelmingly positive, with a "Satisfactory" grade across all criteria, including negligible hand-feel change and no significant signs of delamination or print detachment.</answer>
+          </div><div class="faqHome__item " bid="qa_gtcGFy">
+            <question>
+              How quickly can I get my order?
+            </question>
+            <answer>Expedited orders ship within 24 -48 hours.</answer>
+          </div><div class="faqHome__item " bid="qa_qEe7yD">
+            <question>
+              What file format should my artwork be?
+            </question>
+            <answer>Vector art is always preferred, raster art should be at least 300 dpi. Preferred file types: .AI, .PDF Accepted files types: .JPG, .PNG</answer>
+          </div><div class="faqHome__item " bid="qa_6BdMzf">
+            <question>
+              What is your refund policy?
+            </question>
+            <answer>We stand behind our work so If you have any issues with your transfers at all <a href="https://ninjatransfers.com/pages/contact" title="Contact Us | Ninja Transfers">Contact Us </a>and we'll be sure to make sure we solve whatever issue you might have.</answer>
+          </div></div>
+    </div>
+  </div><style>
+    
+            .textImg__item[bid="qa_39YHdB"] {
+              background-color: ;
+            }
+            .textImg__item[bid="qa_BrRrWw"] {
+              background-color: ;
+            }
+            .textImg__item[bid="qa_8ERyRm"] {
+              background-color: ;
+            }
+            .textImg__item[bid="qa_w7ePqi"] {
+              background-color: ;
+            }
+            .textImg__item[bid="qa_iEwBxk"] {
+              background-color: ;
+            }
+            .textImg__item[bid="qa_gtcGFy"] {
+              background-color: ;
+            }
+            .textImg__item[bid="qa_qEe7yD"] {
+              background-color: ;
+            }
+            .textImg__item[bid="qa_6BdMzf"] {
+              background-color: ;
+            }
+    #shopify-section-template--19643135131731__faq_home_CzVrEU .container--large {
+      background-color: rgba(0,0,0,0);
+    }
+
+    #shopify-section-template--19643135131731__faq_home_CzVrEU {
+      margin-top: 0px;
+      margin-bottom: 0px;
+    }
+    #shopify-section-template--19643135131731__faq_home_CzVrEU .faqHome {
+      padding-top: 100px;
+      padding-bottom: 100px;
+    }
+    @media (max-width: 1024px) {
+      #shopify-section-template--19643135131731__faq_home_CzVrEU {
+        margin-top: 0px;
+        margin-bottom: 0px;
+      }
+      #shopify-section-template--19643135131731__faq_home_CzVrEU .faqHome {
+        padding-top: 48px;
+        padding-bottom: 48px;
+      }
+    }
+    @media (max-width: 600px) {
+      #shopify-section-template--19643135131731__faq_home_CzVrEU {
+        margin-top: 0px;
+        margin-bottom: 0px;
+      }
+      #shopify-section-template--19643135131731__faq_home_CzVrEU .faqHome {
+        padding-top: 36px;
+        padding-bottom: 36px;
+      }
+    }
+
+    #shopify-section-template--19643135131731__faq_home_CzVrEU {
+      background-color: #f6f7f9;
+      <!-- padding: 20px; -->
+      
+        background-image: url('//ninja-transfers-cdn.imgix.net/Ellipse_2.png?auto=format,compress&v=1725462063&w=700');
+        background-repeat: no-repeat;
+        background-position: center;
+      
+    }
+  </style>
+
+
+<script>
+  (function() {
+    var section = document.querySelector('#shopify-section-template--19643135131731__faq_home_CzVrEU');
+    if (!section) return;
+    section.addEventListener('click', function(e) {
+      var q = e.target.closest('question');
+      if (!q || !section.contains(q)) return;
+      var item = q.closest('.faqHome__item');
+      if (item) item.classList.toggle('open');
+    });
+  })();
+</script>
+
+
+</div><div id="shopify-section-template--19643135131731__get_started_yYR4jR" class="shopify-section can-be-fullwidth merged-section supports-absolute-header">
+
+<div class="getStarted">
+  
+    <h2 class="getStarted__title">
+      Let's Get Started
+    </h2>
+  
+
+  
+    <p class="getStarted__content">
+      Print any design with our DTF transfers on any product, material or color with incredible durability.
+    </p>
+  
+
+  <div class="getStarted__cta">
+    
+      <a data-tnode="" href="/products/dtf-transfers" class="getStarted__btn newHomeBtn focuselement">
+        <span>
+          Order Transfers By Size
+        </span>
+        <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.3333 5.5L20 12.5M20 12.5L13.3333 19.5M20 12.5L4 12.5" stroke="#171717" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    
+
+    
+      <a href="/products/build-your-own-gang-sheet" class="getStarted__btn newHomeBtn">
+        <span>
+          Build a Gang Sheet
+        </span>
+        <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.3333 5.5L20 12.5M20 12.5L13.3333 19.5M20 12.5L4 12.5" stroke="#171717" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    
+  </div>
+
+  <div class="getStarted__iconText">
+      <div class="getStarted__iconItem">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><mask id="mask0_2001_17936" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="1" width="30" height="31"><path d="M16 29C23.1797 29 29 23.1797 29 16C29 8.8203 23.1797 3 16 3C8.8203 3 3 8.8203 3 16C3 23.1797 8.8203 29 16 29Z" stroke="white" stroke-width="2" stroke-linejoin="round"/><path d="M22 32L28.989 23.5L15.998 16L9.998 26.393L22 32Z" fill="url(#paint0_linear_2001_17936)"/><path d="M0 12.9994L3.008 23.4994L15.998 15.9994L9.998 5.60742L0 12.9994Z" fill="url(#paint1_linear_2001_17936)"/><path d="M15.998 1H27.998V16H15.998V1Z" fill="url(#paint2_linear_2001_17936)"/></mask><g mask="url(#mask0_2001_17936)"><path d="M0 0H32V32H0V0Z" fill="#CDFE7D"/></g><path d="M14 21.5L9 16.54L10.59 14.97L14 18.35L21.41 11L23 12.58L14 21.5Z" fill="white"/><defs><linearGradient id="paint0_linear_2001_17936" x1="24.2437" y1="18.7552" x2="13.3017" y2="29.6972" gradientUnits="userSpaceOnUse"><stop offset="0.2"/><stop offset="0.8" stop-opacity="0"/></linearGradient><linearGradient id="paint1_linear_2001_17936" x1="9.91476" y1="21.6487" x2="5.91019" y2="6.70256" gradientUnits="userSpaceOnUse"><stop offset="0.2"/><stop offset="0.8" stop-opacity="0"/></linearGradient><linearGradient id="paint2_linear_2001_17936" x1="14.525" y1="6.498" x2="29.471" y2="10.502" gradientUnits="userSpaceOnUse"><stop offset="0.2"/><stop offset="0.8" stop-opacity="0"/></linearGradient></defs></svg>
+        <span>100% Satisfaction</span>
+      </div>
+    
+
+    
+      <div class="getStarted__iconItem">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><mask id="mask0_2001_17936" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="1" width="30" height="31"><path d="M16 29C23.1797 29 29 23.1797 29 16C29 8.8203 23.1797 3 16 3C8.8203 3 3 8.8203 3 16C3 23.1797 8.8203 29 16 29Z" stroke="white" stroke-width="2" stroke-linejoin="round"/><path d="M22 32L28.989 23.5L15.998 16L9.998 26.393L22 32Z" fill="url(#paint0_linear_2001_17936)"/><path d="M0 12.9994L3.008 23.4994L15.998 15.9994L9.998 5.60742L0 12.9994Z" fill="url(#paint1_linear_2001_17936)"/><path d="M15.998 1H27.998V16H15.998V1Z" fill="url(#paint2_linear_2001_17936)"/></mask><g mask="url(#mask0_2001_17936)"><path d="M0 0H32V32H0V0Z" fill="#CDFE7D"/></g><path d="M14 21.5L9 16.54L10.59 14.97L14 18.35L21.41 11L23 12.58L14 21.5Z" fill="white"/><defs><linearGradient id="paint0_linear_2001_17936" x1="24.2437" y1="18.7552" x2="13.3017" y2="29.6972" gradientUnits="userSpaceOnUse"><stop offset="0.2"/><stop offset="0.8" stop-opacity="0"/></linearGradient><linearGradient id="paint1_linear_2001_17936" x1="9.91476" y1="21.6487" x2="5.91019" y2="6.70256" gradientUnits="userSpaceOnUse"><stop offset="0.2"/><stop offset="0.8" stop-opacity="0"/></linearGradient><linearGradient id="paint2_linear_2001_17936" x1="14.525" y1="6.498" x2="29.471" y2="10.502" gradientUnits="userSpaceOnUse"><stop offset="0.2"/><stop offset="0.8" stop-opacity="0"/></linearGradient></defs></svg>
+        <span>No Minimums or Art Fees</span>
+      </div>
+    
+
+    
+      <div class="getStarted__iconItem">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><mask id="mask0_2001_17936" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="1" width="30" height="31"><path d="M16 29C23.1797 29 29 23.1797 29 16C29 8.8203 23.1797 3 16 3C8.8203 3 3 8.8203 3 16C3 23.1797 8.8203 29 16 29Z" stroke="white" stroke-width="2" stroke-linejoin="round"/><path d="M22 32L28.989 23.5L15.998 16L9.998 26.393L22 32Z" fill="url(#paint0_linear_2001_17936)"/><path d="M0 12.9994L3.008 23.4994L15.998 15.9994L9.998 5.60742L0 12.9994Z" fill="url(#paint1_linear_2001_17936)"/><path d="M15.998 1H27.998V16H15.998V1Z" fill="url(#paint2_linear_2001_17936)"/></mask><g mask="url(#mask0_2001_17936)"><path d="M0 0H32V32H0V0Z" fill="#CDFE7D"/></g><path d="M14 21.5L9 16.54L10.59 14.97L14 18.35L21.41 11L23 12.58L14 21.5Z" fill="white"/><defs><linearGradient id="paint0_linear_2001_17936" x1="24.2437" y1="18.7552" x2="13.3017" y2="29.6972" gradientUnits="userSpaceOnUse"><stop offset="0.2"/><stop offset="0.8" stop-opacity="0"/></linearGradient><linearGradient id="paint1_linear_2001_17936" x1="9.91476" y1="21.6487" x2="5.91019" y2="6.70256" gradientUnits="userSpaceOnUse"><stop offset="0.2"/><stop offset="0.8" stop-opacity="0"/></linearGradient><linearGradient id="paint2_linear_2001_17936" x1="14.525" y1="6.498" x2="29.471" y2="10.502" gradientUnits="userSpaceOnUse"><stop offset="0.2"/><stop offset="0.8" stop-opacity="0"/></linearGradient></defs></svg>
+        <span>Free & Fast Delivery</span>
+      </div>
+    
+  </div>
+</div><style>
+  
+  #shopify-section-template--19643135131731__get_started_yYR4jR .getStarted {
+    margin-top: 42px;
+    margin-bottom: 100px;
+
+    position: relative;
+    max-width: var(--theme-max-width);
+    margin-left: auto;
+    margin-right: auto;
+    top: 0px;
+    width: 90%;
+    border-radius: 30px;
+  }
+  @media (max-width: 1024px) {
+    #shopify-section-template--19643135131731__get_started_yYR4jR .getStarted {
+      margin-top: 0px;
+      margin-bottom: 68px;
+
+      top: 0px;
+    }
+  }
+  @media (max-width: 600px) {
+    #shopify-section-template--19643135131731__get_started_yYR4jR .getStarted {
+      margin-top: 0px;
+      margin-bottom: 48px;
+
+      top: 0px;
+    }
+  }
+
+  #shopify-section-template--19643135131731__get_started_yYR4jR .getStarted {
+    background-color: #000000;
+    padding: 54px 20px;
+    
+      background-image: url('//ninja-transfers-cdn.imgix.net/Ellipse_2_1.png?auto=format,compress&v=1725465561&w=700');
+      background-repeat: no-repeat;
+      background-position: bottom left;
+    
+  }
+  #shopify-section-template--19643135131731__get_started_yYR4jR {
+    background-color: #ffffff;
+    margin-top: -1px;
+  }
+  .main-footer {
+    margin-top: 0 !important;
+  }
+</style>
+
+
+
+<style> #shopify-section-template--19643135131731__get_started_yYR4jR .getStarted__iconItem {font-weight: 600;} </style></div>
+    

@@ -1,0 +1,634 @@
+{{ 'section-rich-text.css' | asset_url | stylesheet_tag }}
+{%- if section.settings.is_fullwidth -%}
+  {% style %}
+    #shopify-section-{{ section.id }} .element--height-small {
+      min-height: auto;
+    }
+    #shopify-section-{{ section.id }} .gutter-bottom--xlarge {
+      padding-bottom: calc( var(--gutter-xlarge) - 70px );
+    }
+    @media screen and (max-width: {{ settings.theme_max_width }}px) {
+      #shopify-section-{{ section.id }} .rich-text__container--image-right .rich-text__text {
+        padding-inline-start: var(--gutter-xlarge) !important;
+      }
+    }
+    @media screen and (max-width: {{ settings.theme_max_width }}px) {
+      #shopify-section-{{ section.id }} .rich-text__container--image-left .rich-text__text {
+        padding-inline-end: var(--gutter-xlarge) !important;
+      }
+    }
+  {% endstyle %}
+{%- endif -%}
+<div class="{{ section.id }}"> 
+<div class="_parent-box-{{ section.settings.page_class }} {% unless section.settings.is_fullwidth %} container--large {% else %} container--fullwidth {% endunless %} {% unless section.settings.remove_margin %} container--vertical-space{% if section.settings.gutter_decrease %}-small{% endif %} {% endunless %} {% if section.settings.remove_bottom_margin %} container--negative-margin {% endif %}">
+
+  <div id="element-{{ section.id }}" class="card 
+    {% if section.settings.is_fullwidth %} card--no-radius card--no-sideborders {% endif %} 
+    {% unless section.settings.image_position == "top" %} 
+      element--height-{{ section.settings.height }} 
+    {% else %}
+      rich-text--image-on-top 
+    {% endunless %} 
+  rich-text" 
+    {% if section.settings.image_position contains 'no-image' %} style="display:flex" {% endif %}
+  >
+
+    <div class="rich-text__container rich-text__container--image-{{ section.settings.image_position }} {% if section.settings.is_fullwidth %} rich-text__container--fullwidth {% endif %}">
+
+      <div class="rich-text__image 
+        {% unless section.settings.image_crop %} rich-text__image--fit {% endunless %} 
+        {% if section.settings.image_position == "top" %} element--height-{{ section.settings.height }} {% endif %}" 
+      aria-hidden="true">
+
+      {%- liquid
+          unless section.settings.image == blank
+            render 'lazy-image', image: section.settings.image, type: '', alt: section.settings.title, image_alignment: true, id: section.id, class: 'lazy-image--to-reveal'
+          else
+            echo 'image' | placeholder_svg_tag
+          endunless
+        -%}
+      </div>
+
+      <div class="rich-text__text 
+        align-content align-content--{{ section.settings.text_alignment }} align-content--vertical-middle 
+        {% unless section.settings.is_fullwidth %} gutter--xlarge {% endunless %}
+        {% if section.settings.is_fullwidth %} container--large gutter-top--xlarge gutter-bottom--xlarge {% endif %}"
+      >
+        <div class="card__text 
+          spacing--custom remove-empty-space" 
+          style="--spacing:{{ section.settings.spacing }}px"
+        >
+
+          {%- for block in section.blocks -%}
+            {%- case block.type %}
+
+              {%- when 'title' -%}
+                <div>
+                  <{{ block.settings.seo_h_tag }}
+                    style="margin-bottom: 0" 
+                    class="{{ block.settings.title_size }}"
+                    {{ block.shopify_attributes }}
+                  >
+                    {{ block.settings.title | escape }}
+                  </{{ block.settings.seo_h_tag }}>
+                </div>
+
+              {%- when 'icons' -%}
+                <div
+                  class="rte text-size--{{ block.settings.text_size }} dFlex"
+                  {{ block.shopify_attributes }}
+                >
+                  {% if block.settings.icon_1 == 'tick' or block.settings.text_1 %}
+                    <div class="dFlex__item">
+                      {% if block.settings.icon_1 == 'tick' %}
+                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="72px" height="72px" viewBox="0 0 72 72" enable-background="new 0 0 72 72" xml:space="preserve"><path fill-rule="evenodd" clip-rule="evenodd" d="M69.204,10.167c-0.521,2.751-1.761,5.978-4.103,8.599 c-3.575,4.001-7.338,7.833-11.023,11.736c-4.945,5.238-9.843,10.524-14.856,15.697c-3.708,3.827-7.486,7.594-11.389,11.219 c-2.676,2.487-5.694,4.604-8.419,7.041c-1.899,1.698-6.2,1.777-8.214,0.392c-1.746-1.198-3.358-2.604-4.952-4.006 c-1.028-0.905-1.44-2.143-1.57-3.531c-0.514-5.515-1.137-11.019-1.63-16.535c-0.177-1.98-0.435-4.046-0.069-5.961 c0.691-3.625,2.559-6.682,5.884-8.553c1.785-1.004,5.313-1.347,6.687,0.436c0.497,0.645,0.954,1.436,1.09,2.219 c0.312,1.802,0.456,3.636,0.596,5.462c0.243,3.175,1.543,6.015,2.801,8.853c0.676,1.526,2.659,1.877,4.338,0.772 c1.523-1.003,3.027-2.097,4.326-3.37c9.344-9.164,18.611-18.406,27.956-27.568c2.126-2.085,4.429-3.996,6.707-5.919 c1.227-1.036,2.766-1.104,4.263-0.828C68.818,6.54,69.258,7.54,69.204,10.167z"/></svg>
+                      {% endif %}
+                      <span>
+                        {{ block.settings.text_1 }}
+                      </span>
+                    </div>
+                  {% endif %}
+                  {% if block.settings.icon_2 == 'tick' or block.settings.text_2 %}
+                    <div class="dFlex__item">
+                      {% if block.settings.icon_2 == 'tick' %}
+                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="72px" height="72px" viewBox="0 0 72 72" enable-background="new 0 0 72 72" xml:space="preserve"><path fill-rule="evenodd" clip-rule="evenodd" d="M69.204,10.167c-0.521,2.751-1.761,5.978-4.103,8.599 c-3.575,4.001-7.338,7.833-11.023,11.736c-4.945,5.238-9.843,10.524-14.856,15.697c-3.708,3.827-7.486,7.594-11.389,11.219 c-2.676,2.487-5.694,4.604-8.419,7.041c-1.899,1.698-6.2,1.777-8.214,0.392c-1.746-1.198-3.358-2.604-4.952-4.006 c-1.028-0.905-1.44-2.143-1.57-3.531c-0.514-5.515-1.137-11.019-1.63-16.535c-0.177-1.98-0.435-4.046-0.069-5.961 c0.691-3.625,2.559-6.682,5.884-8.553c1.785-1.004,5.313-1.347,6.687,0.436c0.497,0.645,0.954,1.436,1.09,2.219 c0.312,1.802,0.456,3.636,0.596,5.462c0.243,3.175,1.543,6.015,2.801,8.853c0.676,1.526,2.659,1.877,4.338,0.772 c1.523-1.003,3.027-2.097,4.326-3.37c9.344-9.164,18.611-18.406,27.956-27.568c2.126-2.085,4.429-3.996,6.707-5.919 c1.227-1.036,2.766-1.104,4.263-0.828C68.818,6.54,69.258,7.54,69.204,10.167z"/></svg>
+                      {% endif %}
+                      <span>
+                        {{ block.settings.text_2 }}
+                      </span>
+                    </div>
+                  {% endif %}
+                  {% if block.settings.icon_3 == 'tick' or block.settings.text_3 %}
+                    <div class="dFlex__item">
+                      {% if block.settings.icon_3 == 'tick' %}
+                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="72px" height="72px" viewBox="0 0 72 72" enable-background="new 0 0 72 72" xml:space="preserve"><path fill-rule="evenodd" clip-rule="evenodd" d="M69.204,10.167c-0.521,2.751-1.761,5.978-4.103,8.599 c-3.575,4.001-7.338,7.833-11.023,11.736c-4.945,5.238-9.843,10.524-14.856,15.697c-3.708,3.827-7.486,7.594-11.389,11.219 c-2.676,2.487-5.694,4.604-8.419,7.041c-1.899,1.698-6.2,1.777-8.214,0.392c-1.746-1.198-3.358-2.604-4.952-4.006 c-1.028-0.905-1.44-2.143-1.57-3.531c-0.514-5.515-1.137-11.019-1.63-16.535c-0.177-1.98-0.435-4.046-0.069-5.961 c0.691-3.625,2.559-6.682,5.884-8.553c1.785-1.004,5.313-1.347,6.687,0.436c0.497,0.645,0.954,1.436,1.09,2.219 c0.312,1.802,0.456,3.636,0.596,5.462c0.243,3.175,1.543,6.015,2.801,8.853c0.676,1.526,2.659,1.877,4.338,0.772 c1.523-1.003,3.027-2.097,4.326-3.37c9.344-9.164,18.611-18.406,27.956-27.568c2.126-2.085,4.429-3.996,6.707-5.919 c1.227-1.036,2.766-1.104,4.263-0.828C68.818,6.54,69.258,7.54,69.204,10.167z"/></svg>
+                      {% endif %}
+                      <span>
+                        {{ block.settings.text_3 }}
+                      </span>
+                    </div>
+                  {% endif %}
+                  {% if block.settings.icon_4 == 'tick' or block.settings.text_4 %}
+                    <div class="dFlex__item">
+                      {% if block.settings.icon_4 == 'tick' %}
+                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="72px" height="72px" viewBox="0 0 72 72" enable-background="new 0 0 72 72" xml:space="preserve"><path fill-rule="evenodd" clip-rule="evenodd" d="M69.204,10.167c-0.521,2.751-1.761,5.978-4.103,8.599 c-3.575,4.001-7.338,7.833-11.023,11.736c-4.945,5.238-9.843,10.524-14.856,15.697c-3.708,3.827-7.486,7.594-11.389,11.219 c-2.676,2.487-5.694,4.604-8.419,7.041c-1.899,1.698-6.2,1.777-8.214,0.392c-1.746-1.198-3.358-2.604-4.952-4.006 c-1.028-0.905-1.44-2.143-1.57-3.531c-0.514-5.515-1.137-11.019-1.63-16.535c-0.177-1.98-0.435-4.046-0.069-5.961 c0.691-3.625,2.559-6.682,5.884-8.553c1.785-1.004,5.313-1.347,6.687,0.436c0.497,0.645,0.954,1.436,1.09,2.219 c0.312,1.802,0.456,3.636,0.596,5.462c0.243,3.175,1.543,6.015,2.801,8.853c0.676,1.526,2.659,1.877,4.338,0.772 c1.523-1.003,3.027-2.097,4.326-3.37c9.344-9.164,18.611-18.406,27.956-27.568c2.126-2.085,4.429-3.996,6.707-5.919 c1.227-1.036,2.766-1.104,4.263-0.828C68.818,6.54,69.258,7.54,69.204,10.167z"/></svg>
+                      {% endif %}
+                      <span>
+                        {{ block.settings.text_4 }}
+                      </span>
+                    </div>
+                  {% endif %}
+                </div>
+                <style>
+                  .dFlex {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px 12px;
+                    flex-wrap: wrap;
+                    margin-top: {{ block.settings.margin_top | append: 'px' }};
+                    margin-bottom: {{ block.settings.margin_bottom | append: 'px' }} !important;
+                  }
+                  .dFlex svg {
+                    width: 16px;
+                    height: 16px;
+                    fill: {{ block.settings.iconColor }};
+                  }
+                  .dFlex__item {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                  }
+                </style>
+
+              {%- when 'text' -%}
+                <div 
+                  class="rte text-size--{{ block.settings.text_size }}"
+                  {{ block.shopify_attributes }}
+                >
+                  {{ block.settings.text }}
+                </div>
+
+              {%- when 'button' -%}
+                <div 
+                  {{ block.shopify_attributes }}
+                >
+                  <a href="{{ block.settings.link }}" class="_cusbutton button button--{{ block.settings.button_style }} button--icon" {% if block.settings.isFullWidth %} style="width: 100%; text-align: center;"{% endif %}>
+                    <span aria-hidden="true" class="button__icon">{%- render 'theme-symbols', icon: 'arrow-right' -%}</span>
+                    <span>{{ block.settings.button_label | escape }}</span>
+                  </a>
+                </div>
+
+            {%- endcase %}
+          {%- endfor -%}
+
+        </div>  
+
+      </div>
+
+      {%- render 'custom-colors', id: section.id, text: section.settings.color_text_main, background: section.settings.color_background_main, borders: section.settings.color_borders_main, hide_borders: section.settings.color_hide_borders, border_radius: section.settings.border_radius -%}
+
+    </div>
+  </div>
+</div>
+</div>
+  {%- for block in section.blocks -%}
+    {%- case block.type %}
+      {%- when 'title' -%}
+        {% if block.settings.title == blank %}
+          {% assign isvisible = 1 %}
+        {% else %}
+          {% assign isvisible = 2 %}
+        {% endif %}
+      {%- when 'text' -%}
+        {% if block.settings.text == blank %}
+          {% assign isvisible = 1 %}
+        {% else %}
+          {% assign isvisible = 2 %}
+        {% endif %}
+      {%- when 'button' -%}
+        {% if block.settings.button_label == blank %}
+          {% assign isvisible = 1 %}
+        {% else %}
+          {% assign isvisible = 2 %}
+        {% endif %}
+    {%- endcase -%}
+  {%- endfor -%}
+  
+{% if isvisible == 1 %}
+    <style>
+      .{{section.id}}{display:none !important;}
+    </style>
+  {% endif %}
+  
+{% schema %}
+{
+  "name": "t:sections.rich-text.name",
+  "class": "can-be-fullwidth merged-section  supports-absolute-header",
+  "max_blocks": 9,
+  "settings": [
+    {
+      "id": "image",
+      "type": "image_picker",
+      "label": "t:sections.gallery.blocks.image.settings.image.label"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "t:sections.local-extra-words.sections.rich-text.settings.image_position.label",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:sections.local-extra-words.sections.rich-text.settings.image_position.option__1"
+        },
+        {
+          "value": "top",
+          "label": "t:sections.local-extra-words.sections.rich-text.settings.image_position.option__2"
+        },
+        {
+          "value": "right",
+          "label": "t:sections.local-extra-words.sections.rich-text.settings.image_position.option__3"
+        },
+        {
+          "value": "top no-image",
+          "label": "t:late_edits.rich-text.image_position.no_image.label",
+          "group": "t:late_edits.rich-text.image_position.no_image.group"
+        }
+      ],
+      "default": "right"
+    },
+    {
+      "type": "select",
+      "id": "height",
+      "label": "t:sections.local-extra-words.sections.rich-text.settings.height.label",
+      "info": "t:sections.local-extra-words.sections.rich-text.settings.height.info",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:sections.image-with-text.settings.image_height.options__1.label"
+        },
+        {
+          "value": "regular",
+          "label": "t:sections.image-with-text.settings.image_height.options__2.label"
+        },
+        {
+          "value": "large",
+          "label": "t:sections.image-with-text.settings.image_height.options__3.label"
+        }
+      ],
+      "default": "regular"
+    },
+    {
+      "type": "checkbox",
+      "id": "image_crop",
+      "label": "t:sections.local-extra-words.sections.rich-text.settings.crop.label",
+      "info": "t:sections.local-extra-words.sections.rich-text.settings.crop.info",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "is_fullwidth",
+      "label": "t:sections.local-extra-words.sections.rich-text.settings.fullwidth.label",
+      "default": false,
+      "info": "t:sections.local-extra-words.sections.rich-text.settings.fullwidth.info"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "t:sections.image-with-text.settings.text_alignment.label",
+      "options": [
+        {
+          "value": "horizontal-left",
+          "label": "t:sections.rich-text.settings.text_alignment.options__1.label"
+        },
+        {
+          "value": "horizontal-center",
+          "label": "t:sections.rich-text.settings.text_alignment.options__2.label"
+        },
+        {
+          "value": "horizontal-right",
+          "label": "t:sections.rich-text.settings.text_alignment.options__3.label"
+        }
+      ],
+      "default": "horizontal-center"
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "label": "t:sections.bundle-extra-words.settings_schema.labels.spacing",
+      "min": -12,
+      "max": 60,
+      "step": 1,
+      "default": 24,
+      "unit": "px"
+    },
+    {
+      "type": "text",
+      "id": "page_class",
+      "label": "Class for title"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.bundle-extra-words.settings_schema.card.settings.design.header"
+    },
+    {
+      "type": "color",
+      "id": "color_background_main",
+      "label": "t:sections.split-extra-words.settings_schema.colors.settings.background",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "color",
+      "id": "color_text_main",
+      "label": "t:sections.split-extra-words.settings_schema.colors.settings.text",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "color",
+      "id": "color_borders_main",
+      "label": "t:sections.local-extra-words.settings_schema.colors.settings.borders",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "t:sections.bundle-extra-words.settings_schema.buttons.settings.border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "checkbox",
+      "id": "color_hide_borders",
+      "label": "t:sections.local-extra-words.settings_schema.colors.settings.hide_border",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:sections.bundle-extra-words.sections.headings.gutter.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "gutter_decrease",
+      "label": "t:sections.bundle-extra-words.sections.headings.gutter.content",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "remove_margin",
+      "label": "t:sections.local-extra-words.sections.rich-text.settings.remove_margin.label",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "remove_bottom_margin",
+      "label": "t:sections.local-extra-words.settings_schema.layout.sections.remove_bottom_margin",
+      "default": false
+    }
+  ],
+  "blocks": [
+    {
+      "type": "title",
+      "name": "t:sections.rich-text.blocks.heading.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.rich-text.blocks.heading.settings.heading.label",
+          "default": "Talk about your brand"
+        },
+        {
+          "type": "select",
+          "id": "title_size",
+          "label": "t:sections.rich-text.blocks.heading.settings.heading_size.label",
+          "options": [
+            {
+              "value": "heading-size--small",
+              "label": "t:sections.rich-text.blocks.heading.settings.heading_size.options__1.label"
+            },
+            {
+              "value": "heading-size--regular",
+              "label": "t:sections.rich-text.blocks.heading.settings.heading_size.options__2.label"
+            },
+            {
+              "value": "heading-size--large",
+              "label": "t:sections.rich-text.blocks.heading.settings.heading_size.options__3.label"
+            }
+          ],
+          "default": "heading-size--regular"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.refactor_words.seo.name"
+        },
+        {
+          "type": "select",
+          "id": "seo_h_tag",
+          "label": "t:sections.refactor_words.seo.label",
+          "info": "t:sections.refactor_words.seo.info",
+          "options": [
+            {
+              "value": "h1",
+              "label": "H1"
+            },
+            {
+              "value": "h2",
+              "label": "H2"
+            },
+            {
+              "value": "h3",
+              "label": "H3"
+            },
+            {
+              "value": "h4",
+              "label": "H4"
+            },
+            {
+              "value": "span",
+              "label": "span"
+            }
+          ],
+          "default": "h2"
+        }
+      ]
+    },
+    {
+      "type": "icons",
+      "name": "Icon Text",
+      "settings": [
+        {
+          "type": "color",
+          "id": "iconColor",
+          "label": "Icon Colog",
+          "default": "#00548e"
+        },
+        {
+          "type": "select",
+          "id": "icon_1",
+          "label": "Select Icon 1",
+          "default": "tick",
+          "options": [
+            {
+              "value": "noIcon",
+              "label": "No Icon"
+            },
+            {
+              "value": "tick",
+              "label": "Tick"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "text_1",
+          "label": "Text 1",
+          "default": "Unmatched quality"
+        },
+        {
+          "type": "select",
+          "id": "icon_2",
+          "label": "Select Icon 2",
+          "default": "tick",
+          "options": [
+            {
+              "value": "noIcon",
+              "label": "No Icon"
+            },
+            {
+              "value": "tick",
+              "label": "Tick"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "text_2",
+          "label": "Text 2",
+          "default": "No minimums"
+        },
+        {
+          "type": "select",
+          "id": "icon_3",
+          "label": "Select Icon 3",
+          "default": "tick",
+          "options": [
+            {
+              "value": "noIcon",
+              "label": "No Icon"
+            },
+            {
+              "value": "tick",
+              "label": "Tick"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "text_3",
+          "label": "Text 3",
+          "default": "Free and fast shipping"
+        },
+        {
+          "type": "select",
+          "id": "icon_4",
+          "label": "Select Icon 4",
+          "default": "noIcon",
+          "options": [
+            {
+              "value": "noIcon",
+              "label": "No Icon"
+            },
+            {
+              "value": "tick",
+              "label": "Tick"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "text_4",
+          "label": "Text 4"
+        },
+        {
+          "type": "range",
+          "id": "margin_top",
+          "label": "Margin Top",
+          "unit": "px",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "default": 0
+        },
+        {
+          "type": "range",
+          "id": "margin_bottom",
+          "label": "Margin Bottom",
+          "unit": "px",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "t:sections.rich-text.blocks.text.name",
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "t:sections.rich-text.blocks.text.settings.text.label",
+          "default": "<p>Use this text to share information about your brand with your customers. Describe a product, share announcements or welcome customers to your store.</p>"
+        },
+        {
+          "type": "select",
+          "id": "text_size",
+          "label": "t:sections.footer.blocks.text.settings.text_size.label",
+          "options": [
+            {
+              "value": "regular",
+              "label": "t:sections.rich-text.blocks.heading.settings.heading_size.options__1.label"
+            },
+            {
+              "value": "large",
+              "label": "t:sections.rich-text.blocks.heading.settings.heading_size.options__2.label"
+            }
+          ],
+          "default": "regular"
+        }
+      ]
+    },
+    {
+      "type": "button",
+      "name": "t:sections.rich-text.blocks.button.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:sections.rich-text.blocks.button.settings.button_label.label",
+          "default": "Show more"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:sections.rich-text.blocks.button.settings.button_link.label"
+        },
+        {
+          "id": "button_style",
+          "label": "t:sections.local-extra-words.sections.buttons.style.label",
+          "type": "select",
+          "options": [
+            {
+              "value": "outline",
+              "label": "t:sections.local-extra-words.sections.buttons.style.option__1"
+            },
+            {
+              "value": "solid",
+              "label": "t:sections.local-extra-words.sections.buttons.style.option__2"
+            }
+          ],
+          "default": "outline"
+        },
+        {
+          "type": "checkbox",
+          "id": "isFullWidth",
+          "label": "Full width Button",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.rich-text.name",
+      "blocks": [
+        { "type": "title" },
+        { "type": "text" },
+        { "type": "button" }
+      ]
+    }
+  ]
+}
+{% endschema %}

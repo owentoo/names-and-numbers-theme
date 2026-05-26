@@ -1,0 +1,943 @@
+{% doc %}
+  @prompt
+    create a section of pills with an icon and text , give the section a max width, and give alignment options , i need horizontal padding and margin that matches the themes. and section needs a bg color , need font size options for desktop and mobile , need the option for custom icons from cms , no links, i need horizontal padding for desktop and mpbile for section in multiples of 2, need Vertical padding for desktop and mobile top and bottom
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-pills-container-{{ ai_gen_id }} {
+    display: block;
+    width: 100%;
+    background-color: {{ block.settings.section_background }};
+  }
+
+  .ai-pills-inner-{{ ai_gen_id }} {
+    max-width: {{ settings.theme_max_width }}px;
+    margin: 0 auto;
+    padding: {{ block.settings.section_padding_top_desktop }}px {{ block.settings.section_padding_horizontal_desktop }}px {{ block.settings.section_padding_bottom_desktop }}px;
+  }
+
+  .ai-pills-wrapper-{{ ai_gen_id }} {
+    display: flex;
+    flex-wrap: wrap;
+    gap: {{ block.settings.pill_gap }}px;
+    justify-content: {{ block.settings.alignment }};
+    align-items: center;
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+  }
+
+  .ai-pill-{{ ai_gen_id }} {
+    display: inline-flex;
+    align-items: center;
+    gap: {{ block.settings.icon_text_gap }}px;
+    padding: {{ block.settings.pill_padding_vertical }}px {{ block.settings.pill_padding_horizontal }}px;
+    background-color: {{ block.settings.pill_background }};
+    border: {{ block.settings.border_width }}px solid {{ block.settings.pill_border_color }};
+    border-radius: {{ block.settings.pill_border_radius }}px;
+    color: {{ block.settings.pill_text_color }};
+    font-size: {{ block.settings.text_size_desktop }}px;
+    font-weight: {{ block.settings.text_weight }};
+  }
+
+  .ai-pill-icon-{{ ai_gen_id }} {
+    width: {{ block.settings.icon_size_desktop }}px;
+    height: {{ block.settings.icon_size_desktop }}px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-pill-icon-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+  }
+
+  .ai-pill-icon-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .ai-pill-text-{{ ai_gen_id }} {
+    white-space: nowrap;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-pills-inner-{{ ai_gen_id }} {
+      padding: {{ block.settings.section_padding_top_mobile }}px {{ block.settings.section_padding_horizontal_mobile }}px {{ block.settings.section_padding_bottom_mobile }}px;
+    }
+
+    .ai-pills-wrapper-{{ ai_gen_id }} {
+      gap: {{ block.settings.pill_gap | times: 0.75 }}px;
+      justify-content: {{ block.settings.mobile_alignment }};
+    }
+
+    .ai-pill-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_mobile }}px;
+      padding: {{ block.settings.pill_padding_vertical | times: 0.85 }}px {{ block.settings.pill_padding_horizontal | times: 0.85 }}px;
+    }
+
+    .ai-pill-icon-{{ ai_gen_id }} {
+      width: {{ block.settings.icon_size_mobile }}px;
+      height: {{ block.settings.icon_size_mobile }}px;
+    }
+  }
+{% endstyle %}
+
+<pill-section-{{ ai_gen_id }} class="ai-pills-container-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-pills-inner-{{ ai_gen_id }}">
+    <div class="ai-pills-wrapper-{{ ai_gen_id }}">
+      {% for i in (1..6) %}
+        {% liquid
+          assign pill_enabled_key = 'pill_' | append: i | append: '_enabled'
+          assign pill_icon_key = 'pill_' | append: i | append: '_icon'
+          assign pill_custom_icon_key = 'pill_' | append: i | append: '_custom_icon'
+          assign pill_text_key = 'pill_' | append: i | append: '_text'
+
+          assign pill_enabled = block.settings[pill_enabled_key]
+          assign pill_icon = block.settings[pill_icon_key]
+          assign pill_custom_icon = block.settings[pill_custom_icon_key]
+          assign pill_text = block.settings[pill_text_key]
+        %}
+
+        {% if pill_enabled and pill_text != blank %}
+          <div class="ai-pill-{{ ai_gen_id }}">
+            {% if pill_icon != 'none' or pill_custom_icon != blank %}
+              <span class="ai-pill-icon-{{ ai_gen_id }}">
+                {% if pill_custom_icon != blank %}
+                  <img src="{{ pill_custom_icon | image_url: width: 64 }}" alt="" loading="lazy">
+                {% else %}
+                  {% case pill_icon %}
+                    {% when 'check' %}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    {% when 'star' %}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    {% when 'heart' %}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                      </svg>
+                    {% when 'truck' %}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="1" y="3" width="15" height="13"></rect>
+                        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                        <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                        <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                      </svg>
+                    {% when 'shield' %}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                      </svg>
+                    {% when 'tag' %}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                      </svg>
+                    {% when 'gift' %}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 12 20 22 4 22 4 12"></polyline>
+                        <rect x="2" y="7" width="20" height="5"></rect>
+                        <line x1="12" y1="22" x2="12" y2="7"></line>
+                        <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+                        <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+                      </svg>
+                    {% when 'clock' %}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                    {% when 'zap' %}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                      </svg>
+                    {% when 'award' %}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="8" r="7"></circle>
+                        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+                      </svg>
+                  {% endcase %}
+                {% endif %}
+              </span>
+            {% endif %}
+            
+            <span class="ai-pill-text-{{ ai_gen_id }}">{{ pill_text }}</span>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</pill-section-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class PillSection{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.style.display = 'block';
+      }
+    }
+
+    customElements.define('pill-section-{{ ai_gen_id }}', PillSection{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Icon pills",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section"
+    },
+    {
+      "type": "color",
+      "id": "section_background",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top_desktop",
+      "label": "Desktop top padding",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom_desktop",
+      "label": "Desktop bottom padding",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_horizontal_desktop",
+      "label": "Desktop horizontal padding",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top_mobile",
+      "label": "Mobile top padding",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom_mobile",
+      "label": "Mobile bottom padding",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "section_padding_horizontal_mobile",
+      "label": "Mobile horizontal padding",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Desktop alignment",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        },
+        {
+          "value": "space-between",
+          "label": "Space between"
+        },
+        {
+          "value": "space-around",
+          "label": "Space around"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "mobile_alignment",
+      "label": "Mobile alignment",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        },
+        {
+          "value": "space-between",
+          "label": "Space between"
+        },
+        {
+          "value": "space-around",
+          "label": "Space around"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Content maximum width",
+      "min": 600,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "pill_gap",
+      "label": "Gap between pills",
+      "min": 8,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Pill style"
+    },
+    {
+      "type": "color",
+      "id": "pill_background",
+      "label": "Background",
+      "default": "#f2f2f2"
+    },
+    {
+      "type": "color",
+      "id": "pill_border_color",
+      "label": "Border color",
+      "default": "#f2f2f2"
+    },
+    {
+      "type": "color",
+      "id": "pill_text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_vertical",
+      "label": "Vertical padding",
+      "min": 4,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_horizontal",
+      "label": "Horizontal padding",
+      "min": 8,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "pill_border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "border_width",
+      "label": "Border width",
+      "min": 0,
+      "max": 4,
+      "step": 1,
+      "unit": "px",
+      "default": 1
+    },
+    {
+      "type": "header",
+      "content": "Text"
+    },
+    {
+      "type": "range",
+      "id": "text_size_desktop",
+      "label": "Desktop text size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "label": "Mobile text size",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 13
+    },
+    {
+      "type": "select",
+      "id": "text_weight",
+      "label": "Text weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "500"
+    },
+    {
+      "type": "header",
+      "content": "Icon"
+    },
+    {
+      "type": "range",
+      "id": "icon_size_desktop",
+      "label": "Desktop icon size",
+      "min": 12,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "icon_size_mobile",
+      "label": "Mobile icon size",
+      "min": 10,
+      "max": 28,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "icon_text_gap",
+      "label": "Icon to text gap",
+      "min": 4,
+      "max": 16,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Pill 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "pill_1_enabled",
+      "label": "Enable pill 1",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "pill_1_icon",
+      "label": "Icon",
+      "info": "Custom icon will override this selection",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "check",
+          "label": "Check"
+        },
+        {
+          "value": "star",
+          "label": "Star"
+        },
+        {
+          "value": "heart",
+          "label": "Heart"
+        },
+        {
+          "value": "truck",
+          "label": "Truck"
+        },
+        {
+          "value": "shield",
+          "label": "Shield"
+        },
+        {
+          "value": "tag",
+          "label": "Tag"
+        },
+        {
+          "value": "gift",
+          "label": "Gift"
+        },
+        {
+          "value": "clock",
+          "label": "Clock"
+        },
+        {
+          "value": "zap",
+          "label": "Lightning"
+        },
+        {
+          "value": "award",
+          "label": "Award"
+        }
+      ],
+      "default": "truck"
+    },
+    {
+      "type": "image_picker",
+      "id": "pill_1_custom_icon",
+      "label": "Custom icon"
+    },
+    {
+      "type": "text",
+      "id": "pill_1_text",
+      "label": "Text",
+      "default": "Free shipping"
+    },
+    {
+      "type": "header",
+      "content": "Pill 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "pill_2_enabled",
+      "label": "Enable pill 2",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "pill_2_icon",
+      "label": "Icon",
+      "info": "Custom icon will override this selection",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "check",
+          "label": "Check"
+        },
+        {
+          "value": "star",
+          "label": "Star"
+        },
+        {
+          "value": "heart",
+          "label": "Heart"
+        },
+        {
+          "value": "truck",
+          "label": "Truck"
+        },
+        {
+          "value": "shield",
+          "label": "Shield"
+        },
+        {
+          "value": "tag",
+          "label": "Tag"
+        },
+        {
+          "value": "gift",
+          "label": "Gift"
+        },
+        {
+          "value": "clock",
+          "label": "Clock"
+        },
+        {
+          "value": "zap",
+          "label": "Lightning"
+        },
+        {
+          "value": "award",
+          "label": "Award"
+        }
+      ],
+      "default": "shield"
+    },
+    {
+      "type": "image_picker",
+      "id": "pill_2_custom_icon",
+      "label": "Custom icon"
+    },
+    {
+      "type": "text",
+      "id": "pill_2_text",
+      "label": "Text",
+      "default": "Secure checkout"
+    },
+    {
+      "type": "header",
+      "content": "Pill 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "pill_3_enabled",
+      "label": "Enable pill 3",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "pill_3_icon",
+      "label": "Icon",
+      "info": "Custom icon will override this selection",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "check",
+          "label": "Check"
+        },
+        {
+          "value": "star",
+          "label": "Star"
+        },
+        {
+          "value": "heart",
+          "label": "Heart"
+        },
+        {
+          "value": "truck",
+          "label": "Truck"
+        },
+        {
+          "value": "shield",
+          "label": "Shield"
+        },
+        {
+          "value": "tag",
+          "label": "Tag"
+        },
+        {
+          "value": "gift",
+          "label": "Gift"
+        },
+        {
+          "value": "clock",
+          "label": "Clock"
+        },
+        {
+          "value": "zap",
+          "label": "Lightning"
+        },
+        {
+          "value": "award",
+          "label": "Award"
+        }
+      ],
+      "default": "star"
+    },
+    {
+      "type": "image_picker",
+      "id": "pill_3_custom_icon",
+      "label": "Custom icon"
+    },
+    {
+      "type": "text",
+      "id": "pill_3_text",
+      "label": "Text",
+      "default": "Premium quality"
+    },
+    {
+      "type": "header",
+      "content": "Pill 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "pill_4_enabled",
+      "label": "Enable pill 4",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "pill_4_icon",
+      "label": "Icon",
+      "info": "Custom icon will override this selection",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "check",
+          "label": "Check"
+        },
+        {
+          "value": "star",
+          "label": "Star"
+        },
+        {
+          "value": "heart",
+          "label": "Heart"
+        },
+        {
+          "value": "truck",
+          "label": "Truck"
+        },
+        {
+          "value": "shield",
+          "label": "Shield"
+        },
+        {
+          "value": "tag",
+          "label": "Tag"
+        },
+        {
+          "value": "gift",
+          "label": "Gift"
+        },
+        {
+          "value": "clock",
+          "label": "Clock"
+        },
+        {
+          "value": "zap",
+          "label": "Lightning"
+        },
+        {
+          "value": "award",
+          "label": "Award"
+        }
+      ],
+      "default": "clock"
+    },
+    {
+      "type": "image_picker",
+      "id": "pill_4_custom_icon",
+      "label": "Custom icon"
+    },
+    {
+      "type": "text",
+      "id": "pill_4_text",
+      "label": "Text",
+      "default": "Fast delivery"
+    },
+    {
+      "type": "header",
+      "content": "Pill 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "pill_5_enabled",
+      "label": "Enable pill 5",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "pill_5_icon",
+      "label": "Icon",
+      "info": "Custom icon will override this selection",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "check",
+          "label": "Check"
+        },
+        {
+          "value": "star",
+          "label": "Star"
+        },
+        {
+          "value": "heart",
+          "label": "Heart"
+        },
+        {
+          "value": "truck",
+          "label": "Truck"
+        },
+        {
+          "value": "shield",
+          "label": "Shield"
+        },
+        {
+          "value": "tag",
+          "label": "Tag"
+        },
+        {
+          "value": "gift",
+          "label": "Gift"
+        },
+        {
+          "value": "clock",
+          "label": "Clock"
+        },
+        {
+          "value": "zap",
+          "label": "Lightning"
+        },
+        {
+          "value": "award",
+          "label": "Award"
+        }
+      ],
+      "default": "award"
+    },
+    {
+      "type": "image_picker",
+      "id": "pill_5_custom_icon",
+      "label": "Custom icon"
+    },
+    {
+      "type": "text",
+      "id": "pill_5_text",
+      "label": "Text",
+      "default": "Award winning"
+    },
+    {
+      "type": "header",
+      "content": "Pill 6"
+    },
+    {
+      "type": "checkbox",
+      "id": "pill_6_enabled",
+      "label": "Enable pill 6",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "pill_6_icon",
+      "label": "Icon",
+      "info": "Custom icon will override this selection",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "check",
+          "label": "Check"
+        },
+        {
+          "value": "star",
+          "label": "Star"
+        },
+        {
+          "value": "heart",
+          "label": "Heart"
+        },
+        {
+          "value": "truck",
+          "label": "Truck"
+        },
+        {
+          "value": "shield",
+          "label": "Shield"
+        },
+        {
+          "value": "tag",
+          "label": "Tag"
+        },
+        {
+          "value": "gift",
+          "label": "Gift"
+        },
+        {
+          "value": "clock",
+          "label": "Clock"
+        },
+        {
+          "value": "zap",
+          "label": "Lightning"
+        },
+        {
+          "value": "award",
+          "label": "Award"
+        }
+      ],
+      "default": "heart"
+    },
+    {
+      "type": "image_picker",
+      "id": "pill_6_custom_icon",
+      "label": "Custom icon"
+    },
+    {
+      "type": "text",
+      "id": "pill_6_text",
+      "label": "Text",
+      "default": "Customer favorite"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Icon pills"
+    }
+  ],
+  "tag": null
+}
+{% endschema %}

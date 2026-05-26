@@ -1,0 +1,864 @@
+{% doc %}
+  @prompt
+    i want a group of scrollable link blocks with ratio options an image bg, two lines of text with weight size and color options and a cta, need padding option on the left of the first block , all padding needs to be in increments of 2, content and overlay needs alignments options top middle and bottom, content alignments should apply to all cards. overlay should have height and opacity issue. i do not need rollover effects, and content should have a max width option , overlay needs to be gradiant , bg of entire section needs color and gradient options, not seeing Section background
+    , get rid of section bg, need top and bottom padding to work 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-scrollable-links-{{ ai_gen_id }} {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .ai-scrollable-links__wrapper-{{ ai_gen_id }} {
+    display: flex;
+    gap: {{ block.settings.gap }}px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: {{ block.settings.section_padding_top }}px 0 {{ block.settings.section_padding_bottom }}px {{ block.settings.left_padding }}px;
+  }
+
+  .ai-scrollable-links__wrapper-{{ ai_gen_id }}::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ai-scrollable-link-card-{{ ai_gen_id }} {
+    position: relative;
+    flex: 0 0 {{ block.settings.card_width }}px;
+    min-width: {{ block.settings.card_width }}px;
+    aspect-ratio: {{ block.settings.aspect_ratio }};
+    border-radius: {{ block.settings.border_radius }}px;
+    overflow: hidden;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    padding: {{ block.settings.card_padding }}px;
+  }
+
+  .ai-scrollable-link-card-{{ ai_gen_id }}--align-top {
+    justify-content: flex-start;
+  }
+
+  .ai-scrollable-link-card-{{ ai_gen_id }}--align-middle {
+    justify-content: center;
+  }
+
+  .ai-scrollable-link-card-{{ ai_gen_id }}--align-bottom {
+    justify-content: flex-end;
+  }
+
+  .ai-scrollable-link-card__bg-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+  }
+
+  .ai-scrollable-link-card__overlay-{{ ai_gen_id }} {
+    position: absolute;
+    width: 100%;
+    height: {{ block.settings.overlay_height }}%;
+    z-index: 2;
+    left: 0;
+  }
+
+  .ai-scrollable-link-card__overlay-{{ ai_gen_id }}--top {
+    top: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,{{ block.settings.overlay_opacity }}) 0%, rgba(0,0,0,0) 100%);
+  }
+
+  .ai-scrollable-link-card__overlay-{{ ai_gen_id }}--middle {
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,{{ block.settings.overlay_opacity }}) 50%, rgba(0,0,0,0) 100%);
+  }
+
+  .ai-scrollable-link-card__overlay-{{ ai_gen_id }}--bottom {
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,{{ block.settings.overlay_opacity }}) 100%);
+  }
+
+  .ai-scrollable-link-card__content-{{ ai_gen_id }} {
+    position: relative;
+    z-index: 3;
+    max-width: {{ block.settings.content_max_width }}px;
+  }
+
+  .ai-scrollable-link-card__text1-{{ ai_gen_id }} {
+    color: {{ block.settings.text1_color }};
+    font-size: {{ block.settings.text1_size }}px;
+    font-weight: {{ block.settings.text1_weight }};
+    margin: 0 0 8px 0;
+    line-height: 1.2;
+  }
+
+  .ai-scrollable-link-card__text2-{{ ai_gen_id }} {
+    color: {{ block.settings.text2_color }};
+    font-size: {{ block.settings.text2_size }}px;
+    font-weight: {{ block.settings.text2_weight }};
+    margin: 0 0 16px 0;
+    line-height: 1.3;
+  }
+
+  .ai-scrollable-link-card__cta-{{ ai_gen_id }} {
+    display: inline-block;
+    padding: {{ block.settings.cta_padding_vertical }}px {{ block.settings.cta_padding_horizontal }}px;
+    background-color: {{ block.settings.cta_bg_color }};
+    color: {{ block.settings.cta_text_color }};
+    font-size: {{ block.settings.cta_size }}px;
+    font-weight: {{ block.settings.cta_weight }};
+    border-radius: {{ block.settings.cta_border_radius }}px;
+    text-decoration: none;
+  }
+
+  .ai-scrollable-link-card__placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+  }
+
+  .ai-scrollable-link-card__placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-scrollable-links__wrapper-{{ ai_gen_id }} {
+      padding-left: {{ block.settings.left_padding_mobile }}px;
+    }
+
+    .ai-scrollable-link-card-{{ ai_gen_id }} {
+      flex: 0 0 {{ block.settings.card_width | times: 0.8 }}px;
+      min-width: {{ block.settings.card_width | times: 0.8 }}px;
+    }
+
+    .ai-scrollable-link-card__text1-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text1_size | times: 0.85 }}px;
+    }
+
+    .ai-scrollable-link-card__text2-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text2_size | times: 0.85 }}px;
+    }
+
+    .ai-scrollable-link-card__cta-{{ ai_gen_id }} {
+      font-size: {{ block.settings.cta_size | times: 0.9 }}px;
+    }
+  }
+{% endstyle %}
+
+<scrollable-links-{{ ai_gen_id }} class="ai-scrollable-links-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-scrollable-links__wrapper-{{ ai_gen_id }}">
+    {% for i in (1..6) %}
+      {% liquid
+        assign card_enabled_key = 'card_' | append: i | append: '_enabled'
+        assign card_image_key = 'card_' | append: i | append: '_image'
+        assign card_text1_key = 'card_' | append: i | append: '_text1'
+        assign card_text2_key = 'card_' | append: i | append: '_text2'
+        assign card_cta_key = 'card_' | append: i | append: '_cta'
+        assign card_url_key = 'card_' | append: i | append: '_url'
+
+        assign card_enabled = block.settings[card_enabled_key]
+        assign card_image = block.settings[card_image_key]
+        assign card_text1 = block.settings[card_text1_key]
+        assign card_text2 = block.settings[card_text2_key]
+        assign card_cta = block.settings[card_cta_key]
+        assign card_url = block.settings[card_url_key]
+      %}
+
+      {% if card_enabled %}
+        <a href="{{ card_url }}" class="ai-scrollable-link-card-{{ ai_gen_id }} ai-scrollable-link-card-{{ ai_gen_id }}--align-{{ block.settings.content_alignment }}">
+          {% if card_image %}
+            <img
+              src="{{ card_image | image_url: width: 800 }}"
+              alt="{{ card_text1 | escape }}"
+              class="ai-scrollable-link-card__bg-{{ ai_gen_id }}"
+              loading="lazy"
+              width="800"
+              height="800"
+            >
+          {% else %}
+            <div class="ai-scrollable-link-card__placeholder-{{ ai_gen_id }}">
+              {{ 'image' | placeholder_svg_tag }}
+            </div>
+          {% endif %}
+
+          <div class="ai-scrollable-link-card__overlay-{{ ai_gen_id }} ai-scrollable-link-card__overlay-{{ ai_gen_id }}--{{ block.settings.overlay_position }}"></div>
+
+          <div class="ai-scrollable-link-card__content-{{ ai_gen_id }}">
+            {% if card_text1 != blank %}
+              <h3 class="ai-scrollable-link-card__text1-{{ ai_gen_id }}">{{ card_text1 }}</h3>
+            {% endif %}
+
+            {% if card_text2 != blank %}
+              <p class="ai-scrollable-link-card__text2-{{ ai_gen_id }}">{{ card_text2 }}</p>
+            {% endif %}
+
+            {% if card_cta != blank %}
+              <span class="ai-scrollable-link-card__cta-{{ ai_gen_id }}">{{ card_cta }}</span>
+            {% endif %}
+          </div>
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</scrollable-links-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class ScrollableLinks{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.wrapper = this.querySelector('.ai-scrollable-links__wrapper-{{ ai_gen_id }}');
+        this.setupScrollBehavior();
+      }
+
+      setupScrollBehavior() {
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        this.wrapper.addEventListener('mousedown', (e) => {
+          isDown = true;
+          this.wrapper.style.cursor = 'grabbing';
+          startX = e.pageX - this.wrapper.offsetLeft;
+          scrollLeft = this.wrapper.scrollLeft;
+        });
+
+        this.wrapper.addEventListener('mouseleave', () => {
+          isDown = false;
+          this.wrapper.style.cursor = 'grab';
+        });
+
+        this.wrapper.addEventListener('mouseup', () => {
+          isDown = false;
+          this.wrapper.style.cursor = 'grab';
+        });
+
+        this.wrapper.addEventListener('mousemove', (e) => {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - this.wrapper.offsetLeft;
+          const walk = (x - startX) * 2;
+          this.wrapper.scrollLeft = scrollLeft - walk;
+        });
+
+        this.wrapper.style.cursor = 'grab';
+      }
+    }
+
+    customElements.define('scrollable-links-{{ ai_gen_id }}', ScrollableLinks{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Scrollable link blocks",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "label": "Top padding",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "label": "Bottom padding",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "left_padding",
+      "label": "Left padding",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "left_padding_mobile",
+      "label": "Left padding (mobile)",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "card_width",
+      "label": "Card width",
+      "min": 200,
+      "max": 500,
+      "step": 10,
+      "unit": "px",
+      "default": 320
+    },
+    {
+      "type": "select",
+      "id": "aspect_ratio",
+      "label": "Card aspect ratio",
+      "options": [
+        {
+          "value": "1.33333",
+          "label": "4:3 (Landscape)"
+        },
+        {
+          "value": "1",
+          "label": "1:1 (Square)"
+        },
+        {
+          "value": "0.75",
+          "label": "3:4 (Portrait)"
+        },
+        {
+          "value": "0.5625",
+          "label": "9:16 (Tall)"
+        }
+      ],
+      "default": "0.75"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Gap between cards",
+      "min": 10,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "card_padding",
+      "label": "Card padding",
+      "min": 10,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "select",
+      "id": "content_alignment",
+      "label": "Content alignment",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "middle",
+          "label": "Middle"
+        },
+        {
+          "value": "bottom",
+          "label": "Bottom"
+        }
+      ],
+      "default": "bottom"
+    },
+    {
+      "type": "range",
+      "id": "content_max_width",
+      "label": "Content max width",
+      "min": 100,
+      "max": 500,
+      "step": 10,
+      "unit": "px",
+      "default": 300
+    },
+    {
+      "type": "header",
+      "content": "Overlay"
+    },
+    {
+      "type": "select",
+      "id": "overlay_position",
+      "label": "Position",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "middle",
+          "label": "Middle"
+        },
+        {
+          "value": "bottom",
+          "label": "Bottom"
+        }
+      ],
+      "default": "bottom"
+    },
+    {
+      "type": "range",
+      "id": "overlay_height",
+      "label": "Height",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Opacity",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "default": 0.5
+    },
+    {
+      "type": "header",
+      "content": "Text line 1"
+    },
+    {
+      "type": "color",
+      "id": "text1_color",
+      "label": "Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "text1_size",
+      "label": "Size",
+      "min": 14,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "select",
+      "id": "text1_weight",
+      "label": "Weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "header",
+      "content": "Text line 2"
+    },
+    {
+      "type": "color",
+      "id": "text2_color",
+      "label": "Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "text2_size",
+      "label": "Size",
+      "min": 12,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "text2_weight",
+      "label": "Weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "header",
+      "content": "CTA button"
+    },
+    {
+      "type": "color",
+      "id": "cta_bg_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "cta_text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "cta_size",
+      "label": "Size",
+      "min": 12,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "cta_weight",
+      "label": "Weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_vertical",
+      "label": "Vertical padding",
+      "min": 4,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_horizontal",
+      "label": "Horizontal padding",
+      "min": 10,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "cta_border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 6
+    },
+    {
+      "type": "header",
+      "content": "Card 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_enabled",
+      "label": "Enable card 1",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_1_image",
+      "label": "Background image"
+    },
+    {
+      "type": "text",
+      "id": "card_1_text1",
+      "label": "Text line 1",
+      "default": "New Collection"
+    },
+    {
+      "type": "text",
+      "id": "card_1_text2",
+      "label": "Text line 2",
+      "default": "Discover our latest arrivals"
+    },
+    {
+      "type": "text",
+      "id": "card_1_cta",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_1_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Card 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_enabled",
+      "label": "Enable card 2",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_2_image",
+      "label": "Background image"
+    },
+    {
+      "type": "text",
+      "id": "card_2_text1",
+      "label": "Text line 1",
+      "default": "Summer Sale"
+    },
+    {
+      "type": "text",
+      "id": "card_2_text2",
+      "label": "Text line 2",
+      "default": "Up to 50% off selected items"
+    },
+    {
+      "type": "text",
+      "id": "card_2_cta",
+      "label": "CTA text",
+      "default": "View Deals"
+    },
+    {
+      "type": "url",
+      "id": "card_2_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Card 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_enabled",
+      "label": "Enable card 3",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_3_image",
+      "label": "Background image"
+    },
+    {
+      "type": "text",
+      "id": "card_3_text1",
+      "label": "Text line 1",
+      "default": "Best Sellers"
+    },
+    {
+      "type": "text",
+      "id": "card_3_text2",
+      "label": "Text line 2",
+      "default": "Shop our most popular products"
+    },
+    {
+      "type": "text",
+      "id": "card_3_cta",
+      "label": "CTA text",
+      "default": "Explore"
+    },
+    {
+      "type": "url",
+      "id": "card_3_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Card 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_enabled",
+      "label": "Enable card 4",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_4_image",
+      "label": "Background image"
+    },
+    {
+      "type": "text",
+      "id": "card_4_text1",
+      "label": "Text line 1",
+      "default": "Gift Guide"
+    },
+    {
+      "type": "text",
+      "id": "card_4_text2",
+      "label": "Text line 2",
+      "default": "Find the perfect gift"
+    },
+    {
+      "type": "text",
+      "id": "card_4_cta",
+      "label": "CTA text",
+      "default": "Browse Gifts"
+    },
+    {
+      "type": "url",
+      "id": "card_4_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Card 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_enabled",
+      "label": "Enable card 5",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_5_image",
+      "label": "Background image"
+    },
+    {
+      "type": "text",
+      "id": "card_5_text1",
+      "label": "Text line 1",
+      "default": "Accessories"
+    },
+    {
+      "type": "text",
+      "id": "card_5_text2",
+      "label": "Text line 2",
+      "default": "Complete your look"
+    },
+    {
+      "type": "text",
+      "id": "card_5_cta",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_5_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Card 6"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_enabled",
+      "label": "Enable card 6",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_6_image",
+      "label": "Background image"
+    },
+    {
+      "type": "text",
+      "id": "card_6_text1",
+      "label": "Text line 1",
+      "default": "Clearance"
+    },
+    {
+      "type": "text",
+      "id": "card_6_text2",
+      "label": "Text line 2",
+      "default": "Final sale items"
+    },
+    {
+      "type": "text",
+      "id": "card_6_cta",
+      "label": "CTA text",
+      "default": "Shop Sale"
+    },
+    {
+      "type": "url",
+      "id": "card_6_url",
+      "label": "Link"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Scrollable link blocks"
+    }
+  ]
+}
+{% endschema %}

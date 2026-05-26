@@ -1,0 +1,44 @@
+{%- comment -%}
+  New Gang Sheet Builder CTA
+  ---------------------------
+  Renders next to the existing Build-a-Gang-Sheet app block on the
+  product.build-a-gang-sheet template. Visibility is controlled by the
+  Optimizely experiment (see snippets/optimizely-gang-sheet-experiment.liquid).
+
+  Default: hidden. Shown only when html[data-gsb-experiment="variant"] is set.
+
+  The button links to the new Next.js gang sheet builder served via Shopify
+  App Proxy at /apps/ninja-gang-sheet. The selected Shopify variant ID is
+  passed as a URL param; the new builder resolves size + transfer type from it.
+  Opens in the same tab.
+
+  Styling note: we intentionally reuse the .gs--wrapper/.gs--button/.w3_bg
+  classes from the Build-a-Gang-Sheet app so both variations of the
+  experiment render visually identical buttons. The app owns that CSS.
+
+  Accepts:
+    product (required) - the Shopify product object
+{%- endcomment -%}
+
+{%- assign proxy_path = '/apps/ninja-gang-sheet' -%}
+{%- assign default_variant = product.selected_or_first_available_variant -%}
+
+<div
+  class="new-gang-sheet-cta-wrapper gs--wrapper w3_bg"
+  data-gsb-variant="new"
+  data-gsb-proxy-path="{{ proxy_path }}"
+>
+  <script type="application/json" class="new-gang-sheet-cta-variants">
+    {{ product.variants | json }}
+  </script>
+  <a
+    class="gs--button w3_bg"
+    data-gsb-new-cta
+    href="{{ proxy_path }}{% if default_variant %}?variant={{ default_variant.id }}{% endif %}"
+  >
+    Build your own Gang Sheet
+  </a>
+</div>
+
+{{ 'new-gang-sheet-cta.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'new-gang-sheet-cta.js' | asset_url }}" defer></script>

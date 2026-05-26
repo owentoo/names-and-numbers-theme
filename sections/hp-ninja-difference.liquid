@@ -1,0 +1,212 @@
+{%-liquid
+  assign ss = section.settings
+  assign sb = section.blocks
+-%}
+{{ 'hp-global.css' | asset_url | stylesheet_tag }}
+{{ 'hp-ninja-difference.css' | asset_url | stylesheet_tag }}
+
+<div class="container--large">
+  <div class="hpNinja">
+    <div class="hpNinja__header">
+      {% if ss.kicker != blank %}
+        <div class="hpNinja__kicker">{{ ss.kicker }}</div>
+      {% endif %}
+      {% if ss.heading != blank %}
+        <h2 class="hpNinja__heading">{{ ss.heading }}</h2>
+      {% endif %}
+    </div>
+
+    {% if sb.size > 0 %}
+      {%- for block in sb -%}
+        {%- assign b = block.settings -%}
+        <div class="hpNinja__row {% if b.image_position == 'right' %}hpNinja__row--reverse{% endif %}" {{ block.shopify_attributes }}>
+          <div class="hpNinja__image-wrap hpNinja__image-wrap--{{ ss.image_size | default: 'large' }}{% if b.hover_video_url != blank %} hpNinja__image-wrap--has-video{% endif %}">
+            {% if b.image != blank %}
+              <img
+                src="{{ b.image | image_url: width: 700 }}"
+                srcset="{{ b.image | image_url: width: 500 }} 500w, {{ b.image | image_url: width: 700 }} 700w"
+                sizes="(max-width: 600px) 100vw, 50vw"
+                alt="{{ b.title | escape }}"
+                loading="lazy"
+                width="{{ b.image.width }}"
+                height="{{ b.image.height }}"
+              >
+            {% endif %}
+            {% if b.hover_video_url != blank %}
+              <video class="hpNinja__hover-video" muted loop playsinline preload="metadata" src="{{ b.hover_video_url }}"></video>
+            {% endif %}
+            {% if b.image_badge != blank %}
+              <div class="hpNinja__image-badge" style="background-color: {{ b.badge_bg_color | default: '#019AFF' }}; color: {{ b.badge_font_color | default: '#ffffff' }};">{{ b.image_badge }}</div>
+            {% endif %}
+          </div>
+
+          <div class="hpNinja__content">
+            {% if b.feature_kicker != blank %}
+              <div class="hpNinja__feature-kicker">{{ b.feature_kicker }}</div>
+            {% endif %}
+            <div class="hpNinja__feature-title">{{ b.title }}</div>
+            {% if b.description != blank %}
+              <div class="hpNinja__feature-desc">{{ b.description }}</div>
+            {% endif %}
+
+            {%- assign has_bullets = false -%}
+            {%- if b.bullet_1 != blank or b.bullet_2 != blank or b.bullet_3 != blank or b.bullet_4 != blank -%}
+              {%- assign has_bullets = true -%}
+            {%- endif -%}
+
+            {% if has_bullets %}
+              <ul class="hpNinja__bullets">
+                {% if b.bullet_1 != blank %}
+                  <li class="hpNinja__bullet">
+                    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    {{ b.bullet_1 }}
+                  </li>
+                {% endif %}
+                {% if b.bullet_2 != blank %}
+                  <li class="hpNinja__bullet">
+                    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    {{ b.bullet_2 }}
+                  </li>
+                {% endif %}
+                {% if b.bullet_3 != blank %}
+                  <li class="hpNinja__bullet">
+                    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    {{ b.bullet_3 }}
+                  </li>
+                {% endif %}
+                {% if b.bullet_4 != blank %}
+                  <li class="hpNinja__bullet">
+                    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    {{ b.bullet_4 }}
+                  </li>
+                {% endif %}
+              </ul>
+            {% endif %}
+          </div>
+        </div>
+      {%- endfor -%}
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  (function(){
+    var wraps = document.querySelectorAll('#shopify-section-{{ section.id }} .hpNinja__image-wrap--has-video');
+    wraps.forEach(function(wrap){
+      var video = wrap.querySelector('.hpNinja__hover-video');
+      if(!video) return;
+      wrap.addEventListener('mouseenter', function(){
+        video.play();
+      });
+      wrap.addEventListener('mouseleave', function(){
+        video.pause();
+        video.currentTime = 0;
+      });
+    });
+  })();
+</script>
+
+{%- capture getStyles -%}
+  #shopify-section-{{ section.id }} {
+    background-color: {{ ss.bgColor }};
+    margin-top: {{ ss.secMarginTop_desktop | append: 'px' }};
+    margin-bottom: {{ ss.secMarginBottom_desktop | append: 'px' }};
+  }
+  #shopify-section-{{ section.id }} .hpNinja {
+    padding-top: {{ ss.secPaddingTop_desktop | append: 'px' }};
+    padding-bottom: {{ ss.secPaddingBottom_desktop | append: 'px' }};
+  }
+  #shopify-section-{{ section.id }} .hpNinja__kicker,
+  #shopify-section-{{ section.id }} .hpNinja__feature-kicker { color: {{ ss.kickerColor }}; }
+  #shopify-section-{{ section.id }} .hpNinja__bullet svg { color: {{ ss.checkColor }}; }
+  @media (max-width: 1024px) {
+    #shopify-section-{{ section.id }} {
+      margin-top: {{ ss.secMarginTop_tab | append: 'px' }};
+      margin-bottom: {{ ss.secMarginBottom_tab | append: 'px' }};
+    }
+    #shopify-section-{{ section.id }} .hpNinja {
+      padding-top: {{ ss.secPaddingTop_tab | append: 'px' }};
+      padding-bottom: {{ ss.secPaddingBottom_tab | append: 'px' }};
+    }
+  }
+  @media (max-width: 600px) {
+    #shopify-section-{{ section.id }} {
+      margin-top: {{ ss.secMarginTop_mobile | append: 'px' }};
+      margin-bottom: {{ ss.secMarginBottom_mobile | append: 'px' }};
+    }
+    #shopify-section-{{ section.id }} .hpNinja {
+      padding-top: {{ ss.secPaddingTop_mobile | append: 'px' }};
+      padding-bottom: {{ ss.secPaddingBottom_mobile | append: 'px' }};
+    }
+  }
+  {% if ss.image_shadow_opacity > 0 %}
+    #shopify-section-{{ section.id }} .hpNinja__image-wrap { box-shadow: 0 4px 24px rgba(0,0,0,{{ ss.image_shadow_opacity | divided_by: 100.0 }}); }
+  {% endif %}
+{%- endcapture -%}
+<style>{{ getStyles }}</style>
+
+{% schema %}
+{
+  "name": "HP - Ninja Difference",
+  "class": "hp-section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Section Kicker", "default": "PRINT QUALITY" },
+    { "type": "text", "id": "heading", "label": "Section Heading", "default": "See the Ninja Difference" },
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "bgColor", "label": "Background Color", "default": "#ffffff" },
+    { "type": "color", "id": "kickerColor", "label": "Kicker Color", "default": "#019AFF" },
+    { "type": "color", "id": "checkColor", "label": "Checkmark / Badge Color", "default": "#019AFF" },
+    { "type": "header", "content": "Image Size" },
+    { "type": "select", "id": "image_size", "label": "Image Size", "options": [{ "value": "small", "label": "Small" }, { "value": "medium", "label": "Medium" }, { "value": "large", "label": "Large" }], "default": "large" },
+    { "type": "range", "id": "image_shadow_opacity", "label": "Image Drop Shadow", "info": "0 = no shadow, 100 = darkest.", "min": 0, "max": 100, "step": 5, "unit": "%", "default": 20 },
+    { "type": "header", "content": "Desktop Spacing" },
+    { "type": "range", "id": "secMarginTop_desktop", "label": "Margin Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secMarginBottom_desktop", "label": "Margin Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secPaddingTop_desktop", "label": "Padding Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 64 },
+    { "type": "range", "id": "secPaddingBottom_desktop", "label": "Padding Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 64 },
+    { "type": "header", "content": "Tablet Spacing" },
+    { "type": "range", "id": "secMarginTop_tab", "label": "Margin Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secMarginBottom_tab", "label": "Margin Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secPaddingTop_tab", "label": "Padding Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 48 },
+    { "type": "range", "id": "secPaddingBottom_tab", "label": "Padding Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 48 },
+    { "type": "header", "content": "Mobile Spacing" },
+    { "type": "range", "id": "secMarginTop_mobile", "label": "Margin Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secMarginBottom_mobile", "label": "Margin Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secPaddingTop_mobile", "label": "Padding Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 40 },
+    { "type": "range", "id": "secPaddingBottom_mobile", "label": "Padding Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 40 }
+  ],
+  "blocks": [
+    {
+      "type": "feature_row",
+      "name": "Feature Row",
+      "limit": 6,
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Feature Image" },
+        { "type": "text", "id": "image_badge", "label": "Image Overlay Badge", "default": "VIVID AF™" },
+        { "type": "color", "id": "badge_bg_color", "label": "Badge Background Color", "default": "#019AFF" },
+        { "type": "color", "id": "badge_font_color", "label": "Badge Font Color", "default": "#ffffff" },
+        { "type": "text", "id": "hover_video_url", "label": "Hover Video URL", "info": "Paste a direct video URL (.mp4). Plays on image hover." },
+        { "type": "select", "id": "image_position", "label": "Image Position", "options": [{ "value": "left", "label": "Left" }, { "value": "right", "label": "Right" }], "default": "left" },
+        { "type": "text", "id": "feature_kicker", "label": "Feature Kicker", "default": "COLOR TECHNOLOGY" },
+        { "type": "text", "id": "title", "label": "Title", "default": "Incredible Image Quality" },
+        { "type": "textarea", "id": "description", "label": "Description", "default": "Richer colors, wider gamut. Weekly G7-certified calibration." },
+        { "type": "text", "id": "bullet_1", "label": "Bullet 1", "default": "9-color VIVID AF system" },
+        { "type": "text", "id": "bullet_2", "label": "Bullet 2", "default": "16.7M color gamut" },
+        { "type": "text", "id": "bullet_3", "label": "Bullet 3", "default": "Weekly G7 calibration" },
+        { "type": "text", "id": "bullet_4", "label": "Bullet 4", "default": "Free art review" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "HP - Ninja Difference",
+      "blocks": [
+        { "type": "feature_row", "settings": { "image_badge": "VIVID AF™", "image_position": "left", "feature_kicker": "COLOR TECHNOLOGY", "title": "Incredible Image Quality", "description": "Richer colors, wider gamut. Weekly G7-certified calibration.", "bullet_1": "9-color VIVID AF system", "bullet_2": "16.7M color gamut", "bullet_3": "Weekly G7 calibration", "bullet_4": "Free art review" } },
+        { "type": "feature_row", "settings": { "image_badge": "ANY FABRIC", "image_position": "right", "feature_kicker": "VERSATILITY", "title": "Works on All Materials", "description": "Cotton, polyester, nylon, leather, canvas, denim — one press.", "bullet_1": "Cotton, polyester, blends", "bullet_2": "Leather, canvas, denim", "bullet_3": "Light & dark garments", "bullet_4": "Heat press, Cricut, or iron" } },
+        { "type": "feature_row", "settings": { "image_badge": "LAB TESTED", "image_position": "left", "feature_kicker": "DURABILITY", "title": "Built to Last 100+ Washes", "description": "Stretches without cracking. Third-party lab verified.", "bullet_1": "Third-party lab tested", "bullet_2": "No cracking or fading", "bullet_3": "Soft, flexible hand-feel", "bullet_4": "Stretches with fabric" } },
+        { "type": "feature_row", "settings": { "image_badge": "3PX DETAIL", "image_position": "right", "feature_kicker": "PRECISION", "title": "Super Fine Details", "description": "Captures details as fine as 3 pixels.", "bullet_1": "3-pixel fine detail", "bullet_2": "Razor-sharp text", "bullet_3": "Clean separated elements", "bullet_4": "No borders necessary" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

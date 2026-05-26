@@ -1,0 +1,1299 @@
+{% doc %}
+  @prompt
+    Section: Mobile-only “Shop by Category” Slider with Fade Overlay
+    
+    Goal: Create a mobile-only horizontal slider of clickable category cards. Each card includes an image with a bottom-left title overlay and an optional tag at the top-left. The overlay fades smoothly into the image.
+    
+    Visibility
+    
+    Display on mobile only (hide on tablet/desktop).
+    
+    Blocks (repeatable)
+    
+    Image upload + alt text
+    
+    Title text (always pinned bottom-left)
+    
+    Link URL (entire card is clickable)
+    
+    Optional tag text with color controls
+    
+    Optional subtext toggle (off by default)
+    
+    Optional button toggle (off by default)
+    
+    Overlay Controls
+    
+    Adjustable overlay height (px or %)
+    
+    Gradient fade effect (bottom to transparent)
+    
+    Controls for overlay color, opacity, and fade strength
+    
+    Title always stays bottom-left even if overlay height changes
+    
+    Font size, weight, and color controls for title text
+    
+    Layout & Slider Settings
+    
+    Horizontal scroll with snap alignment
+    
+    Auto-scroll toggle + speed control
+    
+    Pause on user touch; resume after 2s idle
+    
+    Loop toggle
+    
+    Control card width and “cards per view” (allow decimals like 1.2 or 2.4 so next card slightly peeks in)
+    
+    Left padding (gutter) control — first card never touches screen edge
+    
+    Right padding control
+    
+    Gap control between cards
+    
+    Rounded corners and shadow toggle
+    
+    Section Options
+    
+    Optional heading (e.g., “Shop by Category”) with show/hide toggle
+    
+    Top and bottom padding controls
+    
+    Background color control
+    
+    Accessibility
+    
+    ARIA labels for slider and each card
+    
+    Cards are focusable and keyboard-accessible, Give me control over section heading bottom/top padding and alignment
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-category-slider-{{ ai_gen_id }} {
+    display: none;
+    background-color: {{ block.settings.background_color }};
+    padding-top: {{ block.settings.padding_top }}px;
+    padding-bottom: {{ block.settings.padding_bottom }}px;
+    overflow: hidden;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-category-slider-{{ ai_gen_id }} {
+      display: block;
+    }
+  }
+
+  .ai-category-slider-heading-{{ ai_gen_id }} {
+    margin: {{ block.settings.heading_padding_top }}px 0 {{ block.settings.heading_padding_bottom }}px;
+    padding-left: {{ block.settings.gutter_left }}px;
+    padding-right: {{ block.settings.gutter_right }}px;
+    font-size: {{ block.settings.heading_size }}px;
+    font-weight: {{ block.settings.heading_weight }};
+    color: {{ block.settings.heading_color }};
+    text-align: {{ block.settings.heading_alignment }};
+  }
+
+  .ai-category-slider-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ai-category-slider-track-{{ ai_gen_id }} {
+    display: flex;
+    gap: {{ block.settings.card_gap }}px;
+    padding-left: {{ block.settings.gutter_left }}px;
+    padding-right: {{ block.settings.gutter_right }}px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .ai-category-slider-track-{{ ai_gen_id }}::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ai-category-slider-card-{{ ai_gen_id }} {
+    position: relative;
+    flex: 0 0 calc((100% - {{ block.settings.gutter_left }}px - {{ block.settings.gutter_right }}px - ({{ block.settings.card_gap }}px * ({{ block.settings.cards_per_view }} - 1))) / {{ block.settings.cards_per_view }});
+    scroll-snap-align: start;
+    border-radius: {{ block.settings.card_border_radius }}px;
+    overflow: hidden;
+    {% if block.settings.card_shadow %}
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    {% endif %}
+  }
+
+  .ai-category-slider-link-{{ ai_gen_id }} {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .ai-category-slider-link-{{ ai_gen_id }}:focus {
+    outline: 2px solid {{ block.settings.title_color }};
+    outline-offset: 2px;
+  }
+
+  .ai-category-slider-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    overflow: hidden;
+  }
+
+  .ai-category-slider-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .ai-category-slider-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-category-slider-placeholder-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+    opacity: 0.3;
+  }
+
+  .ai-category-slider-overlay-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: {{ block.settings.overlay_height }}{{ block.settings.overlay_height_unit }};
+    background: linear-gradient(
+      to top,
+      {{ block.settings.overlay_color | color_modify: 'alpha', block.settings.overlay_opacity }},
+      transparent {{ block.settings.overlay_fade }}%
+    );
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 16px;
+  }
+
+  .ai-category-slider-tag-{{ ai_gen_id }} {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background-color: {{ block.settings.tag_bg_color }};
+    color: {{ block.settings.tag_text_color }};
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 2;
+  }
+
+  .ai-category-slider-title-{{ ai_gen_id }} {
+    margin: 0;
+    font-size: {{ block.settings.title_size }}px;
+    font-weight: {{ block.settings.title_weight }};
+    color: {{ block.settings.title_color }};
+    line-height: 1.2;
+  }
+
+  .ai-category-slider-subtext-{{ ai_gen_id }} {
+    margin: 8px 0 0;
+    font-size: {{ block.settings.subtext_size }}px;
+    color: {{ block.settings.subtext_color }};
+    line-height: 1.3;
+  }
+
+  .ai-category-slider-button-{{ ai_gen_id }} {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 8px 16px;
+    background-color: {{ block.settings.button_bg_color }};
+    color: {{ block.settings.button_text_color }};
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+  }
+
+  .ai-category-slider-button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_hover_bg_color }};
+  }
+{% endstyle %}
+
+<category-slider-{{ ai_gen_id }}
+  class="ai-category-slider-{{ ai_gen_id }}"
+  data-auto-scroll="{{ block.settings.auto_scroll }}"
+  data-auto-scroll-speed="{{ block.settings.auto_scroll_speed }}"
+  data-loop="{{ block.settings.loop_enabled }}"
+  {{ block.shopify_attributes }}
+>
+  {% if block.settings.show_heading and block.settings.heading != blank %}
+    <h2 class="ai-category-slider-heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h2>
+  {% endif %}
+
+  <div class="ai-category-slider-wrapper-{{ ai_gen_id }}">
+    <div
+      class="ai-category-slider-track-{{ ai_gen_id }}"
+      role="region"
+      aria-label="Category slider"
+    >
+      {% if block.settings.image_1 %}
+        <div class="ai-category-slider-card-{{ ai_gen_id }}">
+          <a
+            href="{{ block.settings.link_1 }}"
+            class="ai-category-slider-link-{{ ai_gen_id }}"
+            aria-label="{{ block.settings.title_1 | escape }}"
+            tabindex="0"
+          >
+            <div class="ai-category-slider-image-wrapper-{{ ai_gen_id }}">
+              <img
+                src="{{ block.settings.image_1 | image_url: width: 800 }}"
+                alt="{{ block.settings.image_1.alt | default: block.settings.title_1 | escape }}"
+                class="ai-category-slider-image-{{ ai_gen_id }}"
+                loading="lazy"
+                width="800"
+                height="{{ 800 | divided_by: block.settings.image_aspect_ratio | round }}"
+              >
+
+              {% if block.settings.show_tag_1 and block.settings.tag_text_1 != blank %}
+                <div class="ai-category-slider-tag-{{ ai_gen_id }}">
+                  {{ block.settings.tag_text_1 }}
+                </div>
+              {% endif %}
+
+              <div class="ai-category-slider-overlay-{{ ai_gen_id }}">
+                <h3 class="ai-category-slider-title-{{ ai_gen_id }}">
+                  {{ block.settings.title_1 }}
+                </h3>
+
+                {% if block.settings.show_subtext_1 and block.settings.subtext_1 != blank %}
+                  <p class="ai-category-slider-subtext-{{ ai_gen_id }}">
+                    {{ block.settings.subtext_1 }}
+                  </p>
+                {% endif %}
+
+                {% if block.settings.show_button_1 and block.settings.button_text_1 != blank %}
+                  <span class="ai-category-slider-button-{{ ai_gen_id }}">
+                    {{ block.settings.button_text_1 }}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+      {% endif %}
+
+      {% if block.settings.image_2 %}
+        <div class="ai-category-slider-card-{{ ai_gen_id }}">
+          <a
+            href="{{ block.settings.link_2 }}"
+            class="ai-category-slider-link-{{ ai_gen_id }}"
+            aria-label="{{ block.settings.title_2 | escape }}"
+            tabindex="0"
+          >
+            <div class="ai-category-slider-image-wrapper-{{ ai_gen_id }}">
+              <img
+                src="{{ block.settings.image_2 | image_url: width: 800 }}"
+                alt="{{ block.settings.image_2.alt | default: block.settings.title_2 | escape }}"
+                class="ai-category-slider-image-{{ ai_gen_id }}"
+                loading="lazy"
+                width="800"
+                height="{{ 800 | divided_by: block.settings.image_aspect_ratio | round }}"
+              >
+
+              {% if block.settings.show_tag_2 and block.settings.tag_text_2 != blank %}
+                <div class="ai-category-slider-tag-{{ ai_gen_id }}">
+                  {{ block.settings.tag_text_2 }}
+                </div>
+              {% endif %}
+
+              <div class="ai-category-slider-overlay-{{ ai_gen_id }}">
+                <h3 class="ai-category-slider-title-{{ ai_gen_id }}">
+                  {{ block.settings.title_2 }}
+                </h3>
+
+                {% if block.settings.show_subtext_2 and block.settings.subtext_2 != blank %}
+                  <p class="ai-category-slider-subtext-{{ ai_gen_id }}">
+                    {{ block.settings.subtext_2 }}
+                  </p>
+                {% endif %}
+
+                {% if block.settings.show_button_2 and block.settings.button_text_2 != blank %}
+                  <span class="ai-category-slider-button-{{ ai_gen_id }}">
+                    {{ block.settings.button_text_2 }}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+      {% endif %}
+
+      {% if block.settings.image_3 %}
+        <div class="ai-category-slider-card-{{ ai_gen_id }}">
+          <a
+            href="{{ block.settings.link_3 }}"
+            class="ai-category-slider-link-{{ ai_gen_id }}"
+            aria-label="{{ block.settings.title_3 | escape }}"
+            tabindex="0"
+          >
+            <div class="ai-category-slider-image-wrapper-{{ ai_gen_id }}">
+              <img
+                src="{{ block.settings.image_3 | image_url: width: 800 }}"
+                alt="{{ block.settings.image_3.alt | default: block.settings.title_3 | escape }}"
+                class="ai-category-slider-image-{{ ai_gen_id }}"
+                loading="lazy"
+                width="800"
+                height="{{ 800 | divided_by: block.settings.image_aspect_ratio | round }}"
+              >
+
+              {% if block.settings.show_tag_3 and block.settings.tag_text_3 != blank %}
+                <div class="ai-category-slider-tag-{{ ai_gen_id }}">
+                  {{ block.settings.tag_text_3 }}
+                </div>
+              {% endif %}
+
+              <div class="ai-category-slider-overlay-{{ ai_gen_id }}">
+                <h3 class="ai-category-slider-title-{{ ai_gen_id }}">
+                  {{ block.settings.title_3 }}
+                </h3>
+
+                {% if block.settings.show_subtext_3 and block.settings.subtext_3 != blank %}
+                  <p class="ai-category-slider-subtext-{{ ai_gen_id }}">
+                    {{ block.settings.subtext_3 }}
+                  </p>
+                {% endif %}
+
+                {% if block.settings.show_button_3 and block.settings.button_text_3 != blank %}
+                  <span class="ai-category-slider-button-{{ ai_gen_id }}">
+                    {{ block.settings.button_text_3 }}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+      {% endif %}
+
+      {% if block.settings.image_4 %}
+        <div class="ai-category-slider-card-{{ ai_gen_id }}">
+          <a
+            href="{{ block.settings.link_4 }}"
+            class="ai-category-slider-link-{{ ai_gen_id }}"
+            aria-label="{{ block.settings.title_4 | escape }}"
+            tabindex="0"
+          >
+            <div class="ai-category-slider-image-wrapper-{{ ai_gen_id }}">
+              <img
+                src="{{ block.settings.image_4 | image_url: width: 800 }}"
+                alt="{{ block.settings.image_4.alt | default: block.settings.title_4 | escape }}"
+                class="ai-category-slider-image-{{ ai_gen_id }}"
+                loading="lazy"
+                width="800"
+                height="{{ 800 | divided_by: block.settings.image_aspect_ratio | round }}"
+              >
+
+              {% if block.settings.show_tag_4 and block.settings.tag_text_4 != blank %}
+                <div class="ai-category-slider-tag-{{ ai_gen_id }}">
+                  {{ block.settings.tag_text_4 }}
+                </div>
+              {% endif %}
+
+              <div class="ai-category-slider-overlay-{{ ai_gen_id }}">
+                <h3 class="ai-category-slider-title-{{ ai_gen_id }}">
+                  {{ block.settings.title_4 }}
+                </h3>
+
+                {% if block.settings.show_subtext_4 and block.settings.subtext_4 != blank %}
+                  <p class="ai-category-slider-subtext-{{ ai_gen_id }}">
+                    {{ block.settings.subtext_4 }}
+                  </p>
+                {% endif %}
+
+                {% if block.settings.show_button_4 and block.settings.button_text_4 != blank %}
+                  <span class="ai-category-slider-button-{{ ai_gen_id }}">
+                    {{ block.settings.button_text_4 }}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+      {% endif %}
+
+      {% if block.settings.image_5 %}
+        <div class="ai-category-slider-card-{{ ai_gen_id }}">
+          <a
+            href="{{ block.settings.link_5 }}"
+            class="ai-category-slider-link-{{ ai_gen_id }}"
+            aria-label="{{ block.settings.title_5 | escape }}"
+            tabindex="0"
+          >
+            <div class="ai-category-slider-image-wrapper-{{ ai_gen_id }}">
+              <img
+                src="{{ block.settings.image_5 | image_url: width: 800 }}"
+                alt="{{ block.settings.image_5.alt | default: block.settings.title_5 | escape }}"
+                class="ai-category-slider-image-{{ ai_gen_id }}"
+                loading="lazy"
+                width="800"
+                height="{{ 800 | divided_by: block.settings.image_aspect_ratio | round }}"
+              >
+
+              {% if block.settings.show_tag_5 and block.settings.tag_text_5 != blank %}
+                <div class="ai-category-slider-tag-{{ ai_gen_id }}">
+                  {{ block.settings.tag_text_5 }}
+                </div>
+              {% endif %}
+
+              <div class="ai-category-slider-overlay-{{ ai_gen_id }}">
+                <h3 class="ai-category-slider-title-{{ ai_gen_id }}">
+                  {{ block.settings.title_5 }}
+                </h3>
+
+                {% if block.settings.show_subtext_5 and block.settings.subtext_5 != blank %}
+                  <p class="ai-category-slider-subtext-{{ ai_gen_id }}">
+                    {{ block.settings.subtext_5 }}
+                  </p>
+                {% endif %}
+
+                {% if block.settings.show_button_5 and block.settings.button_text_5 != blank %}
+                  <span class="ai-category-slider-button-{{ ai_gen_id }}">
+                    {{ block.settings.button_text_5 }}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+      {% endif %}
+
+      {% if block.settings.image_6 %}
+        <div class="ai-category-slider-card-{{ ai_gen_id }}">
+          <a
+            href="{{ block.settings.link_6 }}"
+            class="ai-category-slider-link-{{ ai_gen_id }}"
+            aria-label="{{ block.settings.title_6 | escape }}"
+            tabindex="0"
+          >
+            <div class="ai-category-slider-image-wrapper-{{ ai_gen_id }}">
+              <img
+                src="{{ block.settings.image_6 | image_url: width: 800 }}"
+                alt="{{ block.settings.image_6.alt | default: block.settings.title_6 | escape }}"
+                class="ai-category-slider-image-{{ ai_gen_id }}"
+                loading="lazy"
+                width="800"
+                height="{{ 800 | divided_by: block.settings.image_aspect_ratio | round }}"
+              >
+
+              {% if block.settings.show_tag_6 and block.settings.tag_text_6 != blank %}
+                <div class="ai-category-slider-tag-{{ ai_gen_id }}">
+                  {{ block.settings.tag_text_6 }}
+                </div>
+              {% endif %}
+
+              <div class="ai-category-slider-overlay-{{ ai_gen_id }}">
+                <h3 class="ai-category-slider-title-{{ ai_gen_id }}">
+                  {{ block.settings.title_6 }}
+                </h3>
+
+                {% if block.settings.show_subtext_6 and block.settings.subtext_6 != blank %}
+                  <p class="ai-category-slider-subtext-{{ ai_gen_id }}">
+                    {{ block.settings.subtext_6 }}
+                  </p>
+                {% endif %}
+
+                {% if block.settings.show_button_6 and block.settings.button_text_6 != blank %}
+                  <span class="ai-category-slider-button-{{ ai_gen_id }}">
+                    {{ block.settings.button_text_6 }}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</category-slider-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class CategorySlider{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+        this.track = this.querySelector('.ai-category-slider-track-{{ ai_gen_id }}');
+        this.autoScroll = this.dataset.autoScroll === 'true';
+        this.autoScrollSpeed = parseInt(this.dataset.autoScrollSpeed) || 3000;
+        this.loopEnabled = this.dataset.loop === 'true';
+        this.autoScrollInterval = null;
+        this.isUserInteracting = false;
+        this.resumeTimeout = null;
+      }
+
+      connectedCallback() {
+        if (this.autoScroll) {
+          this.startAutoScroll();
+          this.setupInteractionListeners();
+        }
+      }
+
+      disconnectedCallback() {
+        this.stopAutoScroll();
+        if (this.resumeTimeout) {
+          clearTimeout(this.resumeTimeout);
+        }
+      }
+
+      startAutoScroll() {
+        this.autoScrollInterval = setInterval(() => {
+          if (!this.isUserInteracting) {
+            this.scrollNext();
+          }
+        }, this.autoScrollSpeed);
+      }
+
+      stopAutoScroll() {
+        if (this.autoScrollInterval) {
+          clearInterval(this.autoScrollInterval);
+          this.autoScrollInterval = null;
+        }
+      }
+
+      scrollNext() {
+        const cards = this.track.querySelectorAll('.ai-category-slider-card-{{ ai_gen_id }}');
+        if (cards.length === 0) return;
+
+        const cardWidth = cards[0].offsetWidth;
+        const gap = {{ block.settings.card_gap }};
+        const scrollAmount = cardWidth + gap;
+        const maxScroll = this.track.scrollWidth - this.track.clientWidth;
+
+        if (this.track.scrollLeft >= maxScroll - 10) {
+          if (this.loopEnabled) {
+            this.track.scrollLeft = 0;
+          }
+        } else {
+          this.track.scrollLeft += scrollAmount;
+        }
+      }
+
+      setupInteractionListeners() {
+        this.track.addEventListener('touchstart', () => {
+          this.handleUserInteraction();
+        });
+
+        this.track.addEventListener('mousedown', () => {
+          this.handleUserInteraction();
+        });
+
+        this.track.addEventListener('scroll', () => {
+          this.handleUserInteraction();
+        }, { passive: true });
+      }
+
+      handleUserInteraction() {
+        this.isUserInteracting = true;
+
+        if (this.resumeTimeout) {
+          clearTimeout(this.resumeTimeout);
+        }
+
+        this.resumeTimeout = setTimeout(() => {
+          this.isUserInteracting = false;
+        }, 2000);
+      }
+    }
+
+    customElements.define('category-slider-{{ ai_gen_id }}', CategorySlider{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Category slider",
+  "tag": null,
+  "class": "mobile-category-slider",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section heading"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_heading",
+      "label": "Show heading",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Shop by Category"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 16,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size",
+      "default": 24
+    },
+    {
+      "type": "select",
+      "id": "heading_weight",
+      "label": "Heading weight",
+      "options": [
+        { "value": "400", "label": "Normal" },
+        { "value": "500", "label": "Medium" },
+        { "value": "600", "label": "Semi-bold" },
+        { "value": "700", "label": "Bold" }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "label": "Heading alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "heading_padding_top",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Heading top padding",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "heading_padding_bottom",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Heading bottom padding",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "cards_per_view",
+      "min": 1,
+      "max": 3,
+      "step": 0.1,
+      "label": "Cards per view",
+      "default": 1.2
+    },
+    {
+      "type": "range",
+      "id": "card_gap",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Gap between cards",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "gutter_left",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Left padding",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "gutter_right",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Right padding",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Section top padding",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Section bottom padding",
+      "default": 40
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Card style"
+    },
+    {
+      "type": "range",
+      "id": "image_aspect_ratio",
+      "min": 0.5,
+      "max": 2,
+      "step": 0.1,
+      "label": "Image aspect ratio",
+      "default": 1.2
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 12
+    },
+    {
+      "type": "checkbox",
+      "id": "card_shadow",
+      "label": "Show shadow",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Overlay"
+    },
+    {
+      "type": "range",
+      "id": "overlay_height",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "label": "Overlay height",
+      "default": 50
+    },
+    {
+      "type": "select",
+      "id": "overlay_height_unit",
+      "label": "Overlay height unit",
+      "options": [
+        { "value": "%", "label": "Percent" },
+        { "value": "px", "label": "Pixels" }
+      ],
+      "default": "%"
+    },
+    {
+      "type": "color",
+      "id": "overlay_color",
+      "label": "Overlay color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "label": "Overlay opacity",
+      "default": 0.7
+    },
+    {
+      "type": "range",
+      "id": "overlay_fade",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "%",
+      "label": "Fade strength",
+      "default": 70
+    },
+    {
+      "type": "header",
+      "content": "Title"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 14,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Font size",
+      "default": 20
+    },
+    {
+      "type": "select",
+      "id": "title_weight",
+      "label": "Font weight",
+      "options": [
+        { "value": "400", "label": "Normal" },
+        { "value": "500", "label": "Medium" },
+        { "value": "600", "label": "Semi-bold" },
+        { "value": "700", "label": "Bold" }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Subtext"
+    },
+    {
+      "type": "range",
+      "id": "subtext_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "subtext_color",
+      "label": "Color",
+      "default": "#e0e0e0"
+    },
+    {
+      "type": "header",
+      "content": "Tag"
+    },
+    {
+      "type": "color",
+      "id": "tag_bg_color",
+      "label": "Background color",
+      "default": "#ff6b6b"
+    },
+    {
+      "type": "color",
+      "id": "tag_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Button"
+    },
+    {
+      "type": "color",
+      "id": "button_bg_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_bg_color",
+      "label": "Hover background color",
+      "default": "#f0f0f0"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Slider behavior"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_scroll",
+      "label": "Enable auto-scroll",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "auto_scroll_speed",
+      "min": 1000,
+      "max": 9000,
+      "step": 500,
+      "unit": "ms",
+      "label": "Auto-scroll speed",
+      "default": 3000
+    },
+    {
+      "type": "checkbox",
+      "id": "loop_enabled",
+      "label": "Enable loop",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Category 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_1",
+      "label": "Title",
+      "default": "Category 1"
+    },
+    {
+      "type": "url",
+      "id": "link_1",
+      "label": "Link"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_tag_1",
+      "label": "Show tag",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "tag_text_1",
+      "label": "Tag text"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_subtext_1",
+      "label": "Show subtext",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "subtext_1",
+      "label": "Subtext"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_button_1",
+      "label": "Show button",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "button_text_1",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "header",
+      "content": "Category 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_2",
+      "label": "Title",
+      "default": "Category 2"
+    },
+    {
+      "type": "url",
+      "id": "link_2",
+      "label": "Link"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_tag_2",
+      "label": "Show tag",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "tag_text_2",
+      "label": "Tag text"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_subtext_2",
+      "label": "Show subtext",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "subtext_2",
+      "label": "Subtext"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_button_2",
+      "label": "Show button",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "button_text_2",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "header",
+      "content": "Category 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_3",
+      "label": "Title",
+      "default": "Category 3"
+    },
+    {
+      "type": "url",
+      "id": "link_3",
+      "label": "Link"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_tag_3",
+      "label": "Show tag",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "tag_text_3",
+      "label": "Tag text"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_subtext_3",
+      "label": "Show subtext",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "subtext_3",
+      "label": "Subtext"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_button_3",
+      "label": "Show button",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "button_text_3",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "header",
+      "content": "Category 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_4",
+      "label": "Title",
+      "default": "Category 4"
+    },
+    {
+      "type": "url",
+      "id": "link_4",
+      "label": "Link"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_tag_4",
+      "label": "Show tag",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "tag_text_4",
+      "label": "Tag text"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_subtext_4",
+      "label": "Show subtext",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "subtext_4",
+      "label": "Subtext"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_button_4",
+      "label": "Show button",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "button_text_4",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "header",
+      "content": "Category 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_5",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_5",
+      "label": "Title",
+      "default": "Category 5"
+    },
+    {
+      "type": "url",
+      "id": "link_5",
+      "label": "Link"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_tag_5",
+      "label": "Show tag",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "tag_text_5",
+      "label": "Tag text"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_subtext_5",
+      "label": "Show subtext",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "subtext_5",
+      "label": "Subtext"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_button_5",
+      "label": "Show button",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "button_text_5",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "header",
+      "content": "Category 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_6",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_6",
+      "label": "Title",
+      "default": "Category 6"
+    },
+    {
+      "type": "url",
+      "id": "link_6",
+      "label": "Link"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_tag_6",
+      "label": "Show tag",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "tag_text_6",
+      "label": "Tag text"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_subtext_6",
+      "label": "Show subtext",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "subtext_6",
+      "label": "Subtext"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_button_6",
+      "label": "Show button",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "button_text_6",
+      "label": "Button text",
+      "default": "Shop Now"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Category slider"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,517 @@
+{% doc %}
+  @prompt
+    Create a section with an H1 heading and a paragraph text stacked vertically.
+    The section should have the following layout and settings:
+    
+    Content Elements:
+    H1 heading (editable in theme editor)
+    Paragraph text (editable in theme editor)
+    Layout:
+    Both elements stacked vertically
+    Section has a max width container (e.g., 1200px) for content alignment
+    Allow text alignment options: left, center, or right (adjustable via theme settings)
+    Customization Settings:
+    Setting to change the H1 text
+    Setting to change the paragraph text
+    Alignment selector (left, center, right)
+    Setting to change max width (default 1200px)
+    Padding and margin controls (top, bottom, sides)
+    Desktop and mobile font size options for both H1 and paragraph, add an option for bg color or an image, i need an option for the section width and the container of the text width, i need alignments options for the text container, the h1 and paragrapgh text need weight options, like regular bold, so on, i need the background type to be full width, can i have text options for both the h1 and paragraph text, can i have a line height option for the para text
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .text-block-section-{{ ai_gen_id }} {
+    width: 100%;
+    padding-top: {{ block.settings.padding_top }}px;
+    padding-bottom: {{ block.settings.padding_bottom }}px;
+    margin-top: {{ block.settings.margin_top }}px;
+    margin-bottom: {{ block.settings.margin_bottom }}px;
+    {% if block.settings.background_type == 'color' %}
+      background-color: {{ block.settings.background_color }};
+    {% endif %}
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+  }
+
+  .text-block-wrapper-{{ ai_gen_id }} {
+    width: 100%;
+    max-width: {{ block.settings.section_width }}px;
+    display: flex;
+    {% if block.settings.container_alignment == 'left' %}
+      justify-content: flex-start;
+    {% elsif block.settings.container_alignment == 'center' %}
+      justify-content: center;
+    {% elsif block.settings.container_alignment == 'right' %}
+      justify-content: flex-end;
+    {% endif %}
+  }
+
+  .text-block-container-{{ ai_gen_id }} {
+    max-width: {{ block.settings.container_width }}px;
+    width: 100%;
+    padding-left: {{ block.settings.padding_sides }}px;
+    padding-right: {{ block.settings.padding_sides }}px;
+    text-align: {{ block.settings.text_alignment }};
+  }
+
+  .text-block-background-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+  }
+
+  .text-block-background-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: {{ block.settings.background_image_fit }};
+    object-position: {{ block.settings.background_image_position }};
+  }
+
+  .text-block-background-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #f4f4f4;
+  }
+
+  .text-block-content-{{ ai_gen_id }} {
+    position: relative;
+    z-index: 1;
+    {% if block.settings.background_type == 'image' and block.settings.text_color %}
+      color: {{ block.settings.text_color }};
+    {% endif %}
+  }
+
+  .text-block-heading-{{ ai_gen_id }} {
+    margin-top: 0;
+    margin-bottom: {{ block.settings.space_between }}px;
+    font-size: {{ block.settings.heading_size }}px;
+    font-weight: {{ block.settings.heading_weight }};
+    color: {{ block.settings.heading_color }};
+  }
+
+  .text-block-paragraph-{{ ai_gen_id }} {
+    margin-top: 0;
+    margin-bottom: 0;
+    font-size: {{ block.settings.paragraph_size }}px;
+    font-weight: {{ block.settings.paragraph_weight }};
+    color: {{ block.settings.paragraph_color }};
+    line-height: {{ block.settings.paragraph_line_height }};
+  }
+
+  @media screen and (max-width: 749px) {
+    .text-block-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size_mobile }}px;
+    }
+
+    .text-block-paragraph-{{ ai_gen_id }} {
+      font-size: {{ block.settings.paragraph_size_mobile }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="text-block-section-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  {% if block.settings.background_type == 'image' and block.settings.background_image %}
+    <div class="text-block-background-{{ ai_gen_id }}">
+      <img 
+        src="{{ block.settings.background_image | image_url: width: 2000 }}" 
+        alt="{{ block.settings.background_image.alt | escape }}"
+        loading="lazy"
+        width="{{ block.settings.background_image.width }}"
+        height="{{ block.settings.background_image.height }}"
+      >
+    </div>
+  {% elsif block.settings.background_type == 'image' %}
+    <div class="text-block-background-{{ ai_gen_id }}">
+      {{ 'image' | placeholder_svg_tag }}
+    </div>
+  {% endif %}
+  
+  <div class="text-block-wrapper-{{ ai_gen_id }}">
+    <div class="text-block-container-{{ ai_gen_id }}">
+      <div class="text-block-content-{{ ai_gen_id }}">
+        <h1 class="text-block-heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h1>
+        <div class="text-block-paragraph-{{ ai_gen_id }}">{{ block.settings.paragraph }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Text Block",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Your heading here"
+    },
+    {
+      "type": "richtext",
+      "id": "paragraph",
+      "label": "Paragraph",
+      "default": "<p>Share information about your brand with your customers. Describe a product, make announcements, or welcome customers to your store.</p>"
+    },
+    {
+      "type": "header",
+      "content": "Background"
+    },
+    {
+      "type": "select",
+      "id": "background_type",
+      "label": "Background type",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "color",
+          "label": "Color"
+        },
+        {
+          "value": "image",
+          "label": "Image"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#f4f4f4"
+    },
+    {
+      "type": "image_picker",
+      "id": "background_image",
+      "label": "Background image"
+    },
+    {
+      "type": "select",
+      "id": "background_image_fit",
+      "label": "Image fit",
+      "options": [
+        {
+          "value": "cover",
+          "label": "Cover"
+        },
+        {
+          "value": "contain",
+          "label": "Contain"
+        }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "select",
+      "id": "background_image_position",
+      "label": "Image position",
+      "options": [
+        {
+          "value": "center center",
+          "label": "Center"
+        },
+        {
+          "value": "top center",
+          "label": "Top"
+        },
+        {
+          "value": "bottom center",
+          "label": "Bottom"
+        },
+        {
+          "value": "left center",
+          "label": "Left"
+        },
+        {
+          "value": "right center",
+          "label": "Right"
+        }
+      ],
+      "default": "center center"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color (for image background)",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "container_alignment",
+      "label": "Container alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "section_width",
+      "min": 400,
+      "max": 2000,
+      "step": 100,
+      "unit": "px",
+      "label": "Section width",
+      "default": 1600
+    },
+    {
+      "type": "range",
+      "id": "container_width",
+      "min": 400,
+      "max": 1600,
+      "step": 100,
+      "unit": "px",
+      "label": "Text container width",
+      "default": 1000
+    },
+    {
+      "type": "range",
+      "id": "space_between",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Space between elements",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_sides",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding sides",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Heading Typography"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 20,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 16,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (mobile)",
+      "default": 32
+    },
+    {
+      "type": "select",
+      "id": "heading_weight",
+      "label": "Heading weight",
+      "options": [
+        {
+          "value": "300",
+          "label": "Light"
+        },
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        },
+        {
+          "value": "800",
+          "label": "Extra Bold"
+        }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "header",
+      "content": "Paragraph Typography"
+    },
+    {
+      "type": "color",
+      "id": "paragraph_color",
+      "label": "Paragraph color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size",
+      "min": 12,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Paragraph size",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size_mobile",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Paragraph size (mobile)",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "paragraph_line_height",
+      "min": 1,
+      "max": 2,
+      "step": 0.1,
+      "label": "Paragraph line height",
+      "default": 1.5
+    },
+    {
+      "type": "select",
+      "id": "paragraph_weight",
+      "label": "Paragraph weight",
+      "options": [
+        {
+          "value": "300",
+          "label": "Light"
+        },
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Text Block"
+    }
+  ]
+}
+{% endschema %}

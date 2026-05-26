@@ -1,0 +1,122 @@
+<!-- END app snippet -->
+<script>
+  
+document.addEventListener("DOMContentLoaded", function() {
+  if (typeof ApployAppManager !== 'undefined') {
+    window.apployAppManager = new ApployAppManager();
+    console.error('ApployEventsManager loaded ======',window.apployAppManager);
+    if (window.apployAppManager.isMobileApp()) {
+      apponly_actions();
+    }
+  } else {
+    console.error('ApployAppManager class is not loaded');
+  }
+  if (typeof ApployEventsManager !== 'undefined') {
+    window.apployEventsManager = new ApployEventsManager();
+  } else {
+    console.error('ApployEventsManager class is not loaded');
+  }
+  var mobiletype = detectMobileOS();
+  //alert(mobiletype);
+})
+  
+</script>
+<script>
+  function apponly_actions() {
+    $("body").addClass("apponlycss");
+    $(".apponlyelements-rel").addClass("appenable");
+    $(".visibleonapp").addClass("appenable");
+    $(".noappmodule").addClass("hideapp");
+    $("#site-header .apponlyelements").addClass("app-header-active");
+    $('.backcta').on('click', handleBackClick);
+    if($('.blank-transfer-menu').length){
+      $('sidebar-drawer#site-menu-sidebar').addClass("blank-transfer-menu-handle")
+    }
+    hideTidioChat();
+    livechat_func();
+
+    $(".app-search-btn").on("click",function(){
+      setTimeout(function(){
+        $("#site-search-sidebar").css({"z-index":111111,"height":"100vh"});
+      },300)
+    })
+  }
+  
+  function handleBackClick() {
+    if(window.apployAppManager && window.apployAppManager.isMobileApp()){
+      window.ReactNativeWebView.postMessage(JSON.stringify({'type':'goBackToPreviousPage'}));
+    }else{
+      history.back();
+    }
+  }
+  function hideTidioChat() {
+    const style = document.createElement('style');
+    style.innerHTML = 'body #tidio-chat:not(.open){opacity:0 !important}';
+    document.head.appendChild(style);
+  }
+
+  function livechat_func(){
+    
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.chaticon-cta')) {
+        e.preventDefault();
+        console.log(" chat icons")
+        Intercom('show');
+      }
+    });
+    change_chat_handler();
+  }
+
+function detectMobileOS() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+
+  if (/android/i.test(ua)) return "Android";
+  if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return "iOS";
+
+  return "Other";
+}
+
+function change_chat_handler(){
+  let chatBubbleTimer = setInterval(function () {
+    const $apployApp = $('.intercom-lightweight-app-launcher-icon.intercom-lightweight-app-launcher-icon-open');
+    if ($apployApp.length) {
+      //alert("1")
+      clearInterval(chatBubbleTimer); // Stop checking once found
+      console.log(window.intercomSettings," :intercomSettings",window.intercomSettings.custom_launcher_selector);
+      Intercom('reattach_activator');
+      Intercom('update', { custom_launcher_selector: '.chaticon-cta',hide_default_launcher: true });
+      console.log(window.intercomSettings," :intercomSettings",window.intercomSettings.custom_launcher_selector)
+    }
+  },300);
+}
+</script>
+<style>
+ .apponlycss .intercom-lightweight-app:not(.show){display:none}
+/*** AAP Code only  ****/
+body.apponlycss.klaviyo-prevent-body-scrolling {
+    overflow: auto !important;
+}
+.apponlyelements-rel.appenable{position: relative;}
+.apponlyelements:not(.appenable),.noappmodule.hideapp,.hideapponly,.visibleonapp:not(.appenable){display:none !important;}
+.appenable .apponlyelements{display:block !important;}
+#site-header .apponlyelements{}
+.appenable .apponlyelements-web-block{display: none !important;}
+
+/** Header change **/
+body.apponlycss{padding-top:60px;}
+.app-header{display: flex; align-items: center; gap: 8px; position: fixed; height: 60px; top: 0; z-index: 2222; left: 0; right: 0; background: #fff; padding:0 var(--gutter-container); box-shadow:0 -3px 12px rgba(0,0,0,0.5);}
+@media screen and (max-width: 375px) { .app-header { height: 50px; padding: 0 8px; } }
+.app-header > .flexnode{flex:1}
+.app-header-icon-wrapper{display:flex; justify-content:flex-end; gap:4px;}
+.backcta,.callcta{width: 32px; flex-shrink: 0;}
+.app-search-form{flex: 1; min-width: 0;}
+.appenable .appnodisplay{display:none}
+.callcta {text-align: center; display: flex; align-items: center; justify-content: center;}
+.app-logo-section{flex:1; text-align: center; display: flex; align-items: center; justify-content: center;}
+.app-logo-section .app-logo-block{width:100px; margin:auto;}
+.app-menu-arr-icon{transform: rotate(-90deg);}
+.apponlycss .shopify-section-group-footer-group,.apponlycss .footer-social-icon-apponly{display:none !important;}
+.apponlycss .anchor-disable{pointer-events:none;}
+.apponlycss::after {content: ""; height: 100px; display: block;}
+/*** ./AAP Code only  ****/
+</style>

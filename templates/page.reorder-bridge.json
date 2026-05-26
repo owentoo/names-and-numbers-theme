@@ -1,0 +1,38 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "main-page",
+      "disabled": true,
+      "custom_css": [],
+      "settings": {
+        "center": true,
+        "page_cover_metafield": "",
+        "color_background_main": "rgba(0,0,0,0)",
+        "color_text_main": "rgba(0,0,0,0)",
+        "height": "small"
+      }
+    },
+    "custom_liquid_aEtjPa": {
+      "type": "custom-liquid",
+      "name": "t:sections.refactor_words.custom_code.name",
+      "settings": {
+        "custom_liquid": "<script>\n(async () => {\n  try {\n    const qs = new URLSearchParams(location.search);\n    const b64 = qs.get(\"reorder\");\n    if (!b64) return location.replace(\"/cart?source=reorder\");\n\n    // Decode Base64 JSON safely\n    const json = JSON.parse(decodeURIComponent(escape(atob(b64))));\n    // Helper: convert ProductVariant GID -> numeric variant ID for /cart/add.js\n    const gidToLegacyId = (gid) => {\n      try { return atob(gid).split(\"/\").pop(); } catch { return null; }\n    };\n\n    // Build items[] for AJAX Cart API\n    const items = (json?.lines || [])\n      .map(l => {\n        const id = l.merchandiseId.split(\"/\").pop();\n        console.log(id,\" ===id\",l.merchandiseId)\n        if (!id) return null;\n        return {\n          id,\n          quantity: Number(l.quantity || 1),\n          properties: l.properties || {}\n        };\n      })\n      .filter(Boolean);\n\n    if (!items.length) return location.replace(\"/cart?source=reorder\");\n\n    // 1) Clear existing cart\n    //await fetch(\"/cart/clear.js\", { method: \"POST\", headers: { \"Content-Type\": \"application/json\" } });\n\n    // 2) Add all items in one request (supports properties)\n    const addRes = await fetch(\"/cart/add.js\", {\n      method: \"POST\",\n      headers: { \"Content-Type\": \"application/json\" },\n      body: JSON.stringify({ items })\n    });\n\n    if (!addRes.ok) {\n      console.error(\"cart/add.js failed\", await addRes.text());\n      return location.replace(\"/cart?source=reorder&status=add_failed\");\n    }\n    console.log(addRes,\" =====addRes\")\n    if (addRes.ok) {\n      location.replace(\"/cart?source=reorder\");\n    }\n  } catch (e) {\n    console.error(\"Reorder bridge error:\", e);\n    location.replace(\"/cart?source=reorder&status=bridge_error\");\n  }\n})();\n</script>",
+        "full_width": false,
+        "remove_margin": false
+      }
+    }
+  },
+  "order": [
+    "main",
+    "custom_liquid_aEtjPa"
+  ]
+}

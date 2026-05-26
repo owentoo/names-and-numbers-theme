@@ -1,0 +1,75 @@
+{% assign addr = customer.default_address %}
+{% assign exemption_customer_name = customer.name | default: '' %}
+{% if exemption_customer_name == blank and addr %}
+  {% assign exemption_customer_name = addr.name | default: '' %}
+{% endif %}
+{% assign missing_shipping_address = false %}
+{% if addr == blank or addr.address1 == blank or addr.city == blank or addr.zip == blank or addr.country_code == blank %}
+  {% assign missing_shipping_address = true %}
+{% endif %}
+
+<button
+  type="button" class="profile-tax-content__cta"
+  id="open-tax-exemption-popup"
+  data-missing-shipping-address="{{ missing_shipping_address }}"
+  data-exemption-url="https://avatax.grtrading.in/shopify/exemptions/start?shop={{ shop.permanent_domain | url_encode }}&customer_id={{ customer.id | url_encode }}&email={{ customer.email | downcase | url_encode }}&customer_name={{ exemption_customer_name | url_encode }}&company_name={{ addr.company | url_encode }}&line1={{ addr.address1 | url_encode }}&line2={{ addr.address2 | url_encode }}&city={{ addr.city | url_encode }}&region={{ addr.province_code | url_encode }}&postal_code={{ addr.zip | url_encode }}&country={{ addr.country_code | url_encode }}"
+>
+  Submit tax exemption
+</button>
+
+
+<script>
+  (function () {
+    var button = document.getElementById('open-tax-exemption-popup');
+    if (!button) {
+      return;
+    }
+
+    function findAddAddressTrigger() {
+      return (
+        document.getElementById('profile-add-addr-toggle') ||
+        document.querySelector('[aria-controls="add_address"]')
+      );
+    }
+
+    button.addEventListener('click', function () {
+      if (button.getAttribute('data-missing-shipping-address') === 'true') {
+        alert('Please provide your shipping address before submitting tax forms');
+
+        var addAddressTrigger = findAddAddressTrigger();
+        if (addAddressTrigger) {
+          addAddressTrigger.click();
+        }
+
+        return;
+      }
+
+      var url = button.getAttribute('data-exemption-url');
+      var width = 900;
+      var height = 750;
+      var left = Math.max(0, (window.screen.width - width) / 2);
+      var top = Math.max(0, (window.screen.height - height) / 2);
+
+      var features = [
+        'width=' + width,
+        'height=' + height,
+        'left=' + left,
+        'top=' + top,
+        'resizable=yes',
+        'scrollbars=yes',
+        'toolbar=no',
+        'menubar=no',
+        'location=no',
+        'status=no'
+      ].join(',');
+
+      var popup = window.open(url, 'taxExemptionPopup', features);
+
+      if (popup) {
+        popup.focus();
+      } else {
+        alert('Popup was blocked. Please allow popups for this site.');
+      }
+    });
+  })();
+</script>

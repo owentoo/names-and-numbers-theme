@@ -1,0 +1,999 @@
+{% doc %}
+  @prompt
+    Section: Mobile-only Image Slider With Tag, Title, Description, and CTA
+    
+    Goal: Create a mobile-only image slider with 3 slides. Each slide includes:
+    
+    Image upload
+    
+    Optional tag in the top-right
+    
+    Title text
+    
+    Description text
+    
+    CTA button under description (with style options)
+    
+    Link for the slide / button
+    
+    Visibility
+    
+    Section shows mobile only (hide tablet & desktop)
+    
+    Slide Content (repeatable block — max 3)
+    
+    Image upload + alt text
+    
+    Tag text (optional) with background + text color controls
+    
+    Title text
+    
+    Description text
+    
+    CTA button text
+    
+    Button link URL
+    
+    Button style options (solid, outline, underline)
+    
+    Button color controls (background, text, border for outline)
+    
+    Layout / Styling
+    
+    Slider: swipeable on mobile
+    
+    Optional auto-slide with speed control
+    
+    Pause auto-slide on user touch
+    
+    Rounded image corners control
+    
+    Spacing controls around text & button
+    
+    Text alignment control (left/center)
+    
+    Section padding top/bottom
+    
+    Optional background color or gradient
+    
+    Accessibility
+    
+    Aria labels for slider and each slide
+    
+    Buttons keyboard accessible
+    
+    Defaults
+    
+    3 slides pre-added
+    
+    Tag off by default
+    
+    Solid button by default
+    
+    Title larger text, description smaller, All of the text should be on the image, like a hero image slider, Section: Mobile-only Image Slider (match reference layout exactly)
+    
+    Goal: Build a 3-slide mobile image slider that looks like the provided magnets screenshot.
+    
+    Layout (must match reference)
+    
+    Mobile only (hide on tablet/desktop).
+    
+    Two-column layout on mobile:
+    
+    Left: Text stack (Tag → Title → Description → CTA).
+    
+    Right: Product image, slightly oversized with visible overflow to the right.
+    
+    Background: very light gray with a soft radial/linear gradient (same tone as reference).
+    
+    Pagination: 3 centered dots at the bottom.
+    
+    Slide Content (3 repeatable slides)
+    
+    Image upload + alt text.
+    
+    Tag pill at top-left of slide (match reference): text + pill background color + text color.
+    
+    Title: bold, large (same scale as reference).
+    
+    Description: smaller paragraph under title.
+    
+    CTA: “Shop Now” by default; Button style options: link (default, like reference), solid, outline. Button/text color controls.
+    
+    Slide/CTA link URL.
+    
+    Image Styling (must match reference)
+    
+    Square or custom aspect ratio control.
+    
+    White “sticker” keyline (thin white stroke) around the image.
+    
+    Soft drop shadow under image.
+    
+    Position image to the right, allow overflow beyond the slide edge, with slight rotation optional (off by default).
+    
+    Spacing & Typography
+    
+    Left text block width ~55–60% of slide.
+    
+    Right image width ~55–65% (can overflow).
+    
+    Controls for left/right padding and vertical padding.
+    
+    Title/description font size controls (keep title clearly larger).
+    
+    Maintain generous line-height and spacing exactly like reference.
+    
+    Slider Behavior
+    
+    Swipeable on mobile.
+    
+    Optional auto-slide with speed control.
+    
+    Pause on touch; resume after 2s idle.
+    
+    Loop toggle.
+    
+    Accessibility
+    
+    ARIA labels for slider and slides.
+    
+    CTA focusable; dots accessible.
+    
+    Defaults
+    
+    3 slides pre-added.
+    
+    Tag pill on, “NEW” sample text.
+    
+    CTA style = link (to match reference).
+    
+    Light gray gradient background, centered dots., Image should fill the entire slide as the background. Add a height control for the slide/card (px + %). Text and CTA overlay on top, aligned left.
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-mobile-slider-{{ ai_gen_id }} {
+    display: none;
+    width: 100%;
+    overflow: hidden;
+    background: {{ block.settings.background_color }};
+    padding-top: {{ block.settings.padding_top }}px;
+    padding-bottom: {{ block.settings.padding_bottom }}px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-mobile-slider-{{ ai_gen_id }} {
+      display: block;
+    }
+  }
+
+  .ai-mobile-slider-container-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .ai-mobile-slider-content-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    {% if block.settings.height_unit == 'px' %}
+      height: {{ block.settings.slide_height_px }}px;
+    {% else %}
+      height: {{ block.settings.slide_height_vh }}vh;
+    {% endif %}
+    overflow: hidden;
+    border-radius: {{ block.settings.slide_border_radius }}px;
+    margin: 0 {{ block.settings.horizontal_margin }}px;
+  }
+
+  .ai-mobile-slider-image-bg-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+  }
+
+  .ai-mobile-slider-image-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+  }
+
+  .ai-mobile-slider-image-placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    max-width: 300px;
+    max-height: 300px;
+    opacity: 0.3;
+  }
+
+  .ai-mobile-slider-overlay-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: {{ block.settings.overlay_color }};
+    opacity: {{ block.settings.overlay_opacity }};
+    z-index: 2;
+  }
+
+  .ai-mobile-slider-text-content-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: {{ block.settings.vertical_alignment }};
+    padding: {{ block.settings.content_padding }}px;
+    z-index: 3;
+    box-sizing: border-box;
+  }
+
+  .ai-mobile-slider-tag-{{ ai_gen_id }} {
+    display: inline-block;
+    background-color: {{ block.settings.tag_bg_color }};
+    color: {{ block.settings.tag_text_color }};
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: {{ block.settings.spacing_after_tag }}px;
+    align-self: flex-start;
+  }
+
+  .ai-mobile-slider-title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.title_size }}px;
+    font-weight: 700;
+    color: {{ block.settings.text_color }};
+    margin: 0 0 {{ block.settings.spacing_after_title }}px 0;
+    line-height: 1.2;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .ai-mobile-slider-description-{{ ai_gen_id }} {
+    font-size: {{ block.settings.description_size }}px;
+    color: {{ block.settings.text_color }};
+    margin: 0 0 {{ block.settings.spacing_after_description }}px 0;
+    line-height: 1.5;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .ai-mobile-slider-button-{{ ai_gen_id }} {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    align-self: flex-start;
+  }
+
+  .ai-mobile-slider-button-link-{{ ai_gen_id }} {
+    color: {{ block.settings.button_link_color }};
+    text-decoration: underline;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .ai-mobile-slider-button-link-{{ ai_gen_id }}:hover {
+    opacity: 0.7;
+  }
+
+  .ai-mobile-slider-button-solid-{{ ai_gen_id }} {
+    background-color: {{ block.settings.button_solid_bg }};
+    color: {{ block.settings.button_solid_text }};
+    border: 2px solid {{ block.settings.button_solid_bg }};
+    padding: 12px 24px;
+    border-radius: {{ block.settings.button_border_radius }}px;
+  }
+
+  .ai-mobile-slider-button-solid-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_solid_bg | color_darken: 10 }};
+    border-color: {{ block.settings.button_solid_bg | color_darken: 10 }};
+  }
+
+  .ai-mobile-slider-button-outline-{{ ai_gen_id }} {
+    background-color: transparent;
+    color: {{ block.settings.button_outline_color }};
+    border: 2px solid {{ block.settings.button_outline_color }};
+    padding: 12px 24px;
+    border-radius: {{ block.settings.button_border_radius }}px;
+  }
+
+  .ai-mobile-slider-button-outline-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_outline_color }};
+    color: {{ block.settings.text_color }};
+  }
+
+{% endstyle %}
+
+<div class="ai-mobile-slider-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-mobile-slider-container-{{ ai_gen_id }}">
+    <div class="ai-mobile-slider-content-{{ ai_gen_id }}">
+      {% if block.settings.slide_1_image %}
+        <img
+          src="{{ block.settings.slide_1_image | image_url: width: 800 }}"
+          alt="{{ block.settings.slide_1_image.alt | escape }}"
+          loading="lazy"
+          width="{{ block.settings.slide_1_image.width }}"
+          height="{{ block.settings.slide_1_image.height }}"
+          class="ai-mobile-slider-image-bg-{{ ai_gen_id }}"
+        >
+      {% else %}
+        <div class="ai-mobile-slider-image-placeholder-{{ ai_gen_id }}">
+          {{ 'hero-apparel-1' | placeholder_svg_tag }}
+        </div>
+      {% endif %}
+
+      <div class="ai-mobile-slider-overlay-{{ ai_gen_id }}"></div>
+
+      <div class="ai-mobile-slider-text-content-{{ ai_gen_id }}">
+        {% if block.settings.slide_1_show_tag and block.settings.slide_1_tag_text != blank %}
+          <div class="ai-mobile-slider-tag-{{ ai_gen_id }}">
+            {{ block.settings.slide_1_tag_text }}
+          </div>
+        {% endif %}
+
+        {% if block.settings.slide_1_title != blank %}
+          <h2 class="ai-mobile-slider-title-{{ ai_gen_id }}">
+            {{ block.settings.slide_1_title }}
+          </h2>
+        {% endif %}
+
+        {% if block.settings.slide_1_description != blank %}
+          <div class="ai-mobile-slider-description-{{ ai_gen_id }}">
+            {{ block.settings.slide_1_description }}
+          </div>
+        {% endif %}
+
+        {% if block.settings.slide_1_button_text != blank %}
+          {% if block.settings.slide_1_upload_mode %}
+            <label
+              for="ninja-upload-input-{{ ai_gen_id }}"
+              class="ai-mobile-slider-button-{{ ai_gen_id }} ai-mobile-slider-button-{{ block.settings.slide_1_button_style }}-{{ ai_gen_id }}"
+              style="cursor:pointer;"
+            >
+              <span class="ninja-upload-btn-label-{{ ai_gen_id }}">{{ block.settings.slide_1_button_text }}</span>
+              <span class="ninja-upload-btn-loading-{{ ai_gen_id }}" style="display:none;">Uploading…</span>
+            </label>
+          {% else %}
+            <a
+              href="{{ block.settings.slide_1_button_link }}"
+              class="ai-mobile-slider-button-{{ ai_gen_id }} ai-mobile-slider-button-{{ block.settings.slide_1_button_style }}-{{ ai_gen_id }}"
+            >
+              {{ block.settings.slide_1_button_text }}
+            </a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{%- assign has_upload = block.settings.slide_1_upload_mode -%}
+
+{% if has_upload %}
+  <input
+    type="file"
+    id="ninja-upload-input-{{ ai_gen_id }}"
+    accept="image/*"
+    style="display:none;"
+    aria-hidden="true"
+  >
+{% endif %}
+
+
+{% if has_upload %}
+<script>
+(function() {
+  var NINJA_API    = 'https://hpz51rjda5.execute-api.us-east-1.amazonaws.com/production';
+  var IMGIX_HOST   = 'ninjauploads-production.imgix.net';
+  var REDIRECT_URL = {{ block.settings.upload_redirect_url | default: '/products/dtf-transfers' | json }};
+
+  var fileInput = document.getElementById('ninja-upload-input-{{ ai_gen_id }}');
+  if (!fileInput) return;
+
+  fileInput.addEventListener('change', async function() {
+    var file = fileInput.files[0];
+    if (!file) return;
+
+    // Show loading state
+    document.querySelectorAll('.ninja-upload-btn-label-{{ ai_gen_id }}').forEach(function(el) { el.style.display = 'none'; });
+    document.querySelectorAll('.ninja-upload-btn-loading-{{ ai_gen_id }}').forEach(function(el) { el.style.display = 'inline'; });
+
+    try {
+      // 1. Generate a unique filename
+      var ext        = file.name.split('.').pop();
+      var randomName = 'app-upload-' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
+
+      // 2. Get presigned S3 URL from Ninja API
+      var presignRes  = await fetch(
+        NINJA_API + '/uploads/getPresignedUploadUrl?file_name=' +
+          encodeURIComponent(randomName) + '&file_type=' + encodeURIComponent(file.type)
+      );
+      var presignData = await presignRes.json();
+
+      if (!presignData || !presignData.url) throw new Error('No presign URL returned');
+
+      // 3. PUT file directly to S3
+      await fetch(presignData.url, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type }
+      });
+
+      // 4. Build imgix URL and redirect to product page
+      var imgixUrl = 'https://' + IMGIX_HOST + '/' + randomName;
+      window.location.href = REDIRECT_URL + '?file=' + encodeURIComponent(imgixUrl);
+
+    } catch (err) {
+      console.error('Ninja upload error:', err);
+      // Reset loading state on failure
+      document.querySelectorAll('.ninja-upload-btn-label-{{ ai_gen_id }}').forEach(function(el) { el.style.display = 'inline'; });
+      document.querySelectorAll('.ninja-upload-btn-loading-{{ ai_gen_id }}').forEach(function(el) { el.style.display = 'none'; });
+      alert('Upload failed — please try again.');
+    }
+  });
+})();
+</script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Mobile image slider",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Upload Button"
+    },
+    {
+      "type": "text",
+      "id": "upload_redirect_url",
+      "label": "Upload redirect URL",
+      "default": "/products/dtf-transfers",
+      "info": "Page to send the user to after upload (the image URL is appended as ?file=...)"
+    },
+    {
+      "type": "header",
+      "content": "Slider behavior"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_slide",
+      "label": "Auto-slide",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "slide_speed",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "unit": "s",
+      "label": "Auto-slide speed",
+      "default": 4
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_loop",
+      "label": "Loop slides",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Slide dimensions"
+    },
+    {
+      "type": "select",
+      "id": "height_unit",
+      "label": "Height unit",
+      "options": [
+        {
+          "value": "px",
+          "label": "Pixels"
+        },
+        {
+          "value": "vh",
+          "label": "Viewport height"
+        }
+      ],
+      "default": "px"
+    },
+    {
+      "type": "range",
+      "id": "slide_height_px",
+      "min": 200,
+      "max": 600,
+      "step": 20,
+      "unit": "px",
+      "label": "Height (pixels)",
+      "default": 400
+    },
+    {
+      "type": "range",
+      "id": "slide_height_vh",
+      "min": 30,
+      "max": 100,
+      "step": 5,
+      "unit": "vh",
+      "label": "Height (viewport)",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "slide_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "horizontal_margin",
+      "min": 0,
+      "max": 24,
+      "step": 4,
+      "unit": "px",
+      "label": "Horizontal margin",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Image overlay"
+    },
+    {
+      "type": "color",
+      "id": "overlay_color",
+      "label": "Overlay color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "label": "Overlay opacity",
+      "default": 0.3
+    },
+    {
+      "type": "header",
+      "content": "Content positioning"
+    },
+    {
+      "type": "select",
+      "id": "vertical_alignment",
+      "label": "Vertical alignment",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Top"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Bottom"
+        }
+      ],
+      "default": "flex-end"
+    },
+    {
+      "type": "range",
+      "id": "content_padding",
+      "min": 16,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Content padding",
+      "default": 32
+    },
+    {
+      "type": "header",
+      "content": "Tag style"
+    },
+    {
+      "type": "color",
+      "id": "tag_bg_color",
+      "label": "Background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "tag_text_color",
+      "label": "Text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Text style"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 20,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Title size",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "description_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Description size",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Text spacing"
+    },
+    {
+      "type": "range",
+      "id": "spacing_after_tag",
+      "min": 4,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "After tag",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "spacing_after_title",
+      "min": 8,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "After title",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "spacing_after_description",
+      "min": 12,
+      "max": 32,
+      "step": 4,
+      "unit": "px",
+      "label": "After description",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Button style - Link"
+    },
+    {
+      "type": "color",
+      "id": "button_link_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Button style - Solid"
+    },
+    {
+      "type": "color",
+      "id": "button_solid_bg",
+      "label": "Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_solid_text",
+      "label": "Text",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Button style - Outline"
+    },
+    {
+      "type": "color",
+      "id": "button_outline_color",
+      "label": "Border and text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Button border radius",
+      "default": 6
+    },
+    {
+      "type": "header",
+      "content": "Section background"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Section padding top",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Section padding bottom",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Pagination dots"
+    },
+    {
+      "type": "color",
+      "id": "dot_color",
+      "label": "Dot color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Slide 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "slide_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "slide_1_show_tag",
+      "label": "Show tag",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "slide_1_tag_text",
+      "label": "Tag text",
+      "default": "NEW"
+    },
+    {
+      "type": "text",
+      "id": "slide_1_title",
+      "label": "Title",
+      "default": "Premium Magnets"
+    },
+    {
+      "type": "textarea",
+      "id": "slide_1_description",
+      "label": "Description",
+      "default": "High-quality custom magnets for your business"
+    },
+    {
+      "type": "text",
+      "id": "slide_1_button_text",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "slide_1_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "select",
+      "id": "slide_1_button_style",
+      "label": "Button style",
+      "options": [
+        {
+          "value": "link",
+          "label": "Link"
+        },
+        {
+          "value": "solid",
+          "label": "Solid"
+        },
+        {
+          "value": "outline",
+          "label": "Outline"
+        }
+      ],
+      "default": "link"
+    },
+    {
+      "type": "checkbox",
+      "id": "slide_1_upload_mode",
+      "label": "Button opens image picker (upload mode)",
+      "default": false,
+      "info": "When enabled the button triggers a native file picker instead of navigating to a URL"
+    },
+    {
+      "type": "header",
+      "content": "Slide 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "slide_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "slide_2_show_tag",
+      "label": "Show tag",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "slide_2_tag_text",
+      "label": "Tag text",
+      "default": "NEW"
+    },
+    {
+      "type": "text",
+      "id": "slide_2_title",
+      "label": "Title",
+      "default": "Custom Stickers"
+    },
+    {
+      "type": "textarea",
+      "id": "slide_2_description",
+      "label": "Description",
+      "default": "Durable stickers perfect for any surface"
+    },
+    {
+      "type": "text",
+      "id": "slide_2_button_text",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "slide_2_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "select",
+      "id": "slide_2_button_style",
+      "label": "Button style",
+      "options": [
+        {
+          "value": "link",
+          "label": "Link"
+        },
+        {
+          "value": "solid",
+          "label": "Solid"
+        },
+        {
+          "value": "outline",
+          "label": "Outline"
+        }
+      ],
+      "default": "link"
+    },
+    {
+      "type": "checkbox",
+      "id": "slide_2_upload_mode",
+      "label": "Button opens image picker (upload mode)",
+      "default": false,
+      "info": "When enabled the button triggers a native file picker instead of navigating to a URL"
+    },
+    {
+      "type": "header",
+      "content": "Slide 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "slide_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "slide_3_show_tag",
+      "label": "Show tag",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "slide_3_tag_text",
+      "label": "Tag text",
+      "default": "NEW"
+    },
+    {
+      "type": "text",
+      "id": "slide_3_title",
+      "label": "Title",
+      "default": "Vinyl Decals"
+    },
+    {
+      "type": "textarea",
+      "id": "slide_3_description",
+      "label": "Description",
+      "default": "Weather-resistant vinyl for indoor and outdoor use"
+    },
+    {
+      "type": "text",
+      "id": "slide_3_button_text",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "slide_3_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "select",
+      "id": "slide_3_button_style",
+      "label": "Button style",
+      "options": [
+        {
+          "value": "link",
+          "label": "Link"
+        },
+        {
+          "value": "solid",
+          "label": "Solid"
+        },
+        {
+          "value": "outline",
+          "label": "Outline"
+        }
+      ],
+      "default": "link"
+    },
+    {
+      "type": "checkbox",
+      "id": "slide_3_upload_mode",
+      "label": "Button opens image picker (upload mode)",
+      "default": false,
+      "info": "When enabled the button triggers a native file picker instead of navigating to a URL"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Mobile image slider"
+    }
+  ]
+}
+{% endschema %}

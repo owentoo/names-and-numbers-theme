@@ -1,0 +1,552 @@
+{% doc %}
+  @prompt
+    Create a popup that displays 5 product cards when a customer clicks the checkout button on the cart page. The popup should have a clean design, allow customers to add products to cart, and include a way to close the popup and continue to checkout., this should ONLY appear if the only thing in your cart is the following product types. Custom transfers, custom transfers gang, spangles, puff transfers
+
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-cart-upsell-popup-{{ ai_gen_id }} {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: none;
+    justify-content: center;
+    align-items: center;opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-cart-upsell-popup-{{ ai_gen_id }}.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  .ai-cart-upsell-container-{{ ai_gen_id }} {
+    background-color: {{ block.settings.popup_background_color }};
+    border-radius: {{ block.settings.popup_border_radius }}px;
+    padding: 30px;
+    max-width: 900px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .ai-cart-upsell-header-{{ ai_gen_id }} {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .ai-cart-upsell-title-{{ ai_gen_id }} {
+    font-size: 24px;
+    font-weight: 600;
+    color: {{ block.settings.text_color }};
+    margin: 0;
+  }
+
+  .ai-cart-upsell-close-{{ ai_gen_id }} {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    color: {{ block.settings.text_color }};
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .ai-cart-upsell-products-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
+  }
+
+  .ai-cart-upsell-product-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid {{ block.settings.card_border_color }};
+    border-radius: {{ block.settings.card_border_radius }}px;
+    overflow: hidden;
+    background-color: {{ block.settings.card_background_color }};
+    height: 100%;
+  }
+
+  .ai-cart-upsell-product-image-{{ ai_gen_id }} {
+    position: relative;
+    padding-bottom: 100%;
+    overflow: hidden;
+  }
+
+  .ai-cart-upsell-product-image-{{ ai_gen_id }} img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-cart-upsell-product-info-{{ ai_gen_id }} {
+    padding: 15px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;}
+
+  .ai-cart-upsell-product-title-{{ ai_gen_id }} {
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 0 10px;
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-cart-upsell-product-price-{{ ai_gen_id }} {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 15px;
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-cart-upsell-product-button-{{ ai_gen_id }} {
+    background-color: {{ block.settings.button_background_color }};
+    color: {{ block.settings.button_text_color }};
+    border: none;
+    border-radius: {{ block.settings.button_border_radius }}px;
+    padding: 8px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: auto;
+  }
+
+  .ai-cart-upsell-product-button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_hover_color }};
+  }
+
+  .ai-cart-upsell-footer-{{ ai_gen_id }} {
+    margin-top: 30px;
+    text-align: center;}
+
+  .ai-cart-upsell-checkout-{{ ai_gen_id }} {
+    background-color: {{ block.settings.checkout_button_background }};
+    color: {{ block.settings.checkout_button_text_color }};
+    border: none;
+    border-radius: {{ block.settings.button_border_radius }}px;
+    padding: 12px 25px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;}
+
+  .ai-cart-upsell-checkout-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.checkout_button_hover }};
+  }
+
+  .ai-cart-upsell-product-image-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-cart-upsell-product-image-placeholder-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+    color: #888;
+  }
+
+  @media screen and (max-width: 768px) {
+    .ai-cart-upsell-container-{{ ai_gen_id }} {
+      padding: 20px;
+      width: 95%;
+    }
+
+    .ai-cart-upsell-products-{{ ai_gen_id }} {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+{% endstyle %}
+
+<div 
+  class="ai-cart-upsell-popup-{{ ai_gen_id }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="ai-cart-upsell-container-{{ ai_gen_id }}">
+    <div class="ai-cart-upsell-header-{{ ai_gen_id }}">
+      <h2 class="ai-cart-upsell-title-{{ ai_gen_id }}">{{ block.settings.popup_title }}</h2>
+      <button class="ai-cart-upsell-close-{{ ai_gen_id }}" aria-label="Close">×</button>
+    </div>
+    
+    <div class="ai-cart-upsell-products-{{ ai_gen_id }}">
+      {% for product in block.settings.upsell_products %}
+        <div class="ai-cart-upsell-product-{{ ai_gen_id }}" data-product-id="{{ product.id }}">
+          <div class="ai-cart-upsell-product-image-{{ ai_gen_id }}">
+            {% if product.featured_image %}
+              <img 
+                src="{{ product.featured_image | image_url: width: 300 }}" 
+                alt="{{ product.featured_image.alt | escape }}"
+                loading="lazy"
+                width="300"
+                height="300"
+              >
+            {% else %}
+              <div class="ai-cart-upsell-product-image-placeholder-{{ ai_gen_id }}">
+                {{ 'product-apparel-1' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div><div class="ai-cart-upsell-product-info-{{ ai_gen_id }}">
+            <h3 class="ai-cart-upsell-product-title-{{ ai_gen_id }}">{{ product.title }}</h3>
+            <div class="ai-cart-upsell-product-price-{{ ai_gen_id }}">{{ product.price | money }}</div>
+            <button 
+              class="ai-cart-upsell-product-button-{{ ai_gen_id }}" 
+              data-product-id="{{ product.id }}"
+              aria-label="Add {{ product.title }} to cart"
+            >
+              {{ block.settings.add_to_cart_text }}
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    
+    <div class="ai-cart-upsell-footer-{{ ai_gen_id }}">
+      <button class="ai-cart-upsell-checkout-{{ ai_gen_id }}">
+        {{ block.settings.continue_to_checkout_text }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    class CartUpsellPopup extends HTMLElement {
+      constructor() {
+        super();
+        this.originalCheckoutButton = null;
+        this.popup = this;
+        this.closeButton = this.querySelector('.ai-cart-upsell-close-{{ ai_gen_id }}');
+        this.checkoutButton = this.querySelector('.ai-cart-upsell-checkout-{{ ai_gen_id }}');
+        this.addToCartButtons = this.querySelectorAll('.ai-cart-upsell-product-button-{{ ai_gen_id }}');
+        this.targetProductTypes = [
+          'custom transfers', 
+          'custom transfers gang', 
+          'spangles', 
+          'puff transfers'
+        ];
+      }
+
+      connectedCallback() {
+        this.setupEventListeners();
+        this.interceptCheckoutButton();
+      }
+
+      setupEventListeners() {
+        // Close popup
+        this.closeButton.addEventListener('click', () => {
+          this.hidePopup();
+        });
+
+        // Continue to checkout
+        this.checkoutButton.addEventListener('click', () => {
+          this.hidePopup();
+          window.location.href = '/checkout';
+        });
+
+        // Add to cart buttons
+        this.addToCartButtons.forEach(button => {
+          button.addEventListener('click', this.handleAddToCart.bind(this, button));
+        });
+
+        // Close when clicking outside the popup content
+        this.addEventListener('click', (event) => {
+          if (event.target === this) {
+            this.hidePopup();
+          }
+        });
+      }
+
+      interceptCheckoutButton() {
+        // Find the checkout button in the cart
+        const checkoutForms = document.querySelectorAll('form[action="/cart"] [type="submit"], form[action="/cart"] button[name="checkout"]');
+        
+        checkoutForms.forEach(checkoutButton => {
+          if (checkoutButton.getAttribute('name') === 'checkout' || 
+              checkoutButton.getAttribute('type') === 'submit') {
+            
+            // Store the original checkout button
+            this.originalCheckoutButton = checkoutButton;
+            
+            // Create a clone of the button to preserve all attributes and styling
+            const clonedButton = checkoutButton.cloneNode(true);
+            
+            // Replace the original button with our clone
+            checkoutButton.parentNode.replaceChild(clonedButton, checkoutButton);
+            
+            // Add our event listener to the cloned button
+            clonedButton.addEventListener('click', (event) => {
+              event.preventDefault();
+              this.checkCartContents();
+            });
+          }
+        });
+      }
+
+      async checkCartContents() {
+        try {
+          const response = await fetch('/cart.js');
+          const cart = await response.json();
+          
+          if (cart.items && cart.items.length > 0) {
+            // Check if all items in cart are of the target product types
+            const allItemsMatch = this.checkIfAllItemsMatchTargetTypes(cart.items);
+            
+            if (allItemsMatch) {
+              this.showPopup();
+            } else {
+              // If not all items match, proceed directly to checkout
+              window.location.href = '/checkout';
+            }
+          } else {
+            // Empty cart, just go to checkout
+            window.location.href = '/checkout';
+          }
+        } catch (error) {
+          console.error('Error checking cart contents:', error);
+          // In case of error, proceed to checkout
+          window.location.href = '/checkout';
+        }
+      }
+
+      checkIfAllItemsMatchTargetTypes(items) {
+        // Convert all types to lowercase for case-insensitive comparison
+        const normalizedTargetTypes = this.targetProductTypes.map(type => type.toLowerCase());
+        
+        // Check if all items match the target types
+        return items.every(item => {
+          // Get product type from the item
+          const productType = item.product_type ? item.product_type.toLowerCase() : '';
+          
+          // Check if this product type is in our target list
+          return normalizedTargetTypes.includes(productType);
+        });
+      }
+
+      showPopup() {
+        this.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+
+      hidePopup() {
+        this.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+
+      async handleAddToCart(button) {
+        const productId = button.getAttribute('data-product-id');
+        button.textContent = 'Adding...';
+        button.disabled = true;
+
+        try {
+          const response = await fetch('/cart/add.js', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              items: [{
+                id: productId,
+                quantity: 1
+              }]
+            })
+          });
+
+          if (response.ok) {
+            button.textContent = 'Added!';
+            
+            // Update cart count if it exists
+            this.updateCartCount();
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+              button.textContent = '{{ block.settings.add_to_cart_text }}';
+              button.disabled = false;
+            }, 2000);
+          } else {
+            throw new Error('Failed to add to cart');
+          }
+        } catch (error) {
+          button.textContent = 'Error';
+          setTimeout(() => {
+            button.textContent = '{{ block.settings.add_to_cart_text }}';
+            button.disabled = false;
+          }, 2000);
+        }
+      }
+
+      updateCartCount() {
+        fetch('/cart.js')
+          .then(response => response.json())
+          .then(cart => {
+            const cartCountElements = document.querySelectorAll('.cart-count-bubble, .cart-count');
+            cartCountElements.forEach(element => {
+              // Try to find the actual count element
+              const countElement = element.querySelector('span') || element;
+              if (countElement) {
+                countElement.textContent = cart.item_count;
+              }
+            });
+          })
+          .catch(error => console.error('Error updating cart count:', error));
+      }
+    }
+
+    customElements.define('cart-upsell-popup-{{ ai_gen_id }}', CartUpsellPopup);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Checkout Upsell Popup",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Popup Settings"
+    },
+    {
+      "type": "text",
+      "id": "popup_title",
+      "label": "Popup Title",
+      "default": "You might also like"
+    },
+    {
+      "type": "product_list",
+      "id": "upsell_products",
+      "label": "Products to show",
+      "limit": 5
+    },
+    {
+      "type": "text",
+      "id": "add_to_cart_text",
+      "label": "Add to Cart Button Text",
+      "default": "Add to Cart"
+    },
+    {
+      "type": "text",
+      "id": "continue_to_checkout_text",
+      "label": "Continue to Checkout Text",
+      "default": "Continue to Checkout"
+    },
+    {
+      "type": "header",
+      "content": "Style Settings"
+    },
+    {
+      "type": "color",
+      "id": "popup_background_color",
+      "label": "Popup Background Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "card_background_color",
+      "label": "Product Card Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "card_border_color",
+      "label": "Product Card Border",
+      "default": "#e5e5e5"
+    },
+    {
+      "type": "color",
+      "id": "button_background_color",
+      "label": "Add to Cart Button Background",
+      "default": "#000f9f"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Add to Cart Button Text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_color",
+      "label": "Add to Cart Button Hover",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "checkout_button_background",
+      "label": "Checkout Button Background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "checkout_button_text_color",
+      "label": "Checkout Button Text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "checkout_button_hover",
+      "label": "Checkout Button Hover",
+      "default": "#333333"
+    },
+    {
+      "type": "range",
+      "id": "popup_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Popup Border Radius",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Card Border Radius",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Button Border Radius",
+      "default": 4
+    }
+  ],
+  "presets": [
+    {
+      "name": "Checkout Upsell Popup"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,247 @@
+{% doc %}
+  @prompt
+    Create a responsive two-column section with a customizable text card (1/3 width) containing title, description, and styling options in one column, and an embedded YouTube video player (2/3 width) with URL input in the other column. Include mobile responsiveness that stacks vertically on smaller screens, a maximum section width setting for layout control, and an option to switch which side the video appears on (left or right).
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .text-video-block-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: {% if block.settings.video_position == 'left' %}row{% else %}row-reverse{% endif %};
+    gap: {{ block.settings.gap }}px;
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    padding: {{ block.settings.padding }}px;
+  }
+
+  .text-column-{{ ai_gen_id }} {
+    flex: 1;
+    padding: 20px;
+    background-color: {{ block.settings.text_bg_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+  }
+
+  .video-column-{{ ai_gen_id }} {
+    flex: 2;
+    position: relative;
+    overflow: hidden;
+    border-radius: {{ block.settings.border_radius }}px;
+  }
+
+  .video-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    max-width: 100%;
+  }
+
+  .video-wrapper-{{ ai_gen_id }} iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .text-column-title-{{ ai_gen_id }} {
+    color: {{ block.settings.title_color }};
+    font-size: {{ block.settings.title_size }}px;
+    margin-top: 0;
+    margin-bottom: 15px;
+  }
+
+  .text-column-description-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.text_size }}px;
+    line-height: 1.5;
+  }
+
+  @media screen and (max-width: 749px) {
+    .text-video-block-{{ ai_gen_id }} {
+      flex-direction: column;
+    }
+
+    .text-column-{{ ai_gen_id }},
+    .video-column-{{ ai_gen_id }} {
+      width: 100%;
+    }
+  }
+{% endstyle %}
+
+<div class="text-video-block-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="text-column-{{ ai_gen_id }}">
+    {% if block.settings.title != blank %}
+      <h2 class="text-column-title-{{ ai_gen_id }}">{{ block.settings.title }}</h2>
+    {% endif %}
+    
+    {% if block.settings.description != blank %}
+      <div class="text-column-description-{{ ai_gen_id }}">{{ block.settings.description }}</div>
+    {% endif %}
+  </div>
+
+  <div class="video-column-{{ ai_gen_id }}">
+{% if block.settings.video_url != blank %}
+  <div class="video-wrapper-{{ ai_gen_id }}">
+    <iframe 
+      src="{{ block.settings.video_url }}"
+
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          title="{{ block.settings.title | escape }}"
+          loading="lazy">
+        </iframe>
+      </div>
+    {% else %}
+      <div class="video-wrapper-{{ ai_gen_id }}">
+        <div style="display: flex; align-items: center; justify-content: center; background: #f4f4f4; height: 100%; position: absolute; width: 100%;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#888888" stroke-width="1.5"/>
+            <path d="M9.5 8.96533C9.5 8.48805 9.5 8.24941 9.59974 8.11618C9.68666 7.99998 9.81971 7.92751 9.96438 7.91701C10.1304 7.90451 10.3311 8.03242 10.7326 8.28825L15.4532 11.3229C15.8016 11.5481 15.9758 11.6607 16.0359 11.8054C16.0885 11.9327 16.0885 12.0673 16.0359 12.1946C15.9758 12.3393 15.8016 12.4519 15.4532 12.6771L10.7326 15.7117C10.3311 15.9676 10.1304 16.0955 9.96438 16.083C9.81971 16.0725 9.68666 16 9.59974 15.8838C9.5 15.7506 9.5 15.512 9.5 15.0347V8.96533Z" stroke="#888888" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Text and Video",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Maximum width",
+      "default": 1200
+    },
+    {
+      "type": "select",
+      "id": "video_position",
+      "label": "Video position",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "right"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Space between columns",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "padding",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Section padding",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Text Content"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Video Title"
+    },
+    {
+      "type": "richtext",
+      "id": "description",
+      "label": "Description",
+      "default": "<p>Provide a description of your video here. This text will appear next to the embedded video player.</p>"
+    },
+    {
+      "type": "color",
+      "id": "text_bg_color",
+      "label": "Background color",
+      "default": "#f4f4f4"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#333333"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 16,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Title size",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Video"
+    },
+{
+  "type": "text",
+  "id": "video_url",
+  "label": "Video Embed URL",
+  "default": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+}
+
+  ],
+  "presets": [
+    {
+      "name": "Text and Video"
+    }
+  ]
+}
+{% endschema %}

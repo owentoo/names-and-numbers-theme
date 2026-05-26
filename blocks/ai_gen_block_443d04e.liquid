@@ -1,0 +1,1411 @@
+{% doc %}
+  @prompt
+    Create a flexible media blocks section that follows the theme's horizontal max width, padding and margin. The section should support 2-6 blocks displayed on 1-2 rows with responsive options for desktop (1-6 blocks per row) and mobile (1-6 blocks per row). Each block contains an image with customizable text overlay positioning (any corner), heading and paragraph text below the image. Include rollover image/video functionality, optional stickers with image upload capability for each block, play icon with hover effects, comprehensive text styling options (color, weight, size, opacity 0-100%), layout options to display 1-6 blocks, play icon customization (size, position including center and corners with padding, arrow styling, custom icon support), image aspect ratios and fit options (contain/cover), spacing controls (top/bottom padding/margin, horizontal padding in 2px increments for mobile), full-width section background color, text alignment options, gap controls between blocks and image-to-text spacing, with option to hide play icon on mobile. Each block should have individual settings for sticker image upload, text overlay content and positioning, rollover media, and all styling options., video needs to be a url, add space to the top of the section., 6 blocks arent displaying when I change the Number of blocks to display to 6, Text Overlay need background color control and opacity control, add background color to text overlay, Text Overlay Global background color isn't working, Text Overlay Global background color and opacity is not functioning, I need overlay text option for each block that has a background color option so you can see it over the image., I want text to overlay on the image and i want a block of color behind the text for legibility
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-media-blocks-section-{{ ai_gen_id }} {
+    background-color: {{ block.settings.section_bg_color }};
+    padding-top: {{ block.settings.section_padding_top }}px;
+    padding-bottom: {{ block.settings.section_padding_bottom }}px;
+    margin-top: {{ block.settings.section_margin_top }}px;
+    margin-bottom: {{ block.settings.section_margin_bottom }}px;
+  }
+
+  .ai-media-blocks-container-{{ ai_gen_id }} {
+    max-width: {{ settings.theme_max_width }}px;
+    margin: 0 auto;
+    padding-left: {{ settings.grid_gap | divided_by: 2 }}px;
+    padding-right: {{ settings.grid_gap | divided_by: 2 }}px;
+  }
+
+  .ai-media-blocks-grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.desktop_columns }}, 1fr);
+    gap: {{ block.settings.blocks_gap }}px;
+  }
+
+  .ai-media-block-item-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: {{ block.settings.image_text_spacing }}px;
+  }
+
+  .ai-media-block-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    overflow: hidden;
+    border-radius: {{ settings.widgets_border_radius }}px;
+  }
+
+  .ai-media-block-image-{{ ai_gen_id }},
+  .ai-media-block-rollover-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: {{ block.settings.image_fit }};
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-media-block-rollover-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;}
+
+  .ai-media-block-image-wrapper-{{ ai_gen_id }}:hover .ai-media-block-rollover-{{ ai_gen_id }} {
+    opacity: 1;
+  }
+
+  .ai-media-block-image-wrapper-{{ ai_gen_id }}:hover .ai-media-block-image-{{ ai_gen_id }} {
+    opacity: 0;
+  }
+
+  .ai-media-block-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-media-block-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  .ai-media-block-text-overlay-{{ ai_gen_id }} {
+    position: absolute;
+    z-index: 2;
+    color: {{ block.settings.overlay_text_color }};
+    font-size: {{ block.settings.overlay_text_size }}px;
+    font-weight: {{ block.settings.overlay_text_weight }};
+    opacity: {{ block.settings.overlay_text_opacity | divided_by: 100.0 }};
+    padding: {{ block.settings.overlay_padding }}px;
+    border-radius: {{ block.settings.overlay_border_radius }}px;
+    background-color: {{ block.settings.overlay_bg_color | color_modify: 'alpha', block.settings.overlay_bg_opacity | divided_by: 100.0 }};
+    max-width: 80%;
+    word-wrap: break-word;
+  }
+
+  .ai-media-block-text-overlay-{{ ai_gen_id }}--top-left {
+    top: {{ block.settings.overlay_margin }}px;
+    left: {{ block.settings.overlay_margin }}px;
+  }
+
+  .ai-media-block-text-overlay-{{ ai_gen_id }}--top-right {
+    top: {{ block.settings.overlay_margin }}px;
+    right: {{ block.settings.overlay_margin }}px;
+  }
+
+  .ai-media-block-text-overlay-{{ ai_gen_id }}--bottom-left {
+    bottom: {{ block.settings.overlay_margin }}px;
+    left: {{ block.settings.overlay_margin }}px;
+  }
+
+  .ai-media-block-text-overlay-{{ ai_gen_id }}--bottom-right {
+    bottom: {{ block.settings.overlay_margin }}px;
+    right: {{ block.settings.overlay_margin }}px;
+  }
+
+  .ai-media-block-text-overlay-{{ ai_gen_id }}--center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  {% for i in (1..6) %}
+    {% liquid
+      assign block_overlay_bg_key = 'block_' | append: i | append: '_overlay_bg_color'
+      assign block_overlay_bg_opacity_key = 'block_' | append: i | append: '_overlay_bg_opacity'
+      assign block_overlay_text_key = 'block_' | append: i | append: '_overlay_text'
+      assign block_overlay_bg_color = block.settings[block_overlay_bg_key]
+      assign block_overlay_bg_opacity = block.settings[block_overlay_bg_opacity_key]
+      assign block_overlay_text = block.settings[block_overlay_text_key]
+    %}
+    {% if block_overlay_text != blank %}
+      .ai-media-block-text-overlay-{{ ai_gen_id }}-{{ i }} {
+        {% if block_overlay_bg_color != blank %}
+          background-color: {{ block_overlay_bg_color | color_modify: 'alpha', block_overlay_bg_opacity | divided_by: 100.0 }} !important;
+        {% endif %}
+      }
+    {% endif %}
+  {% endfor %}
+
+  .ai-media-block-sticker-{{ ai_gen_id }} {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 40px;
+    height: 40px;
+    z-index: 3;
+  }
+
+  .ai-media-block-sticker-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .ai-media-block-play-icon-{{ ai_gen_id }} {
+    position: absolute;
+    z-index: 4;
+    width: {{ block.settings.play_icon_size }}px;
+    height: {{ block.settings.play_icon_size }}px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+  }
+
+  .ai-media-block-play-icon-{{ ai_gen_id }}:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+    transform: scale(1.1);
+  }
+
+  .ai-media-block-play-icon-{{ ai_gen_id }}--center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .ai-media-block-play-icon-{{ ai_gen_id }}--top-left {
+    top: {{ block.settings.play_icon_padding }}px;
+    left: {{ block.settings.play_icon_padding }}px;
+  }
+
+  .ai-media-block-play-icon-{{ ai_gen_id }}--top-right {
+    top: {{ block.settings.play_icon_padding }}px;
+    right: {{ block.settings.play_icon_padding }}px;
+  }
+
+  .ai-media-block-play-icon-{{ ai_gen_id }}--bottom-left {
+    bottom: {{ block.settings.play_icon_padding }}px;
+    left: {{ block.settings.play_icon_padding }}px;
+  }
+
+  .ai-media-block-play-icon-{{ ai_gen_id }}--bottom-right {
+    bottom: {{ block.settings.play_icon_padding }}px;
+    right: {{ block.settings.play_icon_padding }}px;
+  }
+
+  .ai-media-block-play-icon-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+  }
+
+  .ai-media-block-content-{{ ai_gen_id }} {
+    text-align: {{ block.settings.text_alignment }};
+  }
+
+  .ai-media-block-heading-{{ ai_gen_id }} {
+    color: {{ block.settings.heading_color }};
+    font-size: {{ block.settings.heading_size }}px;
+    font-weight: {{ block.settings.heading_weight }};
+    opacity: {{ block.settings.heading_opacity | divided_by: 100.0 }};
+    margin: 0 0 8px 0;
+  }
+
+  .ai-media-block-paragraph-{{ ai_gen_id }} {
+    color: {{ block.settings.paragraph_color }};
+    font-size: {{ block.settings.paragraph_size }}px;
+    font-weight: {{ block.settings.paragraph_weight }};
+    opacity: {{ block.settings.paragraph_opacity | divided_by: 100.0 }};
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-media-blocks-container-{{ ai_gen_id }} {
+      padding-left: {{ block.settings.mobile_horizontal_padding }}px;
+      padding-right: {{ block.settings.mobile_horizontal_padding }}px;
+    }
+
+    .ai-media-blocks-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.mobile_columns }}, 1fr);
+    }
+
+    {% if block.settings.hide_play_icon_mobile %}
+      .ai-media-block-play-icon-{{ ai_gen_id }} {
+        display: none;
+      }
+    {% endif %}
+
+    .ai-media-block-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size | times: 0.9 }}px;
+    }
+
+    .ai-media-block-paragraph-{{ ai_gen_id }} {
+      font-size: {{ block.settings.paragraph_size | times: 0.9 }}px;
+    }
+
+    .ai-media-block-text-overlay-{{ ai_gen_id }} {
+      font-size: {{ block.settings.overlay_text_size | times: 0.9 }}px;
+      padding: {{ block.settings.overlay_padding | times: 0.8 }}px;
+    }
+  }
+{% endstyle %}
+
+<media-blocks-{{ ai_gen_id }} class="ai-media-blocks-section-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-media-blocks-container-{{ ai_gen_id }}">
+    <div class="ai-media-blocks-grid-{{ ai_gen_id }}">
+      {% for i in (1..6) %}
+        {% liquid
+          assign block_enabled_key = 'block_' | append: i | append: '_enabled'
+          assign block_image_key = 'block_' | append: i | append: '_image'
+          assign block_rollover_image_key = 'block_' | append: i | append: '_rollover_image'
+          assign block_rollover_video_key = 'block_' | append: i | append: '_rollover_video'
+          assign block_heading_key = 'block_' | append: i | append: '_heading'
+          assign block_paragraph_key = 'block_' | append: i | append: '_paragraph'
+          assign block_overlay_text_key = 'block_' | append: i | append: '_overlay_text'
+          assign block_overlay_position_key = 'block_' | append: i | append: '_overlay_position'
+          assign block_sticker_key = 'block_' | append: i | append: '_sticker'
+          assign block_show_play_key = 'block_' | append: i | append: '_show_play'
+
+          assign block_enabled = block.settings[block_enabled_key]
+          assign block_image = block.settings[block_image_key]
+          assign block_rollover_image = block.settings[block_rollover_image_key]
+          assign block_rollover_video = block.settings[block_rollover_video_key]
+          assign block_heading = block.settings[block_heading_key]
+          assign block_paragraph = block.settings[block_paragraph_key]
+          assign block_overlay_text = block.settings[block_overlay_text_key]
+          assign block_overlay_position = block.settings[block_overlay_position_key]
+          assign block_sticker = block.settings[block_sticker_key]
+          assign block_show_play = block.settings[block_show_play_key]
+        %}
+
+        {% if i <= block.settings.blocks_count %}
+          <div class="ai-media-block-item-{{ ai_gen_id }}">
+            <div class="ai-media-block-image-wrapper-{{ ai_gen_id }}">
+              {% if block_image %}
+                <img
+                  src="{{ block_image | image_url: width: 800 }}"
+                  alt="{{ block_image.alt | escape }}"
+                  class="ai-media-block-image-{{ ai_gen_id }}"
+                  loading="lazy"
+                  width="{{ block_image.width }}"
+                  height="{{ block_image.height }}"
+                >
+              {% else %}
+                <div class="ai-media-block-placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if block_rollover_video != blank %}
+                <video
+                  class="ai-media-block-rollover-{{ ai_gen_id }}"
+                  muted
+                  loop
+                  playsinline
+                  preload="metadata"
+                >
+                  <source src="{{ block_rollover_video }}" type="video/mp4">
+                </video>
+              {% elsif block_rollover_image %}
+                <img
+                  src="{{ block_rollover_image | image_url: width: 800 }}"
+                  alt="{{ block_rollover_image.alt | escape }}"
+                  class="ai-media-block-rollover-{{ ai_gen_id }}"
+                  loading="lazy"
+                >
+              {% endif %}
+
+              {% if block_overlay_text != blank %}
+                <div class="ai-media-block-text-overlay-{{ ai_gen_id }} ai-media-block-text-overlay-{{ ai_gen_id }}--{{ block_overlay_position }} ai-media-block-text-overlay-{{ ai_gen_id }}-{{ i }}">
+                  {{ block_overlay_text }}
+                </div>
+              {% endif %}
+
+              {% if block_sticker %}
+                <div class="ai-media-block-sticker-{{ ai_gen_id }}">
+                  <img
+                    src="{{ block_sticker | image_url: width: 80 }}"
+                    alt="{{ block_sticker.alt | escape }}"
+                    loading="lazy"
+                  >
+                </div>
+              {% endif %}
+
+              {% if block_show_play %}
+                <div class="ai-media-block-play-icon-{{ ai_gen_id }} ai-media-block-play-icon-{{ ai_gen_id }}--{{ block.settings.play_icon_position }}" data-block="{{ i }}">
+                  {% if block.settings.custom_play_icon %}
+                    <img
+                      src="{{ block.settings.custom_play_icon | image_url: width: 100 }}"
+                      alt="Play"
+                      style="width: 100%; height: 100%; object-fit: contain;"
+                    >
+                  {% else %}
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="ai-media-block-content-{{ ai_gen_id }}">
+              {% if block_heading != blank %}
+                <h3 class="ai-media-block-heading-{{ ai_gen_id }}">{{ block_heading }}</h3>
+              {% endif %}
+              {% if block_paragraph != blank %}
+                <p class="ai-media-block-paragraph-{{ ai_gen_id }}">{{ block_paragraph }}</p>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</media-blocks-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class MediaBlocks{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.setupEventListeners();
+      }
+
+      setupEventListeners() {
+        const playIcons = this.querySelectorAll('.ai-media-block-play-icon-{{ ai_gen_id }}');
+        const videoElements = this.querySelectorAll('.ai-media-block-rollover-{{ ai_gen_id }}[src]');
+
+        playIcons.forEach((icon) => {
+          icon.addEventListener('click', () => {
+            const blockId = icon.dataset.block;
+            const wrapper = icon.closest('.ai-media-block-image-wrapper-{{ ai_gen_id }}');
+            const video = wrapper.querySelector('.ai-media-block-rollover-{{ ai_gen_id }}');
+            
+            if (video && video.tagName === 'VIDEO') {
+              if (video.paused) {
+                video.play();
+              } else {
+                video.pause();
+              }
+            }
+          });
+        });
+
+        const imageWrappers = this.querySelectorAll('.ai-media-block-image-wrapper-{{ ai_gen_id }}');
+        imageWrappers.forEach((wrapper) => {
+          const video = wrapper.querySelector('.ai-media-block-rollover-{{ ai_gen_id }}');
+          
+          if (video && video.tagName === 'VIDEO') {
+            wrapper.addEventListener('mouseenter', () => {
+              video.play();
+            });
+            wrapper.addEventListener('mouseleave', () => {
+              video.pause();
+              video.currentTime = 0;
+            });
+          }
+        });
+      }
+    }
+
+    customElements.define('media-blocks-{{ ai_gen_id }}', MediaBlocks{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Flexible Media Blocks",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "blocks_count",
+      "label": "Number of blocks to display",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "desktop_columns",
+      "label": "Desktop columns",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "mobile_columns",
+      "label": "Mobile columns",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 1
+    },
+    {
+      "type": "range",
+      "id": "blocks_gap",
+      "label": "Gap between blocks",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "image_text_spacing",
+      "label": "Image to text spacing",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Section Spacing"
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "label": "Top padding",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "default": 120
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "label": "Bottom padding",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_margin_top",
+      "label": "Top margin",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "section_margin_bottom",
+      "label": "Bottom margin",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "mobile_horizontal_padding",
+      "label": "Mobile horizontal padding",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "color",
+      "id": "section_bg_color",
+      "label": "Section background color",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "header",
+      "content": "Image Settings"
+    },
+    {
+      "type": "select",
+      "id": "image_aspect_ratio",
+      "label": "Image aspect ratio",
+      "options": [
+        {
+          "value": "1.33333",
+          "label": "4:3"
+        },
+        {
+          "value": "1",
+          "label": "1:1"
+        },
+        {
+          "value": "0.83333",
+          "label": "5:6"
+        },
+        {
+          "value": "0.666667",
+          "label": "2:3"
+        },
+        {
+          "value": "1.777778",
+          "label": "16:9"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "select",
+      "id": "image_fit",
+      "label": "Image fit",
+      "options": [
+        {
+          "value": "cover",
+          "label": "Cover"
+        },
+        {
+          "value": "contain",
+          "label": "Contain"
+        }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "header",
+      "content": "Play Icon"
+    },
+    {
+      "type": "range",
+      "id": "play_icon_size",
+      "label": "Play icon size",
+      "min": 30,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 50
+    },
+    {
+      "type": "select",
+      "id": "play_icon_position",
+      "label": "Play icon position",
+      "options": [
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "top-left",
+          "label": "Top left"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "play_icon_padding",
+      "label": "Play icon padding from edge",
+      "min": 5,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "image_picker",
+      "id": "custom_play_icon",
+      "label": "Custom play icon"
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_play_icon_mobile",
+      "label": "Hide play icon on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Text Styling"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "label": "Heading size",
+      "min": 12,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "heading_weight",
+      "label": "Heading weight",
+      "min": 300,
+      "max": 900,
+      "step": 100,
+      "default": 600
+    },
+    {
+      "type": "range",
+      "id": "heading_opacity",
+      "label": "Heading opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "color",
+      "id": "paragraph_color",
+      "label": "Paragraph color",
+      "default": "#666666"
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size",
+      "label": "Paragraph size",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "paragraph_weight",
+      "label": "Paragraph weight",
+      "min": 300,
+      "max": 900,
+      "step": 100,
+      "default": 400
+    },
+    {
+      "type": "range",
+      "id": "paragraph_opacity",
+      "label": "Paragraph opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "header",
+      "content": "Text Overlay Global Settings"
+    },
+    {
+      "type": "color",
+      "id": "overlay_text_color",
+      "label": "Overlay text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "overlay_text_size",
+      "label": "Overlay text size",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "overlay_text_weight",
+      "label": "Overlay text weight",
+      "min": 300,
+      "max": 900,
+      "step": 100,
+      "default": 600
+    },
+    {
+      "type": "range",
+      "id": "overlay_text_opacity",
+      "label": "Overlay text opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "color",
+      "id": "overlay_bg_color",
+      "label": "Default overlay background color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "overlay_bg_opacity",
+      "label": "Default overlay background opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 70
+    },
+    {
+      "type": "range",
+      "id": "overlay_padding",
+      "label": "Overlay padding",
+      "min": 4,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "overlay_border_radius",
+      "label": "Overlay border radius",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "overlay_margin",
+      "label": "Overlay margin from edge",
+      "min": 8,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Block 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_1_enabled",
+      "label": "Enable block 1",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "block_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "block_1_rollover_image",
+      "label": "Rollover image"
+    },
+    {
+      "type": "url",
+      "id": "block_1_rollover_video",
+      "label": "Rollover video URL"
+    },
+    {
+      "type": "text",
+      "id": "block_1_heading",
+      "label": "Heading",
+      "default": "Block Heading"
+    },
+    {
+      "type": "textarea",
+      "id": "block_1_paragraph",
+      "label": "Paragraph",
+      "default": "Block description text goes here."
+    },
+    {
+      "type": "text",
+      "id": "block_1_overlay_text",
+      "label": "Text overlay"
+    },
+    {
+      "type": "select",
+      "id": "block_1_overlay_position",
+      "label": "Overlay position",
+      "options": [
+        {
+          "value": "top-left",
+          "label": "Top left"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "default": "top-left"
+    },
+    {
+      "type": "color",
+      "id": "block_1_overlay_bg_color",
+      "label": "Overlay background color"
+    },
+    {
+      "type": "range",
+      "id": "block_1_overlay_bg_opacity",
+      "label": "Overlay background opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 70
+    },
+    {
+      "type": "image_picker",
+      "id": "block_1_sticker",
+      "label": "Sticker image"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_1_show_play",
+      "label": "Show play icon",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Block 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_2_enabled",
+      "label": "Enable block 2",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "block_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "block_2_rollover_image",
+      "label": "Rollover image"
+    },
+    {
+      "type": "url",
+      "id": "block_2_rollover_video",
+      "label": "Rollover video URL"
+    },
+    {
+      "type": "text",
+      "id": "block_2_heading",
+      "label": "Heading",
+      "default": "Block Heading"
+    },
+    {
+      "type": "textarea",
+      "id": "block_2_paragraph",
+      "label": "Paragraph",
+      "default": "Block description text goes here."
+    },
+    {
+      "type": "text",
+      "id": "block_2_overlay_text",
+      "label": "Text overlay"
+    },
+    {
+      "type": "select",
+      "id": "block_2_overlay_position",
+      "label": "Overlay position",
+      "options": [
+        {
+          "value": "top-left",
+          "label": "Top left"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "default": "top-left"
+    },
+    {
+      "type": "color",
+      "id": "block_2_overlay_bg_color",
+      "label": "Overlay background color"
+    },
+    {
+      "type": "range",
+      "id": "block_2_overlay_bg_opacity",
+      "label": "Overlay background opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 70
+    },
+    {
+      "type": "image_picker",
+      "id": "block_2_sticker",
+      "label": "Sticker image"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_2_show_play",
+      "label": "Show play icon",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Block 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_3_enabled",
+      "label": "Enable block 3",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "block_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "block_3_rollover_image",
+      "label": "Rollover image"
+    },
+    {
+      "type": "url",
+      "id": "block_3_rollover_video",
+      "label": "Rollover video URL"
+    },
+    {
+      "type": "text",
+      "id": "block_3_heading",
+      "label": "Heading",
+      "default": "Block Heading"
+    },
+    {
+      "type": "textarea",
+      "id": "block_3_paragraph",
+      "label": "Paragraph",
+      "default": "Block description text goes here."
+    },
+    {
+      "type": "text",
+      "id": "block_3_overlay_text",
+      "label": "Text overlay"
+    },
+    {
+      "type": "select",
+      "id": "block_3_overlay_position",
+      "label": "Overlay position",
+      "options": [
+        {
+          "value": "top-left",
+          "label": "Top left"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "default": "top-left"
+    },
+    {
+      "type": "color",
+      "id": "block_3_overlay_bg_color",
+      "label": "Overlay background color"
+    },
+    {
+      "type": "range",
+      "id": "block_3_overlay_bg_opacity",
+      "label": "Overlay background opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 70
+    },
+    {
+      "type": "image_picker",
+      "id": "block_3_sticker",
+      "label": "Sticker image"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_3_show_play",
+      "label": "Show play icon",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Block 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_4_enabled",
+      "label": "Enable block 4",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "block_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "block_4_rollover_image",
+      "label": "Rollover image"
+    },
+    {
+      "type": "url",
+      "id": "block_4_rollover_video",
+      "label": "Rollover video URL"
+    },
+    {
+      "type": "text",
+      "id": "block_4_heading",
+      "label": "Heading",
+      "default": "Block Heading"
+    },
+    {
+      "type": "textarea",
+      "id": "block_4_paragraph",
+      "label": "Paragraph",
+      "default": "Block description text goes here."
+    },
+    {
+      "type": "text",
+      "id": "block_4_overlay_text",
+      "label": "Text overlay"
+    },
+    {
+      "type": "select",
+      "id": "block_4_overlay_position",
+      "label": "Overlay position",
+      "options": [
+        {
+          "value": "top-left",
+          "label": "Top left"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "default": "top-left"
+    },
+    {
+      "type": "color",
+      "id": "block_4_overlay_bg_color",
+      "label": "Overlay background color"
+    },
+    {
+      "type": "range",
+      "id": "block_4_overlay_bg_opacity",
+      "label": "Overlay background opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 70
+    },
+    {
+      "type": "image_picker",
+      "id": "block_4_sticker",
+      "label": "Sticker image"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_4_show_play",
+      "label": "Show play icon",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Block 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_5_enabled",
+      "label": "Enable block 5",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "block_5_image",
+      "label": "Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "block_5_rollover_image",
+      "label": "Rollover image"
+    },
+    {
+      "type": "url",
+      "id": "block_5_rollover_video",
+      "label": "Rollover video URL"
+    },
+    {
+      "type": "text",
+      "id": "block_5_heading",
+      "label": "Heading",
+      "default": "Block Heading"
+    },
+    {
+      "type": "textarea",
+      "id": "block_5_paragraph",
+      "label": "Paragraph",
+      "default": "Block description text goes here."
+    },
+    {
+      "type": "text",
+      "id": "block_5_overlay_text",
+      "label": "Text overlay"
+    },
+    {
+      "type": "select",
+      "id": "block_5_overlay_position",
+      "label": "Overlay position",
+      "options": [
+        {
+          "value": "top-left",
+          "label": "Top left"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "default": "top-left"
+    },
+    {
+      "type": "color",
+      "id": "block_5_overlay_bg_color",
+      "label": "Overlay background color"
+    },
+    {
+      "type": "range",
+      "id": "block_5_overlay_bg_opacity",
+      "label": "Overlay background opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 70
+    },
+    {
+      "type": "image_picker",
+      "id": "block_5_sticker",
+      "label": "Sticker image"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_5_show_play",
+      "label": "Show play icon",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Block 6"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_6_enabled",
+      "label": "Enable block 6",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "block_6_image",
+      "label": "Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "block_6_rollover_image",
+      "label": "Rollover image"
+    },
+    {
+      "type": "url",
+      "id": "block_6_rollover_video",
+      "label": "Rollover video URL"
+    },
+    {
+      "type": "text",
+      "id": "block_6_heading",
+      "label": "Heading",
+      "default": "Block Heading"
+    },
+    {
+      "type": "textarea",
+      "id": "block_6_paragraph",
+      "label": "Paragraph",
+      "default": "Block description text goes here."
+    },
+    {
+      "type": "text",
+      "id": "block_6_overlay_text",
+      "label": "Text overlay"
+    },
+    {
+      "type": "select",
+      "id": "block_6_overlay_position",
+      "label": "Overlay position",
+      "options": [
+        {
+          "value": "top-left",
+          "label": "Top left"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "default": "top-left"
+    },
+    {
+      "type": "color",
+      "id": "block_6_overlay_bg_color",
+      "label": "Overlay background color"
+    },
+    {
+      "type": "range",
+      "id": "block_6_overlay_bg_opacity",
+      "label": "Overlay background opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 70
+    },
+    {
+      "type": "image_picker",
+      "id": "block_6_sticker",
+      "label": "Sticker image"
+    },
+    {
+      "type": "checkbox",
+      "id": "block_6_show_play",
+      "label": "Show play icon",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "Flexible Media Blocks"
+    }
+  ]
+}
+{% endschema %}

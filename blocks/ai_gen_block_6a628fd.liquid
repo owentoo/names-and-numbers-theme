@@ -1,0 +1,731 @@
+{% doc %}
+  @prompt
+    Create a Shopify section modeled after the 'Promotion Cards' section with enhanced flexibility and styling:
+
+Layout:
+
+Display a horizontal row of image cards, starting with 6 columns per row by default.
+
+Allow the merchant to add as many columns (cards) as needed, with automatic wrapping based on screen size and available space.
+
+Include settings to control how many columns are shown per device breakpoint (desktop, tablet, mobile).
+
+Add section-wide settings for maximum width (full-width, wide, or constrained), padding, and spacing between cards.
+
+Content elements per card:
+
+Image (entire image should be clickable and link to a customizable URL)
+
+Text overlaid at the bottom left of the image, including:
+
+Heading (editable)
+
+Optional subheading (editable)
+
+Overlay settings:
+
+Include an optional semi-transparent overlay behind the text at the bottom of each image
+
+Theme editor controls should include:
+
+Toggle to enable/disable overlay
+
+Overlay opacity control (0%–100%)
+
+Overlay height control (in pixels or % from the bottom of the image)
+
+Mobile styling:
+
+Allow full customization for mobile behavior, including:
+
+Stack cards vertically or horizontally
+
+Set different column count for mobile
+
+Adjust padding, font sizes, and spacing
+
+Ensure overlay and text remain legible on all devices
+
+Theme editor customization settings:
+
+Per-card controls for image, link, heading, and subheading
+
+Section-wide controls for:
+
+Number of columns per breakpoint
+
+Overlay appearance (toggle, opacity, height)
+
+Card size and spacing
+
+Section max-width and alignment
+
+Ensure performance best practices are followed: lazy-load images, include alt text fields, and apply responsive design standards for accessibility and speed., Add the following hover animation behavior to each image card:
+
+On hover, apply a slight zoom-in and lift effect to the card (transform: scale(1.03) translateY(-4px)).
+
+Increase overlay opacity slightly on hover to darken the image further (e.g., from 40% to 60%).
+
+Apply a soft glow effect to the heading text on hover using text-shadow (e.g., 0 0 8px rgba(255,255,255,0.8)).
+
+Ensure transitions are smooth with a timing of ~300ms for all animated properties.
+
+Include editor controls to toggle this animation on or off, and optionally adjust the glow intensity and lift distance.
+, Give me an option to upload icon for each promotion card and give options to size it. Should be placed uppper lefthand corner of card
+, For icon, it should be just the uploaded image, no conta
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .promotion-cards-{{ ai_gen_id }} {
+    width: 100%;
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    padding: {{ block.settings.section_padding }}px 0;
+  }
+
+  .promotion-cards__grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    gap: {{ block.settings.card_spacing }}px;
+  }
+
+  .promotion-card-{{ ai_gen_id }} {
+    position: relative;
+    overflow: hidden;
+    border-radius: {{ block.settings.card_border_radius }}px;
+    height: 100%;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: transform {{ block.settings.animation_speed }}ms ease, 
+                box-shadow {{ block.settings.animation_speed }}ms ease;
+  }
+
+  {% if block.settings.enable_hover_animation %}
+  .promotion-card-{{ ai_gen_id }}:hover {
+    transform: scale(1.03) translateY(-{{ block.settings.hover_lift_distance }}px);
+    box-shadow: 0 {{ block.settings.hover_lift_distance }}px {{ block.settings.hover_lift_distance | times: 2 }}px rgba(0,0,0,0.1);
+  }
+  {% endif %}
+
+  .promotion-card__image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: {{ block.settings.image_aspect_ratio }}%;
+    overflow: hidden;
+  }
+
+  .promotion-card__image-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform {{ block.settings.animation_speed }}ms ease;
+  }
+
+  {% if block.settings.enable_hover_animation %}
+  .promotion-card-{{ ai_gen_id }}:hover .promotion-card__image-{{ ai_gen_id }} {
+    transform: scale(1.05);
+  }
+  {% endif %}
+
+  .promotion-card__content-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px;
+    z-index: 2;
+  }
+
+  .promotion-card__icon-{{ ai_gen_id }} {
+    position: absolute;
+    top: {{ block.settings.icon_padding }}px;
+    left: {{ block.settings.icon_padding }}px;
+    width: {{ block.settings.icon_size }}px;
+    height: auto;
+    z-index: 3;
+  }
+
+  .promotion-card__icon-{{ ai_gen_id }} img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+
+  {% if block.settings.enable_overlay %}
+    .promotion-card__overlay-{{ ai_gen_id }} {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: {{ block.settings.overlay_height }}%;
+      background: linear-gradient(to top, rgba(0,0,0,{{ block.settings.overlay_opacity }}), rgba(0,0,0,0));
+      z-index: 1;
+      transition: background {{ block.settings.animation_speed }}ms ease;
+    }
+    
+    {% if block.settings.enable_hover_animation %}
+    .promotion-card-{{ ai_gen_id }}:hover .promotion-card__overlay-{{ ai_gen_id }} {
+      background: linear-gradient(to top, rgba(0,0,0,{{ block.settings.overlay_opacity | plus: 0.2 }}), rgba(0,0,0,0));
+    }
+    {% endif %}
+  {% endif %}
+
+  .promotion-card__heading-{{ ai_gen_id }} {
+    margin: 0 0 5px;
+    font-size: {{ block.settings.heading_font_size }}px;
+    font-weight: 600;
+    color: {{ block.settings.text_color }};
+    transition: text-shadow {{ block.settings.animation_speed }}ms ease;
+  }
+
+  {% if block.settings.enable_hover_animation %}
+  .promotion-card-{{ ai_gen_id }}:hover .promotion-card__heading-{{ ai_gen_id }} {
+    text-shadow: 0 0 {{ block.settings.text_glow_intensity }}px rgba(255,255,255,{{ block.settings.text_glow_opacity }});
+  }
+  {% endif %}
+
+  .promotion-card__subheading-{{ ai_gen_id }} {
+    margin: 0;
+    font-size: {{ block.settings.subheading_font_size }}px;
+    color: {{ block.settings.text_color }};
+  }
+
+  .promotion-card__image-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;}
+
+  .promotion-card__image-placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  @media screen and (max-width: 990px) {
+    .promotion-cards__grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_tablet }}, 1fr);
+    }
+    .promotion-card__heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_font_size | minus: 2 }}px;
+    }
+    
+    .promotion-card__subheading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.subheading_font_size | minus: 2 }}px;
+    }
+    
+    .promotion-card__icon-{{ ai_gen_id }} {
+      width: {{ block.settings.icon_size | times: 0.8 }}px;
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .promotion-cards__grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+    }
+    
+    .promotion-card__heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_font_size | minus: 4 }}px;
+    }
+    
+    .promotion-card__subheading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.subheading_font_size | minus: 2 }}px;
+    }
+    
+    .promotion-cards-{{ ai_gen_id }} {
+      padding: {{ block.settings.section_padding | divided_by: 2 }}px 0;
+    }
+    
+    .promotion-card__icon-{{ ai_gen_id }} {
+      width: {{ block.settings.icon_size | times: 0.7 }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="promotion-cards-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="promotion-cards__grid-{{ ai_gen_id }}">
+    {% for i in (1..block.settings.items) %}
+      {% assign image_key = 'image_' | append: i %}
+      {% assign icon_key = 'icon_' | append: i %}
+      {% assign heading_key = 'heading_' | append: i %}
+      {% assign subheading_key = 'subheading_' | append: i %}
+      {% assign link_key = 'link_' | append: i %}
+      
+      {% assign image = block.settings[image_key] %}
+      {% assign icon = block.settings[icon_key] %}
+      {% assign heading = block.settings[heading_key] %}
+      {% assign subheading = block.settings[subheading_key] %}
+      {% assign link = block.settings[link_key] %}
+      
+      <a href="{{ link | default: '#' }}" class="promotion-card-{{ ai_gen_id }}">
+        <div class="promotion-card__image-wrapper-{{ ai_gen_id }}">
+          {% if image != blank %}
+            <img 
+              src="{{ image | image_url: width: 800 }}"
+              alt="{{ image.alt | escape }}"
+              width="{{ image.width }}"
+              height="{{ image.height }}"
+              loading="lazy"
+              class="promotion-card__image-{{ ai_gen_id }}"
+            >
+          {% else %}
+            <div class="promotion-card__image-placeholder-{{ ai_gen_id }}">
+              {{ 'image' | placeholder_svg_tag }}
+            </div>
+          {% endif %}
+          
+          {% if icon != blank %}
+            <div class="promotion-card__icon-{{ ai_gen_id }}">
+              <img 
+                src="{{ icon | image_url: width: 200 }}"
+                alt="{{ icon.alt | escape }}"
+                width="{{ icon.width }}"
+                height="{{ icon.height }}"
+                loading="lazy"
+              >
+            </div>
+          {% endif %}
+          
+          {% if block.settings.enable_overlay %}
+            <div class="promotion-card__overlay-{{ ai_gen_id }}"></div>
+          {% endif %}
+        </div>
+        
+        {% if heading != blank or subheading != blank %}
+          <div class="promotion-card__content-{{ ai_gen_id }}">
+            {% if heading != blank %}
+              <h3 class="promotion-card__heading-{{ ai_gen_id }}">{{ heading }}</h3>
+            {% endif %}
+            
+            {% if subheading != blank %}
+              <p class="promotion-card__subheading-{{ ai_gen_id }}">{{ subheading }}</p>
+            {% endif %}
+          </div>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Promotion Cards",
+  "tag": null,
+  "class": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout Settings"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Maximum width",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "section_padding",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Section padding",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "card_spacing",
+      "min": 5,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Space between cards",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Card border radius",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "image_aspect_ratio",
+      "min": 50,
+      "max": 150,
+      "step": 5,
+      "unit": "%",
+      "label": "Image aspect ratio",
+      "default": 100
+    },
+    {
+      "type": "header",
+      "content": "Icon Settings"
+    },
+    {
+      "type": "range",
+      "id": "icon_size",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Icon size",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "icon_padding",
+      "min": 5,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "label": "Icon padding from edges",
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "Responsive Settings"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "label": "Columns on desktop",
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "columns_tablet",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "label": "Columns on tablet",
+      "default": 2
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns on mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "header",
+      "content": "Overlay Settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_overlay",
+      "label": "Enable overlay",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0.1,
+      "max": 0.9,
+      "step": 0.1,
+      "label": "Overlay opacity",
+      "default": 0.5
+    },
+    {
+      "type": "range",
+      "id": "overlay_height",
+      "min": 10,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Overlay height",
+      "default": 50
+    },
+    {
+      "type": "header",
+      "content": "Hover Animation Settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_hover_animation",
+      "label": "Enable hover animations",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "hover_lift_distance",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "unit": "px",
+      "label": "Hover lift distance",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "text_glow_intensity",
+      "min": 4,
+      "max": 16,
+      "step": 1,
+      "unit": "px",
+      "label": "Text glow intensity",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "text_glow_opacity",
+      "min": 0.2,
+      "max": 0.9,
+      "step": 0.1,
+      "label": "Text glow opacity",
+      "default": 0.8
+    },
+    {
+      "type": "range",
+      "id": "animation_speed",
+      "min": 100,
+      "max": 500,
+      "step": 50,
+      "unit": "ms",
+      "label": "Animation speed",
+      "default": 300
+    },
+    {
+      "type": "header",
+      "content": "Text Settings"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "heading_font_size",
+      "min": 14,
+      "max": 36,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading font size",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "subheading_font_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Subheading font size",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Card Content"
+    },
+    {
+      "type": "range",
+      "id": "items",
+      "min": 1,
+      "max": 12,
+      "step": 1,
+      "label": "Number of cards",
+      "default": 3
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_1",
+      "label": "Icon 1"
+    },
+    {
+      "type": "text",
+      "id": "heading_1",
+      "label": "Heading 1",
+      "default": "Promotion Title"
+    },
+    {
+      "type": "text",
+      "id": "subheading_1",
+      "label": "Subheading 1",
+      "default": "Promotion description"
+    },
+    {
+      "type": "url",
+      "id": "link_1",
+      "label": "Link 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_2",
+      "label": "Icon 2"
+    },
+    {
+      "type": "text",
+      "id": "heading_2",
+      "label": "Heading 2",
+      "default": "Promotion Title"
+    },
+    {
+      "type": "text",
+      "id": "subheading_2",
+      "label": "Subheading 2",
+      "default": "Promotion description"
+    },
+    {
+      "type": "url",
+      "id": "link_2",
+      "label": "Link 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_3",
+      "label": "Icon 3"
+    },
+    {
+      "type": "text",
+      "id": "heading_3",
+      "label": "Heading 3",
+      "default": "Promotion Title"
+    },
+    {
+      "type": "text",
+      "id": "subheading_3",
+      "label": "Subheading 3",
+      "default": "Promotion description"
+    },
+    {
+      "type": "url",
+      "id": "link_3",
+      "label": "Link 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_4",
+      "label": "Icon 4"
+    },
+    {
+      "type": "text",
+      "id": "heading_4",
+      "label": "Heading 4",
+      "default": "Promotion Title"
+    },
+    {
+      "type": "text",
+      "id": "subheading_4",
+      "label": "Subheading 4",
+      "default": "Promotion description"
+    },
+    {
+      "type": "url",
+      "id": "link_4",
+      "label": "Link 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_5",
+      "label": "Image 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_5",
+      "label": "Icon 5"
+    },
+    {
+      "type": "text",
+      "id": "heading_5",
+      "label": "Heading 5",
+      "default": "Promotion Title"
+    },
+    {
+      "type": "text",
+      "id": "subheading_5",
+      "label": "Subheading 5",
+      "default": "Promotion description"
+    },
+    {
+      "type": "url",
+      "id": "link_5",
+      "label": "Link 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_6",
+      "label": "Image 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_6",
+      "label": "Icon 6"
+    },
+    {
+      "type": "text",
+      "id": "heading_6",
+      "label": "Heading 6",
+      "default": "Promotion Title"
+    },
+    {
+      "type": "text",
+      "id": "subheading_6",
+      "label": "Subheading 6",
+      "default": "Promotion description"
+    },
+    {
+      "type": "url",
+      "id": "link_6",
+      "label": "Link 6"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Promotion Cards"
+    }
+  ]
+}
+{% endschema %}

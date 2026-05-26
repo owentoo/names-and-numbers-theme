@@ -1,0 +1,1666 @@
+{% doc %}
+  @prompt
+    Section Name: Product Card Grid
+    
+    Create a responsive grid of product cards like the example. Each card has full customization and must be fully clickable with full desktop and mobile controls.
+    
+    Cards (repeatable): Title, subtext (like "As low as"), description, button text, button link (entire card uses same link), image upload, optional badge. Options to show/hide subtext, description, or button.
+    
+    Layout Controls: Choose number of columns for desktop and mobile separately. Adjustable card gap, section width (full, wide, custom), and section padding with separate desktop/mobile controls. Equal-height card option.
+    
+    Card Design Controls: Card background color, border, border radius, shadow, hover effect, and card padding with desktop/mobile control.
+    
+    Typography Controls: Control font size, weight, and color for title, subtext, and description with separate mobile settings. Control spacing between text elements.
+    
+    Button Controls: Full control over button text color, background color, border, padding, width (auto/fixed/full-width), alignment, hover settings, and mobile styles.
+    
+    Image Controls: Control image position (top or left), aspect ratio, object fit, width/height, radius, and mobile image behavior (swap or hide image). Maintain aspect ratio.
+    
+    Visibility Options: Show/hide subtext, description, button, or individual cards per device (desktop/tablet/mobile).
+    
+    Advanced: Add custom CSS class fields for section and cards.
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-product-card-grid-{{ ai_gen_id }} {
+    width: 100%;
+    {% if block.settings.section_width == 'full' %}
+      max-width: 100%;
+      padding-left: 0;
+      padding-right: 0;
+    {% elsif block.settings.section_width == 'wide' %}
+      max-width: 1600px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: 20px;
+      padding-right: 20px;
+    {% elsif block.settings.section_width == 'custom' %}
+      max-width: {{ block.settings.section_max_width }}px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: 20px;
+      padding-right: 20px;
+    {% else %}
+      max-width: 1400px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: 20px;
+      padding-right: 20px;
+    {% endif %}
+    padding-top: {{ block.settings.section_padding_top }}px;
+    padding-bottom: {{ block.settings.section_padding_bottom }}px;
+  }
+
+  .ai-product-card-grid__container-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    gap: {{ block.settings.card_gap }}px;
+    {% if block.settings.equal_height %}
+      align-items: stretch;
+    {% endif %}
+  }
+
+  .ai-product-card-{{ ai_gen_id }} {
+    display: flex;
+    {% if block.settings.image_position == 'left' %}
+      flex-direction: row;
+    {% else %}
+      flex-direction: column;
+    {% endif %}
+    background-color: {{ block.settings.card_bg_color }};
+    border: {{ block.settings.card_border_width }}px solid {{ block.settings.card_border_color }};
+    border-radius: {{ block.settings.card_border_radius }}px;
+    padding: {{ block.settings.card_padding }}px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    {% if block.settings.card_shadow %}
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    {% endif %}
+    {% if block.settings.equal_height %}
+      height: 100%;
+    {% endif %}
+    overflow: hidden;
+  }
+
+  .ai-product-card-{{ ai_gen_id }}:hover {
+    {% if block.settings.hover_effect == 'lift' %}
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    {% elsif block.settings.hover_effect == 'shadow' %}
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    {% elsif block.settings.hover_effect == 'border' %}
+      border-color: {{ block.settings.card_hover_border_color }};
+    {% elsif block.settings.hover_effect == 'scale' %}
+      transform: scale(1.02);
+    {% endif %}
+  }
+
+  .ai-product-card__image-wrapper-{{ ai_gen_id }} {
+    {% if block.settings.image_position == 'left' %}
+      flex-shrink: 0;
+      width: {{ block.settings.image_width }}%;
+      margin-right: 20px;
+    {% else %}
+      width: 100%;
+      margin-bottom: 16px;
+    {% endif %}
+    position: relative;
+    overflow: hidden;
+    border-radius: {{ block.settings.image_border_radius }}px;
+  }
+
+  .ai-product-card__image-container-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    padding-bottom: {{ block.settings.image_aspect_ratio }}%;
+    overflow: hidden;
+  }
+
+  .ai-product-card__image-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: {{ block.settings.image_object_fit }};
+  }
+
+  .ai-product-card__image-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-product-card__image-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  .ai-product-card__badge-{{ ai_gen_id }} {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background-color: {{ block.settings.badge_bg_color }};
+    color: {{ block.settings.badge_text_color }};
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 2;
+  }
+
+  .ai-product-card__content-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    {% if block.settings.image_position == 'left' %}
+      flex: 1;
+    {% endif %}
+  }
+
+  .ai-product-card__title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.title_font_size }}px;
+    font-weight: {{ block.settings.title_font_weight }};
+    color: {{ block.settings.title_color }};
+    margin: 0 0 {{ block.settings.title_spacing }}px 0;
+    line-height: 1.3;
+  }
+
+  .ai-product-card__subtext-{{ ai_gen_id }} {
+    font-size: {{ block.settings.subtext_font_size }}px;
+    font-weight: {{ block.settings.subtext_font_weight }};
+    color: {{ block.settings.subtext_color }};
+    margin: 0 0 {{ block.settings.subtext_spacing }}px 0;
+  }
+
+  .ai-product-card__description-{{ ai_gen_id }} {
+    font-size: {{ block.settings.description_font_size }}px;
+    font-weight: {{ block.settings.description_font_weight }};
+    color: {{ block.settings.description_color }};
+    margin: 0 0 {{ block.settings.description_spacing }}px 0;
+    line-height: 1.5;
+    flex-grow: 1;
+  }
+
+  .ai-product-card__button-wrapper-{{ ai_gen_id }} {
+    {% if block.settings.button_alignment == 'left' %}
+      text-align: left;
+    {% elsif block.settings.button_alignment == 'center' %}
+      text-align: center;
+    {% elsif block.settings.button_alignment == 'right' %}
+      text-align: right;
+    {% endif %}
+    margin-top: auto;
+  }
+
+  .ai-product-card__button-{{ ai_gen_id }} {
+    display: inline-block;
+    padding: {{ block.settings.button_padding_vertical }}px {{ block.settings.button_padding_horizontal }}px;
+    background-color: {{ block.settings.button_bg_color }};
+    color: {{ block.settings.button_text_color }};
+    border: {{ block.settings.button_border_width }}px solid {{ block.settings.button_border_color }};
+    border-radius: {{ block.settings.button_border_radius }}px;
+    font-size: {{ block.settings.button_font_size }}px;
+    font-weight: {{ block.settings.button_font_weight }};
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    {% if block.settings.button_width == 'full' %}
+      width: 100%;
+      text-align: center;
+    {% elsif block.settings.button_width == 'fixed' %}
+      width: {{ block.settings.button_fixed_width }}px;
+      text-align: center;
+    {% endif %}
+  }
+
+  .ai-product-card__button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_hover_bg_color }};
+    color: {{ block.settings.button_hover_text_color }};
+    border-color: {{ block.settings.button_hover_border_color }};
+  }
+
+  @media screen and (max-width: 989px) {
+    .ai-product-card-grid-{{ ai_gen_id }} {
+      padding-top: {{ block.settings.section_padding_top_mobile }}px;
+      padding-bottom: {{ block.settings.section_padding_bottom_mobile }}px;
+    }
+
+    .ai-product-card-grid__container-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_tablet }}, 1fr);
+      gap: {{ block.settings.card_gap_mobile }}px;
+    }
+
+    .ai-product-card-{{ ai_gen_id }} {
+      padding: {{ block.settings.card_padding_mobile }}px;
+      {% if block.settings.image_position_mobile == 'top' %}
+        flex-direction: column;
+      {% endif %}
+    }
+
+    .ai-product-card__image-wrapper-{{ ai_gen_id }} {
+      {% if block.settings.image_position_mobile == 'top' %}
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 16px;
+      {% endif %}
+    }
+
+    .ai-product-card__title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.title_font_size_mobile }}px;
+    }
+
+    .ai-product-card__subtext-{{ ai_gen_id }} {
+      font-size: {{ block.settings.subtext_font_size_mobile }}px;
+    }
+
+    .ai-product-card__description-{{ ai_gen_id }} {
+      font-size: {{ block.settings.description_font_size_mobile }}px;
+    }
+
+    .ai-product-card__button-{{ ai_gen_id }} {
+      padding: {{ block.settings.button_padding_vertical_mobile }}px {{ block.settings.button_padding_horizontal_mobile }}px;
+      font-size: {{ block.settings.button_font_size_mobile }}px;
+      {% if block.settings.button_width_mobile == 'full' %}
+        width: 100%;
+      {% elsif block.settings.button_width_mobile == 'fixed' %}
+        width: {{ block.settings.button_fixed_width_mobile }}px;
+      {% else %}
+        width: auto;
+      {% endif %}
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-card-grid__container-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+    }
+
+    {% if block.settings.hide_image_mobile %}
+      .ai-product-card__image-wrapper-{{ ai_gen_id }} {
+        display: none;
+      }
+    {% endif %}
+  }
+{% endstyle %}
+
+<div class="ai-product-card-grid-{{ ai_gen_id }} {{ block.settings.custom_class }}" {{ block.shopify_attributes }}>
+  <div class="ai-product-card-grid__container-{{ ai_gen_id }}">
+    {% for i in (1..6) %}
+      {% liquid
+        assign card_enabled_key = 'card_' | append: i | append: '_enabled'
+        assign card_title_key = 'card_' | append: i | append: '_title'
+        assign card_subtext_key = 'card_' | append: i | append: '_subtext'
+        assign card_description_key = 'card_' | append: i | append: '_description'
+        assign card_button_text_key = 'card_' | append: i | append: '_button_text'
+        assign card_button_link_key = 'card_' | append: i | append: '_button_link'
+        assign card_image_key = 'card_' | append: i | append: '_image'
+        assign card_badge_key = 'card_' | append: i | append: '_badge'
+        assign card_show_subtext_key = 'card_' | append: i | append: '_show_subtext'
+        assign card_show_description_key = 'card_' | append: i | append: '_show_description'
+        assign card_show_button_key = 'card_' | append: i | append: '_show_button'
+        assign card_hide_desktop_key = 'card_' | append: i | append: '_hide_desktop'
+        assign card_hide_tablet_key = 'card_' | append: i | append: '_hide_tablet'
+        assign card_hide_mobile_key = 'card_' | append: i | append: '_hide_mobile'
+        assign card_custom_class_key = 'card_' | append: i | append: '_custom_class'
+
+        assign card_enabled = block.settings[card_enabled_key]
+        assign card_title = block.settings[card_title_key]
+        assign card_subtext = block.settings[card_subtext_key]
+        assign card_description = block.settings[card_description_key]
+        assign card_button_text = block.settings[card_button_text_key]
+        assign card_button_link = block.settings[card_button_link_key]
+        assign card_image = block.settings[card_image_key]
+        assign card_badge = block.settings[card_badge_key]
+        assign card_show_subtext = block.settings[card_show_subtext_key]
+        assign card_show_description = block.settings[card_show_description_key]
+        assign card_show_button = block.settings[card_show_button_key]
+        assign card_hide_desktop = block.settings[card_hide_desktop_key]
+        assign card_hide_tablet = block.settings[card_hide_tablet_key]
+        assign card_hide_mobile = block.settings[card_hide_mobile_key]
+        assign card_custom_class = block.settings[card_custom_class_key]
+      %}
+
+      {% if card_enabled %}
+        <a 
+          href="{{ card_button_link }}" 
+          class="ai-product-card-{{ ai_gen_id }} {{ card_custom_class }}"
+          style="
+            {% if card_hide_desktop %}
+              display: none;
+            {% endif %}
+          "
+        >
+          <div class="ai-product-card__image-wrapper-{{ ai_gen_id }}">
+            <div class="ai-product-card__image-container-{{ ai_gen_id }}">
+              {% if card_image %}
+                <img
+                  src="{{ card_image | image_url: width: 800 }}"
+                  alt="{{ card_title | escape }}"
+                  class="ai-product-card__image-{{ ai_gen_id }}"
+                  loading="lazy"
+                  width="800"
+                  height="{{ 800 | divided_by: block.settings.image_aspect_ratio | times: 100 | round }}"
+                >
+              {% else %}
+                <div class="ai-product-card__image-placeholder-{{ ai_gen_id }}">
+                  {{ 'product-1' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if card_badge != blank %}
+                <div class="ai-product-card__badge-{{ ai_gen_id }}">
+                  {{ card_badge }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="ai-product-card__content-{{ ai_gen_id }}">
+            {% if card_title != blank %}
+              <h3 class="ai-product-card__title-{{ ai_gen_id }}">
+                {{ card_title }}
+              </h3>
+            {% endif %}
+
+            {% if card_show_subtext and card_subtext != blank %}
+              <div class="ai-product-card__subtext-{{ ai_gen_id }}">
+                {{ card_subtext }}
+              </div>
+            {% endif %}
+
+            {% if card_show_description and card_description != blank %}
+              <div class="ai-product-card__description-{{ ai_gen_id }}">
+                {{ card_description }}
+              </div>
+            {% endif %}
+
+            {% if card_show_button and card_button_text != blank %}
+              <div class="ai-product-card__button-wrapper-{{ ai_gen_id }}">
+                <span class="ai-product-card__button-{{ ai_gen_id }}">
+                  {{ card_button_text }}
+                </span>
+              </div>
+            {% endif %}
+          </div>
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Product card grid",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section layout"
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section width",
+      "options": [
+        {
+          "value": "standard",
+          "label": "Standard"
+        },
+        {
+          "value": "wide",
+          "label": "Wide"
+        },
+        {
+          "value": "full",
+          "label": "Full width"
+        },
+        {
+          "value": "custom",
+          "label": "Custom"
+        }
+      ],
+      "default": "standard"
+    },
+    {
+      "type": "range",
+      "id": "section_max_width",
+      "min": 1000,
+      "max": 2000,
+      "step": 50,
+      "unit": "px",
+      "label": "Custom max width",
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "min": 0,
+      "max": 200,
+      "step": 5,
+      "unit": "px",
+      "label": "Top padding",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "min": 0,
+      "max": 200,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom padding",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top_mobile",
+      "min": 0,
+      "max": 150,
+      "step": 5,
+      "unit": "px",
+      "label": "Top padding mobile",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom_mobile",
+      "min": 0,
+      "max": 150,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom padding mobile",
+      "default": 40
+    },
+    {
+      "type": "text",
+      "id": "custom_class",
+      "label": "Custom CSS class"
+    },
+    {
+      "type": "header",
+      "content": "Grid layout"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "label": "Columns on desktop",
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "columns_tablet",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "label": "Columns on tablet",
+      "default": 2
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns on mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "card_gap",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Card gap desktop",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "card_gap_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Card gap mobile",
+      "default": 20
+    },
+    {
+      "type": "checkbox",
+      "id": "equal_height",
+      "label": "Equal height cards",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Card design"
+    },
+    {
+      "type": "color",
+      "id": "card_bg_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_border_width",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "unit": "px",
+      "label": "Border width",
+      "default": 1
+    },
+    {
+      "type": "color",
+      "id": "card_border_color",
+      "label": "Border color",
+      "default": "#e5e5e5"
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 14
+    },
+    {
+      "type": "checkbox",
+      "id": "card_shadow",
+      "label": "Enable shadow",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "card_padding",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Card padding desktop",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "card_padding_mobile",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Card padding mobile",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Card hover effect"
+    },
+    {
+      "type": "select",
+      "id": "hover_effect",
+      "label": "Hover effect",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "lift",
+          "label": "Lift"
+        },
+        {
+          "value": "shadow",
+          "label": "Shadow"
+        },
+        {
+          "value": "border",
+          "label": "Border color"
+        },
+        {
+          "value": "scale",
+          "label": "Scale"
+        }
+      ],
+      "default": "lift"
+    },
+    {
+      "type": "color",
+      "id": "card_hover_border_color",
+      "label": "Hover border color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Image settings"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "Image position",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "left",
+          "label": "Left"
+        }
+      ],
+      "default": "top"
+    },
+    {
+      "type": "select",
+      "id": "image_position_mobile",
+      "label": "Image position mobile",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "left",
+          "label": "Left"
+        }
+      ],
+      "default": "top"
+    },
+    {
+      "type": "range",
+      "id": "image_width",
+      "min": 20,
+      "max": 60,
+      "step": 5,
+      "unit": "%",
+      "label": "Image width (when left)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "image_aspect_ratio",
+      "min": 50,
+      "max": 150,
+      "step": 5,
+      "unit": "%",
+      "label": "Aspect ratio",
+      "default": 100
+    },
+    {
+      "type": "select",
+      "id": "image_object_fit",
+      "label": "Object fit",
+      "options": [
+        {
+          "value": "cover",
+          "label": "Cover"
+        },
+        {
+          "value": "contain",
+          "label": "Contain"
+        },
+        {
+          "value": "fill",
+          "label": "Fill"
+        }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Image border radius",
+      "default": 8
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_image_mobile",
+      "label": "Hide image on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Badge settings"
+    },
+    {
+      "type": "color",
+      "id": "badge_bg_color",
+      "label": "Background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "badge_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Title typography"
+    },
+    {
+      "type": "range",
+      "id": "title_font_size",
+      "min": 12,
+      "max": 48,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size desktop",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "title_font_size_mobile",
+      "min": 12,
+      "max": 36,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size mobile",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "title_font_weight",
+      "min": 300,
+      "max": 900,
+      "step": 100,
+      "label": "Font weight",
+      "default": 600
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "title_spacing",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Subtext typography"
+    },
+    {
+      "type": "range",
+      "id": "subtext_font_size",
+      "min": 10,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size desktop",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "subtext_font_size_mobile",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size mobile",
+      "default": 13
+    },
+    {
+      "type": "range",
+      "id": "subtext_font_weight",
+      "min": 300,
+      "max": 900,
+      "step": 100,
+      "label": "Font weight",
+      "default": 500
+    },
+    {
+      "type": "color",
+      "id": "subtext_color",
+      "label": "Color",
+      "default": "#666666"
+    },
+    {
+      "type": "range",
+      "id": "subtext_spacing",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Description typography"
+    },
+    {
+      "type": "range",
+      "id": "description_font_size",
+      "min": 10,
+      "max": 28,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size desktop",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "description_font_size_mobile",
+      "min": 10,
+      "max": 22,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size mobile",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "description_font_weight",
+      "min": 300,
+      "max": 900,
+      "step": 100,
+      "label": "Font weight",
+      "default": 400
+    },
+    {
+      "type": "color",
+      "id": "description_color",
+      "label": "Color",
+      "default": "#333333"
+    },
+    {
+      "type": "range",
+      "id": "description_spacing",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Button style"
+    },
+    {
+      "type": "select",
+      "id": "button_width",
+      "label": "Button width desktop",
+      "options": [
+        {
+          "value": "auto",
+          "label": "Auto"
+        },
+        {
+          "value": "fixed",
+          "label": "Fixed"
+        },
+        {
+          "value": "full",
+          "label": "Full width"
+        }
+      ],
+      "default": "auto"
+    },
+    {
+      "type": "range",
+      "id": "button_fixed_width",
+      "min": 100,
+      "max": 400,
+      "step": 10,
+      "unit": "px",
+      "label": "Fixed width",
+      "default": 200
+    },
+    {
+      "type": "select",
+      "id": "button_width_mobile",
+      "label": "Button width mobile",
+      "options": [
+        {
+          "value": "auto",
+          "label": "Auto"
+        },
+        {
+          "value": "fixed",
+          "label": "Fixed"
+        },
+        {
+          "value": "full",
+          "label": "Full width"
+        }
+      ],
+      "default": "full"
+    },
+    {
+      "type": "range",
+      "id": "button_fixed_width_mobile",
+      "min": 100,
+      "max": 300,
+      "step": 10,
+      "unit": "px",
+      "label": "Fixed width mobile",
+      "default": 180
+    },
+    {
+      "type": "select",
+      "id": "button_alignment",
+      "label": "Button alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "button_font_size",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size desktop",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "button_font_size_mobile",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size mobile",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "button_font_weight",
+      "min": 300,
+      "max": 900,
+      "step": 100,
+      "label": "Font weight",
+      "default": 600
+    },
+    {
+      "type": "range",
+      "id": "button_padding_vertical",
+      "min": 4,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Vertical padding desktop",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "button_padding_horizontal",
+      "min": 8,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Horizontal padding desktop",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "button_padding_vertical_mobile",
+      "min": 4,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Vertical padding mobile",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "button_padding_horizontal_mobile",
+      "min": 8,
+      "max": 48,
+      "step": 4,
+      "unit": "px",
+      "label": "Horizontal padding mobile",
+      "default": 20
+    },
+    {
+      "type": "color",
+      "id": "button_bg_color",
+      "label": "Background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "button_border_width",
+      "min": 0,
+      "max": 6,
+      "step": 1,
+      "unit": "px",
+      "label": "Border width",
+      "default": 0
+    },
+    {
+      "type": "color",
+      "id": "button_border_color",
+      "label": "Border color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Button hover"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_bg_color",
+      "label": "Hover background",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_text_color",
+      "label": "Hover text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_border_color",
+      "label": "Hover border color",
+      "default": "#333333"
+    },
+    {
+      "type": "header",
+      "content": "Card 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_enabled",
+      "label": "Enable card",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_1_badge",
+      "label": "Badge text"
+    },
+    {
+      "type": "text",
+      "id": "card_1_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "text",
+      "id": "card_1_subtext",
+      "label": "Subtext",
+      "default": "As low as $19.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_1_description",
+      "label": "Description",
+      "default": "Discover our premium product with exceptional quality and value."
+    },
+    {
+      "type": "text",
+      "id": "card_1_button_text",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_1_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_show_subtext",
+      "label": "Show subtext",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_show_description",
+      "label": "Show description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_show_button",
+      "label": "Show button",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_hide_tablet",
+      "label": "Hide on tablet",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_1_custom_class",
+      "label": "Custom CSS class"
+    },
+    {
+      "type": "header",
+      "content": "Card 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_enabled",
+      "label": "Enable card",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_2_badge",
+      "label": "Badge text"
+    },
+    {
+      "type": "text",
+      "id": "card_2_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "text",
+      "id": "card_2_subtext",
+      "label": "Subtext",
+      "default": "As low as $19.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_2_description",
+      "label": "Description",
+      "default": "Discover our premium product with exceptional quality and value."
+    },
+    {
+      "type": "text",
+      "id": "card_2_button_text",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_2_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_show_subtext",
+      "label": "Show subtext",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_show_description",
+      "label": "Show description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_show_button",
+      "label": "Show button",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_hide_tablet",
+      "label": "Hide on tablet",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_2_custom_class",
+      "label": "Custom CSS class"
+    },
+    {
+      "type": "header",
+      "content": "Card 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_enabled",
+      "label": "Enable card",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_3_badge",
+      "label": "Badge text"
+    },
+    {
+      "type": "text",
+      "id": "card_3_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "text",
+      "id": "card_3_subtext",
+      "label": "Subtext",
+      "default": "As low as $19.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_3_description",
+      "label": "Description",
+      "default": "Discover our premium product with exceptional quality and value."
+    },
+    {
+      "type": "text",
+      "id": "card_3_button_text",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_3_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_show_subtext",
+      "label": "Show subtext",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_show_description",
+      "label": "Show description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_show_button",
+      "label": "Show button",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_hide_tablet",
+      "label": "Hide on tablet",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_3_custom_class",
+      "label": "Custom CSS class"
+    },
+    {
+      "type": "header",
+      "content": "Card 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_4_badge",
+      "label": "Badge text"
+    },
+    {
+      "type": "text",
+      "id": "card_4_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "text",
+      "id": "card_4_subtext",
+      "label": "Subtext",
+      "default": "As low as $19.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_4_description",
+      "label": "Description",
+      "default": "Discover our premium product with exceptional quality and value."
+    },
+    {
+      "type": "text",
+      "id": "card_4_button_text",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_4_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_show_subtext",
+      "label": "Show subtext",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_show_description",
+      "label": "Show description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_show_button",
+      "label": "Show button",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_hide_tablet",
+      "label": "Hide on tablet",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_4_custom_class",
+      "label": "Custom CSS class"
+    },
+    {
+      "type": "header",
+      "content": "Card 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_5_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_5_badge",
+      "label": "Badge text"
+    },
+    {
+      "type": "text",
+      "id": "card_5_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "text",
+      "id": "card_5_subtext",
+      "label": "Subtext",
+      "default": "As low as $19.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_5_description",
+      "label": "Description",
+      "default": "Discover our premium product with exceptional quality and value."
+    },
+    {
+      "type": "text",
+      "id": "card_5_button_text",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_5_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_show_subtext",
+      "label": "Show subtext",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_show_description",
+      "label": "Show description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_show_button",
+      "label": "Show button",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_hide_tablet",
+      "label": "Hide on tablet",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_5_custom_class",
+      "label": "Custom CSS class"
+    },
+    {
+      "type": "header",
+      "content": "Card 6"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_6_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_6_badge",
+      "label": "Badge text"
+    },
+    {
+      "type": "text",
+      "id": "card_6_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "text",
+      "id": "card_6_subtext",
+      "label": "Subtext",
+      "default": "As low as $19.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_6_description",
+      "label": "Description",
+      "default": "Discover our premium product with exceptional quality and value."
+    },
+    {
+      "type": "text",
+      "id": "card_6_button_text",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_6_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_show_subtext",
+      "label": "Show subtext",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_show_description",
+      "label": "Show description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_show_button",
+      "label": "Show button",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_hide_tablet",
+      "label": "Hide on tablet",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_6_custom_class",
+      "label": "Custom CSS class"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product card grid"
+    }
+  ]
+}
+{% endschema %}

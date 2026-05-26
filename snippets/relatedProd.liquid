@@ -1,0 +1,116 @@
+{%-liquid
+  assign current_variant = prod_.selected_or_first_available_variant
+  assign product_form_id = 'product-form-' | append: section.id
+
+  capture updatedHandle
+    assign metaStyle = prod_.metafields.specs.shirt_style | downcase
+    echo prod_.handle | split: metaStyle | first | append: metaStyle
+  endcapture
+-%}
+
+<div class="relatedPopup" pid="{{ prod_.id }}" p-handle="{{ updatedHandle }}" tt="{{ prod_.metafields.specs.shirt_style | downcase }}">
+  {% if isUpsellPopup %}
+    <go-back-btn>
+      <svg enable-background="new 0 0 32 32" width="16px" height="16px" viewBox="0 0 32 32" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path clip-rule="evenodd" d="M31.106,15H3.278l8.325-8.293 c0.391-0.391,0.391-1.024,0-1.414c-0.391-0.391-1.024-0.391-1.414,0l-9.9,9.899c-0.385,0.385-0.385,1.029,0,1.414l9.9,9.9 c0.391,0.391,1.024,0.391,1.414,0c0.391-0.391,0.391-1.024,0-1.414L3.278,17h27.828c0.552,0,1-0.448,1-1 C32.106,15.448,31.658,15,31.106,15z" fill="#3eaeff" fill-rule="evenodd" id="Arrow_Back"/><g/><g/><g/><g/><g/><g/></svg>
+      <span>Back</span>
+      <set-top><input type="checkbox" class="setTop"></set-top>
+    </go-back-btn>
+  {% endif %}
+  <script>
+    function setHandle__{{ prod_.id }}() {
+      const currentUrl = `{{ prod_.url }}`;
+      let pos = currentUrl.indexOf("-child");
+      let targetUrl;
+      if (pos >= 0) {
+        const productStyle = "{{ prod_.metafields.specs.shirt_style | downcase }}";
+        pos = currentUrl.toLowerCase().indexOf(productStyle);
+        targetUrl = currentUrl.substring(0,pos+productStyle.length);
+      }
+      console.log ( 'targetUrl', targetUrl );
+    }
+  </script>
+
+  <div class="relatedPopup__media">
+    {% render 'relatedProdGallery' prod_: prod_ %}
+
+    <div class="relatedPopup__offers">
+      <div class="relatedPopup__offers__item">
+        <span class="material-symbols-outlined">local_shipping</span>
+        <span>Free Shipping on Blanks $50+</span>
+      </div>
+      <div class="relatedPopup__offers__item">
+        <span class="material-symbols-outlined">check_circle</span>
+        <span>No Minimums</span>
+      </div>
+      <div class="relatedPopup__offers__item">
+        <span class="material-symbols-outlined">replay</span>
+        <span>Free 45-Day Returns</span>
+      </div>
+    </div>
+
+    {% unless template == "collection"  %}
+      {% render "apparel-popUp-product-delivery-estimate" %}
+    {% endunless %} 
+    {%- comment -%}
+      {% render '__deliveryEstimate' %}
+    {%- endcomment -%}
+  </div>
+
+  <div class="relatedPopup__content">
+    {% if isUpsellPopup %}
+      <go-back-btn>
+        <svg enable-background="new 0 0 32 32" width="16px" height="16px" viewBox="0 0 32 32" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path clip-rule="evenodd" d="M31.106,15H3.278l8.325-8.293 c0.391-0.391,0.391-1.024,0-1.414c-0.391-0.391-1.024-0.391-1.414,0l-9.9,9.899c-0.385,0.385-0.385,1.029,0,1.414l9.9,9.9 c0.391,0.391,1.024,0.391,1.414,0c0.391-0.391,0.391-1.024,0-1.414L3.278,17h27.828c0.552,0,1-0.448,1-1 C32.106,15.448,31.658,15,31.106,15z" fill="#3eaeff" fill-rule="evenodd" id="Arrow_Back"/><g/><g/><g/><g/><g/><g/></svg>
+        <span>Back</span>
+      </go-back-btn>
+      <h2 class="relatedPopup__content__title" style="margin-top: 0px; margin-bottom: 12px;">{{ prod_.title | escape }}</h2>
+      <div class="yotpoPlaceHolder" style="margin-top: 0px; margin-bottom: 12px;"></div>
+      <div style="margin-top: 0px; margin-bottom: 12px;">
+        {% render "apparel-product-price-cards", product: prod_, isPopUp: true, showJSData: showJSData %}
+      </div>
+      <div class="relatedPopup__content__variants" style="margin-top: 0px; margin-bottom: 12px;" count="{{ apparelProductChild__count }}" aa="{{ showData | json }}" >
+        {% render "apparel-product-child", product: prod_, isPopUp: true, showJSData: showJSData, isUpsellPopup: isUpsellPopup %}
+      </div>
+    {% else %}
+      {%- for block in section.blocks -%}
+        {%- assign b = block.settings -%}
+
+        {%- case block.type -%}
+          {%- when 'title' -%}
+            <h2 class="relatedPopup__content__title" style="margin-top:{{ b.margin_top }}px; margin-bottom:{{ b.margin_bottom }}px;">{{ prod_.title | escape }}</h2>
+
+          {%- when 'rating' -%}
+            <div class="yotpoPlaceHolder" style="margin-top:{{ b.margin_top }}px; margin-bottom:{{ b.margin_bottom }}px;"></div>
+
+          {%- when 'link' -%}
+            <div class="relatedPopup__content__fullDetail" style="margin-top:{{ b.margin_top }}px; margin-bottom:{{ b.margin_bottom }}px;">
+              <a target="_blank" href="{{ prod_.url }}">{{ b.linkText }}</a>
+            </div>
+
+          {%- when 'priceCards' -%}
+            <div style="margin-top:{{ b.margin_top }}px; margin-bottom:{{ b.margin_bottom }}px;">
+              {% render "apparel-product-price-cards", product: prod_, isPopUp: true, showJSData: showJSData %}
+            </div>
+
+          {%- when 'apparelProductChild' -%}
+            <div class="relatedPopup__content__variants" style="margin-top:{{ b.margin_top }}px; margin-bottom:{{ b.margin_bottom }}px;" count="{{ apparelProductChild__count }}" aa="{{ showData | json }}" >
+              {% render "apparel-product-child", product: prod_, isPopUp: true, showJSData: showJSData %}
+            </div>
+
+            {% comment %}
+              {% render 'apparel-popUp-product-delivery-estimate', classes: 'relatedPopup__delivery--mobile', showJSData: showJSData %}
+            {% endcomment %}
+
+          {%- when 'custom_liquid' -%}
+            {% if b.custom_liquid != blank %}
+              <div style="margin-top:{{ b.margin_top }}px; margin-bottom:{{ b.margin_bottom }}px;" class="product-custom-liquid" {{ block.shopify_attributes }}>
+                {{ b.custom_liquid }}
+              </div>
+            {% endif %}
+
+        {%- endcase -%}
+      {%- endfor -%}
+    {% endif %}
+
+  </div>
+</div>
+

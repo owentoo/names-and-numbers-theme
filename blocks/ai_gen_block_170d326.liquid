@@ -1,0 +1,702 @@
+{% doc %}
+  @prompt
+    Create a responsive section that displays six product cards in a grid layout, followed by a seventh block that acts as a “View All” call-to-action linking to the full collection. Each product card should include the following content elements:
+
+Product image
+
+Brand logo
+
+Product title
+
+“Starting at” price
+
+Earliest delivery date
+
+Each card should be styled uniformly with equal padding and spacing. The “View All” block should have the same styling as the product cards but should contain centered text saying “View All T-Shirts” and a button or icon. It should not include pricing or delivery information.
+
+The section should be fully responsive, stacking the product cards vertically on smaller screens to maintain a clean and organized appearance.
+
+Include editable settings in the theme editor for:
+
+Uploading product images and brand logos
+
+Editing product titles, prices, and delivery dates
+
+Adding or changing the link for the “View All” button
+
+Adjusting spacing and padding around the cards, Each product card should be clickable, add a section to allow me to add a link for each card. All 6 product cards should be on one row, give me ability to edit section width
+, Put the view all button on the same row as the product cards and give it the same styling as product cards
+
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .product-grid-container-{{ ai_gen_id }} {
+    width: {{ block.settings.section_width }}%;
+    margin: 0 auto;
+  }
+
+  .product-grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: {{ block.settings.grid_gap }}px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  @media screen and (max-width: 1200px) {
+    .product-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .view-all-card-{{ ai_gen_id }} {
+      grid-column: span 1;
+    }
+  }
+
+  @media screen and (max-width: 990px) {
+    .product-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .view-all-card-{{ ai_gen_id }} {
+      grid-column: span 1;
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .product-grid-{{ ai_gen_id }} {
+      grid-template-columns: 1fr;
+    }
+    
+    .view-all-card-{{ ai_gen_id }} {
+      grid-column: span 1;
+    }
+  }
+
+  .product-card-{{ ai_gen_id }},
+  .view-all-card-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    background-color: {{ block.settings.card_background_color }};
+    border-radius: {{ block.settings.card_border_radius }}px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+    text-decoration: none;
+  }
+
+  .product-card-{{ ai_gen_id }}:hover,
+  .view-all-card-{{ ai_gen_id }}:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .product-image-container-{{ ai_gen_id }},
+  .view-all-image-container-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%;
+    overflow: hidden;
+  }
+
+  .product-image-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .product-image-container-{{ ai_gen_id }} svg,
+  .view-all-image-container-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: {{ block.settings.view_all_bg_color }};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .view-all-icon-{{ ai_gen_id }} {
+    font-size: 48px;
+    color: {{ block.settings.view_all_icon_color }};
+  }
+
+  .brand-logo-container-{{ ai_gen_id }} {
+    position: absolute;
+    top: {{ block.settings.logo_padding }}px;
+    left: {{ block.settings.logo_padding }}px;
+    width: {{ block.settings.logo_width }}px;
+    height: {{ block.settings.logo_height }}px;
+    background-color: white;
+    border-radius: 4px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brand-logo-{{ ai_gen_id }} {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  .product-info-{{ ai_gen_id }},
+  .view-all-info-{{ ai_gen_id }} {
+    padding: {{ block.settings.card_padding }}px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .product-title-{{ ai_gen_id }},
+  .view-all-title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.title_font_size }}px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: {{ block.settings.title_color }};
+    text-align: center;
+  }
+
+  .product-price-{{ ai_gen_id }} {
+    font-size: {{ block.settings.price_font_size }}px;
+    color: {{ block.settings.price_color }};
+    margin-bottom: 8px;
+  }
+
+  .product-delivery-{{ ai_gen_id }} {
+    font-size: {{ block.settings.delivery_font_size }}px;
+    color: {{ block.settings.delivery_color }};
+    margin-top: auto;
+  }
+
+  .view-all-button-{{ ai_gen_id }} {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: {{ block.settings.button_color }};
+    color: {{ block.settings.button_text_color }};
+    border-radius: {{ block.settings.button_border_radius }}px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    margin: auto auto 0;
+    text-align: center;
+  }
+
+  .view-all-button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_hover_color }};
+  }
+{% endstyle %}
+
+<div class="product-grid-container-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="product-grid-{{ ai_gen_id }}">
+    {% for i in (1..6) %}
+      {% liquid
+        assign product_image_key = 'product_image_' | append: i
+        assign brand_logo_key = 'brand_logo_' | append: i
+        assign product_title_key = 'product_title_' | append: i
+        assign product_price_key = 'product_price_' | append: i
+        assign delivery_date_key = 'delivery_date_' | append: i
+        assign product_link_key = 'product_link_' | append: i
+        
+        assign product_image = block.settings[product_image_key]
+        assign brand_logo = block.settings[brand_logo_key]
+        assign product_title = block.settings[product_title_key]
+        assign product_price = block.settings[product_price_key]
+        assign delivery_date = block.settings[delivery_date_key]
+        assign product_link = block.settings[product_link_key]
+      %}
+      <a href="{{ product_link }}" class="product-card-{{ ai_gen_id }}">
+        <div class="product-image-container-{{ ai_gen_id }}">
+          {% if product_image %}
+            <img 
+              src="{{ product_image | image_url: width: 600 }}" 
+              alt="{{ product_title }}" 
+              class="product-image-{{ ai_gen_id }}"
+              width="600"
+              height="600"
+              loading="lazy"
+            >
+          {% else %}
+            {{ 'product-apparel-1' | placeholder_svg_tag }}
+          {% endif %}<div class="brand-logo-container-{{ ai_gen_id }}">
+            {% if brand_logo %}
+              <img 
+                src="{{ brand_logo | image_url: width: 100 }}" 
+                alt="Brand logo" 
+                class="brand-logo-{{ ai_gen_id }}"
+                width="100"
+                height="50"
+                loading="lazy"
+              >
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="product-info-{{ ai_gen_id }}">
+          <h3 class="product-title-{{ ai_gen_id }}">{{ product_title }}</h3>
+          <div class="product-price-{{ ai_gen_id }}">Starting at {{ product_price }}</div>
+          <div class="product-delivery-{{ ai_gen_id }}">Earliest delivery: {{ delivery_date }}</div>
+        </div>
+      </a>
+    {% endfor %}<a href="{{ block.settings.view_all_link }}" class="view-all-card-{{ ai_gen_id }}">
+      <div class="view-all-image-container-{{ ai_gen_id }}">
+        <div class="view-all-icon-{{ ai_gen_id }}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+        </div>
+      </div>
+      
+      <div class="view-all-info-{{ ai_gen_id }}">
+        <h3 class="view-all-title-{{ ai_gen_id }}">{{ block.settings.view_all_text }}</h3>
+        <span class="view-all-button-{{ ai_gen_id }}">
+          {{ block.settings.view_all_button_text }}
+        </span>
+      </div>
+    </a>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Product Grid with CTA",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout Settings"
+    },
+    {
+      "type": "range",
+      "id": "section_width",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Section width",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "min": 10,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Grid spacing",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "card_padding",
+      "min": 10,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Card padding",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Card border radius",
+      "default": 8
+    },
+    {
+      "type": "color",
+      "id": "card_background_color",
+      "label": "Card background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Brand Logo Settings"
+    },
+    {
+      "type": "range",
+      "id": "logo_width",
+      "min": 30,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Logo width",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "logo_height",
+      "min": 20,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Logo height",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "logo_padding",
+      "min": 8,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Logo padding from edge",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "title_font_size",
+      "min": 14,
+      "max": 28,
+      "step": 1,
+      "unit": "px",
+      "label": "Title font size",
+      "default": 18
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "default": "#333333"
+    },
+    {
+      "type": "range",
+      "id": "price_font_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Price font size",
+      "default": 16
+    },
+    {
+      "type": "color",
+      "id": "price_color",
+      "label": "Price color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "delivery_font_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Delivery date font size",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "delivery_color",
+      "label": "Delivery date color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "View All Button"
+    },
+    {
+      "type": "text",
+      "id": "view_all_text",
+      "label": "View all heading",
+      "default": "View All T-Shirts"
+    },
+    {
+      "type": "text",
+      "id": "view_all_button_text",
+      "label": "Button text",
+      "default": "Browse Collection"
+    },
+    {
+      "type": "url",
+      "id": "view_all_link",
+      "label": "Button link"
+    },
+    {
+      "type": "color",
+      "id": "view_all_bg_color",
+      "label": "View all background color",
+      "default": "#f4f4f4"
+    },
+    {
+      "type": "color",
+      "id": "view_all_icon_color",
+      "label": "View all icon color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button color",
+      "default": "#000f9f"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_color",
+      "label": "Button hover color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Button border radius",
+      "default": 4
+    },
+    {
+      "type": "header",
+      "content": "Product 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "product_image_1",
+      "label": "Product image"
+    },
+    {
+      "type": "image_picker",
+      "id": "brand_logo_1",
+      "label": "Brand logo"
+    },
+    {
+      "type": "text",
+      "id": "product_title_1",
+      "label": "Product title",
+      "default": "Premium T-Shirt"
+    },
+    {
+      "type": "text",
+      "id": "product_price_1",
+      "label": "Product price",
+      "default": "$24.99"
+    },
+    {
+      "type": "text",
+      "id": "delivery_date_1",
+      "label": "Delivery date",
+      "default": "June 15"
+    },
+    {
+      "type": "url",
+      "id": "product_link_1",
+      "label": "Product link"
+    },
+    {
+      "type": "header",
+      "content": "Product 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "product_image_2",
+      "label": "Product image"
+    },
+    {
+      "type": "image_picker",
+      "id": "brand_logo_2",
+      "label": "Brand logo"
+    },
+    {
+      "type": "text",
+      "id": "product_title_2",
+      "label": "Product title",
+      "default": "Graphic T-Shirt"
+    },
+    {
+      "type": "text",
+      "id": "product_price_2",
+      "label": "Product price",
+      "default": "$29.99"
+    },
+    {
+      "type": "text",
+      "id": "delivery_date_2",
+      "label": "Delivery date",
+      "default": "June 18"
+    },
+    {
+      "type": "url",
+      "id": "product_link_2",
+      "label": "Product link"
+    },
+    {
+      "type": "header",
+      "content": "Product 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "product_image_3",
+      "label": "Product image"
+    },
+    {
+      "type": "image_picker",
+      "id": "brand_logo_3",
+      "label": "Brand logo"
+    },
+    {
+      "type": "text",
+      "id": "product_title_3",
+      "label": "Product title",
+      "default": "Vintage T-Shirt"
+    },
+    {
+      "type": "text",
+      "id": "product_price_3",
+      "label": "Product price",
+      "default": "$19.99"
+    },
+    {
+      "type": "text",
+      "id": "delivery_date_3",
+      "label": "Delivery date",
+      "default": "June 20"
+    },
+    {
+      "type": "url",
+      "id": "product_link_3",
+      "label": "Product link"
+    },
+    {
+      "type": "header",
+      "content": "Product 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "product_image_4",
+      "label": "Product image"
+    },
+    {
+      "type": "image_picker",
+      "id": "brand_logo_4",
+      "label": "Brand logo"
+    },
+    {
+      "type": "text",
+      "id": "product_title_4",
+      "label": "Product title",
+      "default": "Organic Cotton T-Shirt"
+    },
+    {
+      "type": "text",
+      "id": "product_price_4",
+      "label": "Product price",
+      "default": "$34.99"
+    },
+    {
+      "type": "text",
+      "id": "delivery_date_4",
+      "label": "Delivery date",
+      "default": "June 22"
+    },
+    {
+      "type": "url",
+      "id": "product_link_4",
+      "label": "Product link"
+    },
+    {
+      "type": "header",
+      "content": "Product 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "product_image_5",
+      "label": "Product image"
+    },
+    {
+      "type": "image_picker",
+      "id": "brand_logo_5",
+      "label": "Brand logo"
+    },
+    {
+      "type": "text",
+      "id": "product_title_5",
+      "label": "Product title",
+      "default": "Long Sleeve T-Shirt"
+    },
+    {
+      "type": "text",
+      "id": "product_price_5",
+      "label": "Product price",
+      "default": "$32.99"
+    },
+    {
+      "type": "text",
+      "id": "delivery_date_5",
+      "label": "Delivery date",
+      "default": "June 25"
+    },
+    {
+      "type": "url",
+      "id": "product_link_5",
+      "label": "Product link"
+    },
+    {
+      "type": "header",
+      "content": "Product 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "product_image_6",
+      "label": "Product image"
+    },
+    {
+      "type": "image_picker",
+      "id": "brand_logo_6",
+      "label": "Brand logo"
+    },
+    {
+      "type": "text",
+      "id": "product_title_6",
+      "label": "Product title",
+      "default": "Limited Edition T-Shirt"
+    },
+    {
+      "type": "text",
+      "id": "product_price_6",
+      "label": "Product price",
+      "default": "$39.99"
+    },
+    {
+      "type": "text",
+      "id": "delivery_date_6",
+      "label": "Delivery date",
+      "default": "June 28"
+    },
+    {
+      "type": "url",
+      "id": "product_link_6",
+      "label": "Product link"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product Grid with CTA"
+    }
+  ]
+}
+{% endschema %}

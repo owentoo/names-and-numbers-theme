@@ -1,0 +1,53 @@
+{%-liquid
+  layout none
+  capture pid
+    render '__getParam' paramStart: 'pid='
+  endcapture
+  capture titleis
+    render '__getParam' paramStart: 'titleis='
+  endcapture
+
+  assign pid = pid | times: 1
+-%}
+
+{% if cart.item_count > 0 %}
+  {%- capture getCartData -%}
+    {
+      "pid": {{ pid | json }},
+      {%- assign pCartQty = 0 -%}
+      {%- assign spangleQty = 0 -%}
+      {%- assign stickersQty = 0 -%}
+      {% for c_item in cart.items %}
+        {% if forloop.first and c_item.title contains 'Yes - Pre cut' %}
+          {%- assign isPreCut = true -%}
+        {% endif %}
+        {% if c_item.title contains 'DTF Transfers By Size' %}
+          {%- assign pCartQty = c_item.quantity | plus: pCartQty -%}
+        {% endif %}
+        {% if c_item.title contains 'UV DTF' %}
+          {%- assign pCartQty = c_item.quantity | plus: pCartQty -%}
+        {% endif %}
+        {% if c_item.title contains 'Puff' %}
+          {%- assign pCartQty = c_item.quantity | plus: pCartQty -%}
+        {% endif %}
+        {% if c_item.product.type == 'spangles' %}
+          {%- assign spangleQty = c_item.quantity | plus: spangleQty -%}
+        {% endif %}
+        {% if c_item.product.type == 'stickers' %}
+          {%- assign stickersQty = c_item.quantity | plus: stickersQty -%}
+        {% endif %}
+      {% endfor %}
+      {% if isPreCut %}
+        "precut": true,
+      {% endif %}
+      "matchingTitle": ["DTF Transfers By Size","UV DTF","Puff","Spangle","Vinyl Stickers", "Bumper", "Truck"],
+      "qty": {{ pCartQty | json }},
+      "spangleQty": {{ spangleQty | json }},
+      "stickersQty": {{ stickersQty | json }}
+    }
+  {%- endcapture -%}
+
+  {{ getCartData }}
+{% else %}
+  {}
+{% endif %}

@@ -1,0 +1,729 @@
+{% doc %}
+  @prompt
+    I would like to create a section that is meant for mobile. It will have 2 entries per row and I can add on as many rows as I need. Each image displayed in each entry will be a square section with round edges (that can be controlled with a slider). In the square will be a circle where the uploaded image will display, the circle will act as a mask, so that the image will only display where the circle opens up. Underneath each circle but still in the square will be a place for text. Clicking anywhere in the square will take user to the URL provided for that entry. This whole section needs an H1 and subtext underneath
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-mobile-grid-{{ ai_gen_id }} {
+    padding: 40px 20px;
+    background-color: {{ block.settings.background_color }};
+  }
+
+  .ai-mobile-grid__header-{{ ai_gen_id }} {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .ai-mobile-grid__title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size }}px;
+    color: {{ block.settings.heading_color }};
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+
+  .ai-mobile-grid__subtitle-{{ ai_gen_id }} {
+    font-size: {{ block.settings.subtext_size }}px;
+    color: {{ block.settings.subtext_color }};
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .ai-mobile-grid__container-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: {{ block.settings.grid_gap }}px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .ai-mobile-grid__item-{{ ai_gen_id }} {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease;
+  }
+
+  .ai-mobile-grid__item-{{ ai_gen_id }}:hover {
+    transform: translateY(-2px);
+  }
+
+  .ai-mobile-grid__card-{{ ai_gen_id }} {
+    background-color: {{ block.settings.card_background }};
+    border-radius: {{ block.settings.border_radius }}px;
+    padding: {{ block.settings.card_padding }}px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    height: 100%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .ai-mobile-grid__image-container-{{ ai_gen_id }} {
+    width: {{ block.settings.circle_size }}px;
+    height: {{ block.settings.circle_size }}px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-bottom: 16px;
+    background-color: {{ block.settings.circle_background }};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-mobile-grid__image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-mobile-grid__placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;}
+
+  .ai-mobile-grid__placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  .ai-mobile-grid__text-{{ ai_gen_id }} {
+    font-size: {{ block.settings.item_text_size }}px;
+    color: {{ block.settings.item_text_color }};
+    margin: 0;
+    line-height: 1.3;
+    font-weight: 500;
+  }
+
+  @media screen and (max-width: 480px) {
+    .ai-mobile-grid-{{ ai_gen_id }} {
+      padding: 30px 16px;
+    }
+
+    .ai-mobile-grid__container-{{ ai_gen_id }} {
+      gap: {{ block.settings.grid_gap | times: 0.8 }}px;
+    }
+
+    .ai-mobile-grid__image-container-{{ ai_gen_id }} {
+      width: {{ block.settings.circle_size | times: 0.9 }}px;
+      height: {{ block.settings.circle_size | times: 0.9 }}px;
+    }
+
+    .ai-mobile-grid__card-{{ ai_gen_id }} {
+      padding: {{ block.settings.card_padding | times: 0.8 }}px;
+    }
+  }
+{% endstyle %}
+
+<mobile-grid-{{ ai_gen_id }} class="ai-mobile-grid-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-mobile-grid__header-{{ ai_gen_id }}">
+    {% if block.settings.heading != blank %}
+      <h1 class="ai-mobile-grid__title-{{ ai_gen_id }}">{{ block.settings.heading }}</h1>
+    {% endif %}
+    {% if block.settings.subtext != blank %}
+      <div class="ai-mobile-grid__subtitle-{{ ai_gen_id }}">{{ block.settings.subtext }}</div>
+    {% endif %}
+  </div>
+
+  <div class="ai-mobile-grid__container-{{ ai_gen_id }}">
+    {% for i in (1..20) %}
+      {% liquid
+        assign image_key = 'item_' | append: i | append: '_image'
+        assign text_key = 'item_' | append: i | append: '_text'
+        assign url_key = 'item_' | append: i | append: '_url'
+        
+        assign item_image = block.settings[image_key]
+        assign item_text = block.settings[text_key]
+        assign item_url = block.settings[url_key]%}
+
+      {% if item_text != blank or item_image != blank %}
+        <a 
+          href="{{ item_url | default: '#' }}" 
+          class="ai-mobile-grid__item-{{ ai_gen_id }}"
+          {% if item_url == blank %}onclick="return false;"{% endif %}
+        >
+          <div class="ai-mobile-grid__card-{{ ai_gen_id }}"><div class="ai-mobile-grid__image-container-{{ ai_gen_id }}">
+              {% if item_image != blank %}
+                <img
+                  src="{{ item_image | image_url: width: 200 }}"
+                  alt="{{ item_image.alt | escape }}"
+                  class="ai-mobile-grid__image-{{ ai_gen_id }}"
+                  loading="lazy"
+                  width="200"
+                  height="200"
+                >
+              {% else %}
+                <div class="ai-mobile-grid__placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+            </div>
+            {% if item_text != blank %}
+              <p class="ai-mobile-grid__text-{{ ai_gen_id }}">{{ item_text }}</p>
+            {% endif %}
+          </div>
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</mobile-grid-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class MobileGrid{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.setupAccessibility();
+      }
+
+      setupAccessibility() {
+        const items = this.querySelectorAll('.ai-mobile-grid__item-{{ ai_gen_id }}');
+        items.forEach((item) => {
+          if (item.getAttribute('href') === '#') {
+            item.setAttribute('role', 'button');
+            item.setAttribute('tabindex', '0');
+            item.setAttribute('aria-disabled', 'true');
+          }
+        });
+      }
+    }
+
+    customElements.define('mobile-grid-{{ ai_gen_id }}', MobileGrid{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Mobile Grid Section",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Our Services"
+    },
+    {
+      "type": "textarea",
+      "id": "subtext",
+      "label": "Subtext",
+      "default": "Discover what we have to offer"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Card border radius",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "circle_size",
+      "min": 60,
+      "max": 120,
+      "step": 5,
+      "unit": "px",
+      "label": "Circle size",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "card_padding",
+      "min": 10,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Card padding",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "min": 8,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Grid gap",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "card_background",
+      "label": "Card background",
+      "default": "#f8f8f8"
+    },
+    {
+      "type": "color",
+      "id": "circle_background",
+      "label": "Circle background",
+      "default": "#e0e0e0"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "subtext_color",
+      "label": "Subtext",
+      "default": "#666666"
+    },
+    {
+      "type": "color",
+      "id": "item_text_color",
+      "label": "Item text",
+      "default": "#333333"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 20,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "subtext_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Subtext size",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "item_text_size",
+      "min": 11,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "label": "Item text size",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Item 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_1_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_1_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_2_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_2_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_3_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_3_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_4_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_4_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_5_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_5_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_5_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_6_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_6_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_6_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 7"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_7_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_7_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_7_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 8"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_8_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_8_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_8_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 9"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_9_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_9_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_9_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 10"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_10_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_10_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_10_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 11"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_11_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_11_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_11_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 12"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_12_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_12_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_12_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 13"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_13_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_13_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_13_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 14"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_14_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_14_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_14_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 15"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_15_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_15_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_15_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 16"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_16_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_16_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_16_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 17"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_17_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_17_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_17_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 18"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_18_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_18_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_18_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 19"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_19_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_19_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_19_url",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 20"
+    },
+    {
+      "type": "image_picker",
+      "id": "item_20_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_20_text",
+      "label": "Text"
+    },
+    {
+      "type": "url",
+      "id": "item_20_url",
+      "label": "Link"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Mobile Grid Section"
+    }
+  ]
+}
+{% endschema %}

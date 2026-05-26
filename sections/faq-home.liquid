@@ -1,0 +1,382 @@
+{%-liquid
+  assign ss = section.settings
+  assign sb = section.blocks
+-%}
+{{ 'faqHome.css' | asset_url | stylesheet_tag }}
+
+{% if sb.size > 0 %}
+  <div class="container--large">
+    <div class="faqHome">
+      {% if ss.title != blank %}
+        <{{ ss.titleTag }} class="faqHome__title">
+          {{ ss.title }}
+        </{{ ss.titleTag }}>
+      {% endif %}
+
+      <div class="faqHome__wrap">
+        {%- assign collectStyles = '' -%}
+        {%- for block in sb -%}
+          {%- assign b = block.settings -%}
+          <div class="faqHome__item {% if b.isOpen %}open{% endif %}" bid="{{ block.id }}">
+            <question>
+              {{ b.title }}
+            </question>
+            <answer>{{ b.answer }}</answer>
+          </div>
+
+          {%- capture collectStyles -%}
+            {{ collectStyles }}
+            .textImg__item[bid="{{ block.id }}"] {
+              background-color: {{ b.bgColor }};
+            }
+          {%- endcapture -%}
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+
+  {%- capture getStyles -%}
+    {{ collectStyles }}
+    #shopify-section-{{ section.id }} .container--large {
+      background-color: {{ ss.containerBgColor }};
+    }
+
+    #shopify-section-{{ section.id }} {
+      margin-top: {{ ss.secMarginTop_desktop | append: 'px' }};
+      margin-bottom: {{ ss.secMarginBottom_desktop | append: 'px' }};
+    }
+    #shopify-section-{{ section.id }} .faqHome {
+      padding-top: {{ ss.secPaddingTop_desktop | append: 'px' }};
+      padding-bottom: {{ ss.secPaddingBottom_desktop | append: 'px' }};
+    }
+    @media (max-width: 1024px) {
+      #shopify-section-{{ section.id }} {
+        margin-top: {{ ss.secMarginTop_tab | append: 'px' }};
+        margin-bottom: {{ ss.secMarginBottom_tab | append: 'px' }};
+      }
+      #shopify-section-{{ section.id }} .faqHome {
+        padding-top: {{ ss.secPaddingTop_tab | append: 'px' }};
+        padding-bottom: {{ ss.secPaddingBottom_tab | append: 'px' }};
+      }
+    }
+    @media (max-width: 600px) {
+      #shopify-section-{{ section.id }} {
+        margin-top: {{ ss.secMarginTop_mobile | append: 'px' }};
+        margin-bottom: {{ ss.secMarginBottom_mobile | append: 'px' }};
+      }
+      #shopify-section-{{ section.id }} .faqHome {
+        padding-top: {{ ss.secPaddingTop_mobile | append: 'px' }};
+        padding-bottom: {{ ss.secPaddingBottom_mobile | append: 'px' }};
+      }
+    }
+
+    #shopify-section-{{ section.id }} {
+      background-color: {{ ss.bgColor }};
+      <!-- padding: 20px; -->
+      {% if ss.bgImg != blank %}
+        background-image: url('{{ ss.bgImg | image_url: width: 700 }}');
+        background-repeat: no-repeat;
+        background-position: center;
+      {% endif %}
+    }
+  {%- endcapture -%}
+  <style>
+    {{ getStyles }}
+  </style>
+{% endif %}
+
+<script>
+  $( document )
+  .on(`click`, `#shopify-section-{{ section.id }} .faqHome__item question`, function( e ) {
+    try {
+      e.stopImmediatePropagation();
+      const isOpen = $( this ).closest( `.faqHome__item` ).hasClass( `open` );
+      if ( isOpen ) {
+        $( this ).closest( `.faqHome__item` ).removeClass( `open` );
+      } else {
+        $( this ).closest( `.faqHome__item` ).addClass( `open` );
+      }
+    } catch ( err ) {
+      console.log( `ERROR #shopify-section-{{ section.id }} .faqHome__item question`, err.message );
+    }
+  })
+  ;
+</script>
+
+{% schema %}
+{
+  "name": "FAQ Home",
+  "class": "can-be-fullwidth merged-section supports-absolute-header",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Frequently Asked Questions"
+    },
+    {
+      "type": "select",
+      "id": "titleTag",
+      "label": "Title Tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "Heading 1"
+        },
+        {
+          "value": "h2",
+          "label": "Heading 2"
+        },
+        {
+          "value": "h3",
+          "label": "Heading 3"
+        },
+        {
+          "value": "h4",
+          "label": "Heading 4"
+        },
+        {
+          "value": "h5",
+          "label": "Heading 5"
+        },
+        {
+          "value": "h6",
+          "label": "Heading 6"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "contentPosition_desktop",
+      "label": "Content Position Desktop",
+      "options": [
+        {
+          "value": "leftTextRightVid",
+          "label": "Content Left and Right Video"
+        },
+        {
+          "value": "leftVidRightText",
+          "label": "Left Video and Right Text"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "contentPosition_mobile",
+      "label": "Content Position Mobile",
+      "options": [
+        {
+          "value": "vidTopTextBottom",
+          "label": "Video top and content below"
+        },
+        {
+          "value": "contentTopVidBottom",
+          "label": "Content top and Video below"
+        }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "containerBgColor",
+      "label": "Container Background Color",
+      "default": "#f6f7f9"
+    },
+    {
+      "type": "color",
+      "id": "bgColor",
+      "label": "Background Color",
+      "default": "#f6f7f9"
+    },
+    {
+      "type": "image_picker",
+      "id": "bgImg",
+      "label": "Background Image"
+    },
+    {
+      "type": "header",
+      "content": "Section Margins"
+    },
+    {
+      "type": "range",
+      "id": "secMarginTop_desktop",
+      "label": "Margin Top Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginTop_tab",
+      "label": "Margin Top Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginTop_mobile",
+      "label": "Margin Top Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginBottom_desktop",
+      "label": "Margin Bottom Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginBottom_tab",
+      "label": "Margin Bottom Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginBottom_mobile",
+      "label": "Margin Bottom Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Section Paddings"
+    },
+    {
+      "type": "range",
+      "id": "secPaddingTop_desktop",
+      "label": "Padding Top Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingTop_tab",
+      "label": "Padding Top Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingTop_mobile",
+      "label": "Padding Top Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingBottom_desktop",
+      "label": "Padding Bottom Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingBottom_tab",
+      "label": "Padding Bottom Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingBottom_mobile",
+      "label": "Padding Bottom Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    }
+  ],
+  "blocks": [
+    {
+      "type": "qa",
+      "name": "QA",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Question",
+          "default": "What is a DTF transfer?"
+        },
+        {
+          "type": "inline_richtext",
+          "id": "answer",
+          "label": "Answer",
+          "default": "Master the art of pressing with our expert tips and techniques for flawless results. Achieve professional-quality transfers with ease and precision."
+        },
+        {
+          "type": "checkbox",
+          "id": "isOpen",
+          "label": "Is Open",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "FAQ Home",
+      "blocks": [
+        {
+          "type": "qa"
+        },
+        {
+          "type": "qa"
+        },
+        {
+          "type": "qa"
+        },
+        {
+          "type": "qa"
+        },
+        {
+          "type": "qa"
+        },
+        {
+          "type": "qa"
+        },
+        {
+          "type": "qa"
+        },
+        {
+          "type": "qa"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

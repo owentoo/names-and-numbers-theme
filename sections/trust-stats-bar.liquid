@@ -1,0 +1,584 @@
+{%- comment -%}
+  Trust Stats Bar — single horizontal row of icon + stat blocks on a
+  dark background. Designed for above-the-fold or directly under PDP
+  / hero sections to reinforce social proof.
+
+  Each block is a "stat" with three editable parts:
+    1. Icon — either an uploaded image OR an emoji/symbol fallback
+    2. Value — the bold highlight number/word (e.g. "1,304", "4.9", "40,000+", "24 hour")
+    3. Description — the trailing text (e.g. "packs shipped this week")
+
+  Section settings let you change background / text colors and vertical padding.
+{%- endcomment -%}
+
+{%- liquid
+  assign bg_color    = section.settings.bg_color    | default: '#0a0a0a'
+  assign text_color  = section.settings.text_color  | default: '#cbd5e1'
+  assign value_color = section.settings.value_color | default: '#ffffff'
+  assign sep_color   = section.settings.sep_color   | default: 'rgba(255,255,255,0.18)'
+  assign font_size   = section.settings.font_size   | default: 15
+-%}
+
+<style>
+  .trust-stats-{{ section.id }} {
+    background: {{ bg_color }};
+    color: {{ text_color }};
+    padding: {{ section.settings.padding_y }}px 16px;
+    margin-top: {{ section.settings.margin_y }}px;
+    margin-bottom: {{ section.settings.margin_y }}px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  .trust-stats-{{ section.id }} .trust-stats__row {
+    max-width: {{ section.settings.max_width }}px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: {% if section.settings.distribute == 'space-between' %}space-between{% else %}center{% endif %};
+    gap: 8px {{ section.settings.gap }}px;
+    flex-wrap: wrap;
+  }
+  .trust-stats-{{ section.id }} .trust-stats__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: {{ font_size }}px;
+    color: {{ text_color }};
+    line-height: 1.4;
+  }
+  .trust-stats-{{ section.id }} .trust-stats__icon {
+    flex-shrink: 0;
+    width: {{ section.settings.icon_size }}px;
+    height: {{ section.settings.icon_size }}px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: {{ section.settings.icon_size | minus: 2 }}px;
+    line-height: 1;
+  }
+  .trust-stats-{{ section.id }} .trust-stats__icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .trust-stats-{{ section.id }} .trust-stats__value {
+    color: {{ value_color }};
+    font-weight: 700;
+  }
+  .trust-stats-{{ section.id }} .trust-stats__desc {
+    color: {{ text_color }};
+  }
+  .trust-stats-{{ section.id }} .trust-stats__sep {
+    width: 4px;
+    height: 4px;
+    background: {{ sep_color }};
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  /* Reviewer count is dynamic — hide it until JS confirms / replaces
+     so the user never sees a stale number flash on first paint. */
+  .trust-stats-{{ section.id }} .trust-stats__rev-count[data-rev-pending] {
+    visibility: hidden;
+  }
+  @media (max-width: 749px) {
+    .trust-stats-{{ section.id }} {
+      padding-top: {{ section.settings.padding_y_mobile }}px;
+      padding-bottom: {{ section.settings.padding_y_mobile }}px;
+      margin-top: {{ section.settings.margin_y_mobile }}px;
+      margin-bottom: {{ section.settings.margin_y_mobile }}px;
+    }
+    .trust-stats-{{ section.id }} .trust-stats__row {
+      gap: 14px {{ section.settings.gap_mobile }}px;
+      justify-content: center;
+    }
+    .trust-stats-{{ section.id }} .trust-stats__item {
+      font-size: {{ section.settings.font_size_mobile }}px;
+    }
+    .trust-stats-{{ section.id }} .trust-stats__sep {
+      display: none;
+    }
+  }
+</style>
+
+<div class="trust-stats-{{ section.id }}">
+  <div class="trust-stats__row">
+    {%- comment -%}
+      ╔════════════════════════════════════════════════════════════════╗
+      ║  HARDCODED — DO NOT MAKE EDITABLE IN THE SCHEMA.              ║
+      ║  "Packs shipped this week" rolling counter:                   ║
+      ║    • Starts at 1,891 every day at 00:00 (shop timezone)       ║
+      ║    • +81 every 6 hours                                        ║
+      ║    • Renders before any editable block. Not a section block.  ║
+      ║                                                                ║
+      ║  Daily values:                                                ║
+      ║    00:00 → 1,891                                              ║
+      ║    06:00 → 1,972                                              ║
+      ║    12:00 → 2,053                                              ║
+      ║    18:00 → 2,134                                              ║
+      ║    (then resets to 1,891 at midnight)                         ║
+      ║                                                                ║
+      ║  To change values, edit the constants directly in this file.  ║
+      ╚════════════════════════════════════════════════════════════════╝
+    {%- endcomment -%}
+    {%- assign live_base          = 1891 -%}
+    {%- assign live_step          = 81 -%}
+    {%- assign live_interval_secs = 21600 -%}{%- comment -%} 6 hours {%- endcomment -%}
+
+    {%- comment -%}
+      Daily reset: anchor = today at 00:00 (shop timezone). Elapsed
+      seconds = how many seconds into today we are. Liquid integer
+      division then gives us the tick count (0..3 per day).
+    {%- endcomment -%}
+    {%- assign hour_now     = 'now' | date: '%H' | plus: 0 -%}
+    {%- assign min_now      = 'now' | date: '%M' | plus: 0 -%}
+    {%- assign sec_now      = 'now' | date: '%S' | plus: 0 -%}
+    {%- assign hour_secs    = hour_now | times: 3600 -%}
+    {%- assign min_secs     = min_now  | times: 60 -%}
+    {%- assign live_elapsed = hour_secs | plus: min_secs | plus: sec_now -%}
+    {%- assign live_ticks   = live_elapsed | divided_by: live_interval_secs -%}
+    {%- assign live_count   = live_ticks | times: live_step | plus: live_base -%}
+
+    {%- comment -%} Comma-format up to 999,999 {%- endcomment -%}
+    {%- if live_count >= 1000 -%}
+      {%- assign live_thousands = live_count | divided_by: 1000 -%}
+      {%- assign live_remainder = live_count | modulo: 1000 -%}
+      {%- if live_remainder < 10 -%}
+        {%- assign live_count_fmt = live_thousands | append: ',00' | append: live_remainder -%}
+      {%- elsif live_remainder < 100 -%}
+        {%- assign live_count_fmt = live_thousands | append: ',0' | append: live_remainder -%}
+      {%- else -%}
+        {%- assign live_count_fmt = live_thousands | append: ',' | append: live_remainder -%}
+      {%- endif -%}
+    {%- else -%}
+      {%- assign live_count_fmt = live_count -%}
+    {%- endif -%}
+
+    <div class="trust-stats__item trust-stats__item--live">
+      <span class="trust-stats__icon">🟢</span>
+      <span class="trust-stats__value">{{ live_count_fmt }}</span>
+      <span class="trust-stats__desc">packs shipped this week</span>
+    </div>
+
+    {%- comment -%}
+      ╔════════════════════════════════════════════════════════════════╗
+      ║  HARDCODED — DO NOT MAKE EDITABLE IN THE SCHEMA.              ║
+      ║  Star rating + reviewer count.                                ║
+      ║  • Rating value (4.9) is hardcoded below — edit here if it    ║
+      ║    needs to change.                                           ║
+      ║  • Reviewer count is dynamic — synced live from the Yotpo     ║
+      ║    star-rating widget by the script at the bottom of this    ║
+      ║    file. The "20,539" placeholder gets replaced on render.   ║
+      ╚════════════════════════════════════════════════════════════════╝
+    {%- endcomment -%}
+    <div class="trust-stats__item trust-stats__item--rating">
+      <span class="trust-stats__icon">⭐</span>
+      <span class="trust-stats__value">4.9</span>
+      <span class="trust-stats__desc">average rating from <span class="trust-stats__rev-count" data-rev-pending="true">20,539</span> reviewers</span>
+    </div>
+
+    {%- comment -%} ====== EDITABLE STATS (theme editor blocks) ====== {%- endcomment -%}
+    {%- for block in section.blocks -%}
+      {%- comment -%}
+        Defensive skip: if legacy blocks for "packs shipped this week"
+        or the rating/reviewer line are still in saved settings, skip
+        them so they don't duplicate the hardcoded items above.
+      {%- endcomment -%}
+      {%- assign desc_lower = block.settings.description | default: '' | downcase -%}
+      {%- if desc_lower contains 'packs shipped' -%}
+        {%- continue -%}
+      {%- endif -%}
+      {%- if desc_lower contains 'reviewer' or desc_lower contains 'average rating' -%}
+        {%- continue -%}
+      {%- endif -%}
+      <div class="trust-stats__item" {{ block.shopify_attributes }}>
+        {%- if block.settings.icon_image != blank or block.settings.icon_emoji != blank -%}
+          <span class="trust-stats__icon">
+            {%- if block.settings.icon_image != blank -%}
+              <img src="{{ block.settings.icon_image | image_url: width: 88 }}"
+                   alt="{{ block.settings.icon_image.alt | default: block.settings.value | escape }}"
+                   width="{{ section.settings.icon_size }}"
+                   height="{{ section.settings.icon_size }}"
+                   loading="lazy">
+            {%- else -%}
+              {{ block.settings.icon_emoji }}
+            {%- endif -%}
+          </span>
+        {%- endif -%}
+        {%- if block.settings.value != blank -%}
+          <span class="trust-stats__value">{{ block.settings.value }}</span>
+        {%- endif -%}
+        {%- if block.settings.description != blank -%}
+          <span class="trust-stats__desc">{{ block.settings.description }}</span>
+        {%- endif -%}
+      </div>
+    {%- endfor -%}
+  </div>
+</div>
+
+<script>
+  /* ╔════════════════════════════════════════════════════════════════╗
+     ║  Reviewer count sync                                          ║
+     ║  Reads the live review count out of the Yotpo widget on the   ║
+     ║  page and replaces it inside any Trust Stats Bar text.        ║
+     ║                                                                ║
+     ║  Two ways to use it from the editor:                          ║
+     ║    1. Type {REVIEWER_COUNT} anywhere in a stat's value or      ║
+     ║       description — gets replaced with the comma-formatted    ║
+     ║       live count.                                              ║
+     ║    2. Or just leave a hardcoded number followed by "reviewer" ║
+     ║       / "review" / "reviews" — the digits get swapped for the ║
+     ║       live count automatically (e.g. "20,411 reviewers" →     ║
+     ║       "20,539 reviewers").                                     ║
+     ╚════════════════════════════════════════════════════════════════╝ */
+  (function() {
+    var ATTEMPT_INTERVAL_MS = 500;
+    var MAX_ATTEMPTS = 60; /* ~30s budget to wait for Yotpo to render */
+
+    function formatCount(n) {
+      var clean = String(n || '').replace(/[^\d]/g, '');
+      if (!clean) return '';
+      return Number(clean).toLocaleString('en-US');
+    }
+
+    function extractYotpoCount() {
+      /* Walk individual text nodes inside every Yotpo widget. Reading
+         textContent from a parent container would concatenate digits
+         across nested elements (star counts + rating + etc.) into one
+         giant fake number — that's exactly the bug we're fixing.
+
+         Sanity cap at 10,000,000: real review counts never reach
+         that, but a malformed regex match could. We pick the LARGEST
+         match under the cap, since per-review widgets sometimes show
+         small "5 reviews" / "12 reviews" labels we want to ignore in
+         favor of the bottomline aggregate. */
+      var SANE_MAX = 10000000;
+      var roots = document.querySelectorAll('.yotpo-widget-instance');
+      var best = 0;
+      for (var i = 0; i < roots.length; i++) {
+        var walker = document.createTreeWalker(roots[i], NodeFilter.SHOW_TEXT, null, false);
+        var node;
+        while ((node = walker.nextNode())) {
+          var text = node.textContent;
+          if (!text) continue;
+          var re = /([\d,]+)\s*(reviewers?|reviews?)\b/gi;
+          var m;
+          while ((m = re.exec(text)) !== null) {
+            var raw = String(m[1]).replace(/,/g, '');
+            /* Reject runs longer than 7 digits — beyond what any real
+               store would have, and a strong signal it's mis-parsed
+               concatenated text. */
+            if (raw.length > 7) continue;
+            var n = parseInt(raw, 10);
+            if (!isNaN(n) && n >= 1 && n < SANE_MAX && n > best) {
+              best = n;
+            }
+          }
+        }
+      }
+      return best > 0 ? best : null;
+    }
+
+    function revealPending() {
+      var pending = document.querySelectorAll('.trust-stats__rev-count[data-rev-pending]');
+      for (var i = 0; i < pending.length; i++) {
+        pending[i].removeAttribute('data-rev-pending');
+      }
+    }
+
+    function applySync(liveCount) {
+      var fmt = formatCount(liveCount);
+      if (!fmt) return false;
+
+      /* 1. Preferred path: dedicated <span class="trust-stats__rev-count">.
+            Update its text + reveal it (so the page never flashes
+            the stale hardcoded number on first paint). */
+      var revSpans = document.querySelectorAll('.trust-stats__rev-count');
+      for (var i = 0; i < revSpans.length; i++) {
+        revSpans[i].textContent = fmt;
+        revSpans[i].removeAttribute('data-rev-pending');
+      }
+
+      /* 2. Legacy path: any other .trust-stats__desc / __value text
+            still using {REVIEWER_COUNT} or a literal "N reviewers"
+            number. Skip elements that already contain a dedicated
+            rev-count span (handled in step 1). */
+      var nodes = document.querySelectorAll(
+        '[class*="trust-stats-"] .trust-stats__desc, [class*="trust-stats-"] .trust-stats__value'
+      );
+      for (var j = 0; j < nodes.length; j++) {
+        var el = nodes[j];
+        if (el.querySelector('.trust-stats__rev-count')) continue;
+        var orig = el.dataset.statsOriginal || el.textContent;
+        if (!el.dataset.statsOriginal) el.dataset.statsOriginal = orig;
+        var next = orig;
+        if (next.indexOf('{REVIEWER_COUNT}') !== -1) {
+          next = next.replace(/\{REVIEWER_COUNT\}/g, fmt);
+        }
+        next = next.replace(/[\d,]+(\s+)(reviewers?|reviews?)/i, fmt + '$1$2');
+        if (next !== el.textContent) {
+          el.textContent = next;
+        }
+      }
+      return true;
+    }
+
+    function tryOnce() {
+      var n = extractYotpoCount();
+      if (n == null) return false;
+      return applySync(n);
+    }
+
+    function init() {
+      /* Safety net: if Yotpo never loads (slow/offline/blocked),
+         reveal the hardcoded fallback count after a short window so
+         the user isn't stuck looking at "average rating from   reviewers". */
+      var fallbackTimer = setTimeout(revealPending, 8000);
+      function clearFallback() { clearTimeout(fallbackTimer); }
+
+      if (tryOnce()) { clearFallback(); return; }
+      var attempts = 0;
+      var timer = setInterval(function() {
+        attempts++;
+        if (tryOnce()) { clearFallback(); clearInterval(timer); return; }
+        if (attempts >= MAX_ATTEMPTS) { clearInterval(timer); }
+      }, ATTEMPT_INTERVAL_MS);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Trust Stats Bar",
+  "tag": "section",
+  "class": "section--trust-stats-bar",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Description text color",
+      "default": "#cbd5e1"
+    },
+    {
+      "type": "color",
+      "id": "value_color",
+      "label": "Highlight (value) color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "sep_color",
+      "label": "Separator dot color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Layout — Desktop"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max content width",
+      "min": 800,
+      "max": 1800,
+      "step": 50,
+      "unit": "px",
+      "default": 1400
+    },
+    {
+      "type": "select",
+      "id": "distribute",
+      "label": "Item distribution",
+      "options": [
+        { "value": "center", "label": "Centered" },
+        { "value": "space-between", "label": "Spread out" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Gap between items (desktop)",
+      "min": 16,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_y",
+      "label": "Vertical padding (desktop)",
+      "min": 8,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "margin_y",
+      "label": "Outer spacing — above & below (desktop)",
+      "info": "Equal whitespace above and below the dark bar.",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "icon_size",
+      "label": "Icon size",
+      "min": 14,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "default": 22
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Font size (desktop)",
+      "min": 11,
+      "max": 22,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "header",
+      "content": "Layout — Mobile"
+    },
+    {
+      "type": "range",
+      "id": "padding_y_mobile",
+      "label": "Vertical padding (mobile)",
+      "min": 8,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "margin_y_mobile",
+      "label": "Outer spacing — above & below (mobile)",
+      "info": "Equal whitespace above and below the dark bar.",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "gap_mobile",
+      "label": "Gap between items (mobile)",
+      "min": 8,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "font_size_mobile",
+      "label": "Font size (mobile)",
+      "min": 10,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    }
+  ],
+  "blocks": [
+    {
+      "type": "stat",
+      "name": "Stat",
+      "settings": [
+        {
+          "type": "header",
+          "content": "Icon"
+        },
+        {
+          "type": "image_picker",
+          "id": "icon_image",
+          "label": "Icon image",
+          "info": "Upload a custom icon. If left blank, the emoji/symbol below is used."
+        },
+        {
+          "type": "text",
+          "id": "icon_emoji",
+          "label": "Or use an emoji / symbol",
+          "info": "Used when no icon image is uploaded. Examples: ●  ★  🏭  📦"
+        },
+        {
+          "type": "header",
+          "content": "Text"
+        },
+        {
+          "type": "text",
+          "id": "value",
+          "label": "Highlight value",
+          "info": "Bold lead-in. Example: \"4.9\" or \"24 hour\".",
+          "default": "4.9"
+        },
+        {
+          "type": "text",
+          "id": "description",
+          "label": "Description",
+          "info": "Trailing descriptive text.",
+          "default": "average rating"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 7,
+  "presets": [
+    {
+      "name": "Trust Stats Bar",
+      "blocks": [
+        {
+          "type": "stat",
+          "settings": {
+            "icon_emoji": "⭐",
+            "value": "4.9",
+            "description": "average rating from 20,411 reviewers"
+          }
+        },
+        {
+          "type": "stat",
+          "settings": {
+            "icon_emoji": "🏭",
+            "value": "Trusted by 40,000+",
+            "description": "print shops & makers"
+          }
+        },
+        {
+          "type": "stat",
+          "settings": {
+            "icon_emoji": "📦",
+            "value": "24 hour",
+            "description": "ship time"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,1617 @@
+{% doc %}
+  @prompt
+    Section Name: Feature Grid with Full-Width Header + CTA
+    
+    Create a responsive section with one full-width top block and a grid of feature blocks. Each block is fully clickable and customizable.
+    
+    Top Full-Width Block: Heading, subheading, CTA button text, CTA button link, icon upload, image upload, background color, button width control, hide subheading on mobile option, hide block on desktop/mobile option. Entire block uses the CTA link. Two-column layout with text on the left and image on the right.
+    
+    Feature Blocks (repeatable): Heading, subheading, link (entire block clickable), optional CTA button text and link, icon upload, image upload, background color, button width control, hide subheading on mobile option, hide block on desktop/mobile option.
+    
+    Layout Options: Choose number of columns for desktop and mobile separately. Adjustable section width. Adjustable padding and spacing with separate controls for desktop and mobile.
+    
+    Image Controls: Maintain aspect ratio. Adjustable image size (width, height, or scale) for all images.
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-feature-grid-{{ ai_gen_id }} {
+    width: 100%;
+    max-width: {{ block.settings.section_width }}px;
+    margin: 0 auto;
+    padding: {{ block.settings.padding_desktop }}px {{ block.settings.horizontal_padding_desktop }}px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-feature-grid-{{ ai_gen_id }} {
+      padding: {{ block.settings.padding_mobile }}px {{ block.settings.horizontal_padding_mobile }}px;
+    }
+  }
+
+  .ai-feature-grid__hero-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: {{ block.settings.spacing_desktop }}px;
+    align-items: center;
+    background-color: {{ block.settings.hero_bg_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+    padding: {{ block.settings.block_padding_desktop }}px;
+    margin-bottom: {{ block.settings.spacing_desktop }}px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.3s ease;
+  }
+
+  .ai-feature-grid__hero-{{ ai_gen_id }}:hover {
+    transform: translateY(-2px);
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-feature-grid__hero-{{ ai_gen_id }} {
+      grid-template-columns: 1fr;
+      gap: {{ block.settings.spacing_mobile }}px;
+      padding: {{ block.settings.block_padding_mobile }}px;
+      margin-bottom: {{ block.settings.spacing_mobile }}px;
+    }
+  }
+
+  .ai-feature-grid__hero-content-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .ai-feature-grid__hero-icon-{{ ai_gen_id }} {
+    width: {{ block.settings.icon_size }}px;
+    height: {{ block.settings.icon_size }}px;
+    object-fit: contain;
+  }
+
+  .ai-feature-grid__hero-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.hero_heading_size }}px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .ai-feature-grid__hero-subheading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.hero_subheading_size }}px;
+    margin: 0;
+    line-height: 1.5;
+    opacity: 0.9;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-feature-grid__hero-subheading-{{ ai_gen_id }}.hide-mobile {
+      display: none;
+    }
+  }
+
+  .ai-feature-grid__hero-button-{{ ai_gen_id }} {
+    display: inline-block;
+    padding: 14px 28px;
+    background-color: {{ block.settings.hero_button_bg }};
+    color: {{ block.settings.hero_button_text_color }};
+    border-radius: {{ block.settings.btn_border_radius }}px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    width: {{ block.settings.hero_button_width }}%;
+    text-align: center;
+  }
+
+  .ai-feature-grid__hero-button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.hero_button_bg_hover }};
+    color: {{ block.settings.hero_button_text_hover }};
+  }
+
+  .ai-feature-grid__hero-image-wrapper-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    min-height: 200px;
+  }
+
+  .ai-feature-grid__hero-image-{{ ai_gen_id }} {
+    width: {{ block.settings.image_width }}%;
+    height: auto;
+    object-fit: cover;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    {% if block.settings.maintain_aspect_ratio %}
+      aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    {% else %}
+      height: {{ block.settings.image_height }}px;
+    {% endif %}
+  }
+
+  .ai-feature-grid__hero-image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-feature-grid__hero-image-placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    max-width: 300px;
+    max-height: 300px;
+  }
+
+  .ai-feature-grid__grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    gap: {{ block.settings.spacing_desktop }}px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-feature-grid__grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+      gap: {{ block.settings.spacing_mobile }}px;
+    }
+  }
+
+  .ai-feature-grid__item-{{ ai_gen_id }} {
+    background-color: {{ block.settings.feature_bg_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+    padding: {{ block.settings.block_padding_desktop }}px;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .ai-feature-grid__item-{{ ai_gen_id }}:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-feature-grid__item-{{ ai_gen_id }} {
+      padding: {{ block.settings.block_padding_mobile }}px;
+    }
+  }
+
+  .ai-feature-grid__item-icon-{{ ai_gen_id }} {
+    width: {{ block.settings.icon_size }}px;
+    height: {{ block.settings.icon_size }}px;
+    object-fit: contain;
+  }
+
+  .ai-feature-grid__item-image-{{ ai_gen_id }} {
+    width: {{ block.settings.image_width }}%;
+    height: auto;
+    object-fit: cover;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    {% if block.settings.maintain_aspect_ratio %}
+      aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    {% else %}
+      height: {{ block.settings.image_height }}px;
+    {% endif %}
+  }
+
+  .ai-feature-grid__item-image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    background-color: #f4f4f4;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    {% if block.settings.maintain_aspect_ratio %}
+      aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    {% else %}
+      height: {{ block.settings.image_height }}px;
+    {% endif %}
+  }
+
+  .ai-feature-grid__item-image-placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    max-width: 200px;
+    max-height: 200px;
+  }
+
+  .ai-feature-grid__item-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.feature_heading_size }}px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .ai-feature-grid__item-subheading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.feature_subheading_size }}px;
+    margin: 0;
+    line-height: 1.5;
+    opacity: 0.85;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-feature-grid__item-subheading-{{ ai_gen_id }}.hide-mobile {
+      display: none;
+    }
+  }
+
+  .ai-feature-grid__item-button-{{ ai_gen_id }} {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: {{ block.settings.feature_button_bg }};
+    color: {{ block.settings.feature_button_text_color }};
+    border-radius: {{ block.settings.btn_border_radius }}px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    width: {{ block.settings.feature_button_width }}%;
+    text-align: center;
+    margin-top: auto;
+  }
+
+  .ai-feature-grid__item-button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.feature_button_bg_hover }};
+    color: {{ block.settings.feature_button_text_hover }};
+  }
+
+  .hide-desktop {
+    display: none;
+  }
+
+  @media screen and (max-width: 749px) {
+    .hide-desktop {
+      display: block;
+    }
+    .hide-mobile {
+      display: none;
+    }
+  }
+
+  @media screen and (min-width: 750px) {
+    .hide-desktop {
+      display: none;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-feature-grid-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  {% if block.settings.show_hero %}
+    {% assign hero_class = '' %}
+    {% if block.settings.hero_hide_desktop %}
+      {% assign hero_class = hero_class | append: ' hide-desktop' %}
+    {% endif %}
+    {% if block.settings.hero_hide_mobile %}
+      {% assign hero_class = hero_class | append: ' hide-mobile' %}
+    {% endif %}
+
+    <a 
+      href="{{ block.settings.hero_link }}" 
+      class="ai-feature-grid__hero-{{ ai_gen_id }}{{ hero_class }}"
+    >
+      <div class="ai-feature-grid__hero-content-{{ ai_gen_id }}">
+        {% if block.settings.hero_icon %}
+          <img 
+            src="{{ block.settings.hero_icon | image_url: width: 200 }}" 
+            alt="{{ block.settings.hero_heading | escape }}"
+            class="ai-feature-grid__hero-icon-{{ ai_gen_id }}"
+            loading="lazy"
+          >
+        {% endif %}
+
+        {% if block.settings.hero_heading != blank %}
+          <h2 class="ai-feature-grid__hero-heading-{{ ai_gen_id }}">
+            {{ block.settings.hero_heading }}
+          </h2>
+        {% endif %}
+
+        {% if block.settings.hero_subheading != blank %}
+          {% assign subheading_class = '' %}
+          {% if block.settings.hero_hide_subheading_mobile %}
+            {% assign subheading_class = ' hide-mobile' %}
+          {% endif %}
+          <p class="ai-feature-grid__hero-subheading-{{ ai_gen_id }}{{ subheading_class }}">
+            {{ block.settings.hero_subheading }}
+          </p>
+        {% endif %}
+
+        {% if block.settings.hero_cta_text != blank %}
+          <span class="ai-feature-grid__hero-button-{{ ai_gen_id }}">
+            {{ block.settings.hero_cta_text }}
+          </span>
+        {% endif %}
+      </div>
+
+      <div class="ai-feature-grid__hero-image-wrapper-{{ ai_gen_id }}">
+        {% if block.settings.hero_image %}
+          <img 
+            src="{{ block.settings.hero_image | image_url: width: 1200 }}" 
+            alt="{{ block.settings.hero_heading | escape }}"
+            class="ai-feature-grid__hero-image-{{ ai_gen_id }}"
+            loading="lazy"
+            width="{{ block.settings.hero_image.width }}"
+            height="{{ block.settings.hero_image.height }}"
+          >
+        {% else %}
+          <div class="ai-feature-grid__hero-image-placeholder-{{ ai_gen_id }}">
+            {{ 'image' | placeholder_svg_tag }}
+          </div>
+        {% endif %}
+      </div>
+    </a>
+  {% endif %}
+
+  <div class="ai-feature-grid__grid-{{ ai_gen_id }}">
+    {% for i in (1..12) %}
+      {% liquid
+        assign feature_enabled_key = 'feature_' | append: i | append: '_enabled'
+        assign feature_heading_key = 'feature_' | append: i | append: '_heading'
+        assign feature_subheading_key = 'feature_' | append: i | append: '_subheading'
+        assign feature_link_key = 'feature_' | append: i | append: '_link'
+        assign feature_button_text_key = 'feature_' | append: i | append: '_button_text'
+        assign feature_button_link_key = 'feature_' | append: i | append: '_button_link'
+        assign feature_icon_key = 'feature_' | append: i | append: '_icon'
+        assign feature_image_key = 'feature_' | append: i | append: '_image'
+        assign feature_hide_desktop_key = 'feature_' | append: i | append: '_hide_desktop'
+        assign feature_hide_mobile_key = 'feature_' | append: i | append: '_hide_mobile'
+        assign feature_hide_subheading_mobile_key = 'feature_' | append: i | append: '_hide_subheading_mobile'
+
+        assign feature_enabled = block.settings[feature_enabled_key]
+        assign feature_heading = block.settings[feature_heading_key]
+        assign feature_subheading = block.settings[feature_subheading_key]
+        assign feature_link = block.settings[feature_link_key]
+        assign feature_button_text = block.settings[feature_button_text_key]
+        assign feature_button_link = block.settings[feature_button_link_key]
+        assign feature_icon = block.settings[feature_icon_key]
+        assign feature_image = block.settings[feature_image_key]
+        assign feature_hide_desktop = block.settings[feature_hide_desktop_key]
+        assign feature_hide_mobile = block.settings[feature_hide_mobile_key]
+        assign feature_hide_subheading_mobile = block.settings[feature_hide_subheading_mobile_key]
+      %}
+
+      {% if feature_enabled %}
+        {% assign item_class = '' %}
+        {% if feature_hide_desktop %}
+          {% assign item_class = item_class | append: ' hide-desktop' %}
+        {% endif %}
+        {% if feature_hide_mobile %}
+          {% assign item_class = item_class | append: ' hide-mobile' %}
+        {% endif %}
+
+        <a 
+          href="{% if feature_link != blank %}{{ feature_link }}{% else %}#{% endif %}" 
+          class="ai-feature-grid__item-{{ ai_gen_id }}{{ item_class }}"
+        >
+          {% if feature_icon %}
+            <img 
+              src="{{ feature_icon | image_url: width: 200 }}" 
+              alt="{{ feature_heading | escape }}"
+              class="ai-feature-grid__item-icon-{{ ai_gen_id }}"
+              loading="lazy"
+            >
+          {% endif %}
+
+          {% if feature_image %}
+            <img 
+              src="{{ feature_image | image_url: width: 800 }}" 
+              alt="{{ feature_heading | escape }}"
+              class="ai-feature-grid__item-image-{{ ai_gen_id }}"
+              loading="lazy"
+              width="{{ feature_image.width }}"
+              height="{{ feature_image.height }}"
+            >
+          {% elsif feature_heading != blank %}
+            <div class="ai-feature-grid__item-image-placeholder-{{ ai_gen_id }}">
+              {{ 'image' | placeholder_svg_tag }}
+            </div>
+          {% endif %}
+
+          {% if feature_heading != blank %}
+            <h3 class="ai-feature-grid__item-heading-{{ ai_gen_id }}">
+              {{ feature_heading }}
+            </h3>
+          {% endif %}
+
+          {% if feature_subheading != blank %}
+            {% assign subheading_class = '' %}
+            {% if feature_hide_subheading_mobile %}
+              {% assign subheading_class = ' hide-mobile' %}
+            {% endif %}
+            <p class="ai-feature-grid__item-subheading-{{ ai_gen_id }}{{ subheading_class }}">
+              {{ feature_subheading }}
+            </p>
+          {% endif %}
+
+          {% if feature_button_text != blank and feature_button_link != blank %}
+            <span class="ai-feature-grid__item-button-{{ ai_gen_id }}">
+              {{ feature_button_text }}
+            </span>
+          {% endif %}
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Feature grid with header",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section layout"
+    },
+    {
+      "type": "range",
+      "id": "section_width",
+      "min": 1000,
+      "max": 2000,
+      "step": 50,
+      "unit": "px",
+      "label": "Section width",
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "padding_desktop",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Vertical padding (desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding_desktop",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Horizontal padding (desktop)",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Vertical padding (mobile)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding_mobile",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Horizontal padding (mobile)",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "spacing_desktop",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Block spacing (desktop)",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "spacing_mobile",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Block spacing (mobile)",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "block_padding_desktop",
+      "min": 10,
+      "max": 80,
+      "step": 5,
+      "unit": "px",
+      "label": "Block padding (desktop)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "block_padding_mobile",
+      "min": 10,
+      "max": 80,
+      "step": 5,
+      "unit": "px",
+      "label": "Block padding (mobile)",
+      "default": 25
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Block border radius",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Grid columns"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "label": "Columns (desktop)",
+      "default": 3
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns (mobile)",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "header",
+      "content": "Image settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "maintain_aspect_ratio",
+      "label": "Maintain aspect ratio",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "image_aspect_ratio",
+      "min": 0.5,
+      "max": 2,
+      "step": 0.1,
+      "label": "Image aspect ratio",
+      "default": 1.5
+    },
+    {
+      "type": "range",
+      "id": "image_width",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Image width",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "image_height",
+      "min": 100,
+      "max": 500,
+      "step": 10,
+      "unit": "px",
+      "label": "Image height (if not maintaining ratio)",
+      "default": 250
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Image border radius",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "icon_size",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Icon size",
+      "default": 50
+    },
+    {
+      "type": "header",
+      "content": "Button style"
+    },
+    {
+      "type": "range",
+      "id": "btn_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 7
+    },
+    {
+      "type": "header",
+      "content": "Hero block"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hero",
+      "label": "Show hero block",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "hero_heading",
+      "label": "Heading",
+      "default": "Featured Content"
+    },
+    {
+      "type": "range",
+      "id": "hero_heading_size",
+      "min": 20,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size",
+      "default": 36
+    },
+    {
+      "type": "textarea",
+      "id": "hero_subheading",
+      "label": "Subheading",
+      "default": "Discover our amazing features and benefits"
+    },
+    {
+      "type": "range",
+      "id": "hero_subheading_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Subheading size",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "hero_cta_text",
+      "label": "CTA button text",
+      "default": "Learn More"
+    },
+    {
+      "type": "url",
+      "id": "hero_link",
+      "label": "Link"
+    },
+    {
+      "type": "image_picker",
+      "id": "hero_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "hero_image",
+      "label": "Image"
+    },
+    {
+      "type": "color",
+      "id": "hero_bg_color",
+      "label": "Background color",
+      "default": "#f2f2f2"
+    },
+    {
+      "type": "color",
+      "id": "hero_button_bg",
+      "label": "Button background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "hero_button_text_color",
+      "label": "Button text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "hero_button_bg_hover",
+      "label": "Button hover background",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "hero_button_text_hover",
+      "label": "Button hover text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "hero_button_width",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Button width",
+      "default": 50
+    },
+    {
+      "type": "checkbox",
+      "id": "hero_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "hero_hide_desktop",
+      "label": "Hide block on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "hero_hide_mobile",
+      "label": "Hide block on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature blocks style"
+    },
+    {
+      "type": "color",
+      "id": "feature_bg_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "feature_heading_size",
+      "min": 16,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "feature_subheading_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Subheading size",
+      "default": 15
+    },
+    {
+      "type": "color",
+      "id": "feature_button_bg",
+      "label": "Button background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "feature_button_text_color",
+      "label": "Button text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "feature_button_bg_hover",
+      "label": "Button hover background",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "feature_button_text_hover",
+      "label": "Button hover text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "feature_button_width",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Button width",
+      "default": 100
+    },
+    {
+      "type": "header",
+      "content": "Feature 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_1_enabled",
+      "label": "Enable feature 1",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "feature_1_heading",
+      "label": "Heading",
+      "default": "Feature One"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_1_subheading",
+      "label": "Subheading",
+      "default": "Description of your first feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_1_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_1_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_1_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_1_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_1_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_1_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_1_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_2_enabled",
+      "label": "Enable feature 2",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "feature_2_heading",
+      "label": "Heading",
+      "default": "Feature Two"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_2_subheading",
+      "label": "Subheading",
+      "default": "Description of your second feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_2_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_2_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_2_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_2_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_2_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_2_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_2_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_3_enabled",
+      "label": "Enable feature 3",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "feature_3_heading",
+      "label": "Heading",
+      "default": "Feature Three"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_3_subheading",
+      "label": "Subheading",
+      "default": "Description of your third feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_3_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_3_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_3_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_3_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_3_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_3_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_3_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_4_enabled",
+      "label": "Enable feature 4",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "feature_4_heading",
+      "label": "Heading",
+      "default": "Feature Four"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_4_subheading",
+      "label": "Subheading",
+      "default": "Description of your fourth feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_4_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_4_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_4_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_4_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_4_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_4_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_4_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_5_enabled",
+      "label": "Enable feature 5",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "feature_5_heading",
+      "label": "Heading",
+      "default": "Feature Five"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_5_subheading",
+      "label": "Subheading",
+      "default": "Description of your fifth feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_5_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_5_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_5_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_5_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_5_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_5_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_5_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_5_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature 6"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_6_enabled",
+      "label": "Enable feature 6",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "feature_6_heading",
+      "label": "Heading",
+      "default": "Feature Six"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_6_subheading",
+      "label": "Subheading",
+      "default": "Description of your sixth feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_6_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_6_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_6_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_6_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_6_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_6_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_6_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_6_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature 7"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_7_enabled",
+      "label": "Enable feature 7",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "feature_7_heading",
+      "label": "Heading",
+      "default": "Feature Seven"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_7_subheading",
+      "label": "Subheading",
+      "default": "Description of your seventh feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_7_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_7_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_7_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_7_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_7_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_7_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_7_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_7_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature 8"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_8_enabled",
+      "label": "Enable feature 8",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "feature_8_heading",
+      "label": "Heading",
+      "default": "Feature Eight"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_8_subheading",
+      "label": "Subheading",
+      "default": "Description of your eighth feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_8_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_8_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_8_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_8_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_8_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_8_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_8_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_8_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature 9"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_9_enabled",
+      "label": "Enable feature 9",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "feature_9_heading",
+      "label": "Heading",
+      "default": "Feature Nine"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_9_subheading",
+      "label": "Subheading",
+      "default": "Description of your ninth feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_9_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_9_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_9_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_9_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_9_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_9_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_9_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_9_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature 10"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_10_enabled",
+      "label": "Enable feature 10",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "feature_10_heading",
+      "label": "Heading",
+      "default": "Feature Ten"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_10_subheading",
+      "label": "Subheading",
+      "default": "Description of your tenth feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_10_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_10_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_10_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_10_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_10_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_10_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_10_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_10_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature 11"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_11_enabled",
+      "label": "Enable feature 11",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "feature_11_heading",
+      "label": "Heading",
+      "default": "Feature Eleven"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_11_subheading",
+      "label": "Subheading",
+      "default": "Description of your eleventh feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_11_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_11_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_11_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_11_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_11_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_11_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_11_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_11_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Feature 12"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_12_enabled",
+      "label": "Enable feature 12",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "feature_12_heading",
+      "label": "Heading",
+      "default": "Feature Twelve"
+    },
+    {
+      "type": "textarea",
+      "id": "feature_12_subheading",
+      "label": "Subheading",
+      "default": "Description of your twelfth feature"
+    },
+    {
+      "type": "url",
+      "id": "feature_12_link",
+      "label": "Block link"
+    },
+    {
+      "type": "text",
+      "id": "feature_12_button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "feature_12_button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_12_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_12_image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_12_hide_subheading_mobile",
+      "label": "Hide subheading on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_12_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_12_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "Feature grid with header"
+    }
+  ]
+}
+{% endschema %}

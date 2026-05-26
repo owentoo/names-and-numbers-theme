@@ -1,0 +1,1114 @@
+{% doc %}
+  @prompt
+    i want a group of scrollable link blocks with ratio options an image bg, two lines of text with weight size and color options and a cta, need padding option on the left of the first block , all padding needs to be in increments of 2, content and overlay needs alignments options top middle and bottom, content alignments should apply to all cards. overlay should have height and opacity issue. i do not need rollover effects, and content should have a max width option , overlay needs to be gradiant , bg of entire section needs color and gradient options, not seeing Section background
+    , get rid of section bg, need top and bottom padding to work, need up to 8 cards, content in cards need alignment options right, left, center. all content optional , add options for pill above text with weight, size, color, radius, and padding options, make cta optional and add an option for it to be a circle with opacity with an arrow inside of it , add option for arrow boldness
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-scrollable-links-{{ ai_gen_id }} {
+    padding-top: {{ block.settings.section_padding_top }}px;
+    padding-bottom: {{ block.settings.section_padding_bottom }}px;
+    {% if block.settings.section_bg_type == 'solid' %}
+      background-color: {{ block.settings.section_bg_color }};
+    {% else %}
+      background: linear-gradient({{ block.settings.gradient_angle }}deg, {{ block.settings.gradient_color_1 }} 0%, {{ block.settings.gradient_color_2 }} 100%);
+    {% endif %}
+  }
+
+  .ai-scrollable-links-container-{{ ai_gen_id }} {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .ai-scrollable-links-container-{{ ai_gen_id }}::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ai-scrollable-links-wrapper-{{ ai_gen_id }} {
+    display: flex;
+    gap: {{ block.settings.card_gap }}px;
+    padding-left: {{ block.settings.first_card_padding }}px;
+    padding-right: 20px;
+  }
+
+  .ai-scrollable-link-card-{{ ai_gen_id }} {
+    position: relative;
+    flex-shrink: 0;
+    width: {{ block.settings.card_width }}px;
+    height: {{ block.settings.card_height }}px;
+    border-radius: {{ block.settings.card_border_radius }}px;
+    overflow: hidden;
+    display: flex;
+    {% if block.settings.content_vertical_align == 'top' %}
+      align-items: flex-start;
+    {% elsif block.settings.content_vertical_align == 'middle' %}
+      align-items: center;
+    {% else %}
+      align-items: flex-end;
+    {% endif %}
+    {% if block.settings.content_horizontal_align == 'left' %}
+      justify-content: flex-start;
+    {% elsif block.settings.content_horizontal_align == 'center' %}
+      justify-content: center;
+    {% else %}
+      justify-content: flex-end;
+    {% endif %}
+  }
+
+  .ai-scrollable-link-card-{{ ai_gen_id }}::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: {{ block.settings.overlay_height }}%;
+    background: linear-gradient(to top, {{ block.settings.overlay_color_1 }} 0%, {{ block.settings.overlay_color_2 }} 100%);
+    opacity: {{ block.settings.overlay_opacity }};
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .ai-scrollable-link-bg-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  .ai-scrollable-link-bg-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 0;
+  }
+
+  .ai-scrollable-link-bg-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  .ai-scrollable-link-content-{{ ai_gen_id }} {
+    position: relative;
+    z-index: 2;
+    padding: 20px;
+    width: 100%;
+    max-width: {{ block.settings.content_max_width }}px;
+    {% if block.settings.content_horizontal_align == 'left' %}
+      text-align: left;
+    {% elsif block.settings.content_horizontal_align == 'center' %}
+      text-align: center;
+    {% else %}
+      text-align: right;
+    {% endif %}
+  }
+
+  .ai-scrollable-link-pill-{{ ai_gen_id }} {
+    display: inline-block;
+    padding: {{ block.settings.pill_padding_vertical }}px {{ block.settings.pill_padding_horizontal }}px;
+    background-color: {{ block.settings.pill_bg_color }};
+    color: {{ block.settings.pill_text_color }};
+    font-size: {{ block.settings.pill_font_size }}px;
+    font-weight: {{ block.settings.pill_font_weight }};
+    border-radius: {{ block.settings.pill_border_radius }}px;
+    margin-bottom: 12px;
+    line-height: 1;
+  }
+
+  .ai-scrollable-link-text1-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text1_size }}px;
+    font-weight: {{ block.settings.text1_weight }};
+    color: {{ block.settings.text1_color }};
+    margin: 0 0 8px 0;
+    line-height: 1.2;
+  }
+
+  .ai-scrollable-link-text2-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text2_size }}px;
+    font-weight: {{ block.settings.text2_weight }};
+    color: {{ block.settings.text2_color }};
+    margin: 0 0 16px 0;
+    line-height: 1.3;
+  }
+
+  .ai-scrollable-link-cta-{{ ai_gen_id }} {
+    display: inline-block;
+    text-decoration: none;
+    transition: background-color 0.3s ease, color 0.3s ease, opacity 0.3s ease;
+  }
+
+  .ai-scrollable-link-cta-{{ ai_gen_id }}.ai-cta-button-{{ ai_gen_id }} {
+    padding: {{ block.settings.cta_padding_vertical }}px {{ block.settings.cta_padding_horizontal }}px;
+    background-color: {{ block.settings.cta_bg_color }};
+    color: {{ block.settings.cta_text_color }};
+    border-radius: {{ block.settings.cta_border_radius }}px;
+    font-size: {{ block.settings.cta_font_size }}px;
+    font-weight: {{ block.settings.cta_font_weight }};
+  }
+
+  .ai-scrollable-link-cta-{{ ai_gen_id }}.ai-cta-circle-{{ ai_gen_id }} {
+    width: {{ block.settings.cta_circle_size }}px;
+    height: {{ block.settings.cta_circle_size }}px;
+    border-radius: 50%;
+    background-color: {{ block.settings.cta_circle_bg_color }};
+    opacity: {{ block.settings.cta_circle_opacity }};
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .ai-scrollable-link-cta-{{ ai_gen_id }}.ai-cta-circle-{{ ai_gen_id }}:hover {
+    opacity: 1;
+  }
+
+  .ai-cta-arrow-{{ ai_gen_id }} {
+    width: calc({{ block.settings.cta_circle_size }}px * 0.4);
+    height: calc({{ block.settings.cta_circle_size }}px * 0.4);
+    stroke: {{ block.settings.cta_circle_arrow_color }};
+    stroke-width: {{ block.settings.cta_arrow_weight }};
+  }
+
+  .ai-scrollable-link-empty-state-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+    pointer-events: none;
+    z-index: 3;
+  }
+{% endstyle %}
+
+<div class="ai-scrollable-links-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-scrollable-links-container-{{ ai_gen_id }}">
+    <div class="ai-scrollable-links-wrapper-{{ ai_gen_id }}">
+      {% for i in (1..8) %}
+        {% liquid
+          assign card_image_key = 'card_' | append: i | append: '_image'
+          assign card_pill_key = 'card_' | append: i | append: '_pill'
+          assign card_text1_key = 'card_' | append: i | append: '_text1'
+          assign card_text2_key = 'card_' | append: i | append: '_text2'
+          assign card_cta_text_key = 'card_' | append: i | append: '_cta_text'
+          assign card_cta_link_key = 'card_' | append: i | append: '_cta_link'
+
+          assign card_image = block.settings[card_image_key]
+          assign card_pill = block.settings[card_pill_key]
+          assign card_text1 = block.settings[card_text1_key]
+          assign card_text2 = block.settings[card_text2_key]
+          assign card_cta_text = block.settings[card_cta_text_key]
+          assign card_cta_link = block.settings[card_cta_link_key]
+        %}
+
+        <div class="ai-scrollable-link-card-{{ ai_gen_id }}">
+          {% if card_image %}
+            <img
+              src="{{ card_image | image_url: width: 800 }}"
+              alt="{{ card_image.alt | escape }}"
+              class="ai-scrollable-link-bg-{{ ai_gen_id }}"
+              loading="lazy"
+              width="{{ card_image.width }}"
+              height="{{ card_image.height }}"
+            >
+          {% else %}
+            <div class="ai-scrollable-link-bg-placeholder-{{ ai_gen_id }}">
+              {{ 'image' | placeholder_svg_tag }}
+            </div>
+            {% if card_pill == blank and card_text1 == blank and card_text2 == blank and card_cta_text == blank %}
+              <div class="ai-scrollable-link-empty-state-{{ ai_gen_id }}">
+                Add image and content for card {{ i }}
+              </div>
+            {% endif %}
+          {% endif %}
+
+          <div class="ai-scrollable-link-content-{{ ai_gen_id }}">
+            {% if card_pill != blank %}
+              <div class="ai-scrollable-link-pill-{{ ai_gen_id }}">{{ card_pill }}</div>
+            {% endif %}
+
+            {% if card_text1 != blank %}
+              <div class="ai-scrollable-link-text1-{{ ai_gen_id }}">{{ card_text1 }}</div>
+            {% endif %}
+
+            {% if card_text2 != blank %}
+              <div class="ai-scrollable-link-text2-{{ ai_gen_id }}">{{ card_text2 }}</div>
+            {% endif %}
+
+            {% if card_cta_text != blank or block.settings.cta_style == 'circle' %}
+              {% if card_cta_link != blank %}
+                {% if block.settings.cta_style == 'button' %}
+                  <a
+                    href="{{ card_cta_link }}"
+                    class="ai-scrollable-link-cta-{{ ai_gen_id }} ai-cta-button-{{ ai_gen_id }}"
+                  >
+                    {{ card_cta_text }}
+                  </a>
+                {% else %}
+                  <a
+                    href="{{ card_cta_link }}"
+                    class="ai-scrollable-link-cta-{{ ai_gen_id }} ai-cta-circle-{{ ai_gen_id }}"
+                    aria-label="View details"
+                  >
+                    <svg
+                      class="ai-cta-arrow-{{ ai_gen_id }}"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                  </a>
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Scrollable link cards",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section background"
+    },
+    {
+      "type": "select",
+      "id": "section_bg_type",
+      "label": "Background type",
+      "options": [
+        {
+          "value": "solid",
+          "label": "Solid color"
+        },
+        {
+          "value": "gradient",
+          "label": "Gradient"
+        }
+      ],
+      "default": "solid"
+    },
+    {
+      "type": "color",
+      "id": "section_bg_color",
+      "label": "Solid color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "gradient_color_1",
+      "label": "Gradient start color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "gradient_color_2",
+      "label": "Gradient end color",
+      "default": "#f4f4f4"
+    },
+    {
+      "type": "range",
+      "id": "gradient_angle",
+      "min": 0,
+      "max": 360,
+      "step": 10,
+      "unit": "deg",
+      "label": "Gradient angle",
+      "default": 180
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "min": 0,
+      "max": 200,
+      "step": 2,
+      "unit": "px",
+      "label": "Top padding",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "min": 0,
+      "max": 200,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom padding",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "Card layout"
+    },
+    {
+      "type": "range",
+      "id": "card_width",
+      "min": 200,
+      "max": 600,
+      "step": 10,
+      "unit": "px",
+      "label": "Card width",
+      "default": 300
+    },
+    {
+      "type": "range",
+      "id": "card_height",
+      "min": 200,
+      "max": 600,
+      "step": 10,
+      "unit": "px",
+      "label": "Card height",
+      "default": 400
+    },
+    {
+      "type": "range",
+      "id": "card_gap",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Gap between cards",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "first_card_padding",
+      "min": 0,
+      "max": 200,
+      "step": 2,
+      "unit": "px",
+      "label": "Left padding on first card",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Content alignment"
+    },
+    {
+      "type": "select",
+      "id": "content_vertical_align",
+      "label": "Vertical alignment",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "middle",
+          "label": "Middle"
+        },
+        {
+          "value": "bottom",
+          "label": "Bottom"
+        }
+      ],
+      "default": "bottom"
+    },
+    {
+      "type": "select",
+      "id": "content_horizontal_align",
+      "label": "Horizontal alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "content_max_width",
+      "min": 100,
+      "max": 600,
+      "step": 10,
+      "unit": "px",
+      "label": "Content max width",
+      "default": 280
+    },
+    {
+      "type": "header",
+      "content": "Overlay"
+    },
+    {
+      "type": "range",
+      "id": "overlay_height",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Overlay height",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "label": "Overlay opacity",
+      "default": 0.7
+    },
+    {
+      "type": "color",
+      "id": "overlay_color_1",
+      "label": "Overlay start color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "overlay_color_2",
+      "label": "Overlay end color",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "header",
+      "content": "Pill badge"
+    },
+    {
+      "type": "range",
+      "id": "pill_font_size",
+      "min": 10,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Font size",
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "pill_font_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "color",
+      "id": "pill_bg_color",
+      "label": "Background color",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "pill_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "pill_border_radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_vertical",
+      "min": 2,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Vertical padding",
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_horizontal",
+      "min": 6,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Horizontal padding",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Text line 1"
+    },
+    {
+      "type": "range",
+      "id": "text1_size",
+      "min": 12,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Font size",
+      "default": 24
+    },
+    {
+      "type": "select",
+      "id": "text1_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "300",
+          "label": "Light"
+        },
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "color",
+      "id": "text1_color",
+      "label": "Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Text line 2"
+    },
+    {
+      "type": "range",
+      "id": "text2_size",
+      "min": 12,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Font size",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "text2_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "300",
+          "label": "Light"
+        },
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "color",
+      "id": "text2_color",
+      "label": "Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "CTA"
+    },
+    {
+      "type": "select",
+      "id": "cta_style",
+      "label": "CTA style",
+      "options": [
+        {
+          "value": "button",
+          "label": "Button"
+        },
+        {
+          "value": "circle",
+          "label": "Circle with arrow"
+        }
+      ],
+      "default": "button"
+    },
+    {
+      "type": "header",
+      "content": "Button style"
+    },
+    {
+      "type": "range",
+      "id": "cta_font_size",
+      "min": 12,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Font size",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "cta_font_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "color",
+      "id": "cta_bg_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "cta_text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_vertical",
+      "min": 4,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Vertical padding",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_horizontal",
+      "min": 10,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Horizontal padding",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "cta_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 6
+    },
+    {
+      "type": "header",
+      "content": "Circle style"
+    },
+    {
+      "type": "range",
+      "id": "cta_circle_size",
+      "min": 30,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "Circle size",
+      "default": 50
+    },
+    {
+      "type": "color",
+      "id": "cta_circle_bg_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "cta_circle_arrow_color",
+      "label": "Arrow color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "cta_arrow_weight",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "label": "Arrow weight",
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "cta_circle_opacity",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "label": "Opacity",
+      "default": 0.8
+    },
+    {
+      "type": "header",
+      "content": "Card 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_1_pill",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_1_text1",
+      "label": "Text line 1",
+      "default": "Explore"
+    },
+    {
+      "type": "text",
+      "id": "card_1_text2",
+      "label": "Text line 2",
+      "default": "New Collection"
+    },
+    {
+      "type": "text",
+      "id": "card_1_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_1_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_2_pill",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_2_text1",
+      "label": "Text line 1",
+      "default": "Discover"
+    },
+    {
+      "type": "text",
+      "id": "card_2_text2",
+      "label": "Text line 2",
+      "default": "Best Sellers"
+    },
+    {
+      "type": "text",
+      "id": "card_2_cta_text",
+      "label": "CTA text",
+      "default": "View All"
+    },
+    {
+      "type": "url",
+      "id": "card_2_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_3_pill",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_3_text1",
+      "label": "Text line 1",
+      "default": "Limited"
+    },
+    {
+      "type": "text",
+      "id": "card_3_text2",
+      "label": "Text line 2",
+      "default": "Special Offers"
+    },
+    {
+      "type": "text",
+      "id": "card_3_cta_text",
+      "label": "CTA text",
+      "default": "Learn More"
+    },
+    {
+      "type": "url",
+      "id": "card_3_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_4_pill",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_4_text1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_4_text2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_4_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_4_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_5_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_5_pill",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_5_text1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_5_text2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_5_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_5_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_6_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_6_pill",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_6_text1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_6_text2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_6_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_6_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 7"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_7_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_7_pill",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_7_text1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_7_text2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_7_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_7_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 8"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_8_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_8_pill",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_8_text1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_8_text2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_8_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_8_cta_link",
+      "label": "CTA link"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Scrollable link cards"
+    }
+  ],
+  "tag": null
+}
+{% endschema %}

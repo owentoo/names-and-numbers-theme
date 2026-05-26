@@ -1,0 +1,1003 @@
+{% doc %}
+  @prompt
+    i need a section with up to eight blocks each block is made of an image with a text box over laid with two lines of text in it. on desktop you should see 3.5 block and 1.5 on mobile with schroll over lay , section needs max width and hoizontal padding. overlay needs gradiant , all blocks need padding inside that effect the text, and all text needs desktop and mobile size options , need weight option for both pieces of text. , scroll bar should display below all elements, give me an option for aspect ratio to come from images , i need an option for gradient height 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-scrolling-gallery-{{ ai_gen_id }} {
+    width: 100%;
+    display: block;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .ai-scrolling-gallery__inner-{{ ai_gen_id }} {
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    padding: 0 {{ block.settings.horizontal_padding }}px;
+  }
+
+  .ai-scrolling-gallery__wrapper-{{ ai_gen_id }} {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: {{ block.settings.scrollbar_color }} transparent;
+    margin: 0 -{{ block.settings.horizontal_padding }}px;
+    padding: 0 {{ block.settings.horizontal_padding }}px {{ block.settings.scrollbar_spacing }}px;
+  }
+
+  .ai-scrolling-gallery__wrapper-{{ ai_gen_id }}::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .ai-scrolling-gallery__wrapper-{{ ai_gen_id }}::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .ai-scrolling-gallery__wrapper-{{ ai_gen_id }}::-webkit-scrollbar-thumb {
+    background-color: {{ block.settings.scrollbar_color }};
+    border-radius: 4px;
+  }
+
+  .ai-scrolling-gallery__container-{{ ai_gen_id }} {
+    display: flex;
+    gap: {{ block.settings.gap }}px;
+    padding: {{ block.settings.vertical_padding }}px 0 0;
+  }
+
+  .ai-scrolling-gallery__item-{{ ai_gen_id }} {
+    position: relative;
+    flex-shrink: 0;
+    width: calc((100% - (2.5 * {{ block.settings.gap }}px)) / 3.5);
+    border-radius: {{ block.settings.border_radius }}px;
+    overflow: hidden;
+  }
+
+  .ai-scrolling-gallery__image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    {% if block.settings.aspect_ratio_type == 'fixed' %}
+      padding-bottom: {{ block.settings.aspect_ratio }}%;
+    {% endif %}
+    background-color: {{ block.settings.placeholder_bg }};
+  }
+
+  {% if block.settings.aspect_ratio_type == 'natural' %}
+    .ai-scrolling-gallery__image-wrapper-{{ ai_gen_id }} {
+      height: auto;
+    }
+  {% endif %}
+
+  .ai-scrolling-gallery__image-{{ ai_gen_id }} {
+    {% if block.settings.aspect_ratio_type == 'fixed' %}
+      position: absolute;
+      top: 0;
+      left: 0;
+    {% endif %}
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .ai-scrolling-gallery__placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-scrolling-gallery__placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  .ai-scrolling-gallery__text-overlay-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: {{ block.settings.gradient_height }}%;
+    padding: {{ block.settings.overlay_padding_desktop }}px;
+    background: linear-gradient(to top, {{ block.settings.overlay_gradient_start }}, {{ block.settings.overlay_gradient_end }});
+    backdrop-filter: blur({{ block.settings.overlay_blur }}px);
+    -webkit-backdrop-filter: blur({{ block.settings.overlay_blur }}px);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .ai-scrolling-gallery__text-line-1-{{ ai_gen_id }} {
+    font-family: {{ block.settings.text_font.family }}, {{ block.settings.text_font.fallback_families }};
+    font-weight: {{ block.settings.text_weight_line_1 }};
+    font-size: {{ block.settings.text_size_line_1_desktop }}px;
+    color: {{ block.settings.text_color }};
+    margin: 0 0 {{ block.settings.line_spacing }}px 0;
+    line-height: 1.2;
+  }
+
+  .ai-scrolling-gallery__text-line-2-{{ ai_gen_id }} {
+    font-family: {{ block.settings.text_font.family }}, {{ block.settings.text_font.fallback_families }};
+    font-weight: {{ block.settings.text_weight_line_2 }};
+    font-size: {{ block.settings.text_size_line_2_desktop }}px;
+    color: {{ block.settings.text_color }};
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-scrolling-gallery__inner-{{ ai_gen_id }} {
+      padding: 0 {{ block.settings.horizontal_padding | times: 0.5 }}px;
+    }
+
+    .ai-scrolling-gallery__wrapper-{{ ai_gen_id }} {
+      margin: 0 -{{ block.settings.horizontal_padding | times: 0.5 }}px;
+      padding: 0 {{ block.settings.horizontal_padding | times: 0.5 }}px {{ block.settings.scrollbar_spacing }}px;
+    }
+
+    .ai-scrolling-gallery__item-{{ ai_gen_id }} {
+      width: calc((100% - (0.5 * {{ block.settings.gap }}px)) / 1.5);
+    }
+
+    .ai-scrolling-gallery__text-overlay-{{ ai_gen_id }} {
+      padding: {{ block.settings.overlay_padding_mobile }}px;
+    }
+
+    .ai-scrolling-gallery__text-line-1-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_line_1_mobile }}px;
+    }
+
+    .ai-scrolling-gallery__text-line-2-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_line_2_mobile }}px;
+    }
+  }
+{% endstyle %}
+
+<scrolling-gallery-{{ ai_gen_id }} class="ai-scrolling-gallery-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-scrolling-gallery__inner-{{ ai_gen_id }}">
+    <div class="ai-scrolling-gallery__wrapper-{{ ai_gen_id }}">
+      <div class="ai-scrolling-gallery__container-{{ ai_gen_id }}">
+        {% if block.settings.item_1_enabled %}
+          <div class="ai-scrolling-gallery__item-{{ ai_gen_id }}">
+            <div class="ai-scrolling-gallery__image-wrapper-{{ ai_gen_id }}">
+              {% if block.settings.item_1_image %}
+                <img
+                  src="{{ block.settings.item_1_image | image_url: width: 800 }}"
+                  alt="{{ block.settings.item_1_image.alt | escape }}"
+                  loading="lazy"
+                  width="800"
+                  height="{{ 800 | divided_by: block.settings.item_1_image.aspect_ratio }}"
+                  class="ai-scrolling-gallery__image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <div class="ai-scrolling-gallery__placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if block.settings.item_1_text_line_1 != blank or block.settings.item_1_text_line_2 != blank %}
+                <div class="ai-scrolling-gallery__text-overlay-{{ ai_gen_id }}">
+                  {% if block.settings.item_1_text_line_1 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-1-{{ ai_gen_id }}">
+                      {{ block.settings.item_1_text_line_1 }}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.item_1_text_line_2 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-2-{{ ai_gen_id }}">
+                      {{ block.settings.item_1_text_line_2 }}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if block.settings.item_2_enabled %}
+          <div class="ai-scrolling-gallery__item-{{ ai_gen_id }}">
+            <div class="ai-scrolling-gallery__image-wrapper-{{ ai_gen_id }}">
+              {% if block.settings.item_2_image %}
+                <img
+                  src="{{ block.settings.item_2_image | image_url: width: 800 }}"
+                  alt="{{ block.settings.item_2_image.alt | escape }}"
+                  loading="lazy"
+                  width="800"
+                  height="{{ 800 | divided_by: block.settings.item_2_image.aspect_ratio }}"
+                  class="ai-scrolling-gallery__image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <div class="ai-scrolling-gallery__placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if block.settings.item_2_text_line_1 != blank or block.settings.item_2_text_line_2 != blank %}
+                <div class="ai-scrolling-gallery__text-overlay-{{ ai_gen_id }}">
+                  {% if block.settings.item_2_text_line_1 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-1-{{ ai_gen_id }}">
+                      {{ block.settings.item_2_text_line_1 }}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.item_2_text_line_2 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-2-{{ ai_gen_id }}">
+                      {{ block.settings.item_2_text_line_2 }}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if block.settings.item_3_enabled %}
+          <div class="ai-scrolling-gallery__item-{{ ai_gen_id }}">
+            <div class="ai-scrolling-gallery__image-wrapper-{{ ai_gen_id }}">
+              {% if block.settings.item_3_image %}
+                <img
+                  src="{{ block.settings.item_3_image | image_url: width: 800 }}"
+                  alt="{{ block.settings.item_3_image.alt | escape }}"
+                  loading="lazy"
+                  width="800"
+                  height="{{ 800 | divided_by: block.settings.item_3_image.aspect_ratio }}"
+                  class="ai-scrolling-gallery__image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <div class="ai-scrolling-gallery__placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if block.settings.item_3_text_line_1 != blank or block.settings.item_3_text_line_2 != blank %}
+                <div class="ai-scrolling-gallery__text-overlay-{{ ai_gen_id }}">
+                  {% if block.settings.item_3_text_line_1 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-1-{{ ai_gen_id }}">
+                      {{ block.settings.item_3_text_line_1 }}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.item_3_text_line_2 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-2-{{ ai_gen_id }}">
+                      {{ block.settings.item_3_text_line_2 }}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if block.settings.item_4_enabled %}
+          <div class="ai-scrolling-gallery__item-{{ ai_gen_id }}">
+            <div class="ai-scrolling-gallery__image-wrapper-{{ ai_gen_id }}">
+              {% if block.settings.item_4_image %}
+                <img
+                  src="{{ block.settings.item_4_image | image_url: width: 800 }}"
+                  alt="{{ block.settings.item_4_image.alt | escape }}"
+                  loading="lazy"
+                  width="800"
+                  height="{{ 800 | divided_by: block.settings.item_4_image.aspect_ratio }}"
+                  class="ai-scrolling-gallery__image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <div class="ai-scrolling-gallery__placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if block.settings.item_4_text_line_1 != blank or block.settings.item_4_text_line_2 != blank %}
+                <div class="ai-scrolling-gallery__text-overlay-{{ ai_gen_id }}">
+                  {% if block.settings.item_4_text_line_1 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-1-{{ ai_gen_id }}">
+                      {{ block.settings.item_4_text_line_1 }}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.item_4_text_line_2 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-2-{{ ai_gen_id }}">
+                      {{ block.settings.item_4_text_line_2 }}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if block.settings.item_5_enabled %}
+          <div class="ai-scrolling-gallery__item-{{ ai_gen_id }}">
+            <div class="ai-scrolling-gallery__image-wrapper-{{ ai_gen_id }}">
+              {% if block.settings.item_5_image %}
+                <img
+                  src="{{ block.settings.item_5_image | image_url: width: 800 }}"
+                  alt="{{ block.settings.item_5_image.alt | escape }}"
+                  loading="lazy"
+                  width="800"
+                  height="{{ 800 | divided_by: block.settings.item_5_image.aspect_ratio }}"
+                  class="ai-scrolling-gallery__image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <div class="ai-scrolling-gallery__placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if block.settings.item_5_text_line_1 != blank or block.settings.item_5_text_line_2 != blank %}
+                <div class="ai-scrolling-gallery__text-overlay-{{ ai_gen_id }}">
+                  {% if block.settings.item_5_text_line_1 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-1-{{ ai_gen_id }}">
+                      {{ block.settings.item_5_text_line_1 }}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.item_5_text_line_2 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-2-{{ ai_gen_id }}">
+                      {{ block.settings.item_5_text_line_2 }}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if block.settings.item_6_enabled %}
+          <div class="ai-scrolling-gallery__item-{{ ai_gen_id }}">
+            <div class="ai-scrolling-gallery__image-wrapper-{{ ai_gen_id }}">
+              {% if block.settings.item_6_image %}
+                <img
+                  src="{{ block.settings.item_6_image | image_url: width: 800 }}"
+                  alt="{{ block.settings.item_6_image.alt | escape }}"
+                  loading="lazy"
+                  width="800"
+                  height="{{ 800 | divided_by: block.settings.item_6_image.aspect_ratio }}"
+                  class="ai-scrolling-gallery__image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <div class="ai-scrolling-gallery__placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if block.settings.item_6_text_line_1 != blank or block.settings.item_6_text_line_2 != blank %}
+                <div class="ai-scrolling-gallery__text-overlay-{{ ai_gen_id }}">
+                  {% if block.settings.item_6_text_line_1 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-1-{{ ai_gen_id }}">
+                      {{ block.settings.item_6_text_line_1 }}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.item_6_text_line_2 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-2-{{ ai_gen_id }}">
+                      {{ block.settings.item_6_text_line_2 }}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if block.settings.item_7_enabled %}
+          <div class="ai-scrolling-gallery__item-{{ ai_gen_id }}">
+            <div class="ai-scrolling-gallery__image-wrapper-{{ ai_gen_id }}">
+              {% if block.settings.item_7_image %}
+                <img
+                  src="{{ block.settings.item_7_image | image_url: width: 800 }}"
+                  alt="{{ block.settings.item_7_image.alt | escape }}"
+                  loading="lazy"
+                  width="800"
+                  height="{{ 800 | divided_by: block.settings.item_7_image.aspect_ratio }}"
+                  class="ai-scrolling-gallery__image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <div class="ai-scrolling-gallery__placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if block.settings.item_7_text_line_1 != blank or block.settings.item_7_text_line_2 != blank %}
+                <div class="ai-scrolling-gallery__text-overlay-{{ ai_gen_id }}">
+                  {% if block.settings.item_7_text_line_1 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-1-{{ ai_gen_id }}">
+                      {{ block.settings.item_7_text_line_1 }}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.item_7_text_line_2 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-2-{{ ai_gen_id }}">
+                      {{ block.settings.item_7_text_line_2 }}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if block.settings.item_8_enabled %}
+          <div class="ai-scrolling-gallery__item-{{ ai_gen_id }}">
+            <div class="ai-scrolling-gallery__image-wrapper-{{ ai_gen_id }}">
+              {% if block.settings.item_8_image %}
+                <img
+                  src="{{ block.settings.item_8_image | image_url: width: 800 }}"
+                  alt="{{ block.settings.item_8_image.alt | escape }}"
+                  loading="lazy"
+                  width="800"
+                  height="{{ 800 | divided_by: block.settings.item_8_image.aspect_ratio }}"
+                  class="ai-scrolling-gallery__image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <div class="ai-scrolling-gallery__placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if block.settings.item_8_text_line_1 != blank or block.settings.item_8_text_line_2 != blank %}
+                <div class="ai-scrolling-gallery__text-overlay-{{ ai_gen_id }}">
+                  {% if block.settings.item_8_text_line_1 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-1-{{ ai_gen_id }}">
+                      {{ block.settings.item_8_text_line_1 }}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.item_8_text_line_2 != blank %}
+                    <div class="ai-scrolling-gallery__text-line-2-{{ ai_gen_id }}">
+                      {{ block.settings.item_8_text_line_2 }}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</scrolling-gallery-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class ScrollingGallery{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.wrapper = this.querySelector('.ai-scrolling-gallery__wrapper-{{ ai_gen_id }}');
+        this.setupScrollBehavior();
+      }
+
+      setupScrollBehavior() {
+        if (!this.wrapper) return;
+
+        this.wrapper.style.scrollBehavior = 'smooth';
+      }
+    }
+
+    customElements.define('scrolling-gallery-{{ ai_gen_id }}', ScrollingGallery{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Scrolling image gallery",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Container"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum width",
+      "min": 1000,
+      "max": 2000,
+      "step": 100,
+      "unit": "px",
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding",
+      "label": "Horizontal padding",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "aspect_ratio_type",
+      "label": "Aspect ratio",
+      "options": [
+        {
+          "value": "natural",
+          "label": "Natural (from images)"
+        },
+        {
+          "value": "fixed",
+          "label": "Fixed"
+        }
+      ],
+      "default": "natural"
+    },
+    {
+      "type": "range",
+      "id": "aspect_ratio",
+      "label": "Fixed aspect ratio",
+      "min": 50,
+      "max": 150,
+      "step": 5,
+      "unit": "%",
+      "default": 100,
+      "info": "Only applies when Fixed is selected. 100% = square, 75% = landscape, 125% = portrait"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Gap between items",
+      "min": 8,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "vertical_padding",
+      "label": "Vertical padding",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Text overlay"
+    },
+    {
+      "type": "font_picker",
+      "id": "text_font",
+      "label": "Font",
+      "default": "inter_n6"
+    },
+    {
+      "type": "range",
+      "id": "text_size_line_1_desktop",
+      "label": "Line 1 size (desktop)",
+      "min": 12,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "text_size_line_1_mobile",
+      "label": "Line 1 size (mobile)",
+      "min": 10,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "text_weight_line_1",
+      "label": "Line 1 weight",
+      "options": [
+        {
+          "value": "300",
+          "label": "Light"
+        },
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        },
+        {
+          "value": "800",
+          "label": "Extra-bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "range",
+      "id": "text_size_line_2_desktop",
+      "label": "Line 2 size (desktop)",
+      "min": 10,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "text_size_line_2_mobile",
+      "label": "Line 2 size (mobile)",
+      "min": 8,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "text_weight_line_2",
+      "label": "Line 2 weight",
+      "options": [
+        {
+          "value": "300",
+          "label": "Light"
+        },
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        },
+        {
+          "value": "800",
+          "label": "Extra-bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "range",
+      "id": "line_spacing",
+      "label": "Space between lines",
+      "min": 0,
+      "max": 16,
+      "step": 2,
+      "unit": "px",
+      "default": 4
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "overlay_padding_desktop",
+      "label": "Overlay padding (desktop)",
+      "min": 8,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "overlay_padding_mobile",
+      "label": "Overlay padding (mobile)",
+      "min": 4,
+      "max": 32,
+      "step": 4,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "gradient_height",
+      "label": "Gradient height",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 50
+    },
+    {
+      "type": "color",
+      "id": "overlay_gradient_start",
+      "label": "Gradient start color",
+      "default": "rgba(0, 0, 0, 0.7)"
+    },
+    {
+      "type": "color",
+      "id": "overlay_gradient_end",
+      "label": "Gradient end color",
+      "default": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "type": "range",
+      "id": "overlay_blur",
+      "label": "Overlay blur",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 4
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "color",
+      "id": "placeholder_bg",
+      "label": "Placeholder background",
+      "default": "#f2f2f2"
+    },
+    {
+      "type": "color",
+      "id": "scrollbar_color",
+      "label": "Scrollbar color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "scrollbar_spacing",
+      "label": "Scrollbar spacing",
+      "min": 8,
+      "max": 32,
+      "step": 4,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Item 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "item_1_enabled",
+      "label": "Enable item 1",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "item_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_1_text_line_1",
+      "label": "Text line 1",
+      "default": "First line"
+    },
+    {
+      "type": "text",
+      "id": "item_1_text_line_2",
+      "label": "Text line 2",
+      "default": "Second line"
+    },
+    {
+      "type": "header",
+      "content": "Item 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "item_2_enabled",
+      "label": "Enable item 2",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "item_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_2_text_line_1",
+      "label": "Text line 1",
+      "default": "First line"
+    },
+    {
+      "type": "text",
+      "id": "item_2_text_line_2",
+      "label": "Text line 2",
+      "default": "Second line"
+    },
+    {
+      "type": "header",
+      "content": "Item 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "item_3_enabled",
+      "label": "Enable item 3",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "item_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_3_text_line_1",
+      "label": "Text line 1",
+      "default": "First line"
+    },
+    {
+      "type": "text",
+      "id": "item_3_text_line_2",
+      "label": "Text line 2",
+      "default": "Second line"
+    },
+    {
+      "type": "header",
+      "content": "Item 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "item_4_enabled",
+      "label": "Enable item 4",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "item_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_4_text_line_1",
+      "label": "Text line 1",
+      "default": "First line"
+    },
+    {
+      "type": "text",
+      "id": "item_4_text_line_2",
+      "label": "Text line 2",
+      "default": "Second line"
+    },
+    {
+      "type": "header",
+      "content": "Item 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "item_5_enabled",
+      "label": "Enable item 5",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "item_5_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_5_text_line_1",
+      "label": "Text line 1",
+      "default": "First line"
+    },
+    {
+      "type": "text",
+      "id": "item_5_text_line_2",
+      "label": "Text line 2",
+      "default": "Second line"
+    },
+    {
+      "type": "header",
+      "content": "Item 6"
+    },
+    {
+      "type": "checkbox",
+      "id": "item_6_enabled",
+      "label": "Enable item 6",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "item_6_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_6_text_line_1",
+      "label": "Text line 1",
+      "default": "First line"
+    },
+    {
+      "type": "text",
+      "id": "item_6_text_line_2",
+      "label": "Text line 2",
+      "default": "Second line"
+    },
+    {
+      "type": "header",
+      "content": "Item 7"
+    },
+    {
+      "type": "checkbox",
+      "id": "item_7_enabled",
+      "label": "Enable item 7",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "item_7_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_7_text_line_1",
+      "label": "Text line 1",
+      "default": "First line"
+    },
+    {
+      "type": "text",
+      "id": "item_7_text_line_2",
+      "label": "Text line 2",
+      "default": "Second line"
+    },
+    {
+      "type": "header",
+      "content": "Item 8"
+    },
+    {
+      "type": "checkbox",
+      "id": "item_8_enabled",
+      "label": "Enable item 8",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "item_8_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item_8_text_line_1",
+      "label": "Text line 1",
+      "default": "First line"
+    },
+    {
+      "type": "text",
+      "id": "item_8_text_line_2",
+      "label": "Text line 2",
+      "default": "Second line"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Scrolling image gallery"
+    }
+  ]
+}
+{% endschema %}

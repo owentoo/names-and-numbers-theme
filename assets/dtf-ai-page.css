@@ -1,0 +1,161 @@
+/* dtf-ai-page.css
+   Page-only styles for /pages/ai-image-creator.
+   Sits on top of dtf-upload-tabs.css (which provides the inline
+   .dtfut__ai-host / .dtfut__ai-hero / .dtfut__ai-history rules) and
+   dtf-ai-history.js (which injects the selection-bar styles).
+
+   Goals:
+   - Hide the legacy pink "Create with AI" box. The dialog markup
+     stays in the DOM so the form mechanics keep working, but the
+     page has its own hero so the legacy box would be redundant.
+   - Give the page a centered, breathable layout that works on both
+     desktop and mobile out of the box.
+   - Suppress the upload-tabs sticky elements that have no meaning
+     in a standalone-page context. */
+
+.dtf-ai-page {
+  width: 100%;
+  background: #fff;
+  padding: 32px 16px 80px;
+  box-sizing: border-box;
+}
+.dtf-ai-page__inner {
+  max-width: 980px;
+  margin: 0 auto;
+}
+.dtf-ai-page__eyebrow {
+  margin: 0 0 8px;
+  font: 700 12px/1 'DM Sans', system-ui, -apple-system, sans-serif;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #019aff;
+  text-align: center;
+}
+.dtf-ai-page__heading {
+  margin: 0 0 12px;
+  font: 800 38px/1.15 'DM Sans', system-ui, -apple-system, sans-serif;
+  color: #0f172a;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+.dtf-ai-page__sub {
+  margin: 0 auto 18px;
+  max-width: 640px;
+  font: 400 15px/1.5 'DM Sans', system-ui, -apple-system, sans-serif;
+  color: #64748b;
+  text-align: center;
+}
+
+/* Hide every visible bit of the legacy aiImageGenerator block while
+   keeping the dialog markup wired up for the programmatic submit
+   flow. The dialog itself only shows when something calls .showModal()
+   on it, which we never do on this page — but we belt-and-suspender
+   that with display:none on the dialog as well, so an accidental
+   open won't render the old UI on top of the new page. */
+.dtf-ai-page__legacy { display: contents; }
+.dtf-ai-page__legacy .generative-ai-area { display: none !important; }
+.dtf-ai-page__legacy #generative-ai-dialog {
+  /* Native <dialog> only renders when [open] is set. Belt-and-suspender:
+     keep it absolutely-positioned offscreen if some script calls
+     .showModal() so the legacy UI never visually replaces the page. */
+  position: fixed;
+  left: -10000px;
+  top: -10000px;
+}
+
+/* The host wrapper inherits dtfut__ai-host styles from
+   dtf-upload-tabs.css; we only need to undo a couple of bits that
+   assume a tab-panel context. */
+.dtf-ai-page__host {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+/* Hero gets a soft card so the page has visual weight without
+   needing a tabs frame around it. The card is bounded to the viewport
+   so a long chat-results stream stays inside its own scroll area
+   instead of pushing the input row off the page. */
+.dtf-ai-page__host .dtfut__ai-hero {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 18px 36px 30px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.04);
+  /* Cap height aggressively so the "Your recent AI creations" row
+     below the card is always in view without scrolling. The reserve
+     accounts for: page eyebrow + heading + sub above (~170px), the
+     32px gap to the history block, the history heading (~32px), and
+     a comfortable peek of the first row of history thumbnails (~220px
+     including page bottom padding). Min-height keeps the card usable
+     on short laptops. */
+  max-height: calc(100vh - 500px);
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+/* Inside the bounded hero, the scroll container takes the remaining
+   space and scrolls; the input row stays anchored at the bottom. */
+.dtf-ai-page__host .dtfut__ai-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.dtf-ai-page__host .dtfut__ai-hero-input-row {
+  flex: 0 0 auto;
+}
+.dtf-ai-page__host .dtfut__ai-hero-title {
+  text-align: center;
+  font-size: 22px;
+  /* Hide on the standalone page — the page already has its own
+     "Create your design with AI" h1 above the card, so the in-card
+     title is redundant here. The modal still shows it. */
+  display: none;
+}
+.dtf-ai-page__host .dtfut__ai-hero-sub {
+  text-align: center;
+}
+.dtf-ai-page__host .dtfut__ai-hero-prompts {
+  /* Match modal at-load spacing — 75px more breathing room before the
+     describe-your-design input so the page doesn't feel cramped. */
+  margin-bottom: 105px;
+}
+.dtf-ai-page__host .dtfut__ai-hero:has(.dtfut__ai-chat:not(:empty)) .dtfut__ai-hero-prompts {
+  margin-bottom: 30px;
+}
+.dtf-ai-page__host .dtfut__ai-hero-input-row {
+  /* Edge-to-edge — kill the 720px cap inherited from upload-tabs so the
+     input fills the hero card on wide screens. */
+  max-width: none;
+}
+
+/* History block sits below the hero card with its own rhythm. */
+.dtf-ai-page__host .dtfut__ai-history {
+  margin-top: 32px;
+}
+
+/* Mobile tweaks. The tabs CSS already does most of the heavy lifting,
+   but the page-level chrome (heading, eyebrow, hero card padding)
+   needs to scale down. */
+@media (max-width: 749px) {
+  .dtf-ai-page { padding: 20px 12px 64px; }
+  .dtf-ai-page__heading { font-size: 26px; }
+  .dtf-ai-page__sub { font-size: 14px; margin-bottom: 12px; }
+  .dtf-ai-page__host .dtfut__ai-hero {
+    padding: 12px 18px 22px;
+    border-radius: 14px;
+    /* Mobile: smaller page chrome + smaller history thumbnails, so we
+       can reserve a little less and still keep history in view. */
+    max-height: calc(100vh - 420px);
+    min-height: 320px;
+  }
+  .dtf-ai-page__host .dtfut__ai-hero-prompts {
+    margin-bottom: 60px;
+  }
+}

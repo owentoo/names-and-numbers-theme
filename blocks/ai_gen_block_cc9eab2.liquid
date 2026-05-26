@@ -1,0 +1,891 @@
+{% doc %}
+  @prompt
+    make me a two column layout with a max width a margin and padding on the left i need a before and after image slider with smooth animation and on the left a text container the a heading and para text with weith and size options for padding and mobile, the images in the before and after should remain staic and only reveal on slider,, add image ratio options for the before and after images, and alignment options for the text container with a max width, add radius option to image, more image ratio options, and mobile and desktop text weight and size options. And the options for a bg color or gradiant that is not effected by section max width, slider not working, inside the slider handle don't use arrows just small triangle pointing left and right and aligned center both vertical and horizontal, only a right and left facing triangle in the handle, add a padding option between the image and text container
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-before-after-wrapper-{{ ai_gen_id }} {
+    width: 100%;
+    background-color: {{ block.settings.background_color }};
+    {% if block.settings.background_gradient != blank %}
+      background-image: {{ block.settings.background_gradient }};
+    {% endif %}
+    padding: {{ block.settings.padding_top }}px 0 {{ block.settings.padding_bottom }}px 0;
+  }
+
+  .ai-before-after-{{ ai_gen_id }} {
+    display: flex;
+    flex-wrap: wrap;
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    padding: 0 {{ block.settings.padding_right }}px 0 {{ block.settings.padding_left }}px;
+    {% if block.settings.layout == 'text_first' %}
+      flex-direction: row;
+    {% else %}
+      flex-direction: row-reverse;
+    {% endif %}
+    gap: {{ block.settings.column_gap }}px;
+  }
+
+  .ai-before-after-text-{{ ai_gen_id }} {
+    width: calc(50% - {{ block.settings.column_gap | divided_by: 2 }}px);
+    padding: 0 20px;
+    max-width: {{ block.settings.text_max_width }}px;
+    margin: 0 auto;
+    align-self: {% if block.settings.text_alignment == 'top' %}flex-start{% elsif block.settings.text_alignment == 'bottom' %}flex-end{% else %}center{% endif %};
+    text-align: {{ block.settings.text_horizontal_alignment }};
+  }
+
+  .ai-before-after-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size }}px;
+    font-weight: {{ block.settings.heading_weight }};
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: {{ block.settings.heading_color }};
+  }
+
+  .ai-before-after-paragraph-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text_size }}px;
+    font-weight: {{ block.settings.text_weight }};
+    line-height: 1.5;
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-before-after-slider-container-{{ ai_gen_id }} {
+    width: calc(50% - {{ block.settings.column_gap | divided_by: 2 }}px);
+    position: relative;
+    overflow: hidden;
+    border-radius: {{ block.settings.image_radius }}px;
+    {% case block.settings.image_ratio %}
+      {% when '1:1' %}
+        aspect-ratio: 1/1;
+      {% when '4:3' %}
+        aspect-ratio: 4/3;
+      {% when '3:2' %}
+        aspect-ratio: 3/2;
+      {% when '16:9' %}
+        aspect-ratio: 16/9;
+      {% when '2:3' %}
+        aspect-ratio: 2/3;
+      {% when '9:16' %}
+        aspect-ratio: 9/16;
+      {% when '5:4' %}
+        aspect-ratio: 5/4;
+      {% when '4:5' %}
+        aspect-ratio: 4/5;
+      {% when '21:9' %}
+        aspect-ratio: 21/9;
+      {% when 'custom' %}
+        aspect-ratio: {{ block.settings.custom_ratio_width }}/{{ block.settings.custom_ratio_height }};
+    {% endcase %}
+  }
+
+  .ai-before-after-slider-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    user-select: none;
+    border-radius: {{ block.settings.image_radius }}px;
+    cursor: ew-resize;
+  }
+
+  .ai-before-image-{{ ai_gen_id }}, .ai-after-image-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: {% if block.settings.image_fit == 'cover' %}cover{% else %}contain{% endif %};
+    pointer-events: none;
+    border-radius: {{ block.settings.image_radius }}px;
+  }
+
+  .ai-after-image-{{ ai_gen_id }} {
+    clip-path: inset(0 calc(100% - var(--slider-position, 50%)) 0 0);
+    transition: clip-path 0.1s ease;
+  }
+
+  .ai-before-after-slider-handle-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: var(--slider-position, 50%);
+    width: 4px;
+    height: 100%;
+    background-color: {{ block.settings.slider_color }};
+    transform: translateX(-50%);
+    cursor: ew-resize;
+    z-index: 3;
+    transition: left 0.1s ease;
+  }
+
+  .ai-before-after-slider-handle-{{ ai_gen_id }}::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    background-color: {{ block.settings.slider_color }};
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .ai-handle-triangles-{{ ai_gen_id }} {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 10px;
+    z-index: 4;
+  }
+
+  .ai-handle-triangle-left-{{ ai_gen_id }} {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 5px 5px 0;
+    border-color: transparent white transparent transparent;
+    margin-right: 4px;
+  }
+
+  .ai-handle-triangle-right-{{ ai_gen_id }} {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 0 5px 5px;
+    border-color: transparent transparent transparent white;
+    margin-left: 4px;
+  }
+
+  .ai-before-label-{{ ai_gen_id }}, .ai-after-label-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 20px;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 2;
+  }
+
+  .ai-before-label-{{ ai_gen_id }} {
+    left: 20px;
+  }
+
+  .ai-after-label-{{ ai_gen_id }} {
+    right: 20px;
+  }
+
+  .ai-placeholder-container-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: {{ block.settings.image_radius }}px;
+  }
+
+  .ai-placeholder-container-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+    opacity: 0.5;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-before-after-{{ ai_gen_id }} {
+      flex-direction: column;
+      gap: {{ block.settings.column_gap_mobile }}px;
+    }
+
+    .ai-before-after-text-{{ ai_gen_id }},
+    .ai-before-after-slider-container-{{ ai_gen_id }} {
+      width: 100%;
+      padding-right: 0;
+    }
+
+    .ai-before-after-text-{{ ai_gen_id }} {
+      padding: 0;
+    }
+
+    .ai-before-after-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size_mobile }}px;
+      font-weight: {{ block.settings.heading_weight_mobile }};
+    }
+
+    .ai-before-after-paragraph-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_mobile }}px;
+      font-weight: {{ block.settings.text_weight_mobile }};
+    }
+
+    .ai-before-after-slider-container-{{ ai_gen_id }} {
+      {% case block.settings.image_ratio_mobile %}
+        {% when '1:1' %}
+          aspect-ratio: 1/1;
+        {% when '4:3' %}
+          aspect-ratio: 4/3;
+        {% when '3:2' %}
+          aspect-ratio: 3/2;
+        {% when '16:9' %}
+          aspect-ratio: 16/9;
+        {% when '2:3' %}
+          aspect-ratio: 2/3;
+        {% when '9:16' %}
+          aspect-ratio: 9/16;
+        {% when '5:4' %}
+          aspect-ratio: 5/4;
+        {% when '4:5' %}
+          aspect-ratio: 4/5;
+        {% when '21:9' %}
+          aspect-ratio: 21/9;
+        {% when 'custom' %}
+          aspect-ratio: {{ block.settings.custom_ratio_width_mobile }}/{{ block.settings.custom_ratio_height_mobile }};
+      {% endcase %}
+    }
+
+    .ai-before-after-slider-handle-{{ ai_gen_id }}::before {
+      width: 35px;
+      height: 35px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-before-after-wrapper-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <before-after-slider-{{ ai_gen_id }} class="ai-before-after-{{ ai_gen_id }}">
+    <div class="ai-before-after-text-{{ ai_gen_id }}">
+      {% if block.settings.heading != blank %}
+        <h2 class="ai-before-after-heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h2>
+      {% endif %}
+      {% if block.settings.paragraph != blank %}
+        <div class="ai-before-after-paragraph-{{ ai_gen_id }}">{{ block.settings.paragraph }}</div>
+      {% endif %}
+    </div>
+
+    <div class="ai-before-after-slider-container-{{ ai_gen_id }}">
+      <div class="ai-before-after-slider-{{ ai_gen_id }}" data-slider-position="50">
+        {% if block.settings.before_image %}
+          <img
+            src="{{ block.settings.before_image | image_url: width: 1000 }}"
+            alt="{{ block.settings.before_image.alt | escape }}"
+            class="ai-before-image-{{ ai_gen_id }}"
+            loading="lazy"
+            width="{{ block.settings.before_image.width }}"
+            height="{{ block.settings.before_image.height }}"
+          >
+        {% else %}
+          <div class="ai-placeholder-container-{{ ai_gen_id }}">
+            {{ 'image' | placeholder_svg_tag }}
+          </div>
+        {% endif %}
+
+        {% if block.settings.after_image %}
+          <img
+            src="{{ block.settings.after_image | image_url: width: 1000 }}"
+            alt="{{ block.settings.after_image.alt | escape }}"
+            class="ai-after-image-{{ ai_gen_id }}"
+            loading="lazy"
+            width="{{ block.settings.after_image.width }}"
+            height="{{ block.settings.after_image.height }}"
+          >
+        {% else %}
+          <div class="ai-placeholder-container-{{ ai_gen_id }}">
+            {{ 'image' | placeholder_svg_tag }}
+          </div>
+        {% endif %}
+
+        <div class="ai-before-after-slider-handle-{{ ai_gen_id }}">
+          <div class="ai-handle-triangles-{{ ai_gen_id }}">
+            <div class="ai-handle-triangle-left-{{ ai_gen_id }}"></div>
+            <div class="ai-handle-triangle-right-{{ ai_gen_id }}"></div>
+          </div>
+        </div>
+        
+        {% if block.settings.show_labels %}
+          <div class="ai-before-label-{{ ai_gen_id }}">{{ block.settings.before_label }}</div>
+          <div class="ai-after-label-{{ ai_gen_id }}">{{ block.settings.after_label }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </before-after-slider-{{ ai_gen_id }}>
+</div>
+
+<script>
+  (function() {
+    class BeforeAfterSlider{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+        this.slider = null;
+        this.handle = null;
+        this.afterImage = null;
+        this.isDragging = false;
+        this.sliderPosition = 50;
+      }
+
+      connectedCallback() {
+        this.slider = this.querySelector('.ai-before-after-slider-{{ ai_gen_id }}');
+        this.handle = this.querySelector('.ai-before-after-slider-handle-{{ ai_gen_id }}');
+        this.afterImage = this.querySelector('.ai-after-image-{{ ai_gen_id }}');
+        
+        if (this.slider && this.handle) {
+          this.setupEventListeners();
+          this.updateSliderPosition(50);
+        }
+      }
+
+      setupEventListeners() {
+        this.handle.addEventListener('mousedown', (e) => this.startDrag(e));
+        document.addEventListener('mousemove', (e) => this.drag(e));
+        document.addEventListener('mouseup', () => this.stopDrag());
+
+        this.handle.addEventListener('touchstart', (e) => this.startDrag(e), { passive: false });
+        document.addEventListener('touchmove', (e) => this.drag(e), { passive: false });
+        document.addEventListener('touchend', () => this.stopDrag());
+
+        this.slider.addEventListener('click', (e) => this.clickSlider(e));
+        this.slider.addEventListener('mousedown', (e) => this.clickSlider(e));
+      }
+
+      startDrag(e) {
+        this.isDragging = true;
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      drag(e) {
+        if (!this.isDragging) return;
+        
+        e.preventDefault();
+        
+        const clientX = e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX);
+        if (clientX === undefined) return;
+        
+        this.updatePositionFromClientX(clientX);
+      }
+
+      stopDrag() {
+        this.isDragging = false;
+      }
+
+      clickSlider(e) {
+        if (this.isDragging) return;
+        if (e.target === this.handle || this.handle.contains(e.target)) return;
+        
+        const clientX = e.clientX;
+        if (clientX === undefined) return;
+        
+        this.updatePositionFromClientX(clientX);
+      }
+
+      updatePositionFromClientX(clientX) {
+        const rect = this.slider.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const position = Math.max(0, Math.min(100, (x / rect.width) * 100));
+        this.updateSliderPosition(position);
+      }
+
+      updateSliderPosition(position) {
+        this.sliderPosition = position;
+        const positionPercent = position + '%';
+        
+        this.slider.style.setProperty('--slider-position', positionPercent);
+        this.slider.setAttribute('data-slider-position', position);
+        
+        if (this.afterImage) {
+          this.afterImage.style.clipPath = `inset(0 ${100 - position}% 0 0)`;
+        }
+      }
+    }
+
+    customElements.define('before-after-slider-{{ ai_gen_id }}', BeforeAfterSlider{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Before & After Slider",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Background Settings"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Background gradient"
+    },
+    {
+      "type": "header",
+      "content": "Layout Settings"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout",
+      "options": [
+        {
+          "value": "text_first",
+          "label": "Text on left, image on right"
+        },
+        {
+          "value": "image_first",
+          "label": "Image on left, text on right"
+        }
+      ],
+      "default": "text_first"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Container max width",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "column_gap",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Space between columns",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "column_gap_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Space between columns (mobile)",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding right",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding left",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Text Content - Desktop"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Before & After Transformation"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph",
+      "label": "Text content",
+      "default": "See the amazing transformation with our product. The before and after images speak for themselves. Drag the slider to compare the results."
+    },
+    {
+      "type": "range",
+      "id": "text_max_width",
+      "min": 200,
+      "max": 800,
+      "step": 10,
+      "unit": "px",
+      "label": "Text container max width",
+      "default": 400
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text vertical alignment",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "bottom",
+          "label": "Bottom"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "text_horizontal_alignment",
+      "label": "Text horizontal alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 16,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "heading_weight",
+      "min": 400,
+      "max": 900,
+      "step": 100,
+      "label": "Heading weight",
+      "default": 700
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "text_weight",
+      "min": 400,
+      "max": 900,
+      "step": 100,
+      "label": "Text weight",
+      "default": 400
+    },
+    {
+      "type": "header",
+      "content": "Text Content - Mobile"
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 16,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (mobile)",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "heading_weight_mobile",
+      "min": 400,
+      "max": 900,
+      "step": 100,
+      "label": "Heading weight (mobile)",
+      "default": 700
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (mobile)",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "text_weight_mobile",
+      "min": 400,
+      "max": 900,
+      "step": 100,
+      "label": "Text weight (mobile)",
+      "default": 400
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#333333"
+    },
+    {
+      "type": "header",
+      "content": "Image Slider"
+    },
+    {
+      "type": "image_picker",
+      "id": "before_image",
+      "label": "Before image"
+    },
+    {
+      "type": "image_picker",
+      "id": "after_image",
+      "label": "After image"
+    },
+    {
+      "type": "range",
+      "id": "image_radius",
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "label": "Image border radius",
+      "default": 8
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Image ratio",
+      "options": [
+        {
+          "value": "1:1",
+          "label": "1:1 | Square"
+        },
+        {
+          "value": "4:3",
+          "label": "4:3 | Standard"
+        },
+        {
+          "value": "3:2",
+          "label": "3:2 | Landscape"
+        },
+        {
+          "value": "16:9",
+          "label": "16:9 | Widescreen"
+        },
+        {
+          "value": "2:3",
+          "label": "2:3 | Portrait"
+        },
+        {
+          "value": "9:16",
+          "label": "9:16 | Vertical"
+        },
+        {
+          "value": "5:4",
+          "label": "5:4 | Card"
+        },
+        {
+          "value": "4:5",
+          "label": "4:5 | Vertical card"
+        },
+        {
+          "value": "21:9",
+          "label": "21:9 | Ultrawide"
+        },
+        {
+          "value": "custom",
+          "label": "Custom ratio"
+        }
+      ],
+      "default": "3:2"
+    },
+    {
+      "type": "range",
+      "id": "custom_ratio_width",
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "label": "Custom ratio width",
+      "default": 16,
+      "info": "Only applies when 'Custom ratio' is selected"
+    },
+    {
+      "type": "range",
+      "id": "custom_ratio_height",
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "label": "Custom ratio height",
+      "default": 9,
+      "info": "Only applies when 'Custom ratio' is selected"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio_mobile",
+      "label": "Mobile image ratio",
+      "options": [
+        {
+          "value": "1:1",
+          "label": "1:1 | Square"
+        },
+        {
+          "value": "4:3",
+          "label": "4:3 | Standard"
+        },
+        {
+          "value": "3:2",
+          "label": "3:2 | Landscape"
+        },
+        {
+          "value": "16:9",
+          "label": "16:9 | Widescreen"
+        },
+        {
+          "value": "2:3",
+          "label": "2:3 | Portrait"
+        },
+        {
+          "value": "9:16",
+          "label": "9:16 | Vertical"
+        },
+        {
+          "value": "5:4",
+          "label": "5:4 | Card"
+        },
+        {
+          "value": "4:5",
+          "label": "4:5 | Vertical card"
+        },
+        {
+          "value": "21:9",
+          "label": "21:9 | Ultrawide"
+        },
+        {
+          "value": "custom",
+          "label": "Custom ratio"
+        }
+      ],
+      "default": "1:1"
+    },
+    {
+      "type": "range",
+      "id": "custom_ratio_width_mobile",
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "label": "Custom ratio width (mobile)",
+      "default": 1,
+      "info": "Only applies when 'Custom ratio' is selected for mobile"
+    },
+    {
+      "type": "range",
+      "id": "custom_ratio_height_mobile",
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "label": "Custom ratio height (mobile)",
+      "default": 1,
+      "info": "Only applies when 'Custom ratio' is selected for mobile"
+    },
+    {
+      "type": "select",
+      "id": "image_fit",
+      "label": "Image fit",
+      "options": [
+        {
+          "value": "cover",
+          "label": "Cover - fills entire container"
+        },
+        {
+          "value": "contain",
+          "label": "Contain - shows entire image"
+        }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_labels",
+      "label": "Show before/after labels",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "before_label",
+      "label": "Before label",
+      "default": "Before"
+    },
+    {
+      "type": "text",
+      "id": "after_label",
+      "label": "After label",
+      "default": "After"
+    },
+    {
+      "type": "color",
+      "id": "slider_color",
+      "label": "Slider handle color",
+      "default": "#000f9f"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Before & After Slider"
+    }
+  ]
+}
+{% endschema %}

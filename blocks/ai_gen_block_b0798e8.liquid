@@ -1,0 +1,409 @@
+{% doc %}
+  @prompt
+    This component is a two-option selector.
+    The text on the left (“I want to Sell”) is a clickable text link.
+    The black pill on the right (“I want to Make”) represents the currently selected state and is not a link.
+    Only the plain text (not the black pill) should function as a link.
+    If you want it even more explicit / technical for Shopify AI, use this version:
+    This UI uses a toggle-style layout. Only the unselected text label (“I want to Sell”) is a hyperlink. The selected option (“I want to Make”) is displayed as a black pill and is not clickable., there need to be a section bg and another elements wrapping the pills with another color , text in pill and outside need the same horizontal padding , pills need to have no padding between them, section needs max width in px and horizontal padding options in 2px multiples, and top and bottom padding for desktop and mobile , bg color should go full width, past sections max width, need Horizontal padding for desktop and mobile, need Alignment for desktop and mobile
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-toggle-selector-bg-{{ ai_gen_id }} {
+    background-color: {{ block.settings.section_bg_color }};
+    width: 100%;
+    padding: {{ block.settings.section_padding_top_desktop }}px 0 {{ block.settings.section_padding_bottom_desktop }}px;
+  }
+
+  .ai-toggle-selector-container-{{ ai_gen_id }} {
+    max-width: {{ block.settings.section_max_width }}px;
+    margin: 0 auto;
+    padding: 0 {{ block.settings.section_padding_horizontal_desktop }}px;
+  }
+
+  .ai-toggle-selector-wrapper-{{ ai_gen_id }} {
+    background-color: {{ block.settings.wrapper_bg_color }};
+    border-radius: {{ block.settings.wrapper_border_radius }}px;
+    padding: {{ block.settings.wrapper_padding }}px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .ai-toggle-selector-inner-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+    justify-content: {{ block.settings.alignment_desktop }};
+    width: 100%;
+  }
+
+  .ai-toggle-selector__option-{{ ai_gen_id }} {
+    font-family: {{ block.settings.font.family }}, {{ block.settings.font.fallback_families }};
+    font-weight: {{ block.settings.font.weight }};
+    font-size: {{ block.settings.font_size }}px;
+    line-height: 1.2;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    padding: {{ block.settings.pill_padding_vertical }}px {{ block.settings.pill_padding_horizontal }}px;
+  }
+
+  .ai-toggle-selector__option--link-{{ ai_gen_id }} {
+    color: {{ block.settings.link_text_color }};
+  }
+
+  .ai-toggle-selector__option--link-{{ ai_gen_id }}:hover {
+    color: {{ block.settings.link_hover_color }};
+  }
+
+  .ai-toggle-selector__option--selected-{{ ai_gen_id }} {
+    background-color: {{ block.settings.selected_bg_color }};
+    color: {{ block.settings.selected_text_color }};
+    border-radius: {{ block.settings.pill_border_radius }}px;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-toggle-selector-bg-{{ ai_gen_id }} {
+      padding: {{ block.settings.section_padding_top_mobile }}px 0 {{ block.settings.section_padding_bottom_mobile }}px;
+    }
+
+    .ai-toggle-selector-container-{{ ai_gen_id }} {
+      padding: 0 {{ block.settings.section_padding_horizontal_mobile }}px;
+    }
+
+    .ai-toggle-selector-inner-{{ ai_gen_id }} {
+      justify-content: {{ block.settings.alignment_mobile }};
+    }
+
+    .ai-toggle-selector__option-{{ ai_gen_id }} {
+      font-size: {{ block.settings.font_size | times: 0.9 }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-toggle-selector-bg-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-toggle-selector-container-{{ ai_gen_id }}">
+    <div class="ai-toggle-selector-inner-{{ ai_gen_id }}">
+      <div class="ai-toggle-selector-wrapper-{{ ai_gen_id }}">
+        {% if block.settings.selected_option == 'option_1' %}
+          <span class="ai-toggle-selector__option-{{ ai_gen_id }} ai-toggle-selector__option--selected-{{ ai_gen_id }}">
+            {{ block.settings.option_1_text }}
+          </span>
+          <a
+            href="{{ block.settings.option_2_url }}"
+            class="ai-toggle-selector__option-{{ ai_gen_id }} ai-toggle-selector__option--link-{{ ai_gen_id }}"
+          >
+            {{ block.settings.option_2_text }}
+          </a>
+        {% else %}
+          <a
+            href="{{ block.settings.option_1_url }}"
+            class="ai-toggle-selector__option-{{ ai_gen_id }} ai-toggle-selector__option--link-{{ ai_gen_id }}"
+          >
+            {{ block.settings.option_1_text }}
+          </a>
+          <span class="ai-toggle-selector__option-{{ ai_gen_id }} ai-toggle-selector__option--selected-{{ ai_gen_id }}">
+            {{ block.settings.option_2_text }}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Toggle selector",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Options"
+    },
+    {
+      "type": "select",
+      "id": "selected_option",
+      "label": "Selected option",
+      "options": [
+        {
+          "value": "option_1",
+          "label": "Option 1"
+        },
+        {
+          "value": "option_2",
+          "label": "Option 2"
+        }
+      ],
+      "default": "option_1"
+    },
+    {
+      "type": "text",
+      "id": "option_1_text",
+      "label": "Option 1 text",
+      "default": "I want to Sell"
+    },
+    {
+      "type": "url",
+      "id": "option_1_url",
+      "label": "Option 1 URL"
+    },
+    {
+      "type": "text",
+      "id": "option_2_text",
+      "label": "Option 2 text",
+      "default": "I want to Make"
+    },
+    {
+      "type": "url",
+      "id": "option_2_url",
+      "label": "Option 2 URL"
+    },
+    {
+      "type": "header",
+      "content": "Section layout"
+    },
+    {
+      "type": "range",
+      "id": "section_max_width",
+      "label": "Maximum width",
+      "min": 600,
+      "max": 1600,
+      "step": 20,
+      "unit": "px",
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "section_padding_horizontal_desktop",
+      "label": "Horizontal padding (desktop)",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_horizontal_mobile",
+      "label": "Horizontal padding (mobile)",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top_desktop",
+      "label": "Top padding (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 4,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom_desktop",
+      "label": "Bottom padding (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 4,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top_mobile",
+      "label": "Top padding (mobile)",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom_mobile",
+      "label": "Bottom padding (mobile)",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "Section background"
+    },
+    {
+      "type": "color",
+      "id": "section_bg_color",
+      "label": "Background color",
+      "default": "#f2f2f2"
+    },
+    {
+      "type": "header",
+      "content": "Toggle wrapper"
+    },
+    {
+      "type": "color",
+      "id": "wrapper_bg_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "wrapper_padding",
+      "label": "Padding",
+      "min": 4,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "wrapper_border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "header",
+      "content": "Alignment"
+    },
+    {
+      "type": "select",
+      "id": "alignment_desktop",
+      "label": "Alignment (desktop)",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "alignment_mobile",
+      "label": "Alignment (mobile)",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "font_picker",
+      "id": "font",
+      "label": "Font",
+      "default": "inter_n6"
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Font size",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Link style"
+    },
+    {
+      "type": "color",
+      "id": "link_text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "link_hover_color",
+      "label": "Hover color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Selected pill style"
+    },
+    {
+      "type": "color",
+      "id": "selected_bg_color",
+      "label": "Background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "selected_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_vertical",
+      "label": "Vertical padding",
+      "min": 4,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_horizontal",
+      "label": "Horizontal padding",
+      "min": 8,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "pill_border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    }
+  ],
+  "presets": [
+    {
+      "name": "Toggle selector"
+    }
+  ]
+}
+{% endschema %}

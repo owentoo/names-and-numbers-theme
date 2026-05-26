@@ -1,0 +1,781 @@
+{% doc %}
+  @prompt
+    Create a section with a centered title and subtitle at the top, followed by a grid of interactive video cards below. Each card should display a still image by default and play the video when users hover over it or click on it. Below each video card, add customizable text areas for titles and descriptions. Include customization options for the grid layout, card styling, text formatting, and spacing. Make it responsive and allow merchants to add or remove cards as needed.
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+
+  .video-grid-container-{{ ai_gen_id }} {
+    padding-top: {{ block.settings.padding_top }}px;
+    padding-bottom: {{ block.settings.padding_bottom }}px;
+    background-color: {{ block.settings.background_color }};
+  }
+
+  .video-grid-header-{{ ai_gen_id }} {
+    text-align: center;
+    margin-bottom: {{ block.settings.header_spacing }}px;
+  }
+
+  .video-grid-title-{{ ai_gen_id }} {
+    color: {{ block.settings.title_color }};
+    font-size: {{ block.settings.title_size }}px;
+    margin-bottom: 15px;
+  }
+
+  .video-grid-subtitle-{{ ai_gen_id }} {
+    color: {{ block.settings.subtitle_color }};
+    font-size: {{ block.settings.subtitle_size }}px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .video-grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    gap: {{ block.settings.grid_gap }}px;
+    margin: 0 auto;
+    max-width: 100%;
+  }
+
+  .video-card-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    border-radius: {{ block.settings.card_border_radius }}px;
+    overflow: hidden;
+    background-color: {{ block.settings.card_background }};
+    box-shadow: 0 4px 8px rgba(0, 0, 0, {{ block.settings.card_shadow_opacity | divided_by: 100.0 }});
+    transition: transform 0.3s ease;
+  }
+
+  {% if block.settings.card_hover_effect %}
+  .video-card-{{ ai_gen_id }}:hover {
+    transform: translateY(-5px);
+  }
+  .video-grid-inner-{{ ai_gen_id }} {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+  {% endif %}
+
+  .video-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 aspect ratio */
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .video-thumbnail-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.3s ease;
+  }
+
+  .video-player-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .video-play-icon-{{ ai_gen_id }} {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .video-play-icon-{{ ai_gen_id }} svg {
+    width: 24px;
+    height: 24px;
+    fill: white;
+  }
+
+  .video-card-content-{{ ai_gen_id }} {
+    padding: {{ block.settings.card_content_padding }}px;
+  }
+
+  .video-card-title-{{ ai_gen_id }} {
+    color: {{ block.settings.card_title_color }};
+    font-size: {{ block.settings.card_title_size }}px;
+    margin-bottom: 10px;
+  }
+
+  .video-card-description-{{ ai_gen_id }} {
+    color: {{ block.settings.card_description_color }};
+    font-size: {{ block.settings.card_description_size }}px;
+  }
+
+  @media screen and (max-width: 990px) {
+    .video-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_tablet }}, 1fr);
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .video-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+    }
+
+    .video-grid-title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.title_size | times: 0.8 }}px;
+    }
+
+    .video-grid-subtitle-{{ ai_gen_id }} {
+      font-size: {{ block.settings.subtitle_size | times: 0.8 }}px;
+    }
+  }
+{% endstyle %}
+
+<interactive-video-grid-{{ ai_gen_id }} 
+  class="video-grid-container-{{ ai_gen_id }} video-grid-container" 
+  data-autoplay="{{ block.settings.autoplay_on_hover }}"
+  {{ block.shopify_attributes }}
+
+  <div class="video-grid-inner-{{ ai_gen_id }}">
+
+>
+  <div class="video-grid-header-{{ ai_gen_id }}">
+    {% if block.settings.title != blank %}
+      <h2 class="video-grid-title-{{ ai_gen_id }}">{{ block.settings.title }}</h2>
+    {% endif %}
+    
+    {% if block.settings.subtitle != blank %}
+      <div class="video-grid-subtitle-{{ ai_gen_id }}">{{ block.settings.subtitle }}</div>
+    {% endif %}
+  </div>
+
+  <div class="video-grid-{{ ai_gen_id }}">
+    {% for i in (1..6) %}
+      {% assign video_url_setting = 'video_url_' | append: i %}
+      {% assign thumbnail_setting = 'thumbnail_' | append: i %}
+      {% assign title_setting = 'card_title_' | append: i %}
+      {% assign description_setting = 'card_description_' | append: i %}
+      
+      {% assign video_url = block.settings[video_url_setting] %}
+      {% assign thumbnail = block.settings[thumbnail_setting] %}
+      {% assign title = block.settings[title_setting] %}
+      {% assign description = block.settings[description_setting] %}
+      
+      {% if video_url != blank %}
+        <div class="video-card-{{ ai_gen_id }}">
+          <div class="video-wrapper-{{ ai_gen_id }}" data-video-id="{{ i }}">
+            {% if thumbnail %}
+              <img 
+                src="{{ thumbnail | image_url: width: 800 }}" 
+                alt="{{ title | escape }}" 
+                loading="lazy" 
+                class="video-thumbnail-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="video-thumbnail-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+            
+            <div class="video-play-icon-{{ ai_gen_id }}">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="5,3 19,12 5,21"></polygon>
+              </svg>
+            </div>
+            
+            <div class="video-player-{{ ai_gen_id }}" data-src="{{ video_url }}"></div>
+          </div>
+          
+          <div class="video-card-content-{{ ai_gen_id }}">
+            {% if title != blank %}
+              <h3 class="video-card-title-{{ ai_gen_id }}">{{ title }}</h3>
+            {% endif %}
+            
+            {% if description != blank %}
+              <div class="video-card-description-{{ ai_gen_id }}">{{ description }}</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+      </div>
+</interactive-video-grid-{{ ai_gen_id }}>
+
+</interactive-video-grid-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class InteractiveVideoGrid extends HTMLElement {
+      constructor() {
+        super();
+        this.videoWrappers = this.querySelectorAll('.video-wrapper-{{ ai_gen_id }}');
+        this.autoplayOnHover = this.getAttribute('data-autoplay') === 'true';
+        this.activeVideo = null;
+      }
+      
+      connectedCallback() {
+        this.setupEventListeners();
+      }
+      
+      setupEventListeners() {
+        this.videoWrappers.forEach(wrapper => {
+          const videoContainer = wrapper.querySelector('.video-player-{{ ai_gen_id }}');
+          const thumbnail = wrapper.querySelector('.video-thumbnail-{{ ai_gen_id }}');
+          const playIcon = wrapper.querySelector('.video-play-icon-{{ ai_gen_id }}');
+          const videoSrc = videoContainer.getAttribute('data-src');
+          
+          // Click event to play/pause video
+          wrapper.addEventListener('click', () => {
+            if (!videoContainer.innerHTML) {
+              this.loadVideo(videoContainer, videoSrc, thumbnail, playIcon);
+            } else {
+              const iframe = videoContainer.querySelector('iframe');
+              if (iframe) {
+                this.toggleVideo(iframe, videoContainer, thumbnail, playIcon);
+              }
+            }
+          });
+          
+          // Hover events if autoplay on hover is enabled
+          if (this.autoplayOnHover) {
+            wrapper.addEventListener('mouseenter', () => {
+              if (!videoContainer.innerHTML) {
+                this.loadVideo(videoContainer, videoSrc, thumbnail, playIcon);
+              }
+            });
+            
+            wrapper.addEventListener('mouseleave', () => {
+              const iframe = videoContainer.querySelector('iframe');
+              if (iframe && videoContainer.style.opacity === '1') {
+                this.pauseVideo(iframe);
+              }
+            });
+          }
+        });
+      }
+      
+      loadVideo(container, src, thumbnail, playIcon) {
+        // Stop any currently playing video
+        if (this.activeVideo) {
+          const activeContainer = this.activeVideo.closest('.video-player-{{ ai_gen_id }}');
+          const activeThumbnail = activeContainer.parentNode.querySelector('.video-thumbnail-{{ ai_gen_id }}');
+          const activePlayIcon = activeContainer.parentNode.querySelector('.video-play-icon-{{ ai_gen_id }}');
+          
+          this.pauseVideo(this.activeVideo);
+          activeContainer.style.opacity = '0';
+          activeThumbnail.style.opacity = '1';
+          activePlayIcon.style.opacity = '1';
+        }
+        
+        // Create iframe based on video URL
+        let iframe;
+        
+        if (src.includes('youtube.com') || src.includes('youtu.be')) {
+          // Extract YouTube video ID
+          const youtubeId = this.getYouTubeId(src);
+          iframe = document.createElement('iframe');
+          iframe.setAttribute('src', `https://www.youtube.com/embed/${youtubeId}?autoplay=1&enablejsapi=1&version=3&playerapiid=ytplayer`);
+          iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+        } else if (src.includes('vimeo.com')) {
+          // Extract Vimeo video ID
+          const vimeoId = this.getVimeoId(src);
+          iframe = document.createElement('iframe');
+          iframe.setAttribute('src', `https://player.vimeo.com/video/${vimeoId}?autoplay=1`);
+          iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
+        } else {
+          // For direct video files
+          iframe = document.createElement('video');
+          iframe.setAttribute('src', src);
+          iframe.setAttribute('controls', true);
+          iframe.setAttribute('autoplay', true);
+        }
+        
+        iframe.setAttribute('frameborder', '0');
+        iframe.setAttribute('allowfullscreen', true);
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        
+        // Add iframe to container and show video
+        container.innerHTML = '';
+        container.appendChild(iframe);
+        container.style.opacity = '1';
+        thumbnail.style.opacity = '0';
+        playIcon.style.opacity = '0';
+        
+        this.activeVideo = iframe;
+      }
+      
+      toggleVideo(iframe, container, thumbnail, playIcon) {
+        if (container.style.opacity === '1') {
+          this.pauseVideo(iframe);
+          container.style.opacity = '0';
+          thumbnail.style.opacity = '1';
+          playIcon.style.opacity = '1';
+          this.activeVideo = null;
+        } else {
+          this.playVideo(iframe);
+          container.style.opacity = '1';
+          thumbnail.style.opacity = '0';
+          playIcon.style.opacity = '0';
+          this.activeVideo = iframe;
+        }
+      }
+      
+      pauseVideo(iframe) {
+        if (iframe.tagName === 'IFRAME') {
+          // For YouTube
+          if (iframe.src.includes('youtube.com')) {
+            iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+          } 
+          // For Vimeo
+          else if (iframe.src.includes('vimeo.com')) {
+            iframe.contentWindow.postMessage('{"method":"pause"}', '*');
+          }
+        } else if (iframe.tagName === 'VIDEO') {
+          iframe.pause();
+        }
+      }
+      
+      playVideo(iframe) {
+        if (iframe.tagName === 'IFRAME') {
+          // For YouTube
+          if (iframe.src.includes('youtube.com')) {
+            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+          } 
+          // For Vimeo
+          else if (iframe.src.includes('vimeo.com')) {
+            iframe.contentWindow.postMessage('{"method":"play"}', '*');
+          }
+        } else if (iframe.tagName === 'VIDEO') {
+          iframe.play();
+        }
+      }
+      
+      getYouTubeId(url) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+      }
+      
+      getVimeoId(url) {
+        const regExp = /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|)(\d+)(?:$|\/|\?)/;
+        const match = url.match(regExp);
+        return match ? match[3] : null;
+      }
+    }
+    
+    customElements.define('interactive-video-grid-{{ ai_gen_id }}', InteractiveVideoGrid);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Video Grid",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Featured Videos"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Discover our collection of videos showcasing our products and services"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle color",
+      "default": "#4a4a4a"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 20,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Title size",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "subtitle_size",
+      "min": 12,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Subtitle size",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "label": "Columns on desktop",
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "columns_tablet",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "label": "Columns on tablet",
+      "default": 2
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns on mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Grid spacing",
+      "default": 30
+    },
+    {
+      "type": "header",
+      "content": "Card Style"
+    },
+    {
+      "type": "color",
+      "id": "card_background",
+      "label": "Card background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Card corner radius",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "card_shadow_opacity",
+      "min": 0,
+      "max": 30,
+      "step": 5,
+      "unit": "%",
+      "label": "Card shadow opacity",
+      "default": 10
+    },
+    {
+      "type": "checkbox",
+      "id": "card_hover_effect",
+      "label": "Enable hover effect",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "card_content_padding",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Content padding",
+      "default": 20
+    },
+    {
+      "type": "color",
+      "id": "card_title_color",
+      "label": "Card title color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "card_description_color",
+      "label": "Card description color",
+      "default": "#4a4a4a"
+    },
+    {
+      "type": "range",
+      "id": "card_title_size",
+      "min": 14,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Card title size",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "card_description_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Card description size",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Section Styling"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+  "type": "range",
+  "id": "padding_top",
+  "min": 0,
+  "max": 100,
+  "step": 5,
+  "unit": "px",
+  "label": "Top padding",
+  "default": 60
+},
+{
+  "type": "range",
+  "id": "padding_bottom",
+  "min": 0,
+  "max": 100,
+  "step": 5,
+  "unit": "px",
+  "label": "Bottom padding",
+  "default": 60
+},
+    {
+      "type": "range",
+      "id": "header_spacing",
+      "min": 20,
+      "max": 80,
+      "step": 5,
+      "unit": "px",
+      "label": "Header bottom spacing",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "Video Settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay_on_hover",
+      "label": "Autoplay on hover",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Video 1"
+    },
+    {
+      "type": "url",
+      "id": "video_url_1",
+      "label": "Video URL",
+      "info": "YouTube, Vimeo or direct video file URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_1",
+      "label": "Thumbnail image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_1",
+      "label": "Title",
+      "default": "Video title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_1",
+      "label": "Description",
+      "default": "Brief description of the video content"
+    },
+    {
+      "type": "header",
+      "content": "Video 2"
+    },
+    {
+      "type": "url",
+      "id": "video_url_2",
+      "label": "Video URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_2",
+      "label": "Thumbnail image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_2",
+      "label": "Title",
+      "default": "Video title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_2",
+      "label": "Description",
+      "default": "Brief description of the video content"
+    },
+    {
+      "type": "header",
+      "content": "Video 3"
+    },
+    {
+      "type": "url",
+      "id": "video_url_3",
+      "label": "Video URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_3",
+      "label": "Thumbnail image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_3",
+      "label": "Title",
+      "default": "Video title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_3",
+      "label": "Description",
+      "default": "Brief description of the video content"
+    },
+    {
+      "type": "header",
+      "content": "Video 4"
+    },
+    {
+      "type": "url",
+      "id": "video_url_4",
+      "label": "Video URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_4",
+      "label": "Thumbnail image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_4",
+      "label": "Title",
+      "default": "Video title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_4",
+      "label": "Description",
+      "default": "Brief description of the video content"
+    },
+    {
+      "type": "header",
+      "content": "Video 5"
+    },
+    {
+      "type": "url",
+      "id": "video_url_5",
+      "label": "Video URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_5",
+      "label": "Thumbnail image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_5",
+      "label": "Title",
+      "default": "Video title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_5",
+      "label": "Description",
+      "default": "Brief description of the video content"
+    },
+    {
+      "type": "header",
+      "content": "Video 6"
+    },
+    {
+      "type": "url",
+      "id": "video_url_6",
+      "label": "Video URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_6",
+      "label": "Thumbnail image"
+    },
+    {
+      "type": "text",
+      "id": "card_title_6",
+      "label": "Title",
+      "default": "Video title"
+    },
+    {
+      "type": "textarea",
+      "id": "card_description_6",
+      "label": "Description",
+      "default": "Brief description of the video content"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Video Grid"
+    }
+  ]
+}
+{% endschema %}

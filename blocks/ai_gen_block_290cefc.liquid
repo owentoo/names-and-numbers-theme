@@ -1,0 +1,673 @@
+{% doc %}
+  @prompt
+    create a contact form with the option to attach files 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-contact-form-{{ ai_gen_id }} {
+    display: block;
+    width: 100%;
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    padding: {{ block.settings.padding }}px;
+    background-color: {{ block.settings.background_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+  }
+
+  .ai-contact-form__heading-{{ ai_gen_id }} {
+    margin: 0 0 {{ block.settings.spacing }}px;
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.heading_size }}px;
+    font-family: {{ block.settings.heading_font.family }}, {{ block.settings.heading_font.fallback_families }};
+    font-weight: {{ block.settings.heading_font.weight }};
+  }
+
+  .ai-contact-form__description-{{ ai_gen_id }} {
+    margin: 0 0 {{ block.settings.spacing | times: 1.5 }}px;
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.text_size }}px;
+  }
+
+  .ai-contact-form__form-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: {{ block.settings.spacing }}px;
+  }
+
+  .ai-contact-form__field-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ai-contact-form__label-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.text_size }}px;
+    font-weight: 500;
+  }
+
+  .ai-contact-form__required-{{ ai_gen_id }} {
+    color: {{ block.settings.error_color }};
+  }
+
+  .ai-contact-form__input-{{ ai_gen_id }},
+  .ai-contact-form__textarea-{{ ai_gen_id }} {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid {{ block.settings.input_border_color }};
+    border-radius: {{ block.settings.input_border_radius }}px;
+    font-size: {{ block.settings.text_size }}px;
+    background-color: {{ block.settings.input_background }};
+    color: {{ block.settings.text_color }};
+    transition: border-color 0.2s ease;
+  }
+
+  .ai-contact-form__input-{{ ai_gen_id }}:focus,
+  .ai-contact-form__textarea-{{ ai_gen_id }}:focus {
+    outline: none;
+    border-color: {{ block.settings.button_color }};
+  }
+
+  .ai-contact-form__textarea-{{ ai_gen_id }} {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  .ai-contact-form__file-wrapper-{{ ai_gen_id }} {
+    position: relative;
+  }
+
+  .ai-contact-form__file-input-{{ ai_gen_id }} {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .ai-contact-form__file-label-{{ ai_gen_id }} {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background-color: {{ block.settings.input_background }};
+    border: 1px solid {{ block.settings.input_border_color }};
+    border-radius: {{ block.settings.input_border_radius }}px;
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.text_size }}px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .ai-contact-form__file-label-{{ ai_gen_id }}:hover {
+    border-color: {{ block.settings.button_color }};
+  }
+
+  .ai-contact-form__file-icon-{{ ai_gen_id }} {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .ai-contact-form__file-name-{{ ai_gen_id }} {
+    margin-top: 8px;
+    font-size: {{ block.settings.text_size | minus: 2 }}px;
+    color: {{ block.settings.text_color }};
+    opacity: 0.7;
+  }
+
+  .ai-contact-form__file-info-{{ ai_gen_id }} {
+    margin-top: 4px;
+    font-size: {{ block.settings.text_size | minus: 2 }}px;
+    color: {{ block.settings.text_color }};
+    opacity: 0.6;
+  }
+
+  .ai-contact-form__button-{{ ai_gen_id }} {
+    padding: 14px 32px;
+    background-color: {{ block.settings.button_color }};
+    color: {{ block.settings.button_text_color }};
+    border: none;
+    border-radius: {{ block.settings.button_border_radius }}px;
+    font-size: {{ block.settings.text_size }}px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    align-self: flex-start;
+  }
+
+  .ai-contact-form__button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_hover_color }};
+  }
+
+  .ai-contact-form__message-{{ ai_gen_id }} {
+    padding: 12px 16px;
+    border-radius: {{ block.settings.input_border_radius }}px;
+    font-size: {{ block.settings.text_size }}px;
+  }
+
+  .ai-contact-form__success-{{ ai_gen_id }} {
+    background-color: {{ block.settings.success_color | color_modify: 'alpha', 0.1 }};
+    color: {{ block.settings.success_color }};
+    border: 1px solid {{ block.settings.success_color }};
+  }
+
+  .ai-contact-form__error-{{ ai_gen_id }} {
+    background-color: {{ block.settings.error_color | color_modify: 'alpha', 0.1 }};
+    color: {{ block.settings.error_color }};
+    border: 1px solid {{ block.settings.error_color }};
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-contact-form-{{ ai_gen_id }} {
+      width: {{ block.settings.mobile_width_percent }}%;
+    }
+
+    .ai-contact-form__button-{{ ai_gen_id }} {
+      width: 100%;
+    }
+  }
+
+  @media screen and (min-width: 750px) {
+    .ai-contact-form-{{ ai_gen_id }} {
+      width: {{ block.settings.desktop_width_percent }}%;
+    }
+  }
+{% endstyle %}
+
+<contact-form-{{ ai_gen_id }} class="ai-contact-form-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  {% if block.settings.heading != blank %}
+    <h2 class="ai-contact-form__heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h2>
+  {% endif %}
+
+  {% if block.settings.description != blank %}
+    <div class="ai-contact-form__description-{{ ai_gen_id }}">{{ block.settings.description }}</div>
+  {% endif %}
+
+  {%- form 'contact' -%}
+    <input type="hidden" name="contact[subject]" value="{{ block.settings.email_subject }}">
+    
+    <div class="ai-contact-form__form-{{ ai_gen_id }}">
+      {% if form.posted_successfully? %}
+        <div class="ai-contact-form__message-{{ ai_gen_id }} ai-contact-form__success-{{ ai_gen_id }}">
+          {{ block.settings.success_message }}
+        </div>
+      {% endif %}
+
+      {% if form.errors %}
+        <div class="ai-contact-form__message-{{ ai_gen_id }} ai-contact-form__error-{{ ai_gen_id }}">
+          {{ form.errors | default_errors }}
+        </div>
+      {% endif %}
+
+      <div class="ai-contact-form__field-{{ ai_gen_id }}">
+        <label for="contact-name-{{ ai_gen_id }}" class="ai-contact-form__label-{{ ai_gen_id }}">
+          {{ block.settings.name_label }}
+          <span class="ai-contact-form__required-{{ ai_gen_id }}">*</span>
+        </label>
+        <input
+          type="text"
+          id="contact-name-{{ ai_gen_id }}"
+          name="contact[name]"
+          class="ai-contact-form__input-{{ ai_gen_id }}"
+          value="{% if form.name %}{{ form.name }}{% endif %}"
+          placeholder="{{ block.settings.name_placeholder }}"
+          required
+        >
+      </div>
+
+      <div class="ai-contact-form__field-{{ ai_gen_id }}">
+        <label for="contact-email-{{ ai_gen_id }}" class="ai-contact-form__label-{{ ai_gen_id }}">
+          {{ block.settings.email_label }}
+          <span class="ai-contact-form__required-{{ ai_gen_id }}">*</span>
+        </label>
+        <input
+          type="email"
+          id="contact-email-{{ ai_gen_id }}"
+          name="contact[email]"
+          class="ai-contact-form__input-{{ ai_gen_id }}"
+          value="{% if form.email %}{{ form.email }}{% endif %}"
+          placeholder="{{ block.settings.email_placeholder }}"
+          autocomplete="email"
+          required
+        >
+      </div>
+
+      {% if block.settings.show_phone %}
+        <div class="ai-contact-form__field-{{ ai_gen_id }}">
+          <label for="contact-phone-{{ ai_gen_id }}" class="ai-contact-form__label-{{ ai_gen_id }}">
+            {{ block.settings.phone_label }}
+            {% if block.settings.phone_required %}
+              <span class="ai-contact-form__required-{{ ai_gen_id }}">*</span>
+            {% endif %}
+          </label>
+          <input
+            type="tel"
+            id="contact-phone-{{ ai_gen_id }}"
+            name="contact[phone]"
+            class="ai-contact-form__input-{{ ai_gen_id }}"
+            value="{% if form.phone %}{{ form.phone }}{% endif %}"
+            placeholder="{{ block.settings.phone_placeholder }}"
+            autocomplete="tel"
+            {% if block.settings.phone_required %}required{% endif %}
+          >
+        </div>
+      {% endif %}
+
+      <div class="ai-contact-form__field-{{ ai_gen_id }}">
+        <label for="contact-message-{{ ai_gen_id }}" class="ai-contact-form__label-{{ ai_gen_id }}">
+          {{ block.settings.message_label }}
+          <span class="ai-contact-form__required-{{ ai_gen_id }}">*</span>
+        </label>
+        <textarea
+          id="contact-message-{{ ai_gen_id }}"
+          name="contact[body]"
+          class="ai-contact-form__textarea-{{ ai_gen_id }}"
+          placeholder="{{ block.settings.message_placeholder }}"
+          required
+        >{% if form.body %}{{ form.body }}{% endif %}</textarea>
+      </div>
+
+      {% if block.settings.enable_file_upload %}
+        <div class="ai-contact-form__field-{{ ai_gen_id }}">
+          <label class="ai-contact-form__label-{{ ai_gen_id }}">
+            {{ block.settings.file_label }}
+            {% if block.settings.file_required %}
+              <span class="ai-contact-form__required-{{ ai_gen_id }}">*</span>
+            {% endif %}
+          </label>
+          <div class="ai-contact-form__file-wrapper-{{ ai_gen_id }}">
+            <input
+              type="file"
+              id="contact-file-{{ ai_gen_id }}"
+              name="contact[attachment]"
+              class="ai-contact-form__file-input-{{ ai_gen_id }}"
+              accept="{{ block.settings.file_types }}"
+              {% if block.settings.file_required %}required{% endif %}
+            >
+            <label for="contact-file-{{ ai_gen_id }}" class="ai-contact-form__file-label-{{ ai_gen_id }}">
+              <svg class="ai-contact-form__file-icon-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span class="ai-contact-form__file-text-{{ ai_gen_id }}">{{ block.settings.file_button_text }}</span>
+            </label>
+            <div class="ai-contact-form__file-name-{{ ai_gen_id }}" data-file-name></div>
+            {% if block.settings.file_info != blank %}
+              <div class="ai-contact-form__file-info-{{ ai_gen_id }}">{{ block.settings.file_info }}</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <button type="submit" class="ai-contact-form__button-{{ ai_gen_id }}">
+        {{ block.settings.submit_text }}
+      </button>
+    </div>
+  {%- endform -%}
+</contact-form-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class ContactForm{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.fileInput = this.querySelector('#contact-file-{{ ai_gen_id }}');
+        this.fileNameDisplay = this.querySelector('[data-file-name]');
+        
+        if (this.fileInput && this.fileNameDisplay) {
+          this.fileInput.addEventListener('change', this.handleFileChange.bind(this));
+        }
+      }
+
+      handleFileChange(event) {
+        const file = event.target.files[0];
+        if (file) {
+          this.fileNameDisplay.textContent = `Selected: ${file.name}`;
+        } else {
+          this.fileNameDisplay.textContent = '';
+        }
+      }
+    }
+
+    customElements.define('contact-form-{{ ai_gen_id }}', ContactForm{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Contact form with files",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Get in touch"
+    },
+    {
+      "type": "font_picker",
+      "id": "heading_font",
+      "label": "Heading font",
+      "default": "inter_n7"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "label": "Heading size",
+      "min": 20,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "richtext",
+      "id": "description",
+      "label": "Description",
+      "default": "<p>Have a question or need assistance? Fill out the form below and we'll get back to you as soon as possible.</p>"
+    },
+    {
+      "type": "text",
+      "id": "email_subject",
+      "label": "Email subject",
+      "default": "Contact form submission"
+    },
+    {
+      "type": "header",
+      "content": "Form fields"
+    },
+    {
+      "type": "text",
+      "id": "name_label",
+      "label": "Name label",
+      "default": "Name"
+    },
+    {
+      "type": "text",
+      "id": "name_placeholder",
+      "label": "Name placeholder",
+      "default": "Your name"
+    },
+    {
+      "type": "text",
+      "id": "email_label",
+      "label": "Email label",
+      "default": "Email"
+    },
+    {
+      "type": "text",
+      "id": "email_placeholder",
+      "label": "Email placeholder",
+      "default": "your@email.com"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_phone",
+      "label": "Show phone field",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "phone_label",
+      "label": "Phone label",
+      "default": "Phone"
+    },
+    {
+      "type": "text",
+      "id": "phone_placeholder",
+      "label": "Phone placeholder",
+      "default": "Your phone number"
+    },
+    {
+      "type": "checkbox",
+      "id": "phone_required",
+      "label": "Phone required",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "message_label",
+      "label": "Message label",
+      "default": "Message"
+    },
+    {
+      "type": "text",
+      "id": "message_placeholder",
+      "label": "Message placeholder",
+      "default": "How can we help you?"
+    },
+    {
+      "type": "header",
+      "content": "File upload"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_file_upload",
+      "label": "Enable file upload",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "file_label",
+      "label": "File label",
+      "default": "Attachment"
+    },
+    {
+      "type": "text",
+      "id": "file_button_text",
+      "label": "File button text",
+      "default": "Choose file"
+    },
+    {
+      "type": "checkbox",
+      "id": "file_required",
+      "label": "File required",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "file_types",
+      "label": "Accepted file types",
+      "default": ".pdf,.doc,.docx,.jpg,.jpeg,.png",
+      "info": "Comma-separated file extensions (e.g., .pdf,.jpg,.png)"
+    },
+    {
+      "type": "text",
+      "id": "file_info",
+      "label": "File info text",
+      "default": "Max file size: 10MB. Accepted formats: PDF, DOC, JPG, PNG"
+    },
+    {
+      "type": "header",
+      "content": "Button"
+    },
+    {
+      "type": "text",
+      "id": "submit_text",
+      "label": "Submit button text",
+      "default": "Send message"
+    },
+    {
+      "type": "header",
+      "content": "Messages"
+    },
+    {
+      "type": "text",
+      "id": "success_message",
+      "label": "Success message",
+      "default": "Thank you for contacting us. We'll get back to you soon!"
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum width",
+      "min": 400,
+      "max": 1200,
+      "step": 50,
+      "unit": "px",
+      "default": 600
+    },
+    {
+      "type": "range",
+      "id": "padding",
+      "label": "Padding",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "label": "Field spacing",
+      "min": 12,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "label": "Text size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Form border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "input_border_radius",
+      "label": "Input border radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 7
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "label": "Button border radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 7
+    },
+    {
+      "type": "range",
+      "id": "desktop_width_percent",
+      "label": "Desktop width",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "mobile_width_percent",
+      "label": "Mobile width",
+      "min": 80,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "input_background",
+      "label": "Input background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "input_border_color",
+      "label": "Input border",
+      "default": "#cccccc"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_color",
+      "label": "Button hover background",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "success_color",
+      "label": "Success",
+      "default": "#008060"
+    },
+    {
+      "type": "color",
+      "id": "error_color",
+      "label": "Error",
+      "default": "#D82C0D"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Contact form with files"
+    }
+  ]
+}
+{% endschema %}

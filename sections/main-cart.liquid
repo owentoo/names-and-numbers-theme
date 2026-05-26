@@ -1,0 +1,2174 @@
+  {%- comment -%}
+    Gang Sheet Builder bridge — early hide.
+    If a gang sheet add is pending in sessionStorage, hide the cart UI and
+    show a loader while the bottom-of-file bridge does the XHR add and reloads.
+    Without this, customers briefly see the pre-add cart state (often empty
+    or missing the gang sheet they just clicked Add on).
+  {%- endcomment -%}
+  <script>
+    (function() {
+      try {
+        if (!sessionStorage.getItem('__gs_pending_added_to_cart')) return;
+        document.documentElement.style.visibility = 'hidden';
+        function showLoader() {
+          if (document.getElementById('gs-bridge-loader')) return;
+          var loader = document.createElement('div');
+          loader.id = 'gs-bridge-loader';
+          loader.setAttribute('style',
+            'position:fixed;inset:0;background:#fff;display:flex;' +
+            'align-items:center;justify-content:center;z-index:2147483647;' +
+            'font-family:system-ui,-apple-system,sans-serif;color:#333;' +
+            'visibility:visible !important;font-size:15px;'
+          );
+          loader.textContent = 'Adding your gang sheet to cart…';
+          document.body.appendChild(loader);
+        }
+        if (document.body) showLoader();
+        else document.addEventListener('DOMContentLoaded', showLoader);
+      } catch (e) {}
+    })();
+  </script>
+
+{{ 'component-cart.css' | asset_url | stylesheet_tag }}
+{{ 'section-main-cart.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'cart-edit-size.js' | asset_url }}" defer></script>
+
+<!-- Delete All Sizes Confirmation Modal -->
+<div id="nt-delete-all-modal" class="nt-modal-overlay" role="dialog" aria-modal="true" style="display:none;">
+  <div class="nt-dal-box">
+    <p>Delete all sizes?</p>
+    <p>All size variants for this design will be removed from your cart.</p>
+    <div class="nt-dal-actions">
+      <button id="nt-delete-all-cancel" type="button">Cancel</button>
+      <button id="nt-delete-all-confirm" type="button">Delete All</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Size Modal -->
+<div id="nt-edit-modal" class="nt-modal-overlay" role="dialog" aria-modal="true" aria-label="Edit Size" style="display:none;">
+  <div id="nt-modal-box">
+
+    <!-- Header -->
+    <div class="nt-em-header">
+      <span id="nt-modal-title">Edit Size</span>
+      <button id="nt-edit-close" aria-label="Close">&times;</button>
+    </div>
+
+    <!-- Body -->
+    <div class="nt-em-body">
+
+      <!-- Tabs -->
+      <div class="nt-em-tabs">
+        <button id="nt-tab-custom" class="nt-em-tab active" type="button">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          Custom Size
+        </button>
+        <button id="nt-tab-popular" class="nt-em-tab" type="button">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Popular Size
+        </button>
+      </div>
+
+      <!-- Tab content — min-height locks modal so tabs don't shift it -->
+      <div class="nt-em-tab-content">
+
+        <!-- Custom Size tab -->
+        <div id="nt-view-custom">
+          <div class="nt-em-dim-row">
+            <div class="nt-em-dim-group">
+              <label for="nt-edit-w" class="nt-em-dim-label">Width (in)</label>
+              <div class="nt-em-input-wrap">
+                <button id="nt-w-minus" class="nt-em-stepper-btn" type="button">−</button>
+                <input id="nt-edit-w" class="nt-em-dim-input" type="text" inputmode="decimal" step="0.25" min="0.25" placeholder="0.00">
+                <button id="nt-w-plus" class="nt-em-stepper-btn" type="button">+</button>
+              </div>
+            </div>
+            <div class="nt-em-dim-x">×</div>
+            <div class="nt-em-dim-group">
+              <label for="nt-edit-h" class="nt-em-dim-label">Height (in)</label>
+              <div class="nt-em-input-wrap">
+                <button id="nt-h-minus" class="nt-em-stepper-btn" type="button">−</button>
+                <input id="nt-edit-h" class="nt-em-dim-input" type="text" inputmode="decimal" step="0.25" min="0.25" placeholder="0.00">
+                <button id="nt-h-plus" class="nt-em-stepper-btn" type="button">+</button>
+              </div>
+            </div>
+          </div>
+          <div id="nt-edit-sqin" style="display:none;"></div>
+        </div>
+
+        <!-- Popular Size tab -->
+        <div id="nt-view-popular" style="display:none;">
+          <label class="nt-em-dim-label">Size</label>
+          <div class="nt-em-select-wrap">
+            <select id="nt-popular-select">
+              <option value="">Select a popular size</option>
+            </select>
+            <div class="nt-em-select-arrow">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div id="nt-smart-label" style="display:none;">
+            <span>Smart Sizing Applied</span>
+            <span class="nt-info-icon" tabindex="0">i</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Dimension Limit Error -->
+      <div id="nt-dim-error" style="display:none;"></div>
+
+      <!-- DPI / Clarity Warning -->
+      <div id="nt-dpi-warning" style="display:none;">
+        At this size, artwork clarity may be compromised. Opt for a smaller size.
+      </div>
+
+      <!-- Headers + data in one grid so columns align perfectly -->
+      <div class="nt-em-price-grid">
+        <!-- Header row -->
+        <div class="nt-em-grid-hdr">Qty</div>
+        <div class="nt-em-grid-hdr text-right">Price</div>
+        <div class="nt-em-grid-hdr text-right">Total</div>
+        <div></div>
+        <!-- Data row — Qty stepper -->
+        <div class="nt-em-qty-stepper">
+          <button id="nt-qty-minus" class="nt-em-qty-btn" type="button">−</button>
+          <input id="nt-qty-val" type="text" inputmode="numeric" min="1" value="1">
+          <button id="nt-qty-plus" class="nt-em-qty-btn" type="button">+</button>
+        </div>
+        <!-- Price ea -->
+        <div class="nt-em-price-cell">
+          <div id="nt-price-ea-orig" style="display:none;"></div>
+          <div id="nt-price-ea"></div>
+        </div>
+        <!-- Total -->
+        <div class="nt-em-price-cell">
+          <div id="nt-total-orig" style="display:none;"></div>
+          <div id="nt-total"></div>
+        </div>
+        <!-- Badge -->
+        <div id="nt-disc-badge"></div>
+      </div>
+
+      <!-- Error -->
+      <div id="nt-edit-error" style="display:none;"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="nt-modal-footer">
+      <button id="nt-edit-cancel" class="nt-modal-cancel">Cancel</button>
+      <button id="nt-edit-confirm" class="nt-modal-confirm">Update</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Edit Size button + block styles -->
+<style>
+  /* ── Cart page background ── */
+  body.template-cart { background: #f8f9fb; }
+
+  /* ── Fix mobile grid gap (items col keeps desktop height when stacked) ── */
+  @media screen and (max-width: 1023px) {
+    .cart-section { grid-template-rows: auto auto; }
+  }
+
+  /* ── Shared card style: white, rounded, soft shadow, no border ── */
+  .nt-card-style {
+    background: #fff;
+    border: none !important;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  /* ── Unified sub-title meta text (12px everywhere) ── */
+  .cart-item__variant,
+  .cart-item__property,
+  .cart-item__property .options_with_values,
+  .nt-dg-upload,
+  .nt-dg-qty,
+  .nt-dg-discount,
+  .nt-dg-sizes-count,
+  .nt-dg-precut {
+    font-size: 12px !important;
+    line-height: 1.4;
+    font-weight: 400;
+    color: #000;
+  }
+  .cart-item__title,
+  .nt-dg-name {
+    font-size: 14px !important;
+    font-weight: 600;
+    color: #111;
+  }
+
+  /* ── Right sidebar card treatment ── */
+  /* Shipping progress bars */
+  .sidebar-widget__content.fullpage-cart {
+    border: 1px solid rgba(226,232,240,0.6) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    background: #fff;
+  }
+  /* Subtotal widget — bottom half */
+  .cart__subtotal-widget {
+    border: 1px solid rgba(226,232,240,0.6) !important;
+    border-top: none !important;
+    border-radius: 0 0 16px 16px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    background: #fff;
+    display: flex !important;
+    flex-direction: column;
+  }
+  /* Reorder: shipping text above total, total above button */
+  .cart__subtotal-widget .cart__shipping {
+    order: -2;
+    text-align: center !important;
+    font-size: 13px;
+    color: #888;
+    padding-bottom: 12px;
+    margin-bottom: 0;
+  }
+  .cart__subtotal-widget .cart__total {
+    order: -1;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    border-bottom: none !important;
+    padding-top: 14px !important;
+    margin-bottom: 4px;
+  }
+  /* Conditional separator above Total:
+     - When savings ARE present (no .blank-row), show a 1px line
+       between Savings and Total.
+     - When NO savings (.blank-row is added by component-cart.js when
+       _savingnum <= 0), suppress the line so Total stands alone. */
+  .cart__subtotal-widget .cart__total.cart__details--row {
+    border-top: 1px solid #e5e7eb !important;
+    padding-top: 12px !important;
+  }
+  .cart__subtotal-widget .cart__total.cart__details--row.blank-row {
+    border-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  /* Mirror the same conditional on the mobile sticky cart
+     (does NOT have .cart__subtotal-widget — applies to the
+     floating bottom widget). */
+  .mobile-sticky-cart .cart__total.cart__details--row {
+    border-top: 1px solid #e5e7eb !important;
+    border-bottom: none !important;
+    padding-top: 12px !important;
+  }
+  .mobile-sticky-cart .cart__total.cart__details--row.blank-row {
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  .cart__subtotal-widget .cart__total strong {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+  }
+  /* Checkout button — match card radius */
+  #CheckOut.btn-new-style {
+    border-radius: 16px !important;
+    margin-top: 12px;
+  }
+  /* Reward points — now shown on cart page + sidebar */
+  /* Share cart button — transparent bg to match page */
+  .share_cart_btn.share_cart_flex { background: transparent !important; border: none !important; }
+  /* Blanks upsell cards — transparent bg to match page */
+  .grt-product-card, .grt-card-swatches { background-color: transparent !important; }
+  /* Hide savings row when empty */
+  .cart-saving-row:empty { display: none; }
+  /* Hide qty stepper for Jump the Line & Pre-cut Option (keep trash) */
+  [data-product-id="6947128901715"] product-quantity,
+  [data-product-id="7578022281299"] product-quantity { display:none !important; }
+  /* Flat (non-grouped) cart items */
+  .cart-form__items > .cart-form-item { margin-bottom:12px; border:1px solid rgba(226,232,240,0.6); border-radius:16px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+  /* Match flat card padding to parent header — desktop: gutter-regular, ≤1100px: gutter-small, mobile: 16px */
+  .cart-form__items > .cart-form-item .cart-form-item--layout { padding:var(--gutter-regular) !important; }
+  .cart-form__items > .cart-form-item .cart-item__actions { margin-top: 0 !important; }
+  @media screen and (max-width:1100px) {
+    .cart-form__items > .cart-form-item .cart-form-item--layout { padding:var(--gutter-small) !important; }
+  }
+  @media (max-width:767px) {
+    .cart-form__items > .cart-form-item .cart-form-item--layout {
+      padding: 16px !important;
+      row-gap: 12px !important;
+      grid-template-columns: 5rem 1fr !important;
+      grid-template-areas:
+        "thumbnail price-title-variants"
+        "quantity quantity" !important;
+    }
+    .cart-form__items > .cart-form-item .cart-item__actions { grid-area: quantity; }
+    .cart-form__items > .cart-form-item .cart-item__thumbnail { align-self: start !important; }
+    .cart-form__items > .cart-form-item .cart-form-item__price-title-variants { align-self: start !important; }
+  }
+  /* JTL & Pre-cut — no overrides, uses same grid + padding as all flat cards */
+  /* Group cards — shared between design + blank */
+  .nt-design-group,
+  .nt-blank-group { margin-bottom:12px; border:1px solid rgba(226,232,240,0.6); border-radius:16px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+  /* Parent header — same grid as flat cards */
+  .nt-dg-header { display:grid; align-items:center; gap:var(--gutter-regular); padding:var(--gutter-regular); background:#fff; border-bottom:1px solid #f0f0f0;
+    grid-template-columns: 5rem 18.75rem 1fr 10rem;
+    grid-template-areas: "thumbnail info actions total";
+  }
+  @media screen and (max-width:1100px) {
+    .nt-dg-header { padding:var(--gutter-small); gap:var(--gutter-small);
+      grid-template-columns: 5rem 12.5rem 1fr 6.25rem;
+    }
+  }
+  @media (max-width:767px) {
+    .nt-dg-header { padding:16px;
+      grid-template-columns: 5rem 1fr;
+      grid-template-areas: "thumbnail info" "thumbnail total";
+    }
+    .nt-dg-header.nt-dg-single {
+      grid-template-areas:
+        "thumbnail info"
+        "actions   price";
+      row-gap: 8px;
+    }
+    .nt-dg-header.nt-dg-single .nt-dg-solo-controls { grid-area: actions; align-self: center; }
+    .nt-dg-header.nt-dg-single .nt-dg-solo-price { grid-area: price; align-self: center; }
+    .nt-dg-solo-price > .cart-item__price {
+      display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+    }
+    .nt-dg-solo-price > .cart-item__price > .discounted-line-item-price {
+      margin-bottom: 0 !important;
+    }
+    .nt-dg-solo-price > .cart-item__price > strong {
+      min-width: 5rem; text-align: right;
+    }
+    .nt-dg-info { align-self: start !important; }
+  }
+  /* Thumbnail — dimensions + clipping only. Checkerboard background is
+     provided by the global rule in assets/theme.css (search for
+     ".nt-checker-bg,") so every cart surface stays in sync. */
+  .nt-dg-thumb { grid-area:thumbnail; width:5rem; height:5rem; overflow:hidden; align-self:start; border-radius:8px; }
+  .nt-dg-thumb img { width:calc(100% - 12px); height:calc(100% - 12px); margin:6px; object-fit:contain; object-position:50% 50%; display:block; vertical-align:middle; opacity:1; }
+  .nt-dg-info { grid-area:info; min-width:0; }
+  /* Sizes row between header and children — no divider above */
+  .nt-dg-header:has(+ .nt-dg-sizes-row) { border-bottom:none; padding-bottom:0 !important; }
+  .nt-dg-sizes-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px var(--gutter-regular); border-bottom:1px solid #f0f0f0; font-size:12px; color:#555; }
+  .nt-dg-sizes-row strong { font-size:12px; font-weight:600; color:#111; }
+  /* Sizes row price: hidden on desktop, shown on mobile */
+  .nt-dg-sizes-row-price { display:none; text-align:right; }
+  .nt-dg-sizes-row-price strong { font-size:14px; }
+  .nt-dg-sizes-row-orig { display:block; font-size:12px; }
+  .nt-dg-sizes-row-final { display:block; }
+  @media screen and (max-width:1100px) { .nt-dg-sizes-row { padding:12px var(--gutter-small); } }
+  @media (max-width:767px) {
+    .nt-dg-sizes-row { padding:12px 16px; }
+    .nt-dg-sizes-row-price { display:block; }
+    .nt-dg-header:has(+ .nt-dg-sizes-row) .nt-dg-total { display:none; }
+  }
+  .nt-dg-actions { grid-area:actions; }
+  .nt-dg-total { grid-area:total; }
+  /* Single-size card: slot into header grid */
+  .nt-dg-solo-controls { grid-area:actions; margin-top:0; }
+  .nt-dg-solo-controls .qty-button,
+  .nt-dg-solo-controls .qty-selector { height:2.5rem !important; width:2.5rem !important; }
+  .nt-dg-solo-price { grid-area:total; }
+  /* Match child-row property font size on single-size card */
+  .nt-dg-single .nt-size-block { font-size: 12px !important; margin-top:2px; }
+  .nt-dg-name { display:block; font-weight:600; font-size:14px; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .nt-dg-qty { display:block; font-size:12px; font-weight:400; color:#000; margin-top:2px; }
+  /* ── Shared child row rules (design + blank groups) ── */
+  .nt-design-group > .cart-form-item,
+  .nt-blank-group > .cart-form-item { border-bottom:none; }
+  .nt-design-group > .cart-form-item + .cart-form-item,
+  .nt-blank-group > .cart-form-item + .cart-form-item { border-top:1px solid #f0f0f0; }
+  @media (max-width:767px) {
+    .nt-design-group > .cart-form-item + .cart-form-item,
+    .nt-blank-group > .cart-form-item + .cart-form-item { border-top:1px solid #f0f0f0 !important; }
+  }
+  .nt-design-group .cart-form-item--layout,
+  .nt-blank-group .cart-form-item--layout {
+    padding-top:12px !important; padding-bottom:12px !important; padding-right:var(--gutter-regular) !important;
+    grid-template-columns: calc(25rem + var(--gutter-regular)) 1fr 10rem !important;
+    grid-template-areas: "price-title-variants quantity total" !important;
+  }
+  @media screen and (max-width:1100px) {
+    .nt-design-group .cart-form-item--layout,
+    .nt-blank-group .cart-form-item--layout {
+      padding-right: var(--gutter-small) !important;
+      grid-template-columns: calc(18.75rem + var(--gutter-small)) 1fr 6.25rem !important;
+    }
+  }
+  @media (max-width:767px) {
+    .nt-design-group .cart-form-item--layout,
+    .nt-blank-group .cart-form-item--layout {
+      padding:16px !important; row-gap:12px !important;
+      grid-template-columns:1fr !important;
+      grid-template-areas: "price-title-variants" "quantity" !important;
+    }
+    .nt-design-group .cart-form-item .cart-item__actions,
+    .nt-blank-group .cart-form-item .cart-item__actions { padding-top:0 !important; }
+  }
+  .nt-design-group .cart-form-item,
+  .nt-blank-group .cart-form-item { background:#fff; }
+  .nt-design-group .cart-form-item .cart-item__actions,
+  .nt-blank-group .cart-form-item .cart-item__actions { margin-top:0 !important; }
+  .nt-design-group .cart-form-item .cart-item__thumbnail,
+  .nt-blank-group .cart-form-item .cart-item__thumbnail { display:none; }
+  .nt-design-group .cart-form-item .cart-item__title,
+  .nt-blank-group .cart-form-item .cart-item__title { display:none; }
+  .nt-design-group .cart-form-item .nt-upload-preview-row { display:none; }
+  .nt-design-group .cart-form-item .promoCoupen,
+  .nt-design-group .cart-form-item .nonePromoCoupen,
+  .nt-blank-group .cart-form-item .promoCoupen,
+  .nt-blank-group .cart-form-item .nonePromoCoupen { display:none !important; }
+  /* But: show promo label on FREE child rows so users see why the line is free (0 or negative = promo covered) */
+  /* Multi-size children: show promoCoupen above size inside .cart-item__property */
+  .nt-design-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost="0"]) .promoCoupen,
+  .nt-design-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost^="-"]) .promoCoupen,
+  .nt-blank-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost="0"]) .promoCoupen,
+  .nt-blank-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost^="-"]) .promoCoupen { display:block !important; margin-bottom:4px; font-size:12px; }
+  .nt-design-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost="0"]) .cart-item__property,
+  .nt-design-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost^="-"]) .cart-item__property,
+  .nt-blank-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost="0"]) .cart-item__property,
+  .nt-blank-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost^="-"]) .cart-item__property { display:flex; flex-direction:column; }
+  .nt-design-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost="0"]) .cart-item__property .promoCoupen,
+  .nt-design-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost^="-"]) .cart-item__property .promoCoupen,
+  .nt-blank-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost="0"]) .cart-item__property .promoCoupen,
+  .nt-blank-group .cart-form-item:not(.nt-dg-single):has([data-line-item-cost^="-"]) .cart-item__property .promoCoupen { order:-1; }
+  /* Solo design group (1-size) FREE card: show promoCoupen between Discount line and Size block inside .nt-dg-info */
+  .nt-dg-header.nt-dg-single:has([data-line-item-cost="0"]) .nt-dg-info,
+  .nt-dg-header.nt-dg-single:has([data-line-item-cost^="-"]) .nt-dg-info { display:flex; flex-direction:column; }
+  .nt-dg-header.nt-dg-single:has([data-line-item-cost="0"]) .promoCoupen,
+  .nt-dg-header.nt-dg-single:has([data-line-item-cost^="-"]) .promoCoupen { display:block !important; order:1; margin-top:2px; font-size:12px; }
+  .nt-dg-header.nt-dg-single:has([data-line-item-cost="0"]) .prop.nt-size-block,
+  .nt-dg-header.nt-dg-single:has([data-line-item-cost^="-"]) .prop.nt-size-block { order:2; }
+  /* FREE lines: disable qty controls (+, -, input) — keep Edit and X delete functional */
+  .cart-form-item:has([data-line-item-cost="0"]) .qty-button,
+  .cart-form-item:has([data-line-item-cost^="-"]) .qty-button,
+  .cart-form-item:has([data-line-item-cost="0"]) .qty-selector,
+  .cart-form-item:has([data-line-item-cost^="-"]) .qty-selector,
+  .nt-dg-header:has([data-line-item-cost="0"]) .qty-button,
+  .nt-dg-header:has([data-line-item-cost^="-"]) .qty-button,
+  .nt-dg-header:has([data-line-item-cost="0"]) .qty-selector,
+  .nt-dg-header:has([data-line-item-cost^="-"]) .qty-selector { pointer-events:none !important; opacity:0.3 !important; cursor:not-allowed !important; }
+  /* ── Group card metadata text ── */
+  .nt-dg-upload, .nt-dg-discount, .nt-dg-precut { display:block; font-size:12px; font-weight:400; color:#000; margin-top:2px; }
+  .nt-dg-price-orig { font-size:12px; margin-bottom:2px; }
+  .nt-size-block { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .nt-size-block > span > strong { font-size:12px; font-weight:600; }
+  .nt-edit-size-btn {
+    background: none; border: none; padding: 0;
+    font-size: inherit; font-weight: bold; cursor: pointer;
+    text-decoration: none; font-family: inherit;
+    line-height: 1;
+  }
+  #nt-qty-val::-webkit-inner-spin-button,
+  #nt-qty-val::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  #nt-edit-modal button { touch-action: manipulation; }
+  .nt-info-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #111; color: #fff; font-size: 9px; font-weight: 700;
+    font-style: normal; cursor: default; flex-shrink: 0;
+    vertical-align: middle;
+  }
+  .nt-delete-all-btn { background:none; border:none; padding:0; cursor:pointer; font-size:12px; color:#888; font-weight:600; font-family:inherit; margin-top:0; margin-left:6px; text-decoration:none; }
+  .nt-delete-all-btn:hover { color:#e53935; }
+
+  /* ── Blank apparel: thumb + color label ── */
+  .nt-blank-group .nt-blank-thumb { background-image:none !important; background-color:#f6f6f6; border-radius:8px; }
+  .nt-blank-group .nt-blank-thumb img { mix-blend-mode:darken; width:calc(100% - 16px); height:calc(100% - 16px); margin:8px; object-fit:contain; object-position:50% 50%; display:block; }
+  .nt-dg-color { display:block; font-size:12px; font-weight:400; color:#000; margin-top:2px; }
+  .nt-blank-group .cart-form-item .options_with_values[data="Color"] { display:none; }
+  /* ── Shared group footer (design + blank) ── */
+  .nt-add-size-footer,
+  .nt-blank-group-footer { display:flex; gap:16px; padding:12px var(--gutter-regular); border-top:1px solid #f0f0f0; background:#fff; text-align:left; }
+  @media screen and (max-width:1100px) { .nt-add-size-footer, .nt-blank-group-footer { padding:12px var(--gutter-small); } }
+  @media (max-width:767px) { .nt-add-size-footer, .nt-blank-group-footer { padding:12px 16px; } }
+  /* ── Shared action link style ── */
+  .nt-add-size-btn,
+  .nt-blank-add-size-btn,
+  .nt-blank-add-color-btn { background:none; border:none; color:#019AFF; padding:0; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0; touch-action:manipulation; text-decoration:none; font-family:inherit; }
+  .nt-add-size-btn:hover,
+  .nt-blank-add-size-btn:hover,
+  .nt-blank-add-color-btn:hover { color:#0077cc; }
+  /* cart-form is display:flex — the inner <form> has min-width:auto which
+     prevents it from shrinking to fit on mobile, causing ~22px right overflow.
+     min-width:0 + width:100% fixes that; overflow-x:hidden clips any residual. */
+  cart-form#AjaxCartForm { overflow-x: hidden; }
+  form.cart__form { min-width: 0; width: 100%; }
+
+  /* ── Desktop ea price: 13px (1px bigger than mobile 12px), strikethrough stays 12px ── */
+  @media screen and (min-width:768px) {
+    .discounted-line-item-price .seccolor strong,
+    .discounted-line-item-price > div:not(:has(del)) { font-size: 13px; }
+  }
+
+  /* ── Side-by-side pricing: ea price + total on one line ── */
+  /* Desktop only (>1100px) — tablet stays stacked due to tight space */
+  @media screen and (min-width:1101px) {
+    /* Widen total column on flat cards to fit both prices */
+    .cart-form__items > .cart-form-item .cart-form-item--layout {
+      grid-template-columns: 5.625rem 18.75rem 1fr 10rem !important;
+    }
+    /* Desktop price wrapper (outer .cart-item__price): flex row */
+    .cart-form-item .text-right > .cart-item__price {
+      display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+    }
+    /* Remove stacked margin on ea-price div when side-by-side */
+    .cart-form-item .text-right > .cart-item__price > .discounted-line-item-price {
+      margin-bottom: 0 !important;
+    }
+    /* Parent header total: stacked (strikethrough original above, final below) */
+    .nt-dg-total {
+      display: flex; flex-direction: column; align-items: flex-end; justify-content: center;
+    }
+    .nt-dg-total .nt-dg-price-orig { margin-bottom: 2px; }
+    /* Fixed min-width on total so ea prices always align at the same position */
+    .cart-form-item .text-right > .cart-item__price > strong {
+      min-width: 5rem; text-align: right;
+    }
+    .nt-dg-total .nt-dg-price-final {
+      min-width: 5rem; text-align: right;
+    }
+    /* Single-size card: side-by-side ea price + total (same as child rows) */
+    .nt-dg-solo-price > .cart-item__price {
+      display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+    }
+    .nt-dg-solo-price > .cart-item__price > .discounted-line-item-price {
+      margin-bottom: 0 !important;
+    }
+    .nt-dg-solo-price > .cart-item__price > strong {
+      min-width: 5rem; text-align: right;
+    }
+  }
+  /* Mobile (≤767px) — different DOM: ea + total are siblings inside .text-right */
+  @media (max-width:767px) {
+    .cart-item__actions > .text-right.d-block {
+      display: flex !important; align-items: center; justify-content: flex-end; gap: 8px;
+    }
+    .cart-item__actions > .text-right.d-block > .discounted-line-item-price {
+      margin-bottom: 0 !important;
+    }
+    /* Fixed min-width on total so ea prices always align at the same position */
+    .cart-item__actions > .text-right > .cart-item__price:not(.discounted-line-item-price) {
+      min-width: 5rem; text-align: right;
+    }
+    /* Parent header total on mobile: stacked */
+    .nt-dg-total {
+      display: flex; flex-direction: column; align-items: flex-end; justify-content: center;
+    }
+    .nt-dg-total .nt-dg-price-orig { margin-bottom: 2px; }
+    .nt-dg-total .nt-dg-price-final {
+      min-width: 5rem; text-align: right;
+    }
+  }
+
+  /* ── Thumbnail styling: gray bg + radius + blend (match sidebar look) ── */
+  .cart-form__items > .cart-form-item .cart-item__thumbnail,
+  .nt-flat-card .cart-item__thumbnail { background:#f6f6f6; border-radius:8px; overflow:hidden; width:5rem !important; height:5rem !important; }
+  .cart-form__items > .cart-form-item .cart-item__thumbnail img,
+  .nt-flat-card .cart-item__thumbnail img { mix-blend-mode:darken; }
+
+
+  /* ── Mobile thumbnail size (page) — all cards 5rem × 5rem ── */
+  @media (max-width:767px) {
+    .nt-dg-thumb { width:5rem; height:5rem; }
+    .nt-dg-thumb img { width:calc(100% - 12px); height:calc(100% - 12px); margin:6px; }
+    .nt-blank-group .nt-blank-thumb img { width:calc(100% - 12px); height:calc(100% - 12px); margin:6px; }
+    .cart-form__items .cart-item__thumbnail { width:5rem !important; height:5rem !important; background:#f6f6f6; border-radius:8px; overflow:hidden; }
+    .cart-form__items .cart-item__thumbnail img { mix-blend-mode:darken; width:100% !important; height:100% !important; object-fit:contain; display:block; }
+  }
+
+  /* ── JTL card (cart page — white bg, blue left accent) ── */
+  .nt-jtl-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 3px solid #3eaeff;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .nt-jtl-card .jtl-bar { flex: 1; padding: 10px 14px 10px 6px; gap: 12px; }
+  .nt-jtl-card .jtl-icon-tile { width: 32px; height: 32px; background: #eff8ff; box-shadow: none; border-radius: 6px; color: #3eaeff; }
+  .nt-jtl-card .jtl-text { flex: initial; }
+  .nt-jtl-card .jtl-text strong { font-size: 14px; font-weight: 700; color: #111; }
+  .nt-jtl-card .jtl-sub { display: block; margin-left: auto; white-space: nowrap; font-weight: 600; font-size: 13px; color: #334155; line-height: 1.35; }
+  .nt-jtl-card .jtl-bar i { width: 38px; height: 22px; border-radius: 11px; background: #ccc; margin-left: -4px; }
+  .nt-jtl-card .jtl-bar i::before { width: 18px; height: 18px; }
+  .nt-jtl-card #cart-gift-wrapping:checked + .jtl-bar i,
+  .nt-jtl-card #MobileStickyJtlToggle:checked + .jtl-bar i { background: #3eaeff; }
+  .nt-jtl-card #cart-gift-wrapping:checked + .jtl-bar i::before,
+  .nt-jtl-card #MobileStickyJtlToggle:checked + .jtl-bar i::before { transform: translateX(16px); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  .nt-jtl-card #cart-gift-wrapping:checked + .jtl-bar .jtl-icon-tile,
+  .nt-jtl-card #MobileStickyJtlToggle:checked + .jtl-bar .jtl-icon-tile { background: #3eaeff; color: #fff; }
+  .nt-jtl-card #cart-gift-wrapping:checked + .jtl-bar .jtl-text,
+  .nt-jtl-card #MobileStickyJtlToggle:checked + .jtl-bar .jtl-text { color: inherit; }
+  .nt-jtl-card #cart-gift-wrapping:checked + .jtl-bar .jtl-text strong,
+  .nt-jtl-card #MobileStickyJtlToggle:checked + .jtl-bar .jtl-text strong { color: #111; }
+  .nt-jtl-card .cart-wrapping { background: transparent !important; border-radius: 0; }
+  .nt-jtl-card .cart-wrapping:has(:checked) { background: transparent !important; }
+  .nt-jtl-card .jtl-sub.jtl-sub--on { display: none; }
+  .nt-jtl-card .jtl-sub.jtl-sub--in-cart { display: none; }
+  .nt-jtl-card #cart-gift-wrapping:checked + .jtl-bar .jtl-sub--off,
+  .nt-jtl-card #MobileStickyJtlToggle:checked + .jtl-bar .jtl-sub--off { display: none; }
+  .nt-jtl-card #cart-gift-wrapping:checked + .jtl-bar .jtl-sub--in-cart,
+  .nt-jtl-card #MobileStickyJtlToggle:checked + .jtl-bar .jtl-sub--in-cart { display: block; color: #334155; }
+  .nt-jtl-card.jtl-flashing #cart-gift-wrapping:checked + .jtl-bar .jtl-sub--on,
+  .nt-jtl-card.jtl-flashing #MobileStickyJtlToggle:checked + .jtl-bar .jtl-sub--on { display: block; color: #21AF70; }
+  .nt-jtl-card.jtl-flashing #cart-gift-wrapping:checked + .jtl-bar .jtl-sub--in-cart,
+  .nt-jtl-card.jtl-flashing #MobileStickyJtlToggle:checked + .jtl-bar .jtl-sub--in-cart { display: none; }
+  /* Hides JTL line item visually when toggle is on.
+     Relies on #cart-gift-wrapping (desktop checkbox) being in DOM
+     inside <cart-form> at all viewports — mobile hides the desktop
+     wrapper via display:none but keeps the checkbox in DOM. If
+     desktop JTL ever becomes Liquid-conditionally-rendered, this
+     rule breaks on mobile. */
+  cart-form:has(#cart-gift-wrapping:checked) .cart-item--gift-wrapping { display: none; }
+
+  /* ── JTL viewport show/hide ── */
+  .nt-jtl-desktop-wrap { display: block; margin-bottom: 12px; }
+  @media (max-width: 1023px) {
+    .nt-jtl-desktop-wrap { display: none; }
+  }
+
+  /* ── Cart header row (title + share cart) ── */
+  /* !important overrides Bevy Cart Share app inline overflow-y:scroll (causes 1px scrollbar).
+     align-items: center keeps the Share cart icon+label vertically aligned with the
+     middle of the H1 — baseline alignment made the small share button sit visibly
+     above the heading text. */
+  .nt-cart-header { display: flex; align-items: center; gap: 16px; width: calc((100% - var(--gutter-regular)) * 3 / 4.4); overflow: visible !important; }
+  .nt-cart-header h1 { flex: 1; margin-bottom: 0; font-size: 22px; }
+  .nt-cart-count { font-size: 14px; color: #5A5B60; font-weight: 400; }
+  .nt-cart-header ~ .cart-section { margin-top: 0; }
+  .nt-share-target { flex-shrink: 0; display: flex; align-items: center; line-height: 1; overflow: visible; }
+  .nt-share-target * { line-height: 1; }
+  .nt-share-target .share_cart_wrap { margin: 0 !important; }
+  .nt-share-target .share_cart_header { margin: 0; padding: 0; }
+  /* ── "Share cart" custom treatment ──────────────────────────────────
+     Replaces the Bevy Share Cart app's default button (dark-navy text,
+     app-supplied icon) with a stroke-style upload-arrow icon + blue
+     "Share cart" text. The Bevy app injects markup like
+       <button class="share_cart_btn">…icon…<span>Share Cart</span></button>
+     so we (a) hide whatever icon they ship via the `> :not(span)` rule
+     and (b) inject our own SVG via `::before` (data-URI keeps it
+     self-contained — no external asset, no JS DOM mutation that would
+     need to re-run on app re-renders).
+     Scoped to `body.template-cart` so the cart-sidebar drawer's smaller
+     share-cart button (styled in layout/theme.liquid for sidebar-drawer)
+     keeps its existing treatment. */
+  body.template-cart .share_cart_btn,
+  body.template-cart .share_cart_btn:hover,
+  body.template-cart .share_cart_btn:focus,
+  body.template-cart .share_cart_btn:focus-visible,
+  body.template-cart .share_cart_btn:active,
+  body.template-cart .share_cart_btn:focus-within {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body.template-cart .share_cart_btn { color: #03a3f7 !important; }
+  body.template-cart .share_cart_btn:hover { color: #0288d1 !important; }
+  body.template-cart .share_cart_btn:active { color: #0277bd !important; }
+  /* Hide every child of the Bevy-injected button — we render both the
+     icon and the "Share cart" label via ::before / ::after on the button
+     itself, which is the most reliable way to short-circuit whatever
+     markup the app ships (sometimes <svg>+<span>, sometimes nested
+     <div>s, sometimes just text nodes). Clicks still register on the
+     button so the Bevy share modal opens normally. */
+  body.template-cart .share_cart_btn > * {
+    display: none !important;
+  }
+  /* Custom upload-arrow icon (Feather-style "upload"). currentColor so
+     it tracks the button's blue colour. */
+  body.template-cart .share_cart_btn::before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7'/><polyline points='16 6 12 2 8 6'/><line x1='12' y1='2' x2='12' y2='15'/></svg>") no-repeat center / contain;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7'/><polyline points='16 6 12 2 8 6'/><line x1='12' y1='2' x2='12' y2='15'/></svg>") no-repeat center / contain;
+  }
+  /* "Share cart" label as ::after content — guarantees the text shows
+     regardless of how Bevy structures its own label (we hid all the
+     children above, so the button would otherwise be icon-only). */
+  body.template-cart .share_cart_btn::after {
+    content: "Share cart";
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    white-space: nowrap;
+  }
+  @media (max-width: 1023px) {
+    .nt-cart-header { width: 100%; }
+  }
+</style>
+
+{%- render 'breadcrumb',
+  container: 'large',
+  vertical_space: 'vertical-space-xsmall',
+  style: 'breadcrumb-main--margin'
+-%}
+
+<div class="container container--large container--vertical-space-small">
+  <div class="nt-cart-header">
+    <h1 class="title heading-size--page-title">{{ 'cart.title' | t }}</h1>
+    <div class="nt-share-target"></div>
+  </div>
+  <div class="cart-section {% if cart.items.size == 0 %} cart-section--empty {% endif %}">
+    <div>
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+          {%- when '@app' -%}
+            <div class="margin-bottom--regular" {{ block.shopify_attributes }}>
+              {%- render block -%}
+            </div>
+
+          {%- when 'cart-items' -%}
+            <div {{ block.shopify_attributes }}>
+              {%- render 'cart-form-page' -%}
+            </div>
+
+          {%- when 'grt_upsell_block' -%}
+            <div class="cart-section__full-width" {{ block.shopify_attributes }}>
+              {%- render 'grt-upsell-block', block: block -%}
+            </div>
+            
+          {%- when 'shipping-calculator' -%}
+            <script src="{{ 'shopify_common.js' | shopify_asset_url }}" defer></script>
+            <script src="{{ 'component-shipping-calculator.js' | asset_url }}" defer></script>
+            {{ 'component-shipping-calculator.css' | asset_url | stylesheet_tag }}
+
+            <shipping-calculator {{ block.shopify_attributes }}>
+              <div class="shipping-calculator cart-block element--has-border--body margin-bottom--regular margin-top--regular">
+                <div class="cart-block__head">
+                  <span>{{ 'cart.shipping_calculator.title' | t }}</span>
+                </div>
+
+                <div class="shipping-calculator__content cart-block__content">
+                  <div class="shipping-calculator__cell">
+                    <label for="country">{{ 'customers.addresses_page.form.country_label' | t }}</label>
+                    <select
+                      name="country"
+                      id="shipping-estimator-country"
+                      data-default="{{ customer.default_address.country | default: section.settings.shipping_estimator_default_country }}"
+                      required
+                    >
+                      {{- country_option_tags -}}
+                    </select>
+                  </div>
+
+                  <div class="shipping-calculator__cell" id="address_province_container" style="display: none">
+                    <label for="province">{{ 'customers.addresses_page.form.province_label' | t }}</label>
+                    <select
+                      name="province"
+                      id="shipping-estimator-province"
+                      data-default="{{ customer.default_address.province }}"
+                    ></select>
+                  </div>
+
+                  <div class="shipping-calculator__cell">
+                    <label for="zip">{{ 'customers.addresses_page.form.zip_label' | t }}</label>
+                    <input
+                      type="text"
+                      name="zip"
+                      id="shipping-estimator-zip"
+                      class="form__field form__field--text"
+                      value="{{ customer.default.address.zip }}"
+                      required
+                    >
+                  </div>
+
+                  <div class="shipping-calculator__cell">
+                    {%- render 'button',
+                      style: 'outline js-estimate-shipping',
+                      label: 'cart.shipping_calculator.form_button_label',
+                      label_is_translation: true,
+                      is_submit: true,
+                      type: 'button',
+                      attribute: 'data-action="estimate-shipping"'
+                    -%}
+                  </div>
+                </div>
+
+                <div class="gutter--regular shipping-estimator__results" style="display: none;">
+                  <div class="alert alert--error"></div>
+
+                  <div class="shipping-estimator__results-content" style="display: none;">
+                    <span class="shipping-estimator__results-content-heading text-size--regular"></span>
+                    <ul class="shipping-estimator__results-content-list"></ul>
+                  </div>
+                </div>
+              </div>
+            </shipping-calculator>
+        {%- endcase -%}
+      {%- endfor -%}
+    </div>
+
+    <div>
+      {%- render 'cart-subtotal', type: 'page' -%}
+      <div class="mobile-suggestion-list"></div>
+
+  {% if cart.items.size != 0 %} 
+    <style>
+      .additional-objects-box{padding:var(--gutter-regular)}
+      .pay-icon-sets{border-bottom: 1px solid #e5e5e5; padding-bottom: 19px; margin:0px 1px; margin-top: 16px;}
+      .pay-icon-sets span{display:block; margin: 0px auto;}
+      .pay-icon-sets img{max-width:100%;}
+      .cartsection-suggetionblock{display:none !important;}
+      .cart-faq_item .faq-item:not(:last-child){border-bottom: 1px solid #e5e5e5;}
+      .cart-faq_item .faq-icon-wrap{font-weight: bold; align-items: center; display:flex; font-size:calc(14px / 16 * var(--base-body-primary-size) + 0px);}
+      .cart-faq_item .faq-icon-image{display: flex; width: 24px; height: 24px; margin-right: 10px;}
+      .faq-section.cart-faq_item{margin:0 1px;}
+      .faq-question{padding:18px 0px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;}
+      .faq-icon-image img{max-width:100%;}
+      .faq-icon { font-size: 18px; transition: transform 0.3s; margin-left: 10px;}
+      .faq-answer:empty{display: none;}
+      .faq-answer{color:#828282}
+    </style>
+    <div class="additional-objects-box">
+      <div class="d-flex align-items-center btngroup8 pay-icon-sets">
+        <span>
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/transfer-installments-121724.png?v=1734458882" loading="lazy" alt="payment terms" />
+        </span>
+      </div>
+      <!-- FAQ Section Starts Here -->
+      <div class="faq-section cart-faq_item">
+        {% for block in section.blocks %}
+          {% if block.type == 'faq_item' %}
+            <div class=" faq-item">
+              <div class="faq-question">
+
+                <div class="faq-icon-wrap">
+                  {% if block.settings.icon__image %}
+                    <span class="faq-icon-image">
+                      {% if block.settings.icon__image == 'guarantee' %}
+                        {% render 'gurantee' %}
+                      {% elsif block.settings.icon__image == 'support' %}
+                        {% render 'timer-icon' %}
+                      {% endif %}
+                    </span>
+                  {% endif %}
+
+                {{ block.settings.question }}
+                </div>
+                <div >
+
+                </div>
+              </div>
+              <div class="faq-answer">{{- block.settings.answer -}}</div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <!-- FAQ Section Ends Here -->
+    </div>
+      {% endif %}
+      
+    </div>
+  </div>
+</div>
+
+<!-- Blank apparel: Add Size / Add Color modal -->
+<style>
+  .nbm-overlay { display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px; }
+  .nbm-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.45); }
+  .nbm-box { position:relative; max-width:420px; width:100%; max-height:calc(100dvh - 32px); overflow-y:auto; background:#fff; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.18); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; display:flex; flex-direction:column; }
+  .nbm-header { display:flex; align-items:center; justify-content:space-between; padding:18px 20px 14px; border-bottom:1px solid #eee; }
+  .nbm-title { font-size:15px; font-weight:600; color:#111; margin:0; }
+  .nbm-close { background:none; border:none; cursor:pointer; font-size:22px; color:#888; line-height:1; padding:0 2px; }
+  .nbm-body { padding:20px 20px 8px; position:relative; flex:1; }
+  .nbm-footer { display:flex; gap:10px; padding:16px 20px 20px; border-top:1px solid #eee; }
+  .nbm-label { display:block; font-size:13px; font-weight:600; margin-bottom:8px; color:#111; }
+  .nbm-product-img-wrap { margin:-20px -20px 16px; background:#f6f6f6; height:200px; }
+  .nbm-product-img { width:100%; height:200px; object-fit:contain; display:block; mix-blend-mode:darken; }
+  .nbm-color-label { display:flex; align-items:center; gap:0.75rem; font-size:14px; font-weight:700; color:#111; margin-bottom:16px; }
+  .nbm-color-label strong { font-weight:600; text-transform:capitalize; }
+  .nbm-color-label-swatch { display:block; width:32px; height:32px; min-width:32px; min-height:32px; border-radius:6px; flex-shrink:0; border:1px solid rgba(0,0,0,0.08); }
+  /* Color picker header */
+  .nbm-color-header { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; padding-bottom:0.75rem; border-bottom:1px solid #eee; }
+  .nbm-color-header-label { font-weight:700; font-size:12px; color:#111; white-space:nowrap; }
+  .nbm-color-preview { width:28px; height:28px; border-radius:5px; flex-shrink:0; border:1px solid rgba(0,0,0,0.08); }
+  .nbm-color-header-name { font-weight:600; font-size:12px; color:#111; }
+  .nbm-color-count { margin-left:auto; font-size:10px; font-weight:600; color:#fff; background:#111; padding:3px 9px; border-radius:20px; white-space:nowrap; }
+  /* Color dropdown — fullscreen sheet */
+  .nbm-dropdown { position:relative; flex:1; min-width:0; }
+  .nbm-dropdown-trigger { display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.25rem 0; user-select:none; }
+  .nbm-dropdown-trigger .nbm-chevron { width:12px; height:12px; flex-shrink:0; transition:transform .15s ease; }
+  .nbm-dropdown.open .nbm-chevron { transform:rotate(180deg); }
+  .nbm-dd-overlay { display:none; }
+  .nbm-dropdown-menu { display:none; position:absolute; inset:0; background:#fff; z-index:200; overflow-y:auto; padding:0 8px 24px; border-radius:12px; }
+  .nbm-box.nbm-dd-open .nbm-dropdown-menu { display:block; }
+  .nbm-dd-close { display:flex; align-items:center; gap:10px; padding:16px 12px 12px; position:sticky; top:0; background:#fff; z-index:1; border-bottom:1px solid #eee; }
+  .nbm-dd-close-btn { width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:none; background:none; cursor:pointer; padding:0; flex-shrink:0; }
+  .nbm-dd-close-title { font-size:15px; font-weight:600; color:#111; }
+  .nbm-dropdown-item { display:flex; align-items:center; gap:0.75rem; padding:12px 14px; cursor:pointer; border-radius:8px; transition:background .1s; font-size:15px; color:#333; }
+  .nbm-dropdown-item:hover { background:#f3f3f3; }
+  .nbm-dropdown-item.nbm-dd-active { background:#f0f0f0; font-weight:600; color:#111; }
+  .nbm-dropdown-item .nbm-dd-dot { width:28px; height:28px; border-radius:6px; flex-shrink:0; border:1px solid rgba(0,0,0,0.06); }
+  /* Color swatches — mobile scroll style */
+  /* Color swatch row with overflow hint + arrows */
+  .nbm-swatch-scroll { position:relative; margin-bottom:8px; }
+  .nbm-swatches { display:flex; overflow-x:auto; gap:6px; padding:6px 4px 14px; -webkit-overflow-scrolling:touch; scrollbar-width:thin; scroll-behavior:smooth; }
+  .nbm-swatches::-webkit-scrollbar { height:4px; }
+  .nbm-swatches::-webkit-scrollbar-thumb { background:#ccc; border-radius:2px; }
+  /* Fade hints on edges */
+  .nbm-swatch-scroll::before,
+  .nbm-swatch-scroll::after { content:''; position:absolute; top:0; bottom:14px; width:24px; z-index:10; pointer-events:none; }
+  .nbm-swatch-scroll::before { left:0; background:linear-gradient(to right, #fff 0%, transparent 100%); opacity:0; }
+  .nbm-swatch-scroll::after { right:0; background:linear-gradient(to left, #fff 0%, transparent 100%); }
+  .nbm-swatch-scroll.nbm-scroll-start::before { opacity:0; }
+  .nbm-swatch-scroll.nbm-scroll-end::after { opacity:0; }
+  .nbm-swatch-scroll:not(.nbm-scroll-start)::before { opacity:1; }
+  /* Arrow buttons */
+  .nbm-scroll-btn { position:absolute; top:50%; transform:translateY(calc(-50% - 4px)); z-index:11; width:34px; height:34px; border-radius:50%; background:#fff; border:1px solid rgba(0,0,0,0.12); box-shadow:0 2px 6px rgba(0,0,0,0.12); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .nbm-scroll-btn:hover { background:#f5f5f5; }
+  .nbm-scroll-btn.nbm-scroll-left { left:-4px; }
+  .nbm-scroll-btn.nbm-scroll-right { right:-4px; }
+  .nbm-scroll-btn.nbm-hidden { display:none; }
+  .nbm-swatch { flex-shrink:0; width:36px; height:36px; border-radius:8px; cursor:pointer; border:none; position:relative; transition:transform .15s ease; background-size:cover; background-position:center; }
+  .nbm-swatch::after { content:''; position:absolute; inset:0; border-radius:8px; border:2px solid var(--ring,#888); opacity:0; transition:opacity .15s ease; pointer-events:none; }
+  .nbm-swatch:hover { transform:scale(1.1); z-index:20; }
+  .nbm-swatch.nbm-selected::after { opacity:1; }
+  .nbm-swatch.nbm-selected { transform:scale(1.1); z-index:2; }
+  .nbm-swatch.nbm-light { box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06); }
+  /* Size grid */
+  .nbm-sizes { display:grid; grid-template-columns:repeat(5, 1fr); gap:12px 8px; margin-bottom:4px; min-height:180px; align-content:start; }
+  /* Skeleton loader */
+  @keyframes nbm-shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+  .nbm-skeleton { border-radius:10px; background:linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size:200% 100%; animation:nbm-shimmer 1.5s ease infinite; }
+  .nbm-skeleton-label { height:12px; width:30px; margin:0 auto 6px; }
+  .nbm-skeleton-input { height:44px; }
+  .nbm-skeleton-price { height:12px; width:40px; margin:6px auto 0; }
+  @media (max-width:400px) { .nbm-sizes { grid-template-columns:repeat(4, 1fr); } }
+  .nbm-size-cell { text-align:center; }
+  .nbm-size-name { font-size:13px; font-weight:600; color:#111; margin-bottom:4px; }
+  .nbm-size-input { width:100%; height:44px; border:1px solid rgba(0,0,0,0.15); border-radius:10px; text-align:center; font-size:15px; font-family:inherit; background:#fff; color:#111; -moz-appearance:textfield; }
+  .nbm-size-input::-webkit-inner-spin-button, .nbm-size-input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+  .nbm-size-input:focus { outline:none !important; box-shadow:none !important; border-color:#ddd; }
+  .nbm-size-input.nbm-has-qty { border-color:#ddd; }
+  .nbm-size-input.nbm-in-cart { border-color:#27af1a; border-width:1.5px; }
+  .nbm-size-badge { font-size:10px; font-weight:600; color:#27af1a; margin-top:2px; }
+  .nbm-size-input:disabled { background:#f0f0f0; color:#aaa; cursor:default; }
+  .nbm-size-compare { font-size:12px; color:#898989; text-decoration:line-through; margin-top:6px; font-weight:600; }
+  .nbm-size-price { font-size:12px; font-weight:600; color:#111; margin-top:2px; }
+  .nbm-size-price.nbm-discounted { color:#111; }
+  .nbm-size-compare + .nbm-size-price { margin-top:0; }
+  /* Shared modal footer buttons — used by design edit + blank add/edit */
+  .nt-modal-footer { display:flex; gap:10px; padding:16px 20px 20px; border-top:1px solid #eee; margin-top:auto; }
+  .nt-modal-cancel { flex:1; padding:11px; border:1.5px solid #ddd; border-radius:8px; background:#fff; color:#333; font-size:14px; font-weight:500; cursor:pointer; font-family:inherit; }
+  .nt-modal-confirm { flex:2; padding:11px; border:none; border-radius:8px; background:#019AFF; color:#fff; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; touch-action:manipulation; }
+  .nt-modal-confirm:disabled { opacity:0.5; cursor:default; }
+  /* Updating dots animation */
+  @keyframes nbm-dots { 0% { content:''; } 25% { content:'.'; } 50% { content:'..'; } 75% { content:'...'; } }
+  .nt-modal-confirm.nt-updating { pointer-events:none; }
+  .nt-modal-confirm.nt-updating::after { content:''; animation:nbm-dots 1.2s steps(1) infinite; }
+  .nt-modal-updating input, .nt-modal-updating select, .nt-modal-updating button:not(.nt-modal-confirm) { pointer-events:none !important; opacity:0.5; }
+  .nbm-error { color:#e53935; font-size:13px; margin-top:8px; display:none; }
+  .nbm-loading { text-align:center; padding:24px 0; color:#888; }
+</style>
+<div id="nt-blank-modal" class="nbm-overlay" data-file-base="{{ 'x.png' | file_url | split: 'x.png' | first }}">
+  <div class="nbm-backdrop" id="nbm-backdrop"></div>
+  <div class="nbm-box">
+    <!-- Header -->
+    <div class="nbm-header">
+      <h3 class="nbm-title" id="nbm-title"></h3>
+      <button class="nbm-close" id="nbm-close" type="button" aria-label="Close">&times;</button>
+    </div>
+    <!-- Body -->
+    <div class="nbm-body">
+      <div id="nbm-loading" class="nbm-loading">Loading...</div>
+      <div id="nbm-content" style="display:none;">
+        <!-- Product image (Add Color mode) -->
+        <div id="nbm-product-img-wrap" class="nbm-product-img-wrap" style="display:none;">
+          <img id="nbm-product-img" class="nbm-product-img" src="" alt="">
+        </div>
+        <!-- Color label (Add Size mode) -->
+        <div id="nbm-color-label" class="nbm-color-label" style="display:none;"></div>
+        <!-- Color picker (Add Color mode) -->
+        <div id="nbm-swatch-wrap" style="display:none;">
+          <div class="nbm-color-header">
+            <span class="nbm-color-header-label">Color:</span>
+            <div class="nbm-color-preview" id="nbm-color-preview"></div>
+            <div class="nbm-dropdown" id="nbm-dropdown">
+              <div class="nbm-dropdown-trigger" id="nbm-dropdown-trigger">
+                <span class="nbm-color-header-name" id="nbm-color-name"></span>
+                <svg class="nbm-chevron" viewBox="0 0 12 12"><path d="M3 5l3 3 3-3" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <span class="nbm-color-count" id="nbm-color-count"></span>
+          </div>
+          <div class="nbm-swatch-scroll" id="nbm-swatch-scroll">
+            <button type="button" class="nbm-scroll-btn nbm-scroll-left nbm-hidden" id="nbm-scroll-left">
+              <svg width="14" height="14" viewBox="0 0 12 12"><path d="M8 2L4 6l4 4" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div id="nbm-swatches" class="nbm-swatches"></div>
+            <button type="button" class="nbm-scroll-btn nbm-scroll-right nbm-hidden" id="nbm-scroll-right">
+              <svg width="14" height="14" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+        <!-- Size grid (each size has its own qty input) -->
+        <span class="nbm-label">Choose Size(s)</span>
+        <div id="nbm-sizes" class="nbm-sizes"></div>
+        <div id="nbm-error" class="nbm-error"></div>
+      </div>
+    </div>
+    <!-- Footer -->
+    <div class="nt-modal-footer">
+      <button type="button" class="nt-modal-cancel" id="nbm-cancel">Cancel</button>
+      <button type="button" class="nt-modal-confirm" id="nbm-confirm" disabled>Add to Cart</button>
+    </div>
+    <!-- Color dropdown (covers entire modal) -->
+    <div class="nbm-dropdown-menu" id="nbm-dropdown-menu">
+      <div class="nbm-dd-close">
+        <button class="nbm-dd-close-btn" id="nbm-dd-close-btn" type="button" aria-label="Back">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="nbm-dd-close-title">Select Color</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function updateCartItemCount() {
+    fetch('/cart.js')
+      .then(response => response.json())
+      .then(cart => {
+        const titleElement = document.querySelector('.title.heading-size--page-title');
+        titleElement.innerHTML = `{{ 'cart.title' | t }} <span class="nt-cart-count">(${cart.item_count} items)</span>`;
+      })
+      .catch(error => console.error('Error fetching cart:', error));
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+
+    updateCartItemCount();
+    var cartForm = document.querySelector('cart-form');
+    if (cartForm) {
+      cartForm.addEventListener('cart-updated', function() {
+        updateCartItemCount();
+      });
+    }
+
+  });
+
+  /* Blanks cart row patcher moved to global blanks-price-patcher.js (loaded from theme.liquid) */
+
+  /* ── Blank apparel: Add Size / Add Color modal ── */
+  (function() {
+    'use strict';
+    var modal = document.getElementById('nt-blank-modal');
+    if (!modal) return;
+    var _fileBase = modal.dataset.fileBase || '/cdn/shop/files/';
+
+    var $  = function(id) { return document.getElementById(id); };
+    var titleEl   = $('nbm-title');
+    var loadingEl = $('nbm-loading');
+    var contentEl = $('nbm-content');
+    var colorLabel= $('nbm-color-label');
+    var swatchWrap= $('nbm-swatch-wrap');
+    var swatchRow = $('nbm-swatches');
+    var colorNameEl = $('nbm-color-name');
+    var colorPreview = $('nbm-color-preview');
+    var colorCount  = $('nbm-color-count');
+    var dropdownEl  = $('nbm-dropdown');
+    var dropdownTrigger = $('nbm-dropdown-trigger');
+    var dropdownMenu = $('nbm-dropdown-menu');
+    var productImgWrap = $('nbm-product-img-wrap');
+
+    // Dropdown toggle
+    dropdownTrigger.addEventListener('click', function(e) { e.stopPropagation(); modal.querySelector('.nbm-box').classList.toggle('nbm-dd-open'); dropdownEl.classList.toggle('open'); });
+
+    // Swatch scroll arrows
+    var scrollWrap = $('nbm-swatch-scroll');
+    var scrollLeft = $('nbm-scroll-left');
+    var scrollRight = $('nbm-scroll-right');
+    function updateScrollArrows() {
+      var s = swatchRow;
+      var atStart = s.scrollLeft <= 4;
+      var atEnd = s.scrollLeft + s.clientWidth >= s.scrollWidth - 4;
+      var hasOverflow = s.scrollWidth > s.clientWidth + 4;
+      scrollLeft.classList.toggle('nbm-hidden', atStart || !hasOverflow);
+      scrollRight.classList.toggle('nbm-hidden', atEnd || !hasOverflow);
+      scrollWrap.classList.toggle('nbm-scroll-start', atStart);
+      scrollWrap.classList.toggle('nbm-scroll-end', atEnd);
+    }
+    swatchRow.addEventListener('scroll', updateScrollArrows);
+    scrollLeft.addEventListener('click', function() { swatchRow.scrollBy({left: -140, behavior: 'smooth'}); });
+    scrollRight.addEventListener('click', function() { swatchRow.scrollBy({left: 140, behavior: 'smooth'}); });
+    $('nbm-dd-close-btn').addEventListener('click', function(e) { e.stopPropagation(); modal.querySelector('.nbm-box').classList.remove('nbm-dd-open'); dropdownEl.classList.remove('open'); });
+    var productImg = $('nbm-product-img');
+    var sizeGrid  = $('nbm-sizes');
+    var confirmBtn= $('nbm-confirm');
+    var errorEl   = $('nbm-error');
+
+    var _product = null;
+    var _mode = '';
+    var _selectedColor = '';
+
+    function money(c) { return '$' + (c / 100).toFixed(2); }
+    var RETAIL_PRICE_MULTIPLIER = 1.96;
+    var _tierLevel = 0;
+    function parseTierPricing(raw) {
+      if (!raw) return [];
+      var s = String(raw).trim(); if (!s) return [];
+      try { var p = JSON.parse(s); if (Array.isArray(p)) s = p.join(','); } catch(e){}
+      return s.split(',').map(function(v){return parseInt(v.trim(),10);}).filter(function(n){return n>0;});
+    }
+    function getTierLevel(dollars) {
+      if (dollars>=3800) return 7; if (dollars>=1750) return 6; if (dollars>=1000) return 5;
+      if (dollars>=500) return 4; if (dollars>=250) return 3; if (dollars>=150) return 2;
+      if (dollars>=99) return 1; return 0;
+    }
+    function getTierPrice(base, raw, level) {
+      var t = parseTierPricing(raw);
+      if (level>0 && t.length>=level) return t[level-1];
+      return base;
+    }
+    function titleCase(s) { return s.toLowerCase().replace(/\b\w/g, function(c) { return c.toUpperCase(); }); }
+    function parseHex(hex) { var h = hex.replace('#',''); if (h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2]; return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+    function hexToHSL(hex) {
+      try { var rgb = parseHex(hex); } catch(e) { return [0,0,50]; }
+      var r=rgb[0]/255,g=rgb[1]/255,b=rgb[2]/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),h=0,s=0,l=(mx+mn)/2;
+      if(mx!==mn){var d=mx-mn;s=l>0.5?d/(2-mx-mn):d/(mx+mn);if(mx===r)h=((g-b)/d+(g<b?6:0))/6;else if(mx===g)h=((b-r)/d+2)/6;else h=((r-g)/d+4)/6;}
+      return [Math.round(h*360),Math.round(s*100),Math.round(l*100)];
+    }
+    function lum(rgb) { return rgb[0]*0.299+rgb[1]*0.587+rgb[2]*0.114; }
+    function isLight(hex) { return lum(parseHex(hex)) > 210; }
+    function ringColor(hex) {
+      var rgb = parseHex(hex); var l = lum(rgb);
+      if (l > 100) { var f=0.4; return 'rgb('+Math.round(rgb[0]*f)+','+Math.round(rgb[1]*f)+','+Math.round(rgb[2]*f)+')'; }
+      else { var f=0.55; return 'rgb('+Math.min(255,Math.round(rgb[0]+(255-rgb[0])*f))+','+Math.min(255,Math.round(rgb[1]+(255-rgb[1])*f))+','+Math.min(255,Math.round(rgb[2]+(255-rgb[2])*f))+')'; }
+    }
+
+    function showModal() { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+    function hideModal() { modal.style.display = 'none'; document.body.style.overflow = ''; _product = null; confirmBtn.disabled = true; confirmBtn.textContent = 'Add to Cart'; confirmBtn.classList.remove('nt-updating'); modal.querySelector('.nbm-box').classList.remove('nt-modal-updating'); }
+    function showLoading() { loadingEl.style.display = 'block'; contentEl.style.display = 'none'; errorEl.style.display = 'none'; }
+    function showContent() { loadingEl.style.display = 'none'; contentEl.style.display = 'block'; errorEl.style.display = 'none'; }
+    function showError(m) { errorEl.textContent = m; errorEl.style.display = 'block'; }
+
+    $('nbm-backdrop').addEventListener('click', hideModal);
+    $('nbm-close').addEventListener('click', hideModal);
+    $('nbm-cancel').addEventListener('click', hideModal);
+
+    function optIdx(product, name) {
+      for (var i = 0; i < product.options.length; i++) {
+        var n = typeof product.options[i] === 'string' ? product.options[i] : product.options[i].name;
+        if (n && n.toLowerCase() === name.toLowerCase()) return i + 1;
+      }
+      return -1;
+    }
+
+    /* Sums qtys across ALL cart lines for each variant. Handles the case where
+       a promo splits one variant into multiple lines (e.g. 95 untagged + 5 tagged FREE) */
+    function cartVariantMap() {
+      var map = {};
+      Object.keys(_cartLinesByVariant).forEach(function(vid) {
+        map[vid] = _cartLinesByVariant[vid].reduce(function(s, l) { return s + l.qty; }, 0);
+      });
+      return map;
+    }
+
+    /* Cart price map: variant_id → discounted per-unit price (cents) from /cart.js */
+    var _cartPriceMap = {};
+    /* Per-product discount ratio: product_id → ratio (final/original) from in-cart items */
+    var _productRatioMap = {};
+    /* variant_id → product_id lookup */
+    var _variantProductMap = {};
+    /* variant_id → [{key, qty, tagged}] — stores ALL lines per variant so we can
+       distribute qty updates across promo-split lines instead of blindly overwriting one. */
+    var _cartLinesByVariant = {};
+    function refreshCartPriceMap(cb) {
+      /* ── Shared cart cache: reuse a recent patcher fetch if available ── */
+      var CACHE_TTL_MS = 2000;
+      var cached = window.__ntCartCache;
+      var cartPromise;
+      if (cached && cached.data && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+        cartPromise = Promise.resolve(cached.data);
+      } else {
+        cartPromise = fetch('/cart.js').then(function(r) { return r.json(); }).then(function(cart) {
+          if (cart) window.__ntCartCache = { data: cart, ts: Date.now() };
+          return cart;
+        });
+      }
+      cartPromise.then(function(cart) {
+        _popupCartTotal = cart.total_price || 0;
+        _tierLevel = getTierLevel(_popupCartTotal / 100);
+        _cartPriceMap = {};
+        _productRatioMap = {};
+        _variantProductMap = {};
+        _cartLinesByVariant = {};
+        cart.items.forEach(function(item) {
+          var vid = String(item.variant_id);
+          var hasDisc = (item.line_level_discount_allocations || []).length > 0;
+          /* Prefer untagged line's price for display (full/normal price) */
+          if (_cartPriceMap[vid] === undefined || !hasDisc) _cartPriceMap[vid] = item.final_price;
+          _variantProductMap[vid] = String(item.product_id);
+          if (!_cartLinesByVariant[vid]) _cartLinesByVariant[vid] = [];
+          _cartLinesByVariant[vid].push({ key: item.key, qty: item.quantity, tagged: hasDisc });
+          /* Build per-product ratio from discounted items */
+          if (item.original_price > 0 && item.final_price < item.original_price) {
+            var pid = String(item.product_id);
+            var ratio = item.final_price / item.original_price;
+            if (!_productRatioMap[pid] || ratio < _productRatioMap[pid]) {
+              _productRatioMap[pid] = ratio;
+            }
+          }
+        });
+        if (cb) cb();
+      }).catch(function() { if (cb) cb(); });
+    }
+
+    /* Distribute a new total qty for a variant across its existing cart lines,
+       preserving promo-tagged lines (the ones the free-item promo has claimed).
+       Returns an updateMap of line_key → new_qty for POST to /cart/update.js. */
+    function distributeVariantQty(variantId, newQty, updateMap) {
+      var lines = _cartLinesByVariant[String(variantId)] || [];
+      var tagged = lines.filter(function(l) { return l.tagged; });
+      var untagged = lines.filter(function(l) { return !l.tagged; });
+      var taggedTotal = tagged.reduce(function(s, l) { return s + l.qty; }, 0);
+      if (newQty >= taggedTotal) {
+        /* Keep all promo-tagged lines intact; first untagged line absorbs the remainder */
+        tagged.forEach(function(l) { updateMap[l.key] = l.qty; });
+        var remainder = newQty - taggedTotal;
+        if (untagged.length > 0) {
+          updateMap[untagged[0].key] = remainder;
+          for (var i = 1; i < untagged.length; i++) updateMap[untagged[i].key] = 0;
+        }
+      } else {
+        /* newQty < taggedTotal: zero all untagged, then reduce tagged lines */
+        untagged.forEach(function(l) { updateMap[l.key] = 0; });
+        var rem = newQty;
+        for (var j = 0; j < tagged.length; j++) {
+          if (rem >= tagged[j].qty) { updateMap[tagged[j].key] = tagged[j].qty; rem -= tagged[j].qty; }
+          else { updateMap[tagged[j].key] = rem; rem = 0; }
+        }
+      }
+    }
+
+    /* Get the discounted price for a variant: cart price if in cart, else apply same-product ratio */
+    function getDiscountedPrice(variantId, basePrice) {
+      var cartPrice = _cartPriceMap[String(variantId)];
+      if (cartPrice !== undefined) return cartPrice;
+      /* Find product_id for this variant from cart data */
+      var pid = _variantProductMap[String(variantId)];
+      if (pid && _productRatioMap[pid]) return Math.round(basePrice * _productRatioMap[pid]);
+      return basePrice;
+    }
+
+    function swatchBg(colorName) {
+      var h = colorName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      var map = {white:'#ffffff',ashgrey:'#d7d7d7',gravel:'#b3b2b7',graphiteheather:'#acabb0',sportgrey:'#97999b',tweed:'#878a8f',charcoal:'#827f77',darkheather:'#676769',heathernavy:'#626870',militarygreen:'#63655a',hthrmilitrygrn:'#545648',black:'#000000',lightpink:'#ffe4e4',antiqueorange:'#fc7154',brownsavana:'#9f877b',sunset:'#c45c3d',torange:'#af5c37',garnet:'#8b0000',natural:'#f3e4c4',cornsilk:'#fcdca3',sand:'#c5b9ac',oldgold:'#e0b06e',sorange:'#ff9c3e',orange:'#fb9133',tennesseeorange:'#eb9501',darkchocolate:'#665542',yellowhaze:'#eee8a0',daisy:'#f9f46f',gold:'#ffd600',safetygreen:'#c4d600',lime:'#c2ff6e',neongreen:'#a7e163',kiwi:'#8aa140',mintgreen:'#c3d9bc',electricgreen:'#63a54c',irishgreen:'#026d07',antiqirishgrn:'#02a469',turfgreen:'#067c4a',forestgreen:'#22372b',antiqujadedome:'#00817f',sky:'#81afd1',carolinablue:'#6299dd',heathersapphire:'#3398d8',antiquesapphire:'#0f8fc0',tropicalblue:'#009acd',sapphire:'#007dba',indigoblue:'#34657f',icegrey:'#bdbecf',lightblue:'#a3b8e4',royal:'#436eee',neonblue:'#384e99',cobalt:'#374393',navy:'#222953',lilac:'#433f76',midnight:'#433f76',violet:'#cfaef0',purple:'#4d2379',blackberry:'#504259',hthrrdntorchid:'#d465dc',heliconia:'#ff00ff',azalea:'#ff76a0',coralsilk:'#ff777f',safetypink:'#e06287',heatherred:'#d64a65',antquecherryrd:'#c93452',berry:'#b53f66',cardinalred:'#c03545',maroon:'#88353c',red:'#b2000d',sldathletcgrey:'#dbdbdb',silver:'#d6d6d6',vintageblack:'#000000',softpink:'#fee4e3',pink:'#f7b4c1',orchid:'#e2afae',charitypink:'#ff779b',coral:'#ff6c4e',fuchsia:'#df3468',storm:'#8e8387',poppy:'#ec211b',canvasred:'#d13543',mauve:'#9e6460',cardinal:'#c03545',pebble:'#866d66',autumn:'#b24f30',darkgrey:'#696666',rust:'#a03033',brown:'#3d2f2a',oxbloodblack:'#2b1518',vintagewhite:'#e9e4de',sanddune:'#f2d6af',softcream:'#e2d2b8',mustard:'#e29d24',burntorange:'#bc4f07',army:'#5d554a',citron:'#ebe4d2',tan:'#ddcd93',yellow:'#f7e859',maizeyellow:'#fcd116',mint:'#a7e3bf',dustyblue:'#adc4bc',syntheticgreen:'#60e68f',olive:'#61714c',leaf:'#3a7728',kelly:'#009a63',kellygreen:'#009a63',forest:'#305746',darkolive:'#363928',evergreen:'#00563f',asphalt:'#616b6d',teal:'#03b898',deepteal:'#006064',aqua:'#4f99c8',columbiablue:'#b8d4e8',babyblue:'#b1d4e5',oceanblue:'#0077be',steelblue:'#3a6d8c',trueroyal:'#2c4ba0',teamnavy:'#192c58',teampurple:'#543576',ash:'#e2dfdb',turquoise:'#5fb6c3',bluedusk:'#6b7fa0',cherryred:'#de2838',galapagosblue:'#007086',heathercardinal:'#a84454',heatherindigo:'#5c6d8a',iris:'#8b6faf',jadedome:'#007d6f',metroblue:'#2d5a88',pistachio:'#c4d99e',prairiedust:'#c4a77d',preparedfordye:'#f0ead6',stoneblue:'#6a8ea5',tangerine:'#ff9a2e',vegasgold:'#c9b037',antiqcherryred:'#ae0e36',antiqueroyalr:'#3d5a96',pinkcamo:'#d4a0a0',maroonwhite:'#88353c'};
+      if (map[h]) return map[h];
+      // Try CSS named color (works for red, blue, green, navy, coral, gold, etc.)
+      var testEl = document.createElement('div');
+      testEl.style.color = colorName.toLowerCase().trim();
+      if (testEl.style.color) return colorName.toLowerCase().trim();
+      return '#ccc';
+    }
+
+    function updateConfirmState() {
+      var hasChange = false;
+      sizeGrid.querySelectorAll('.nbm-size-input').forEach(function(inp) {
+        var v = parseInt(inp.value) || 0;
+        var orig = parseInt(inp.dataset.originalQty) || 0;
+        inp.classList.toggle('nbm-has-qty', v > 0);
+        if (v !== orig) hasChange = true;
+      });
+      confirmBtn.disabled = !hasChange;
+    }
+
+    /* ── Dynamic tier price refresh (same as quick-buy popup) ── */
+    var _popupCartTotal = 0;
+    var _popupRefreshTimer = null;
+    function refreshPopupTierPrices() {
+      var deltaTotal = 0;
+      sizeGrid.querySelectorAll('.nbm-size-input').forEach(function(inp) {
+        var newQty = parseInt(inp.value || '0', 10);
+        if (isNaN(newQty)) newQty = 0;
+        var origQty = parseInt(inp.dataset.originalQty || '0', 10);
+        var delta = newQty - origQty;
+        var base = parseInt(inp.dataset.basePrice || '0', 10);
+        if (base > 0 && delta !== 0) deltaTotal += base * delta;
+      });
+      var virtualTotal = (_popupCartTotal + deltaTotal) / 100;
+      var newLevel = getTierLevel(virtualTotal);
+      sizeGrid.querySelectorAll('.nbm-size-input').forEach(function(inp) {
+        var tp = inp.dataset.tierPricing;
+        if (!tp) return;
+        var base = parseInt(inp.dataset.basePrice || '0', 10);
+        var tierPrice = getTierPrice(base, tp, newLevel);
+        var retailPrice = Math.round(tierPrice * RETAIL_PRICE_MULTIPLIER);
+        var cell = inp.parentElement;
+        var cmp = cell.querySelector('.nbm-size-compare');
+        var pr = cell.querySelector('.nbm-size-price');
+        if (!cmp) {
+          cmp = document.createElement('div'); cmp.className = 'nbm-size-compare';
+          cell.insertBefore(cmp, pr);
+          pr.classList.add('nbm-discounted');
+        }
+        cmp.textContent = money(retailPrice);
+        pr.textContent = money(tierPrice);
+      });
+    }
+    function schedulePopupRefresh() {
+      if (_popupRefreshTimer) clearTimeout(_popupRefreshTimer);
+      _popupRefreshTimer = setTimeout(refreshPopupTierPrices, 200);
+    }
+
+    /* ── Build size grid for a given color ── */
+    /* Render size cells from a normalized variant array [{id, size, price, compareAtPrice, available}] */
+    function renderSizeCells(variants) {
+      sizeGrid.innerHTML = '';
+      confirmBtn.disabled = true;
+      var cartMap = cartVariantMap();
+
+      variants.forEach(function(v) {
+        var cartQty = cartMap[String(v.id)] || 0;
+        var inCart = cartQty > 0;
+        var soldOut = !v.available && !inCart;
+
+        var cell = document.createElement('div');
+        cell.className = 'nbm-size-cell';
+
+        var nameEl = document.createElement('div');
+        nameEl.className = 'nbm-size-name';
+        nameEl.textContent = v.size;
+        cell.appendChild(nameEl);
+
+        var inp = document.createElement('input');
+        inp.type = 'number';
+        inp.className = 'nbm-size-input';
+        inp.min = '0';
+        inp.dataset.variantId = v.id;
+        inp.dataset.basePrice = v.price;
+        if (v.tierPricing) inp.dataset.tierPricing = v.tierPricing;
+        if (inCart) {
+          inp.value = cartQty;
+          inp.dataset.originalQty = cartQty;
+          inp.classList.add('nbm-has-qty', 'nbm-in-cart');
+        } else if (soldOut) {
+          inp.value = '';
+          inp.placeholder = '';
+          inp.disabled = true;
+        } else {
+          inp.value = '';
+          inp.placeholder = '';
+        }
+        inp.addEventListener('input', function() {
+          // Hide "In cart" badge if qty changed from original
+          if (inp.dataset.originalQty) {
+            var unchanged = (inp.value == inp.dataset.originalQty);
+            var badge = inp.parentElement.querySelector('.nbm-size-badge');
+            if (badge) badge.style.display = unchanged ? '' : 'none';
+            inp.classList.toggle('nbm-in-cart', unchanged);
+          }
+          updateConfirmState();
+          schedulePopupRefresh();
+        });
+        cell.appendChild(inp);
+
+        /* Price display — use tier pricing (same as quick-buy popup) when available */
+        var displayPrice;
+        var strikePrice = null;
+        if (v.tierPricing) {
+          displayPrice = getTierPrice(v.price, v.tierPricing, _tierLevel);
+          strikePrice = Math.round(displayPrice * RETAIL_PRICE_MULTIPLIER);
+        } else {
+          displayPrice = getDiscountedPrice(v.id, v.price);
+          if (displayPrice < v.price) strikePrice = v.price;
+          else if (v.compareAtPrice && v.compareAtPrice > displayPrice) strikePrice = v.compareAtPrice;
+        }
+        if (strikePrice && strikePrice > displayPrice) {
+          var cmp = document.createElement('div');
+          cmp.className = 'nbm-size-compare';
+          cmp.textContent = money(strikePrice);
+          cell.appendChild(cmp);
+          var pr = document.createElement('div');
+          pr.className = 'nbm-size-price nbm-discounted';
+          pr.textContent = money(displayPrice);
+          cell.appendChild(pr);
+        } else {
+          var pr2 = document.createElement('div');
+          pr2.className = 'nbm-size-price';
+          pr2.textContent = money(displayPrice);
+          cell.appendChild(pr2);
+        }
+
+        if (inCart) {
+          var badge = document.createElement('div');
+          badge.className = 'nbm-size-badge';
+          badge.textContent = 'In cart';
+          cell.appendChild(badge);
+        } else if (soldOut) {
+          var badge2 = document.createElement('div');
+          badge2.className = 'nbm-size-badge';
+          badge2.textContent = 'Sold out';
+          cell.appendChild(badge2);
+        }
+
+        sizeGrid.appendChild(cell);
+      });
+
+      // Empty state
+      if (sizeGrid.children.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.cssText = 'grid-column:1/-1; text-align:center; padding:16px 0; color:#888; font-size:13px;';
+        empty.innerHTML = 'No sizes available for this color.<br><a href="/products/' + (_product ? _product.handle : '') + '" style="color:#019AFF;font-weight:600;">View product page</a>';
+        sizeGrid.appendChild(empty);
+      }
+    }
+
+    /* ── Data tier 1: get_handle Liquid view (same as upsell popup) ── */
+    function variantsFromGetHandle(handle, color, cb) {
+      fetch('/products/' + handle + '?view=get_handle&variant=' + encodeURIComponent(color))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var html = data.sizes || '';
+          if (!html || html.length < 20) { cb([]); return; }
+          var parser = new DOMParser();
+          var doc = parser.parseFromString('<div>' + html + '</div>', 'text/html');
+          var inputs = doc.querySelectorAll('input.itemQuantity');
+          var result = [];
+          inputs.forEach(function(inp) {
+            var label = (inp.getAttribute('data-label') || '').trim();
+            var parts = label.split(' / ');
+            var price = parseInt(inp.getAttribute('data-price')) || 0;
+            result.push({
+              id: inp.getAttribute('data-id'),
+              size: parts[1] || parts[0] || label,
+              price: price,
+              compareAtPrice: null,
+              available: true
+            });
+          });
+          cb(result);
+        })
+        .catch(function() { cb([]); });
+    }
+
+    /* ── Data tier 2: Storefront API with pagination (for 250+ variant products) ── */
+    var _sfToken = 'f0da551a7e5dc4391d942f1bd786e8b9';
+    var _sfCache = {};
+    function variantsFromStorefrontApi(handle, color, cb) {
+      if (_sfCache[handle]) { cb(filterByColor(_sfCache[handle], color)); return; }
+      var all = [];
+      function fetchPage(cursor) {
+        var afterClause = cursor ? ', after:"' + cursor + '"' : '';
+        var query = '{ product(handle: "' + handle + '") { variants(first:250' + afterClause + ') { pageInfo { hasNextPage endCursor } edges { node { id title availableForSale selectedOptions { name value } price { amount } compareAtPrice { amount } metafield(namespace:"custom", key:"tier_pricing") { value } } } } } }';
+        fetch('https://transferss.myshopify.com/api/2025-01/graphql.json', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': _sfToken },
+          body: JSON.stringify({ query: query })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (!d.data || !d.data.product) { cb([]); return; }
+          var variants = d.data.product.variants;
+          variants.edges.forEach(function(e) {
+            var n = e.node;
+            var vc = '', vs = '';
+            n.selectedOptions.forEach(function(o) { if (o.name === 'Color') vc = o.value; if (o.name === 'Size') vs = o.value; });
+            all.push({ id: n.id.replace('gid://shopify/ProductVariant/', ''), size: vs, color: vc, price: Math.round(parseFloat(n.price.amount) * 100), compareAtPrice: n.compareAtPrice ? Math.round(parseFloat(n.compareAtPrice.amount) * 100) : null, available: n.availableForSale, tierPricing: n.metafield ? n.metafield.value : null });
+          });
+          if (variants.pageInfo.hasNextPage) fetchPage(variants.pageInfo.endCursor);
+          else { _sfCache[handle] = all; cb(filterByColor(all, color)); }
+        })
+        .catch(function() { cb([]); });
+      }
+      fetchPage(null);
+    }
+    function filterByColor(variants, color) {
+      return variants.filter(function(v) { return v.color === color.trim(); });
+    }
+
+    /* ── Main entry: get_handle → Storefront API → empty state ── */
+    function buildSizeGrid(color) {
+      _selectedColor = color;
+      var handle = _product ? _product.handle : '';
+      if (!handle) { renderSizeCells([]); return; }
+      // Lock grid height to prevent layout shift
+      var curH = sizeGrid.offsetHeight;
+      if (curH > 0) sizeGrid.style.minHeight = curH + 'px';
+      // Show skeleton loader matching the size grid layout
+      var skeletonHtml = '';
+      for (var si = 0; si < 8; si++) {
+        skeletonHtml += '<div class="nbm-size-cell"><div class="nbm-skeleton nbm-skeleton-label"></div><div class="nbm-skeleton nbm-skeleton-input"></div><div class="nbm-skeleton nbm-skeleton-price"></div></div>';
+      }
+      sizeGrid.innerHTML = skeletonHtml;
+      // Check if this product is a blank (need tier pricing from Storefront API)
+      var isBlank = !!document.querySelector('[data-product-id="' + (_product ? _product.id : '') + '"][is-blank="true"]');
+      if (isBlank) {
+        // Blanks: prefer Storefront API (has tier_pricing metafield), fall back to get_handle
+        variantsFromStorefrontApi(handle, color, function(sfVariants) {
+          if (sfVariants.length > 0) { renderSizeCells(sfVariants); return; }
+          variantsFromGetHandle(handle, color, function(variants) { renderSizeCells(variants); });
+        });
+      } else {
+        // Non-blanks: get_handle first, fall back to Storefront API
+        variantsFromGetHandle(handle, color, function(variants) {
+          if (variants.length > 0) { renderSizeCells(variants); return; }
+          variantsFromStorefrontApi(handle, color, function(sfVariants) { renderSizeCells(sfVariants); });
+        });
+      }
+    }
+
+    /* ── Add Size ── */
+    function openAddSize(handle, color) {
+      _mode = 'size';
+      titleEl.textContent = 'Add/Edit Size(s)';
+      confirmBtn.textContent = 'Update';
+      colorLabel.style.display = 'none';
+      swatchWrap.style.display = 'block';
+      scrollWrap.style.display = 'none';
+      productImgWrap.style.display = 'none';
+      // Reuse the color header but hide chevron + count
+      var _hexBg = swatchBg(color);
+      colorPreview.style.background = _hexBg;
+      colorNameEl.textContent = titleCase(color);
+      dropdownTrigger.querySelector('.nbm-chevron').style.display = 'none';
+      dropdownTrigger.style.cursor = 'default';
+      dropdownTrigger.style.pointerEvents = 'none';
+      colorPreview.style.pointerEvents = 'none';
+      colorCount.style.display = 'none';
+      showLoading();
+      showModal();
+
+      /* Refresh cart prices (for automatic discounts) then build grid */
+      refreshCartPriceMap(function() {
+        fetchProduct(handle, function(product) {
+          _product = product;
+          buildSizeGrid(color);
+          showContent();
+        });
+      });
+    }
+
+    /* ── Add Color ── */
+    function openAddColor(handle) {
+      _mode = 'color';
+      titleEl.textContent = 'Add a Color';
+      confirmBtn.textContent = 'Add to Cart';
+      colorLabel.style.display = 'none';
+      swatchWrap.style.display = 'block';
+      scrollWrap.style.display = '';
+      productImgWrap.style.display = 'block';
+      // Restore chevron + count for Add a Color
+      dropdownTrigger.querySelector('.nbm-chevron').style.display = '';
+      dropdownTrigger.style.cursor = 'pointer';
+      dropdownTrigger.style.pointerEvents = '';
+      colorPreview.style.pointerEvents = '';
+      colorCount.style.display = '';
+      showLoading();
+      showModal();
+      refreshCartPriceMap();
+
+      fetchProduct(handle, function(product) {
+        _product = product;
+        swatchRow.innerHTML = '';
+        while (dropdownMenu.children.length > 1) dropdownMenu.removeChild(dropdownMenu.lastChild);
+        modal.querySelector('.nbm-box').classList.remove('nbm-dd-open'); dropdownEl.classList.remove('open');
+
+        // Colors already in cart
+        var existingColors = {};
+        document.querySelectorAll('.nt-blank-group[data-product-handle="' + handle + '"]').forEach(function(g) {
+          var key = g.getAttribute('data-group-key') || '';
+          var parts = key.split('_');
+          if (parts.length > 1) existingColors[parts.slice(1).join('_')] = true;
+        });
+
+        // Get ALL color values from product options
+        var allColorValues = [];
+        product.options.forEach(function(o) {
+          var optName = typeof o === 'string' ? o : o.name;
+          if (optName && optName.toLowerCase() === 'color') allColorValues = typeof o === 'string' ? [] : (o.values || []);
+        });
+
+        // Fetch product page to get hue-ordered colors + exact hex from metafields
+        fetchColorData(handle, function(pdpColors) {
+          // pdpColors = [{name:'WHITE', hex:'#ffffff'}, ...] in PDP hue order
+          // Build ordered color list: PDP order first, then remaining sorted by hue
+          // Build variantId map from PDP color data for image lookups
+          var colorVariantMap = {};
+          pdpColors.forEach(function(pc) { if (pc.variantId) colorVariantMap[pc.name] = pc.variantId; });
+
+          var orderedColors = [];
+          var remaining = [];
+          var seen = {};
+          // Add PDP-ordered colors that exist in product options
+          pdpColors.forEach(function(pc) {
+            if (seen[pc.name] || !allColorValues.some(function(v) { return v.trim() === pc.name; })) return;
+            seen[pc.name] = true;
+            orderedColors.push({ name: pc.name, hex: pc.hex });
+          });
+          // Collect remaining product option colors not in PDP
+          allColorValues.forEach(function(c) {
+            var cKey = c.trim();
+            if (!cKey || seen[cKey]) return;
+            seen[cKey] = true;
+            remaining.push({ name: cKey, hex: swatchBg(cKey) });
+          });
+          // Sort remaining by hue (whites/grays first, then warm→cool→pinks/reds)
+          if (remaining.length > 0) {
+            remaining.forEach(function(c) { c._hsl = hexToHSL(c.hex); });
+            remaining.sort(function(a, b) {
+              var aS = a._hsl[1], bS = b._hsl[1], aL = a._hsl[2], bL = b._hsl[2], aH = a._hsl[0], bH = b._hsl[0];
+              // Neutrals (saturation < 10%) first, sorted light→dark
+              if (aS < 10 && bS < 10) return bL - aL;
+              if (aS < 10) return -1;
+              if (bS < 10) return 1;
+              // Chromatic: sort by hue
+              return aH - bH;
+            });
+            orderedColors = orderedColors.concat(remaining);
+          }
+
+          // Build swatches (hue order) + dropdown (alphabetical)
+          var swatchList = [];
+          var ddItems = [];
+          orderedColors.forEach(function(colorObj) {
+            var cKey = colorObj.name;
+            var cLc = cKey.toLowerCase();
+            if (existingColors[cLc]) return;
+            var hexBg = colorObj.hex;
+
+            var swIdx = swatchList.length;
+            var sw = document.createElement('div');
+            sw.className = 'nbm-swatch' + (isLight(hexBg) ? ' nbm-light' : '');
+            sw.dataset.color = cKey;
+            sw.title = titleCase(cKey);
+            sw.style.backgroundColor = hexBg;
+            sw.style.setProperty('--ring', ringColor(hexBg));
+            var bgImg = _fileBase + cKey.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '.png';
+            var img = new Image();
+            img.onload = function() { sw.style.backgroundImage = 'url(' + bgImg + ')'; };
+            img.src = bgImg;
+
+            sw.addEventListener('click', function() {
+              swatchRow.querySelectorAll('.nbm-selected').forEach(function(s) { s.classList.remove('nbm-selected'); });
+              sw.classList.add('nbm-selected');
+              colorNameEl.textContent = titleCase(cKey);
+              colorPreview.style.background = hexBg;
+              // Highlight matching dropdown item
+              dropdownMenu.querySelectorAll('.nbm-dd-active').forEach(function(d) { d.classList.remove('nbm-dd-active'); });
+              var ddMatch = dropdownMenu.querySelector('[data-color-key="' + cKey + '"]');
+              if (ddMatch) ddMatch.classList.add('nbm-dd-active');
+              modal.querySelector('.nbm-box').classList.remove('nbm-dd-open'); dropdownEl.classList.remove('open');
+              // Update product image — Storefront API needs Color + Size to find variant
+              if (_sfToken) {
+                var firstSize = '';
+                product.options.forEach(function(o) {
+                  var n = typeof o === 'string' ? o : o.name;
+                  if (n && n.toLowerCase() === 'size' && typeof o !== 'string' && o.values && o.values[0]) firstSize = o.values[0];
+                });
+                var opts = '[{name:"Color",value:"' + cKey.replace(/"/g,'\\"') + '"}';
+                if (firstSize) opts += ',{name:"Size",value:"' + firstSize.replace(/"/g,'\\"') + '"}';
+                opts += ']';
+                var q = '{ product(handle:"' + handle + '") { variantBySelectedOptions(selectedOptions:' + opts + ') { image { url } } } }';
+                fetch('https://transferss.myshopify.com/api/2025-01/graphql.json', {
+                  method:'POST', headers:{'Content-Type':'application/json','X-Shopify-Storefront-Access-Token':_sfToken},
+                  body:JSON.stringify({query:q})
+                }).then(function(r){return r.json()}).then(function(d){
+                  try { var url = d.data.product.variantBySelectedOptions.image.url; if(url) { productImg.src = url + '&width=400'; productImg.alt = titleCase(cKey); } } catch(e){}
+                }).catch(function(){});
+              }
+              buildSizeGrid(cKey);
+            });
+            swatchRow.appendChild(sw);
+            swatchList.push(sw);
+            ddItems.push({ name: cKey, hex: hexBg, sw: sw, swIdx: swIdx });
+          });
+
+          // Dropdown: alphabetical order
+          ddItems.sort(function(a, b) { return a.name.localeCompare(b.name); });
+          ddItems.forEach(function(item) {
+            var ddItem = document.createElement('div');
+            ddItem.className = 'nbm-dropdown-item';
+            ddItem.dataset.colorKey = item.name;
+            ddItem.innerHTML = '<span class="nbm-dd-dot" style="background:' + item.hex + '"></span>' + titleCase(item.name);
+            ddItem.addEventListener('click', function(e) { e.stopPropagation(); item.sw.click(); });
+            dropdownMenu.appendChild(ddItem);
+          });
+
+          // Set fallback product image
+          if (product.featured_image) {
+            productImg.src = product.featured_image.replace(/(\.\w+)(\?|$)/, '_300x$1$2');
+            productImg.alt = product.title;
+          }
+          colorCount.textContent = swatchRow.children.length + ' colors';
+          var first = swatchRow.querySelector('.nbm-swatch');
+          if (first) first.click();
+          showContent();
+          setTimeout(updateScrollArrows, 50);
+        });
+      });
+    }
+
+    /* Fetch color order + hex values from the product page (same source as upsell popup) */
+    var _colorDataCache = {};
+    function fetchColorData(handle, cb) {
+      if (_colorDataCache[handle]) { cb(_colorDataCache[handle]); return; }
+      fetch('/products/' + handle)
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+          var parser = new DOMParser();
+          var doc = parser.parseFromString(html, 'text/html');
+          var pills = doc.querySelectorAll('.grt-pdp-color-pill');
+          var colors = [];
+          pills.forEach(function(pill) {
+            var name = pill.title || '';
+            if (!name) return;
+            var chip = pill.querySelector('.grt-pdp-color-pill__chip');
+            var hex = '#ccc';
+            if (chip) {
+              var style = chip.getAttribute('style') || '';
+              var m = style.match(/background-color:\s*([^;]+)/i) || style.match(/background:\s*([^;]+)/i);
+              if (m) hex = m[1].trim();
+            }
+            var vid = pill.getAttribute('data-pdp-color-variant-id') || '';
+            colors.push({ name: name.trim(), hex: hex, variantId: vid });
+          });
+          _colorDataCache[handle] = colors;
+          cb(colors);
+        })
+        .catch(function() { cb([]); });
+    }
+
+    function fetchProduct(handle, cb) {
+      fetch('/products/' + handle + '.js')
+        .then(function(r) { return r.json(); })
+        .then(function(data) { try { cb(data); } catch(e) { console.error('Blank modal error:', e); showContent(); showError(e.message); } })
+        .catch(function() { showContent(); showError('Could not load product data.'); });
+    }
+
+    /* ── Confirm: collect changed sizes ── */
+    confirmBtn.addEventListener('click', function() {
+      var addItems = [];
+      var updateMap = {}; /* line_key → new_qty — keyed by line key, NOT variant ID */
+      var hasChange = false;
+      sizeGrid.querySelectorAll('.nbm-size-input').forEach(function(inp) {
+        var qty = parseInt(inp.value) || 0;
+        var orig = parseInt(inp.dataset.originalQty) || 0;
+        var vid = inp.dataset.variantId;
+        if (!vid || qty === orig) return;
+        hasChange = true;
+        if (orig > 0) {
+          /* Existing — distribute new qty across all lines for this variant,
+             preserving any promo-tagged lines (free-item allocations etc.) */
+          distributeVariantQty(vid, qty, updateMap);
+        } else if (qty > 0) {
+          /* New item — add to cart */
+          addItems.push({ id: parseInt(vid), quantity: qty });
+        }
+      });
+      if (!hasChange) { showError('No changes to save.'); return; }
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Updating';
+      confirmBtn.classList.add('nt-updating');
+      modal.querySelector('.nbm-box').classList.add('nt-modal-updating');
+
+      /* Single batch update via /cart/update.js (accepts line_key → qty map) */
+      var chain = Promise.resolve();
+      if (Object.keys(updateMap).length > 0) {
+        chain = chain.then(function() {
+          return fetch('/cart/update.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updates: updateMap })
+          });
+        });
+      }
+      if (addItems.length > 0) {
+        chain = chain.then(function() {
+          return fetch('/cart/add.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: addItems })
+          });
+        });
+      }
+      chain
+      .then(function() {
+        // Keep modal open with "Updating…" until page reloads
+        var isDrawer = document.querySelector('sidebar-drawer#site-cart-sidebar.sidebar--opened');
+        if (isDrawer && window.refreshCart) { window.refreshCart(); hideModal(); } else { location.reload(); }
+      })
+      .catch(function() {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = _mode === 'size' ? 'Update' : 'Add to Cart';
+        confirmBtn.classList.remove('nt-updating');
+        modal.querySelector('.nbm-box').classList.remove('nt-modal-updating');
+        showError('Failed to add item. Please try again.');
+      });
+    });
+
+    /* ── Delegate click handlers ── */
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('.nt-blank-add-size-btn');
+      if (btn) { e.preventDefault(); openAddSize(btn.dataset.productHandle, btn.dataset.color); return; }
+      btn = e.target.closest('.nt-blank-add-color-btn');
+      if (btn) { e.preventDefault(); openAddColor(btn.dataset.productHandle); return; }
+    });
+  })();
+</script>
+
+<div class="mobile-sticky-cart" id="MobileStickyCart">
+  <div class="mobile-sticky-cart__expanded">
+  <div class="sidebar-widget sidebar-widget--outline gutter-regular margin-bottom--regular cart-gift-widget nt-jtl-card">
+    <div class="sidebar-widget__content">
+      {%- unless settings.gift_wrap_product == blank -%}
+        <div class="cart-wrapping cart-gift-widget cart-wrapping--page">
+          {%- liquid
+            assign mStickyChecked = ''
+            for item in cart.items
+              if item.product_id == settings.gift_wrap_product.id
+                assign mStickyChecked = 'checked'
+              endif
+            endfor
+          -%}
+          <input type="checkbox" {{ mStickyChecked }} class="styled-checkbox nodisplay" id="MobileStickyJtlToggle" />
+          <label class="checkbox-switch-design jtl-bar" for="MobileStickyJtlToggle">
+            <span class="jtl-icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polygon class="nocolor" points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+            <span class="jtl-text">{{ settings.gift_wrap_heading }}</span>
+            <span class="jtl-sub jtl-sub--off">+$19.99</span>
+            <span class="jtl-sub jtl-sub--on">Added</span>
+            <span class="jtl-sub jtl-sub--in-cart">$19.99</span>
+            <i></i>
+          </label>
+        </div>
+      {%- endunless -%}
+    </div>
+  </div>
+  <div class="cart__details{% if cart.item_count == 0 %} cart--empty{% endif %}">
+    <div class="cart__subtotal cart__details--row">
+      <span>{{ 'cart.subtotal' | t }}</span>
+      <span class="cart-subtotal-value" id="MobileStickySubtotal">{{ cart.items_subtotal_price | money }}</span>
+    </div>
+    <div class="cart__details--row cart-saving-row {% if customer.tags contains "Elite-Monthly" or customer.tags contains "Elite-Annually" %}lnkcolor{% endif %}">
+      <strong class="small">
+        {% if customer %}
+          {% if customer.tags contains "Elite-Monthly" or customer.tags contains "Elite-Annually" %}
+            {{ 'cart.elite_saving' | t }}
+          {% else %}
+            {{ 'cart.total_saving' | t }}
+          {% endif %}
+        {% else %}
+          {{ 'cart.total_saving' | t }}
+        {% endif %}
+      </strong>
+      <strong id="MobileStickySavings"></strong>
+    </div>
+    <div class="cart__total cart__details--row saving">
+      <strong>{{ 'cart.total' | t }}</strong>
+      <strong>{{ cart.total_price | money }}</strong>
+    </div>
+    <div class="flex-buttons">
+      <a id="MobileStickyCheckout" href="/checkout" class="button button--regular button--solid button--move">
+        <span class="button__text">{{ 'cart.checkout' | t }}</span>
+      </a>
+    </div>
+    <div id="MobileStickyRewardBlock"
+         class="reward-point-block reward-crest text-center __cart-page"
+         data-reward-msg=""
+         style="display:none;">
+      <div id="MobileStickyRewardInfo"></div>
+    </div>
+    <input type="hidden" id="MobileStickyMoneySaved" value="" data="" />
+    <input type="hidden" id="MobileStickyRewardMoney" value="" />
+  </div>
+  </div>
+  <a href="/checkout" class="mobile-sticky-cart__compact-btn" id="MobileStickyCompactBtn">
+    <span class="mobile-sticky-cart__compact-label">Checkout</span>
+    <span class="mobile-sticky-cart__compact-dot">•</span>
+    <span class="mobile-sticky-cart__compact-total">{{ cart.total_price | money }}</span>
+  </a>
+</div>
+<div class="mobile-sticky-cart-sentinel" id="MobileStickyCartSentinel"></div>
+
+<script>
+(function() {
+  var stickyBar = document.getElementById('MobileStickyCart');
+  var sentinel = document.getElementById('MobileStickyCartSentinel');
+  if (!stickyBar || !sentinel) return;
+
+  // Hide sticky bar when sentinel (natural subtotal position) is in view
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting || entry.boundingClientRect.top < 0) {
+        stickyBar.classList.add('is-hidden');
+      } else {
+        stickyBar.classList.remove('is-hidden');
+      }
+    });
+  }, { rootMargin: '0px 0px -80px 0px', threshold: 0 });
+  observer.observe(sentinel);
+
+  // Scroll-aware compact/full mode (collapse on scroll down, expand on scroll up)
+  var lastScrollY = window.scrollY;
+  var scrollThreshold = 10;
+  window.addEventListener('scroll', function() {
+    if (stickyBar.classList.contains('is-hidden')) return;
+    var currentScrollY = window.scrollY;
+    var delta = currentScrollY - lastScrollY;
+    if (Math.abs(delta) < scrollThreshold) return;
+    if (delta > 0 && currentScrollY > 100) {
+      stickyBar.classList.add('is-compact');
+    } else {
+      stickyBar.classList.remove('is-compact');
+    }
+    lastScrollY = currentScrollY;
+  }, { passive: true });
+
+  // Mirror values from the real (page) cart subtotal into the sticky clone.
+  var realSavings      = document.getElementById('_total_saving');
+  var realMoney        = document.getElementById('moneySaved');
+  var realRewardMoney  = document.getElementById('reward_money');
+  var realRewardBlock  = document.getElementById('cart_reward-point-block');
+  var realToggle       = document.getElementById('cart-gift-wrapping');
+
+  var mSavings      = document.getElementById('MobileStickySavings');
+  var mMoney        = document.getElementById('MobileStickyMoneySaved');
+  var mRewardMoney  = document.getElementById('MobileStickyRewardMoney');
+  var mRewardBlock  = document.getElementById('MobileStickyRewardBlock');
+  var mRewardInfo   = document.getElementById('MobileStickyRewardInfo');
+  var mToggle       = document.getElementById('MobileStickyJtlToggle');
+
+  function realRewardInfo() {
+    return realRewardBlock ? realRewardBlock.querySelector('#__reward_info') : null;
+  }
+
+  function mirror() {
+    realToggle = document.getElementById('cart-gift-wrapping');
+    realMoney = document.getElementById('moneySaved');
+    realRewardMoney = document.getElementById('reward_money');
+    if (realSavings && mSavings) mSavings.innerHTML = realSavings.innerHTML;
+    if (realMoney && mMoney) {
+      mMoney.value = realMoney.value || '';
+      mMoney.setAttribute('data', realMoney.getAttribute('data') || '');
+    }
+    if (realRewardMoney && mRewardMoney) {
+      mRewardMoney.value = realRewardMoney.value || '';
+    }
+    var src = realRewardInfo();
+    if (src && mRewardInfo) mRewardInfo.innerHTML = src.innerHTML;
+    if (realRewardBlock && mRewardBlock) {
+      var visible = getComputedStyle(realRewardBlock).display !== 'none';
+      mRewardBlock.style.display = visible ? 'flex' : 'none';
+    }
+    if (realToggle && mToggle) mToggle.checked = realToggle.checked;
+    var cents = realMoney ? (parseInt(realMoney.getAttribute('data')) || 0) : 0;
+    var mSavingsRow = mSavings ? mSavings.closest('.cart-saving-row') : null;
+    if (mSavingsRow) mSavingsRow.style.display = cents > 0 ? 'flex' : 'none';
+    // Keep compact checkout button total in sync
+    var compactTotal = document.getElementById('MobileStickyCompactBtn');
+    if (compactTotal) {
+      var totalEl = compactTotal.querySelector('.mobile-sticky-cart__compact-total');
+      var realTotal = document.querySelector('.cart__total strong:last-child');
+      if (totalEl && realTotal) totalEl.textContent = realTotal.textContent.trim();
+    }
+    var rs = document.querySelector('#AjaxCartSubtotal .cart-subtotal-value');
+    var ms = document.getElementById('MobileStickySubtotal');
+    if (rs && ms) ms.textContent = rs.textContent;
+  }
+
+  if (mToggle) {
+    mToggle.addEventListener('change', function() {
+      var rt = document.getElementById('cart-gift-wrapping');
+      if (rt) rt.click();
+    });
+  }
+  var cf = document.getElementById('AjaxCartForm');
+  if (cf) cf.addEventListener('cart-updated', function() { setTimeout(mirror, 0); });
+  document.addEventListener('cart:updated', function() { setTimeout(mirror, 0); });
+  document.addEventListener('cart-updated', function() { setTimeout(mirror, 0); });
+  if ('MutationObserver' in window) {
+    var mo = new MutationObserver(function() { mirror(); });
+    if (realSavings)     mo.observe(realSavings,     { childList: true, characterData: true, subtree: true });
+    if (realRewardBlock) mo.observe(realRewardBlock, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['style'] });
+  }
+  mirror();
+  setTimeout(mirror, 250);
+  setTimeout(mirror, 1000);
+})();
+</script>
+
+<script>
+(function() {
+  var target = document.querySelector('.nt-share-target');
+  if (!target) return;
+
+  // Relocates Bevy Share Cart's app-injected .share_cart_wrap
+  // into the cart header row. Brittle: depends on the app's
+  // class names (.share_cart_wrap) staying stable. If the app
+  // updates its markup, this silently stops working.
+  function moveShareCart() {
+    var all = document.querySelectorAll('.share_cart_wrap');
+    if (all.length === 0) return;
+    var fresh = null;
+    for (var i = all.length - 1; i >= 0; i--) {
+      if (!target.contains(all[i])) { fresh = all[i]; break; }
+    }
+    if (!fresh) return;
+    target.innerHTML = '';
+    target.appendChild(fresh);
+    document.querySelectorAll('.share_cart_wrap').forEach(function(el) {
+      if (!target.contains(el)) el.remove();
+    });
+  }
+
+  moveShareCart();
+
+  var cartForm = document.getElementById('AjaxCartForm');
+  if (cartForm && 'MutationObserver' in window) {
+    new MutationObserver(moveShareCart).observe(cartForm, { childList: true, subtree: true });
+  }
+
+  document.addEventListener('change', function(e) {
+    if (e.target && (e.target.id === 'cart-gift-wrapping' || e.target.id === 'MobileStickyJtlToggle') && e.target.checked) {
+      var card = e.target.closest('.nt-jtl-card');
+      if (card) {
+        card.classList.add('jtl-flashing');
+        setTimeout(function() { card.classList.remove('jtl-flashing'); }, 3000);
+      }
+    }
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "t:settings_schema.cart-page.name",
+  "blocks": [
+    {
+      "type": "cart-items",
+      "limit": 1,
+      "name": "t:sections.main-cart-items.name"
+    },
+    {
+      "type": "shipping-calculator",
+      "limit": 1,
+      "name": "t:sections.local-extra-words.sections.main-cart.blocks.shipping-calculator.name"
+    },
+    {
+      "type": "@app"
+    },
+    {
+      "type": "faq_item",
+      "name": "FAQ Item",
+      "settings": [
+        {
+          "type": "text",
+          "id": "question",
+          "label": "Question",
+          "default": "Question text"
+        },
+        {
+          "type": "richtext",
+          "id": "answer",
+          "label": "Answer",
+          "default": "<p>Answer text goes here.</p>"
+        },
+        {
+          "type": "select",
+          "id": "icon__image",
+          "label": "Enable Icons",
+          "options": [
+            {
+              "label": "Guarantee",
+              "value": "guarantee"
+            },
+            {
+              "label": "Live support",
+              "value": "support"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "grt_upsell_block",
+      "name": "Ninja Upsell Block",
+      "settings": [
+        { "type": "text", "id": "heading", "label": "Heading", "default": "You may also like" },
+        { "type": "text", "id": "subheading", "label": "Subheading", "default": "Add these popular items to your order" },
+        { "type": "image_picker", "id": "upsell_info_icon_1", "label": "Info icon 1" },
+        { "type": "text", "id": "upsell_info_text_1", "label": "Info text 1" },
+        { "type": "image_picker", "id": "upsell_info_icon_2", "label": "Info icon 2" },
+        { "type": "text", "id": "upsell_info_text_2", "label": "Info text 2" },
+        {"type":"checkbox","id":"upsell_pageload","label":"Active on page load","default":true},
+        { "type": "product_list", "id": "upsell_products", "label": "Upsell products" },
+        {
+          "type": "text",
+          "id": "swatch_option_name",
+          "label": "Swatch option name",
+          "default": "Color"
+        },
+        {
+          "type": "textarea",
+          "id": "swatch_map",
+          "label": "Swatch map (one per line: Name:#hex)",
+          "default": "KHAKI_NAVY:#B1A589",
+          "info": "Example: Navy:#0b1b3f (one per line)"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+  {%- comment -%}                                                                                                                                                                                                       Gang Sheet Builder → cart-add bridge.
+    The new gang sheet builder (ninja-gangsheet-builder) cannot call /cart/add.js                                                                                                                                       from its App Proxy URL in a way that triggers Shopify's product_added_to_cart                                                                                                                                   
+    event — fetch isn't hooked by shop_events_listener, and the App Proxy URL
+    doesn't load the listener at all. So instead, the builder writes the cart
+    line items to sessionStorage and redirects to /cart. This snippet drains the
+    stash on /cart load and performs the actual XHR /cart/add.js — which IS
+    hooked by Shopify's listener, so product_added_to_cart auto-publishes
+    natively to every subscribed pixel (Klaviyo, Meta, etc.) just as it would
+    for a normal product page add.
+  {%- endcomment -%}
+  <script>
+    (function() {
+      try {
+        var raw = sessionStorage.getItem('__gs_pending_added_to_cart');
+        if (!raw) return;
+        sessionStorage.removeItem('__gs_pending_added_to_cart');
+        var payload = JSON.parse(raw);
+        if (!payload || !payload.items || !payload.items.length) return;
+        if ((Date.now() - payload.ts) > 60000) return;
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/cart/add.js', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            // Reload /cart so the just-added line items render in the cart UI.
+            // Use replace() so the user can't Back-button into the pre-add state.
+            window.location.replace(window.location.pathname + window.location.search);
+          } else {
+            console.warn('[gs-cart-bridge] /cart/add.js failed', xhr.status, xhr.responseText);
+          }
+        };
+        xhr.onerror = function() {
+          console.warn('[gs-cart-bridge] /cart/add.js network error');
+        };
+        xhr.send(JSON.stringify({ items: payload.items }));
+      } catch (e) {
+        console.warn('[gs-cart-bridge] error', e);
+      }
+    })();
+  </script>

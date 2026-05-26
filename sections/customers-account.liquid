@@ -1,0 +1,715 @@
+{{ 'section-account.css' | asset_url | stylesheet_tag }}
+<script>
+  
+  function loadFallback(obj){
+    $(obj).parents(".imgbox").removeClass("reorder_img");
+    var _img = "https://cdn.shopify.com/s/files/1/0558/0265/8899/files/no_image-design-300424.svg?crop=center&height=120&v=1686517377&width=120";
+    var _count = parseInt($(obj).attr("data-loadcount"));
+    $(obj).attr("data-loadcount",++_count);
+    if(_count < 3){
+      var _src = $(obj).attr("data-src");
+      $(obj).attr("src",_src);
+      var _ctrlparent = $(obj).parents(".reorder_box_wrap");
+      $(obj).parents(".order_img_box:not(._ptype_builder)").addClass("disable_addcart");
+      _ctrlparent.addClass("parent_disable_addcart")
+      if(_ctrlparent.find("._ptype_builder").length){
+      }else{
+        _ctrlparent.addClass("parent_disable_addcart")
+      }
+    }else{
+      $(obj).attr("src",_img);
+      $(obj).parents(".order_img_box").addClass("disable_addcart");
+      
+      var _ctrlparent = $(obj).parents(".reorder_box_wrap");
+      _ctrlparent.addClass("parent_disable_addcart")
+    }
+  }
+</script>
+{%- render 'breadcrumb', container: 'compact', vertical_space: 'vertical-space-xsmall', style: 'breadcrumb-main--margin' -%}
+
+<div class="container--compact container--vertical-space-small">
+
+  <!-- Loyalty Block -->
+    <div class="user-block-customization">
+      
+      <div class="d-block d-sm-flex space-between align-center">
+          <h2 class="nomargin">Hi {{ customer.first_name }}</h2>
+          <div class="xs-mrg8">
+            <a class="text-link--has-icon lnkcolor lnkicon" href="{{ routes.account_logout_url }}">
+              <span>{{ 'customers.login_page.form_logout_button' | t }}</span>
+            </a>
+          </div>
+      </div>
+      <div class="btngroup8 __loyalty-point-balance gutter-top--small" style="font-size: 17px;">
+        {%- if customer.tax_exempt -%}
+          <a class="lnkcolor" href="javascript:void(0);" onClick="exemptionRequest=window.open('https://app.exemptax.com/ecommerce-drop?integration_type=shopify&shop_domain={{shop.permanent_domain | url_encode}}&customer_id={{customer.id | url_encode}}&email={{customer.email | url_encode}}&first_name={{customer.first_name | url_encode}}&last_name={{customer.last_name | url_encode}}&phone={{customer.phone | url_encode}}&tax_exempt={{customer.tax_exempt | url_encode}}&address1={{customer.default_address.address1 | url_encode}}&address2={{customer.default_address.address2 | url_encode}}&city={{customer.default_address.city | url_encode}}&zip={{customer.default_address.zip | url_encode}}&company={{customer.default_address.company | url_encode}}&country={{customer.default_address.country | url_encode}}&address_id={{customer.default_address.id | url_encode}}','exemptionRequest','left=50,top=100,width=1000,height=600,menubar=0,toolbar=0,location=0,status=0'); return false;">Add Another Certificate</a>
+        {%- else -%}
+          <strong style="font-weight: 900;">Are you a Reseller or Tax Exempt?</strong> <a class="lnkcolor _hidetax_exempt" href="javascript:void(0)">Click Here to Upload Docs</a>
+        {%- endif -%}
+      </div>
+
+      {% if customer.metafields.klaviyo.loyalty_opt_in %}
+      <!-- Loyalty subscribed user tier info -->
+      <article class="_loyalty-container-box">
+        <div class="yotpo-widget-instance" data-yotpo-instance-id="676740"></div>
+        <div class="text-right mrg16">
+        <a class="button button--solid button--loader mbtn150" href="https://ninjatransfers.com/pages/ninja-rewards" style="padding: 10px;
+  min-width: 150px;">
+          <span class="button__text">              
+              Earn Points
+          </span>
+          <span class="button__preloader">
+            <svg class="button__preloader-element" viewBox="25 25 50 50"><circle cx="50" cy="50" r="20" fill="none" stroke-width="4"></circle></svg>
+          </span>
+        </a>
+        </div>
+      </article>
+      <!-- Loyalty subscribed user tier info -->
+      {% else %}
+      
+      <!-- Loyalty not opted user block --> 
+      <div class="layalty-hoverbox accountpage">
+        <div>
+        <div class="loyalty-hover-innerbox">
+          <h2 class="loyalty-text-heading">Collect points <div>Redeem for <span class="lnkcolor">cash</span>.</div></h2>
+          <p class="loyalty-text-desc">Join our loyalty program & earn up to <strong>6px points</strong> on every order as well as access to exclusive bonuses and promotion rewards.</p>
+          <a class="button button--solid button--product button--loader button--move" href="https://ninjatransfers.com/pages/ninja-rewards">
+            <span class="button__text">              
+                Start Earning Today
+            </span>
+            <span class="button__preloader">
+              <svg class="button__preloader-element" viewBox="25 25 50 50"><circle cx="50" cy="50" r="20" fill="none" stroke-width="4"></circle></svg>
+            </span>
+          </a>
+        </div>
+        <div class="layalty-hoverbox-img"></div>
+        </div>
+      </div>
+      <!-- ./Loyalty not opted user block -->
+      {% endif %}
+      
+      <div class="gutter-top--regular">
+        {%liquid
+          assign iselite = false
+          if customer.tags contains "Elite-Monthly" or customer.tags contains "Elite-Annually"
+            assign iselite = true
+          endif
+        %}
+        
+      </div>
+    </div>
+  <!-- ./Loyalty Block -->
+  
+    <script>
+      $(function(){
+        $("._hidetax_exempt").click(function(){
+          console.log($("#_taxexempt").is(":visible"))
+          if($("#_taxexempt").is(":visible")){
+            $("#_taxexempt").hide()
+            $("._hidetax_exempt").text("Upload Tax Docs Here");
+          }else{
+            $("#_taxexempt").show()
+            $("._hidetax_exempt").text("Hide");
+          }
+        })
+      })
+    </script>
+<div class="gutter-bottom--small gutter-top--small" id="_taxexempt" style="display:none;" >
+  <p><strong>If you're a tax exempt customer, you may submit tax exemption documents using the steps below:</strong></p>
+  <p>1. Click on the <span style="text-decoration: underline;">Submit Certificates</span> button to dynamically generate a tax exemption certificate through a guided flow.</p>
+  <p>2. Once you submit your document(s), you will be able to proceed with checkout exempt from sales tax.</p>
+  <p>3. Please note that if your document is expired or is determined to be invalid at a later date, we may collect sales tax, and reach out to you offline to address any issues.</p>
+  <p>If you have any questions specific to tax, please contact your tax advisor. </p>
+  <p><a class="button button--solid gutter-left--small gutter-right--small" href="javascript:void(0);" onClick="exemptionRequest=window.open('https://app.exemptax.com/ecommerce-drop?integration_type=shopify&shop_domain={{shop.permanent_domain | url_encode}}&customer_id={{customer.id | url_encode}}&email={{customer.email | url_encode}}&first_name={{customer.first_name | url_encode}}&last_name={{customer.last_name | url_encode}}&phone={{customer.phone | url_encode}}&tax_exempt={{customer.tax_exempt | url_encode}}&address1={{customer.default_address.address1 | url_encode}}&address2={{customer.default_address.address2 | url_encode}}&city={{customer.default_address.city | url_encode}}&zip={{customer.default_address.zip | url_encode}}&company={{customer.default_address.company | url_encode}}&country={{customer.default_address.country | url_encode}}&address_id={{customer.default_address.id | url_encode}}','exemptionRequest','left=50,top=100,width=1000,height=600,menubar=0,toolbar=0,location=0,status=0'); return false;"><strong>Submit Certificates</strong></a></p>
+  
+  <hr class="account-divider gutter-top--small" />
+</div>	
+<!--
+  <header class="order-tab-block gutter-top--regular">
+    <a class="order-tab active" href="javascript:void(0);">Orders</a>
+    <a class="order-tab design_ordertab" href="javascript:void(0);">Designs</a>
+  </header>
+-->
+	<div class="account-layout gutter-top--regular gutter-bottom--regular">
+		<main class="gutter-bottom--regular">
+             {% render "previous-uploads-account" %}
+			{% paginate customer.orders by 100 %}
+				{% if customer.orders.size != 0 %}
+                    <div class="orderlist_block">
+					{% for order in customer.orders %}
+						<div class="account-table">
+							<div class="thead">
+								<div class="tr order_row reorder">
+									<div class="th">
+										<div class="_order_link">
+    										<span class="label">{{ 'customers.account_page.orders_table.order' | t }}</span>
+    										<span>{{ 'customers.account_page.orders_table.order' | t }}# {{ order.name | link_to: order.customer_url }}</span>
+                                        </div>
+                                        <div class="order_box_row">
+                                          <a class="lnkcolor" target="_blank" href="{{ order.order_status_url }}">View Order and Tracking</a>
+                                          <a class="lnkcolor" href="{{ order.customer_url  }}">View Invoice</a>
+                                        </div>
+									</div>
+									<span class="th text-right">
+                                      {%- if order.metafields.custom.checkout != blank -%}
+										{{ 'customers.account_page.orders_table.order' | t }} Nickname: <strong>{{ order.metafields.custom.checkout }}</strong>
+                                      {%- endif -%}
+									</span>
+								</div>
+							</div>
+							<div class="tbody reorder_box">
+                              	<div class="tr orders reorder">
+									<div class="td">
+										<div>{{ 'customers.account_page.orders_table.date' | t }}</div>
+										<strong>{{ order.created_at | date: "%b %d, %Y" }}</strong>
+									</div>
+									<div class="td">
+										<div>{{ 'customers.account_page.orders_table.payment_status' | t }}</div>
+										<strong>{{ order.financial_status_label }}</strong>
+									</div>
+									<div class="td">
+										<div>
+                                          {{ 'customers.account_page.orders_table.fulfillment_status' | t }}
+                                        </div>
+										<strong>{{ order.fulfillment_status_label }}</strong>
+									</div>
+									<div class="td">
+										<div>{{ 'customers.account_page.orders_table.total' | t }}</div>
+										<strong>{{ order.total_price | money }}</strong>
+									</div>
+								</div>
+                              {%liquid
+                                assign reorder_true = blank
+                                for line_item in order.line_items 
+                                  assign reorder_true = line_item.variant_id
+                                endfor 
+                                
+                                assign order_date = order.created_at | date: "%Y-%m-%d"
+                                assign comparison_date = "2024-10-01"
+                              %}
+                               <div class="reorder_box_wrap _custom-order-node-{{ reorder_true }}" data-order-value="{{ order.total_price }}">
+                                  <div class="order_box_row">
+                                      {% for line_item in order.line_items %}
+{% assign t_ignore = "consumables|supplies|makerFlo crafts|blanks" | downcase | split: "|" %}
+{% assign line_p_tags = line_item.product.tags | join: "," | downcase %}
+{% assign issupply = false %}
+{% for ignore_tag in t_ignore %}
+  {% if line_p_tags contains ignore_tag %}
+    {% assign issupply = true %}
+  {% endif %}
+  {% if line_p_tags contains "gang sheet" %}
+    {% assign isbuilder = true %}
+  {% endif %}
+{% endfor %}
+                                        {%- assign propertysize = line_item.properties | size -%}
+                                          {%liquid
+                                            assign buildertitle = line_item.title | downcase 
+                                            assign isbuilder = false
+                                            if buildertitle contains "builder"
+                                              assign isbuilder = true
+                                            endif
+                                          %}
+                                        {% assign printready = "" %}
+                                        {% assign preview = "" %}
+                                        {%- if propertysize > 0 -%}
+                                          {%- for p in line_item.properties -%}
+                                            {% assign pfirst = p.first | downcase %}
+                                            {%- if pfirst == 'preview' -%}
+                                              {% assign preview = p.last %}
+                                            {%- endif -%}
+                                            {%- if pfirst == '_print ready file' -%}
+                                              {% assign printready = p.last %}
+                                              {% assign printready = "" %}
+                                              {% assign isbuilder = false %}
+                                            {%- endif -%}
+                                          {%- endfor -%}
+                                        {%- endif -%}
+                                        
+                                      <div class="order_img_box {% if isbuilder and printready != "" %}_ptype_builder{% endif %}">
+                                        <div>
+                                        {% assign _line_prop = "" %}
+                                        {% assign wD = "" %}
+                                        {% assign hD = "" %}
+                                        {% assign pGS = "" %}
+                                        {% assign uploadtext = "" %}
+                                        {%- assign property_size = line_item.properties | size -%}
+                                        {% assign uploadtext = "" %}
+                                        {%- if property_size > 0 -%}
+                                          {%- for p in line_item.properties -%}
+                                            {% assign pfirst = p.first | downcase %}
+                                            {%- if pfirst == 'preview' -%}
+                                              {% assign _line_prop = p.last %}
+                                            {%- endif -%}
+                                            {%- if pfirst == 'upload (vector files preferred)' -%}
+                                              {% assign _line_prop = p.last %}
+                                            {%- endif -%}
+                                            {%- if pfirst == '_cartimg' -%}
+                                              {% assign _line_prop = p.last %}
+                                            {%- endif -%}
+                                            {%- if pfirst == 'width' or pfirst == '_width' -%}
+                                              {% assign wD = p.last %}
+                                            {%- endif -%}
+                                            {%- if pfirst == '_design name' -%}
+                                              {% assign uploadtext = p.last %}
+                                            {%- endif -%}
+                                            {%- if pfirst == 'height' or pfirst == '_height' -%}
+                                              {% assign hD = p.last %}
+                                            {%- endif -%}
+                                            {%- if pfirst == 'preview gang sheet (low res)' -%}
+                                              {% assign pGS = p.last %}
+                                            {%- endif -%}
+                                          {%- endfor -%}
+                                        {% else %}
+                                          {% assign _line_prop = "" %}
+                                        {%- endif -%}
+                                          
+                                        <a class="imgbox reorder_img" href="javascript:void(0)" data-line="{{ _line_prop }}" data-href="{%- if issupply -%}https://ninjatransfers.com/cdn/shop/{{ line_item.product.featured_image }}{%- elsif isbuilder == false -%}{{ _line_prop}}{%- else -%}{{ preview }}{%- endif -%}">
+                                          <img onerror="loadFallback(this)" data="{{ _line_prop }}" data-loadcount="0" src="{%- if issupply -%}https://ninjatransfers.com/cdn/shop/{{ line_item.product.featured_image }}{%- elsif isbuilder == false -%}{{ _line_prop}}{%- else -%}{{ preview }}{%- endif -%}" alt="{{ line_item.title }}" data-src="https://ninjatransfers.com/cdn/shop/{{ line_item.product.featured_image }}" />
+                                        </a>
+                                      
+                                        <div style="height:42px; font-weight:bold; margin-top:8px; overflow:hidden;" title="{{ line_item.title }}">{{ line_item.title }}</div>
+                                        {% unless wD == "" %}
+                                          <div style="margin-top:8px;font-size:12px;">Size: {{ wD }} X {{ hD }}</div>
+                                        {% endunless %}
+                                        {% unless uploadtext == "" %}
+                                          <div style="margin-top:8px;font-size:12px;">Design Name<br><strong>{{ uploadtext }}</strong></div>
+                                        {% endunless %}
+                                      </div>
+
+                                        {% if order_date < comparison_date %}{% else %}
+                                        <div data-_line_prop="{{ _line_prop }}" {% if isbuilder  %}style="display:none"{% endif %}>
+                                            <a class="button addtodesign" data-line="{{ forloop.index }}" href="javascript:void(0);">
+                                              <span class="plus">+</span><span>Add To Cart</span>
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                      </div>
+                                    {% endfor %}
+                                  </div>
+
+                                 {% if order_date < comparison_date %}{% else %}
+                                 <div class="ninja_btn_box === {{ order.line_items.size }}" style="{% if order.line_items.size < 2 %}display:none{% endif %}">
+                                      {% render "ninja_reorder" order:order %}
+                                  </div>
+                                 {% endif %}
+                                </div>
+							</div>
+						</div>
+                      {% endfor %}
+                      </div>
+
+                      <!-- Design list -->
+                      <div class="nodisplay design-list-block">
+                        <div>
+                        {% for order in customer.orders %}
+                              {%liquid
+                                assign reorder_true = blank
+                                for line_item in order.line_items 
+                                  assign reorder_true = line_item.variant_id
+                                endfor 
+                              %}
+                          
+                                  {% for line_item in order.line_items %}
+                                    {%liquid 
+                                      assign _type_true = false
+                                      assign product_type = line_item.product.tags
+                                      
+                                      if product_type contains "Account_Display"
+                                        assign _type_true = true
+                                      endif 
+                                    %}
+                                  <div data="{{ order.name }}" data-tags="{{ product_type | join : "_" }}" class="order_img_box _custom-order-node-{{ reorder_true }} design_type design_{{ _type_true }}" data-order-value="{{ order.total_price }}">
+                                    <div>
+                                    {% assign _line_prop = "" %}
+                                    {% assign wD = "" %}
+                                    {% assign hD = "" %}
+                                    {% assign pGS = "" %}
+                                    {% assign uploadtext = "" %}
+                                    {%- assign property_size = line_item.properties | size -%}
+                                    {% assign uploadtext = "" %}
+                                    {%- if property_size > 0 -%}
+                                      {%- for p in line_item.properties -%}
+                                        {% assign pfirst = p.first | downcase %}
+                                        {%- if pfirst == 'upload (vector files preferred)' -%}
+                                          {% assign _line_prop = p.last %}
+                                        {%- endif -%}
+                                        {%- if pfirst == 'width' or pfirst == '_width' -%}
+                                          {% assign wD = p.last %}
+                                        {%- endif -%}
+                                        {%- if pfirst == '_design name' -%}
+                                          {% assign uploadtext = p.last %}
+                                        {%- endif -%}
+                                        {%- if pfirst == 'height' or pfirst == '_height' -%}
+                                          {% assign hD = p.last %}
+                                        {%- endif -%}
+                                        {%- if pfirst == 'preview gang sheet (low res)' -%}
+                                          {% assign pGS = p.last %}
+                                        {%- endif -%}
+                                      {%- endfor -%}
+                                    {%- endif -%}
+                                    <a class="imgbox reorder_img" href="javascript:void(0)" data-href="{{ _line_prop }}">
+                                      <img onerror="loadFallback(this)" data="{{ _line_prop.se }}" data-loadcount="0" src="{{ _line_prop }}" alt="{{ line_item.title }}" data-src="https://ninjatransfers.com/cdn/shop/{{ line_item.product.featured_image }}" />
+                                    </a>
+                                  
+                                    <div style="height:42px; font-weight:bold; margin-top:8px; overflow:hidden;" title="{{ line_item.title }}">{{ line_item.title }}</div>
+                                    {% unless wD == "" %}
+                                      <div style="margin-top:8px;font-size:12px;">Size: {{ wD }} X {{ hD }}</div>
+                                    {% endunless %}
+                                    {% unless uploadtext == "" %}
+                                      <div style="margin-top:8px;font-size:12px;">Design Name<br><strong>{{ uploadtext }}</strong></div>
+                                    {% endunless %}
+                                  </div>
+
+                                    {% unless order_date < comparison_date %}
+                                    <div>
+                                      <a class="button add_design" data-line="{{ forloop.index }}" href="javascript:void(0);">
+                                        <span class="plus">+</span><span>Add To Cart</span>
+                                      </a>
+                                    </div>
+                                    {% render 'ninja_reorder_cart' order:order, line_item : line_item %}
+                                    {% endunless %}
+                                    
+                                  </div>
+                                {% endfor %}
+                              
+                          
+                      {% endfor %}
+                          </div>
+                      </div>
+                    <!-- ./Design list -->
+
+                      
+
+				{% else %}
+
+					<p>{{ 'customers.account_page.no_orders_message' | t }}</p>
+
+				{% endif %}		
+			
+				{% if paginate.pages > 1 %}
+					{% render 'pagination', paginate: paginate %}
+				{% endif %}
+
+			{% endpaginate %}
+		</main>
+
+		<aside>
+			
+			<h2 class="heading-size--xsmall gutter-bottom--small">{{ 'customers.account_page.account_details_subtitle' | t }}</h2>
+
+			<div class="account-widget">
+
+				<div class="account-widget__head">
+					<span>{{ customer.name }}</span>
+				</div>
+
+				<div class="account-widget__body remove-empty-space">
+					
+					{{ customer.default_address | format_address }}
+	
+					<p><a class="text-link" href="{{ routes.account_addresses_url }}">{{ 'customers.account_page.view_addresses_link' | t }} ({{ customer.addresses_count }})</a></p>
+				</div>
+
+			</div>			
+		</aside>
+		
+	</div>
+
+</div>
+
+{% schema %}
+  {
+    "name": "t:sections.local-extra-words.sections.customers.account.name",
+    "class": "section--remove-bottom-margin-after"
+  }
+{% endschema %}
+
+<script>
+  
+  
+  (function($) {
+
+    if($(".design_type.design_true").length){
+      $(".design_order-tab").hide();
+    }
+  // stx reorder 
+  this.reorder = new function(){
+    var self = this;
+
+    this.pushQueue = function(i, data, el){
+      var __note_val = "";// "reorder of order #" + el.attr('data-corder-id');
+      //LOW STOCK -- add as many as possible if stock is below requested ammount
+      if(data[i].check_inventory){
+        data[i].quantity = Math.min(parseInt(data[i].inventory), parseInt(data[i].quantity));
+      }
+      //console.log(data,"Ajax data")
+      //return;
+      $.ajax({
+        url: '/cart/add.js',
+        method: 'POST',
+        data: {
+          quantity: data[i].quantity,
+          id: data[i].id,
+          properties : data[i].properties
+        },
+        complete: function(res){
+          if(i >= data.length - 1){
+            //products from queue are now added to the cart -> stop loading signal and go to cart
+            el.removeClass('loading');
+            //window.location.href = '/cart';
+            window.refreshCart()
+            return;
+          }else{
+            // Calls are async as required by Shopify Docs
+               self.pushQueue(i+1, data, el);
+          }
+        }
+      });
+    }
+
+    this.listen = function(){
+      var el = $(this);
+      var pNode = el.parents(".reorder_box_wrap");
+      
+      var note = "of order #" + el.attr('data-corder-id');
+      var ids = el.attr('data-variant-ids').split(',');
+      var lineids = el.attr('data-lineitem-ids').split(',');
+      var quantities = el.attr('data-variant-quantities').split(',');
+      var inventories = el.attr('data-variant-inventories').split(',');
+      var inventory_policies = el.attr('data-variant-inventory-policies').split(',');
+      var inventory_trackers = el.attr('data-variant-inventory-trackers').split(',');
+      
+      
+      ids.splice(-1, 1);
+      quantities.splice(-1, 1);
+      inventories.splice(-1, 1);
+      inventory_policies.splice(-1, 1);
+      inventory_trackers.splice(-1, 1);
+
+      var data = [];
+      var propitems = pNode.find(".propitems");
+      for(var i=0; i<ids.length; i++){
+        var order_properties =  $.trim($(propitems[i]).val());
+        var _json_prop = {};
+        if(order_properties != ""){
+          _json_prop = JSON.parse(order_properties);
+          $.each(_json_prop, function(key, value) {
+              if(value.indexOf("https%3A%2F%2F") > -1){
+                _json_prop[key] = decodeURIComponent(value);
+              }else{
+                _json_prop[key] = value.replaceAll("+", " ");
+              }
+          });
+        }
+        _json_prop["reorder"] = note  + " / " + lineids[i];
+        data.push({
+          id: ids[i],
+          quantity: quantities[i],
+          inventory: inventories[i],
+          properties : _json_prop ,
+          check_inventory: (inventory_policies[i] == "deny" && inventory_trackers[i] != "")
+        });
+      }
+      
+      el.addClass('loading');
+      self.pushQueue(0, data, el);
+    }
+
+    
+    this.addDesignCart = function(){
+      var el = $(this);
+      
+      // var _index = parseInt(el.attr("data-line")) - 1;
+      var pEL = el.parents(".order_img_box").find(".reorder-btn");
+      var pNode = el.parents(".order_img_box");
+      
+      var note = "of order #" + pEL.attr('data-corder-id');
+      var ids = pEL.attr('data-variant-ids').split(',');
+      var lineids = pEL.attr('data-lineitem-ids').split(',');
+      var quantities = pEL.attr('data-variant-quantities').split(',');
+      var inventories = pEL.attr('data-variant-inventories').split(',');
+      var inventory_policies = pEL.attr('data-variant-inventory-policies').split(',');
+      var inventory_trackers = pEL.attr('data-variant-inventory-trackers').split(',');
+      
+
+      var data = [];
+      var propitems = pNode.find(".propitems");
+        for(var i=0; i<ids.length; i++){
+          var order_properties =  $.trim($(propitems[i]).val());
+          var _json_prop = {};
+          if(order_properties != ""){
+            _json_prop = JSON.parse(order_properties);
+            $.each(_json_prop, function(key, value) {
+                if(value.indexOf("https%3A%2F%2F") > -1){
+                  _json_prop[key] = decodeURIComponent(value);
+                }else{
+                  _json_prop[key] = value.replaceAll("+", " ");
+                }
+            });
+          }
+          _json_prop["reorder"] = note  + " / " + lineids[i];
+          data.push({
+            id: ids[i],
+            quantity: quantities[i],
+            inventory: inventories[i],
+            properties : _json_prop ,
+            check_inventory: (inventory_policies[i] == "deny" && inventory_trackers[i] != "")
+          });
+      }
+      
+      pNode.addClass('loading');
+      console.log(data,"data")
+      self.pushQueue(0, data, el);
+    }
+    
+    this.addDesign = function(){
+      var el = $(this);
+      
+      var _index = parseInt(el.attr("data-line")) - 1;
+      var pEL = el.parents(".reorder_box_wrap").find(".reorder-btn");
+      var pNode = el.parents(".reorder_box_wrap");
+      
+      var note = "of order #" + pEL.attr('data-corder-id');
+      var ids = pEL.attr('data-variant-ids').split(',');
+      var lineids = pEL.attr('data-lineitem-ids').split(',');
+      var quantities = pEL.attr('data-variant-quantities').split(',');
+      var inventories = pEL.attr('data-variant-inventories').split(',');
+      var inventory_policies = pEL.attr('data-variant-inventory-policies').split(',');
+      var inventory_trackers = pEL.attr('data-variant-inventory-trackers').split(',');
+      
+      
+      ids.splice(-1, 1);
+      quantities.splice(-1, 1);
+      inventories.splice(-1, 1);
+      inventory_policies.splice(-1, 1);
+      inventory_trackers.splice(-1, 1);
+
+      var data = [];
+      var propitems = pNode.find(".propitems");
+      for(var i=0; i<ids.length; i++){
+        if(i == _index){
+          console.log(i," :Index: ",_index)
+          var order_properties =  $.trim($(propitems[i]).val());
+          var _json_prop = {};
+          if(order_properties != ""){
+            _json_prop = JSON.parse(order_properties);
+            $.each(_json_prop, function(key, value) {
+                if(value.indexOf("https%3A%2F%2F") > -1){
+                  _json_prop[key] = decodeURIComponent(value);
+                }else{
+                  _json_prop[key] = value.replaceAll("+", " ");
+                }
+            });
+          }
+          _json_prop["reorder"] = note  + " / " + lineids[i];
+          data.push({
+            id: ids[i],
+            quantity: quantities[i],
+            inventory: inventories[i],
+            properties : _json_prop ,
+            check_inventory: (inventory_policies[i] == "deny" && inventory_trackers[i] != "")
+          });
+        }
+      }
+      
+      pNode.addClass('loading');
+      self.pushQueue(0, data, el);
+    }
+    
+    this.init = function(){
+      $('.reorder-btn').on('click', self.listen);
+      $('.addtodesign').on('click', self.addDesign);
+      $('.add_design').on('click', self.addDesignCart);
+      
+      $(".reorder_img").click(function(){
+        var _href = $(this).attr("data-href");
+        console.log("data",_href,$("#modal_image-container"));
+        $("#modal_image-container").find("img").attr("src",_href);
+        $("#modal_input").prop("checked",true);
+      })
+    }
+  }
+
+  $(reorder.init);
+})(jQuery)
+</script>
+<style>
+  ._custom-order-node-{display:none}
+  /* reorder style */
+@-webkit-keyframes rotating{
+    from{
+        -webkit-transform:rotate(0deg);
+        -o-transform:rotate(0deg);
+        transform:rotate(0deg)
+    }
+    to{
+        -webkit-transform:rotate(360deg);
+        -o-transform:rotate(360deg);
+        transform:rotate(360deg)
+    }
+}
+@keyframes rotating{
+    from{
+        -ms-transform:rotate(0deg);
+        -moz-transform:rotate(0deg);
+        -webkit-transform:rotate(0deg);
+        -o-transform:rotate(0deg);
+        transform:rotate(0deg)
+    }
+    to{
+        -ms-transform:rotate(360deg);
+        -moz-transform:rotate(360deg);
+        -webkit-transform:rotate(360deg);
+        -o-transform:rotate(360deg);
+        transform:rotate(360deg)
+    }
+}
+.pt-spinner {
+    -webkit-animation: rotating .5s linear infinite;
+    animation: rotating .5s linear infinite;
+    height: 100%;
+  
+}
+.pt-spinner-container{
+  display: none;
+  height: 22px;
+  margin-top: -4px;
+}
+.reorder-btn:not(.nosinglecart){display: inline-block; padding:var(--button-padding); margin: 0; line-height: 1.25; text-align: center; vertical-align: middle; cursor: pointer; border-radius: var(--border-radius-buttons); font-size: var(--font-weight-buttons); background: #42a9de; color: #fff;
+  -webkit-transition: background-color 0.2s ease-out; -moz-transition: background-color 0.2s ease-out; -ms-transition: background-color 0.2s ease-out; -o-transition: background-color 0.2s ease-out; transition: background-color 0.2s ease-out; min-width:200px;
+}
+.reorder-btn.loading .pt-spinner-container{
+  display: inline-block;
+}
+.reorder-btn.loading .pt-reorder-text{
+  display: none;
+}
+/* reorder style end */
+
+  input.popupinput{position:absolute; top:0; left:0;display:none; z-index: -1;}
+  ._modalwrap{position:fixed; top:0; left:0; bottom:0; right:0; display:none;z-index: 99998; font-size:14px;}
+  ._modalwrap .modalclose{position: absolute;top: 8px;right: 10px;margin-right:0px; cursor:pointer;}
+  ._modalwrap:after{content:"";position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8);}
+  ._modalwrap .modalwrap-content{width: 620px; max-width:90%; max-height:max-content; height:520px; border-radius: 14px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background-color: #fff; z-index: 2; padding: 16px; max-height: 80%; overflow: auto;}
+  input.popupinput[type="checkbox"]:checked + ._modalwrap{ display:block;}
+  .image-container{width: 588px; height:451px; display:flex; align-items:center; justify-content:center;}
+  .image-container img{max-width:100%; max-height:100%;}
+  @media(max-width:768px){
+    .image-container{width: 90%; height:400px;}
+  }
+</style>
+
+<input type="checkbox" id="modal_input" class="popupinput" />
+<div class="_modalwrap">
+  <div class="modalwrap-content">
+    <label class="modalclose" for="modal_input">
+      <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path>
+        <path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path>
+      </svg>
+    </label>
+    <div class="image-container" id="modal_image-container">
+      <img src="https://upload.cloudlift.app/s/transferss/3wkCUkf6OK.png" alt="image" loader="lazy" />
+    </div>
+  </div>
+</div>

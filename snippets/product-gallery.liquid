@@ -1,0 +1,1397 @@
+{% assign hoverimg = product.metafields.custom.animated_image | default : "" %}
+{% if section.settings.gallery_position_vertical %}
+<style>
+  .grt-image-gallery .lazy-image.lazy-image--fit.lazy-image--small img{padding:0;}
+  .grt-image-gallery .product-gallery__thumbnails .thumbnail.active{border-width:0px;}
+  .grt-image-gallery .product-gallery__thumbnails .thumbnail{width:60px; height:60px; border-radius:9px;}
+  .grt-thumbnails.product-gallery__thumbnails .grt-video-thumb{top: 50%; right: 50% !important; display: flex; align-items: center; justify-content: center; margin-right: -10px; margin-top: -10px;}
+  .grt-image-gallery .product-gallery__thumbnails .grt-video-thumb svg .path{fill:#fff;}
+  .grt-image-gallery .product-gallery__thumbnails .active .thumbnail__image,.grt-image-gallery .product-gallery__thumbnails .thumbnail__image:hover{opacity:1}
+  .grt-image-gallery .product-gallery__thumbnails .thumbnail__image{opacity:0.4;}
+@media(min-width:768px){
+  .grt-image-gallery .grt-main-image{position:relative; width:auto; max-width:100%; }
+  .grt-image-gallery .grt-main-image .product-gallery-item{border-radius:9px;}
+  .grt-image-gallery{display:grid;flex-direction:column;align-items:flex-start;grid-template-columns:72px auto;}
+  .grt-image-gallery .grt-thumbnails{display:flex;flex-direction:row;gap:8px;flex-wrap:wrap;order: -1;padding-top:0;height: 455px;overflow: auto;scroll-behavior: smooth;}
+  .grt-image-gallery img{max-width:100%;height:auto;object-fit:contain;}
+  .grt-image-gallery .product-gallery__thumbnails-holder{display:grid; gap:12px;}
+  .grt-image-gallery .product-gallery__thumbnails .thumbnail:not(:last-child){margin-inline-end:0;}
+  .grt-image-gallery .grt-thumbnails{-ms-overflow-style:none;scrollbar-width:none;}
+  .grt-image-gallery .grt-thumbnails::-webkit-scrollbar{display:none;}
+}
+</style>
+{% endif %}
+{% if product.metafields.custom.full_width_preview_image %}
+  <div class="desktop-sticky-container">
+{% endif %}
+<div
+    class="posrel
+    gallery_position
+    product-gallery
+    product-gallery--{% if section.settings.gallery_layout contains 'scroll' %}scroll{% else %}slider{% endif %}
+    lap--grid--slider-container
+    {% if section.settings.gallery_layout contains 'scroll' and section.settings.show_thumbnails and product.media.size > 1 %} product-gallery--has-thumbnails {% endif %}
+  "
+  data-js-product-gallery
+  style="--border-radius: {{ section.settings.border_radius }}px"
+>
+  <article class="grt-image-gallery">
+    <div class="grt-main-image">
+  {% style %}
+    #product-{{ section.id }} .product-gallery-item .lazy-image img {
+      padding: {{ section.settings.gallery_padding }}% !important;
+    }
+    {%- if section.settings.gallery_background != 'rgba(0,0,0,0)' -%}
+      #product-{{ section.id }} .product-gallery-item .lazy-image--fit {
+        background-color: {{ section.settings.gallery_background }};
+      }
+    {%- endif -%}
+    {%- if section.settings.gallery_border != 'rgba(0,0,0,0)' -%}
+      #product-{{ section.id }} .product-gallery-item img,
+      #product-{{ section.id }} .product-gallery-item iframe,
+      #product-{{ section.id }} .product-gallery-item video {
+        border: 1px solid {{ section.settings.gallery_border }};
+      }
+    {%- endif -%}
+
+    .thumbnail-bg-color {
+      background-color: #f6f6f6;
+      position: absolute;
+      top: 0;
+      height: 100%;
+      width: 100%;
+      border-radius: 8px;
+    }
+    .no-touchevents .product-gallery-item__zoom:hover,
+    .product-gallery-item__zoom{
+      background-color: #f6f6f6 !important
+    }
+    .thumbnail-image {
+      mix-blend-mode: darken;
+    }
+    .product-gallery__thumbnails .thumbnail.active,
+    .no-touchevents .product-gallery__thumbnails .thumbnail:hover{
+      border-radius: 9px;
+    }
+  {% endstyle %}
+
+  <!-- Gallery image hari -->
+  {%- if product.media.size > 1 -%}
+    <style>
+      @media(max-width:768px){
+        .gallery_position{position:relative;}
+      }
+      .arrow-key{
+        display: flex; width: 32px; height: 32px; align-items: center; justify-content: center; position: absolute; top: 50%; margin-top:-16px;
+        z-index: 3; background: #fff; border-radius: 50%; box-shadow:0 0.0625rem 0.125rem 0.0625rem #00000026; cursor:pointer;
+      }
+      .arrow-key.disable{opacity:0.5; pointer-events:none;}
+      .arrow-key.next{right:12px;}
+      .arrow-key.prev{left:12px; transform:rotate(180deg)}
+      .css-slider-navigation-container {
+        display: none !important;
+      }
+    </style>
+
+    <a class="arrow-key prev">
+      {% render 'product-gallery-arrow' %}
+    </a>
+    <a class="arrow-key next">
+      {% render 'product-gallery-arrow' %}
+    </a>
+
+    <script>
+      function setupThumbnailNavigation() {
+        var _thumb = $(".product-gallery__thumbnails-holder").find(".thumbnail");
+        var _thumbLength = _thumb.length;
+
+        function updateButtons() {
+          var _activeIndex = $(".product-gallery__thumbnails-holder").find(".thumbnail.active").index();
+
+          if (_activeIndex === 0) {
+            $(".arrow-key.prev").addClass("disable");
+          } else {
+            $(".arrow-key.prev").removeClass("disable");
+          }
+
+          if (_activeIndex === (_thumbLength - 1)) {
+            $(".arrow-key.next").addClass("disable");
+          } else {
+            $(".arrow-key.next").removeClass("disable");
+          }
+        }
+
+        function moveToNextSlide() {
+          var _active = $(".product-gallery__thumbnails-holder").find(".thumbnail.active");
+          var _next = _active.next(".thumbnail");
+
+          if (_next.length) {
+            _active.removeClass("active");
+            _next.addClass("active");
+            _next.trigger("click");
+          }
+
+          updateButtons();
+        }
+
+        function moveToPrevSlide() {
+          var _active = $(".product-gallery__thumbnails-holder").find(".thumbnail.active");
+          var _prev = _active.prev(".thumbnail");
+
+          if (_prev.length) {
+            _active.removeClass("active");
+            _prev.addClass("active");
+            _prev.trigger("click");
+          }
+
+          updateButtons();
+        }
+        updateButtons();
+
+       {% if product.metafields.custom.multiupload_ui %}
+        {% else %}
+          $(".arrow-key.next").off("click").on("click", function () {
+            moveToNextSlide();
+          });
+
+          $(".arrow-key.prev").off("click").on("click", function () {
+            moveToPrevSlide();
+          });
+        {% endif %}
+      }
+      $(function(){
+        setupThumbnailNavigation();
+      });
+       {% if product.metafields.custom.multiupload_ui and product.metafields.custom.smart_sizing %}
+            $( document )
+        .on(`click`, `.product-gallery.product-gallery--slider .arrow-key.prev`, function( e ) {
+          try {
+            e.stopImmediatePropagation();
+            $( `.css-slider-navigation-container .css-slider-button.css-slider-prev` ).click();
+            // Re-enable the next arrow (we moved away from the last slide)
+            $(`.product-gallery.product-gallery--slider .arrow-key.next`).removeClass("disable");
+            setTimeout(() => {
+              const activeSlideNo = $( `css-slider .css-slider-container .product-gallery-item.css-slide.css-slide-active` ).attr( `data-index` );
+              // Toggle prev's disable class based on whether we're at slide 0
+              if (parseInt(activeSlideNo, 10) <= 0) {
+                $(`.product-gallery.product-gallery--slider .arrow-key.prev`).addClass("disable");
+              } else {
+                $(`.product-gallery.product-gallery--slider .arrow-key.prev`).removeClass("disable");
+              }
+              // Sync the active thumbnail to match the visible slide
+              $( `.product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index]` ).removeClass( `active` );
+              $( `.product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index="${ activeSlideNo }"]` ).addClass( `active` );
+            }, 500);
+          } catch ( err ) {
+            console.log( `ERROR .product-gallery.product-gallery--slider .arrow-key.prev`, err.message );
+          }
+        })
+        .on(`click`, `.product-gallery.product-gallery--slider .arrow-key.next`, function( e ) {
+          try {
+            e.stopImmediatePropagation();
+            $( `.css-slider-navigation-container .css-slider-button.css-slider-next` ).click();
+            // CRITICAL: re-enable the prev arrow as soon as we move off slide 0.
+            // Without this, prev stays in `disable` (which has pointer-events:none)
+            // and the user can never click it back.
+            $(`.product-gallery.product-gallery--slider .arrow-key.prev`).removeClass("disable");
+            setTimeout(() => {
+              const activeSlideNo = $( `css-slider .css-slider-container .product-gallery-item.css-slide.css-slide-active` ).attr( `data-index` );
+              // Toggle next's disable class if we've reached the last slide
+              const totalSlides = $(`.product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index]`).length;
+              if (parseInt(activeSlideNo, 10) >= totalSlides - 1) {
+                $(`.product-gallery.product-gallery--slider .arrow-key.next`).addClass("disable");
+              } else {
+                $(`.product-gallery.product-gallery--slider .arrow-key.next`).removeClass("disable");
+              }
+              $( `.product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index]` ).removeClass( `active` );
+              $( `.product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index="${ activeSlideNo }"]` )
+                .addClass( `active` )
+                .focus()
+                .find( `img` )
+                .focus();
+            }, 500);
+          } catch ( err ) {
+            console.log( `ERROR .product-gallery.product-gallery--slider .arrow-key.next`, err.message );
+          }
+        })
+         .on(`click`, `.product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index]`, function( e ) {
+    try {
+      // If this click came from our script (tab switch), skip our custom logic
+      if ( suppressThumbClickHandler ) {
+        suppressThumbClickHandler = false;
+        return;
+      }
+
+      e.stopImmediatePropagation();
+
+      const slideNo = $( this ).attr( `data-index` );
+      console.log ( 'slideNo', slideNo );
+
+      $( `.css-slider-dot-navigation .css-slider-dot[data-index="${ slideNo }"]` ).click();
+
+      $( `.product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index]` ).removeClass( `active` );
+      $( this ).addClass( `active` );
+    } catch ( err ) {
+      console.log( `ERROR .product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index]`, err.message );
+    }
+  })
+        ;
+      {% elsif product.metafields.custom.multiupload_ui %}
+        $( document )
+        .on(`click`, `.product-gallery.product-gallery--slider .arrow-key.prev`, function( e ) {
+          try {
+            e.stopImmediatePropagation();
+            $( `.css-slider-navigation-container .css-slider-button.css-slider-prev` ).click();
+            setTimeout(() => {
+              $(`.product-gallery.product-gallery--slider .arrow-key.next`).removeClass("disable");
+              const activeSlideNo = $( `css-slider .css-slider-container .product-gallery-item.css-slide.css-slide-active` ).attr( `data-index` );
+              console.log ( 'activeSlideNo', activeSlideNo );
+              if(activeSlideNo > 0){
+                $(`.product-gallery.product-gallery--slider .arrow-key.prev`).removeClass("disable");
+              }else{
+                $(`.product-gallery.product-gallery--slider .arrow-key.prev`).addClass("disable");
+              }
+            }, 500);
+          } catch ( err ) {
+            console.log( `ERROR .product-gallery.product-gallery--slider .arrow-key.prev`, err.message );
+          }
+        })
+        .on(`click`, `.product-gallery.product-gallery--slider .arrow-key.next`, function( e ) {
+          try {
+            e.stopImmediatePropagation();
+            $( `.css-slider-navigation-container .css-slider-button.css-slider-next` ).click();
+            setTimeout(() => {
+              const activeSlideNo = $( `css-slider .css-slider-container .product-gallery-item.css-slide.css-slide-active` ).attr( `data-index` );
+              console.log ( 'activeSlideNo', activeSlideNo );
+              if(activeSlideNo > 0){
+                $(`.product-gallery.product-gallery--slider .arrow-key.prev`).removeClass("disable");
+              }
+              $( `.product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index]` ).removeClass( `active` );
+              $( `.product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index="${ activeSlideNo }"]` )
+                .addClass( `active` )
+                .focus()
+                .find( `img` )
+                .focus();
+            }, 500);
+          } catch ( err ) {
+            console.log( `ERROR .product-gallery.product-gallery--slider .arrow-key.next`, err.message );
+          }
+        })
+        .on(`click`, `.product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index]`, function( e ) {
+          try {
+            e.stopImmediatePropagation();
+            const slideNo = $( this ).attr( `data-index` );
+            console.log ( 'slideNo', slideNo );
+            $( `.css-slider-dot-navigation .css-slider-dot[data-index="${ slideNo }"]` ).click();
+            $( `.product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index]` ).removeClass( `active` );
+            $( this ).addClass( `active` );
+          } catch ( err ) {
+            console.log( `ERROR .product-gallery.product-gallery--slider .product-gallery__thumbnails .thumbnail[data-index]`, err.message );
+          }
+        })
+        ;
+      {% endif %}
+    </script>
+  {% endif %}
+  <!-- ./Gallery image hari -->
+  {%- if product.media.size > 1 -%}
+    <css-slider
+      data-options='
+        {
+          "selector": ".product-gallery-item",
+          "autoHeight": false,
+          {%- if section.settings.gallery_layout contains 'scroll' -%}
+            "watchCSS": true,
+          {%- endif -%}
+          {%- if section.settings.show_thumbnails -%}
+            {% if product.metafields.custom.multiupload_ui %}
+              "thumbnails": true,
+              "navigation": true,
+            {% else %}
+              "thumbnails": false,
+              "navigation": false,
+            {% endif %}
+          {%- else -%}
+            "navigationDOM": "<span class=\"css-slider-button css-slider-prev\" style=\"display:none\"><svg fill=\"none\" height=\"11\" viewBox=\"0 0 6 11\" width=\"6\" xmlns=\"http://www.w3.org/2000/svg\"><path clip-rule=\"evenodd\" d=\"m4.32845 10.0708-4.18198-4.18194c-.195261-.19526-.195261-.51185 0-.70711l4.18198-4.181979c.19527-.195262.51185-.195262.70711 0 .19526.195259.19526.511849 0 .707109l-3.32843 3.32842s-.70713.4647-.00002 1l3.32845 3.32843c.19526.19526.19526.51185 0 .70707-.19526.1953-.51185.1953-.70711 0z\" fill=\"#000\" fill-rule=\"evenodd\"/></svg></span><span class=\"css-slider-button css-slider-next\" style=\"display:none\"><svg fill=\"none\" height=\"11\" viewBox=\"0 0 6 11\" width=\"6\" xmlns=\"http://www.w3.org/2000/svg\"><path clip-rule=\"evenodd\" d=\"m.853555.999962 4.181985 4.181978c.19526.19526.19526.51185 0 .70711l-4.181983 4.18195c-.195263.1953-.511845.1953-.707108 0-.1952631-.19523-.1952632-.51181 0-.70708l3.328431-3.32842s.70713-.4647.00002-1l-3.328453-3.32843c-.1952626-.19526-.1952627-.51185 0-.707108.195263-.195262.511845-.195262.707108 0z\" fill=\"#000\" fill-rule=\"evenodd\"/></svg></span>",
+            "thumbnailsDOM": "<div class=\"css-slider-dot-navigation\" style=\"display:none;--size:{{ product.media.size }}\"></div>",
+          {%- endif -%}
+          "listenScroll": false
+        }
+      '
+      class="css-slider--bottom-navigation element--border-radius"
+    >
+  {%- endif -%}
+
+  <div
+    class="grid {% if section.settings.gallery_layout contains 'slider' %} grid--slider {% else %} grid--layout {% endif %} {{ gallery_class }} lap--grid--slider grid--gap-small"
+    style="--mobile-media-width: {{ section.settings.gallery_mobile_width }}%"
+  >
+    {%- if product.media.size == 0 -%}
+      <div class="product-gallery-item" style="padding-top: 100%">
+        {%- render 'lazy-svg',
+          image: 'product-1',
+          ratio: section.settings.gallery_aspect_ratio,
+          class: 'svg-placeholder svg-placeholder--background'
+        %}
+      </div>
+    {%- else -%}
+      {%- liquid
+        assign product_media = product.media
+        assign variant_media = product.variants | map: 'featured_media'
+        assign first_media_id = product.media.first.id
+        if hideVariantImages
+          for media in product.media
+            assign is_variant_media = variant_media | has: 'id', media.id
+            if is_variant_media and media.id != first_media_id
+              assign product_media = product_media | reject: 'id', media.id
+            endif
+          endfor
+        endif
+
+        assign forLoopIndex_main = 0
+        for media in product_media
+          render 'product-media', hoverimg:hoverimg, media: media, enable_zoom: section.settings.enable_zoom, loop: section.settings.enable_video_looping, index: forLoopIndex_main, aspect_ratio: section.settings.gallery_aspect_ratio, fit: section.settings.gallery_fit, layout: section.settings.gallery_layout, desktop_width: section.settings.gallery_desktop_width, mobile_width: section.settings.gallery_mobile_width
+          assign forLoopIndex_main = forLoopIndex_main | plus: 1
+          if media.media_type == 'external_video' or media.media_type == 'video'
+            assign video_script = true
+            echo 'component-video.css' | asset_url | stylesheet_tag
+          endif
+        endfor
+
+        if hideVariantImages
+          assign forLoopRest = forLoopIndex_main
+          for media in variant_media
+            unless media.id == first_media_id
+              render 'product-media', act: 'hidden prodMainMedia', media: media, enable_zoom: section.settings.enable_zoom, loop: section.settings.enable_video_looping, index: forLoopRest, aspect_ratio: section.settings.gallery_aspect_ratio, fit: section.settings.gallery_fit, layout: section.settings.gallery_layout, desktop_width: section.settings.gallery_desktop_width, mobile_width: section.settings.gallery_mobile_width
+              assign forLoopRest = forLoopRest | plus: 1
+              if media.media_type == 'external_video' or media.media_type == 'video'
+                assign video_script = true
+                echo 'component-video.css' | asset_url | stylesheet_tag
+              endif
+            endunless
+          endfor
+        endif
+      -%}
+    {%- endif -%}
+  </div>
+
+  {%- if product.media.size > 1 -%}</css-slider>{%- endif -%}
+</div>  
+  {%- if section.settings.show_thumbnails and product.media.size > 1 -%}
+    <div
+      class="grt-thumbnails product-gallery__thumbnails {% if section.settings.gallery_style contains 'scroll' %} hide portable-show {% endif %}"
+      aria-hidden="true"
+      style="--border-radius: {{ section.settings.border_radius | at_most: 5 }}px"
+    >
+      <div class="product-gallery__thumbnails-holder">
+        {%- assign forloopThumb = 0 -%}
+        {%- for media in product_media -%}
+          <button
+            data-media-type="{{ media.media_type }}"
+            class="thumbnail element--border-radius"
+            data-index="{{ forloopThumb }}"
+            {% if section.settings.show_thumbnails %}
+              tabindex="0"
+            {% endif %}
+            data-thumb-id="{{ media.id }}"
+          >
+            {%- render 'lazy-image-small',
+              image: media.preview_image,
+              aspect_ratio: settings.cart_image_ratio,
+              fit: settings.cart_image_fit,
+              class: 'thumbnail__image'
+            -%}
+            {%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+              <span class="thumbnail__badge grt-video-thumb">
+                <img src="//ninja-transfers-cdn.imgix.net/play_button.png?auto=format,compress&amp;v=1745436450" class="video-play-icon" alt="video play">
+                {% comment %} {%- render 'theme-symbols', icon: 'badge-video-thumbnail' -%} {% endcomment %}
+              </span>
+            {%- elsif media.media_type == 'model' -%}
+              <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-model-thumbnail' -%}</span>
+            {%- endif -%}
+          </button>
+          {%- assign forloopThumb = forloopThumb | plus: 1 -%}
+        {%- endfor -%}
+
+        {% if hideVariantImages %}
+          {%- assign forloopRestThumb = forloopThumb -%}
+          {%- for media in variant_media -%}
+            {%- unless media.id == first_media_id -%}
+              <button
+                class="thumbnail element--border-radius {% if showThumbImg == false %} hidden prodThumbMedia {% endif %}"
+                data-index="{{ forloopRestThumb }}"
+                {% if section.settings.show_thumbnails %}
+                  tabindex="0"
+                {% endif %}
+                data-thumb-id="{{ media.id }}"
+              >
+                {%- render 'lazy-image-small',
+                  image: media.preview_image,
+                  aspect_ratio: settings.cart_image_ratio,
+                  fit: settings.cart_image_fit,
+                  class: 'thumbnail__image'
+                -%}
+                {%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+                  <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-video-thumbnail' -%}</span>
+                {%- elsif media.media_type == 'model' -%}
+                  <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-model-thumbnail' -%}</span>
+                {%- endif -%}
+              </button>
+              {%- assign forloopRestThumb = forloopRestThumb | plus: 1 -%}
+            {%- endunless -%}
+          {%- endfor -%}
+        {% endif %}
+      </div>
+    </div>
+  {%- endif -%}
+
+  {%- assign first_3d_model = product.media | where: 'media_type', 'model' | first -%}
+
+  {%- if first_3d_model -%}
+    <div class="fullwidth text-align--center">
+      <button
+        title="{{ 'products.page.view_in_space_label' | t }}"
+        class="button button--small button--icon button--outline product-gallery__view-in-space"
+        data-shopify-xr
+        data-shopify-first-model3d-id="{{ first_3d_model.id }}"
+        data-shopify-model3d-id="{{ first_3d_model.id }}"
+        data-shopify-title="{{ product.title | escape }}"
+        data-shopify-xr-hidden
+      >
+        <span aria-hidden="true" class="button__icon">{%- render 'theme-symbols', icon: 'model-button' -%}</span>
+        <span class="product-gallery__view-in-space-text">{{ 'products.page.view_in_space' | t }}</span>
+      </button>
+
+      <link
+        id="ModelViewerStyle"
+        rel="stylesheet"
+        href="https://cdn.shopify.com/shopifycloud/model-viewer-ui/assets/v1.0/model-viewer-ui.css"
+        media="print"
+        onload="this.media='all'"
+      >
+      <script src="{{ 'component-product-model.js' | asset_url }}" defer></script>
+    </div>
+  {%- endif -%}
+  </article>
+
+</div>
+{% if product.template_suffix contains "dtf-by-size" or product.template_suffix contains 'by-size-2' or product.template_suffix contains 'by-size-test' or section.settings.enableUploadedImgPreview %}
+  <script>document.body.classList.add( `is-dtf-page` );</script>
+  <style>
+    .dtf_imgix_images{
+      display:none;
+    }
+    .dtf_imgix_images img{
+      max-width:100%;
+      margin-bottom: -6px;
+    }
+    .dtf_body_image{
+      display:flex;
+      flex-wrap:wrap;
+      position: relative;
+    }
+    .dtf_body_image::after {
+      position: absolute;
+      content: "";
+      top: 0;
+      right: 0;
+      width: 1px;
+      height: 100%;
+      background-color: #efefef;
+    }
+    .dtf_body_image > *{
+      flex:0 0 33.33%;
+      position:relative;
+    }
+    .watermark_image{
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      z-index:1;
+      opacity:0;
+    }
+    {% if product.template_suffix == "dtf-by-size" %}
+      ._first .watermark_image {
+        top: 69px;
+      }
+      ._fifth .watermark_image{
+        top: 72px;
+      }
+      ._first .watermark_image img,
+      ._fifth .watermark_image img{
+        max-width: 55px;
+        max-height: 100px;
+      }
+      ._fifth .watermark_image img{
+        max-height: 60px;
+      }
+
+      ._second .watermark_image{
+        top: 69px;
+        height: 61px;
+        padding-left: 6px;
+      }
+      ._second .watermark_image img{
+        max-height: 30px;
+        max-width: 30px;
+      }
+
+      ._third .watermark_image{
+        top: 76px;
+      }
+      ._third .watermark_image img{
+        max-width: 17.5px;
+        margin-left: 41px;
+        max-height:30px;
+      }
+
+      ._forth .watermark_image{
+        top: 89px;
+      }
+      ._forth .watermark_image img{
+        max-width: 55px;
+        max-height:65px;
+      }
+
+      ._sixth .watermark_image{
+        top: 94px;
+      }
+      ._sixth .watermark_image img{
+        max-width: 35px;
+        max-height: 50px;
+      }
+
+      @media (max-width:1280px){
+        ._first .watermark_image{
+          top: 72px;
+        }
+        ._second .watermark_image{
+          top: 75px;
+        }
+        ._third .watermark_image{
+          top: 80px;
+        }
+        ._forth .watermark_image{
+          top: 81px;
+        }
+      }
+      @media (max-width:1210px){
+        ._first .watermark_image img, ._fifth .watermark_image img{
+          max-width:44px;
+        }
+        ._second .watermark_image img{
+          max-height: 24px;
+        }
+        ._second .watermark_image{
+          top: 68px;
+        }
+        ._third .watermark_image{
+          top: 78px;
+        }
+        ._third .watermark_image img{
+          margin-left: 46px;
+          max-width: 13.5px;
+        }
+        ._forth .watermark_image{
+          top: 93px;
+        }
+        ._forth .watermark_image img{
+          max-width: 37px;
+        }
+        ._sixth .watermark_image{
+          top: 94px;
+        }
+        ._sixth .watermark_image img{
+          max-width: 30px;
+        }
+      }
+      @media (max-width:1080px){
+        ._first .watermark_image{
+          top: 64px;
+        }
+        ._first .watermark_image img, ._fifth .watermark_image img{
+          max-width:34px;
+        }
+        ._second .watermark_image img{
+          max-height: 20px;
+        }
+        ._second .watermark_image{
+          top: 54px;
+        }
+        ._third .watermark_image{
+          top: 69px;
+        }
+        ._third .watermark_image img{
+          margin-left: 37px;
+        }
+        ._forth .watermark_image{
+          top: 80px;
+        }
+        ._forth .watermark_image img{
+          max-width: 37px;
+        }
+        ._fifth .watermark_image {
+          top: 63px;
+        }
+        ._sixth .watermark_image{
+          top: 82px;
+        }
+      }
+
+      @media (max-width:980px){
+        ._first .watermark_image{
+          top: 51px;
+        }
+        ._first .watermark_image img, ._fifth .watermark_image img{
+          max-width:29px;
+        }
+        ._second .watermark_image{
+          height: 32px;
+        }
+        ._second .watermark_image img{
+          max-height: 18px;
+        }
+        ._second .watermark_image{
+          top: 62px;
+        }
+        ._third .watermark_image{
+          top: 62px;
+        }
+        ._third .watermark_image img{
+          margin-left: 33px;
+        }
+        ._forth .watermark_image{
+          top: 77px;
+        }
+        ._forth .watermark_image img{
+          max-width: 27px;
+        }
+        ._fifth .watermark_image {
+          top: 57px;
+        }
+        ._sixth .watermark_image{
+          top: 72px;
+        }
+        ._sixth .watermark_image img{
+          max-width: 23px;
+        }
+      }
+
+
+      @media (max-width:880px){
+        ._second .watermark_image{
+          top: 50px;
+        }
+        ._third .watermark_image{
+          top: 52px;
+        }
+        ._third .watermark_image img{
+          margin-left: 32px;
+        }
+      }
+
+    {% else %}
+      {% if template.suffix contains 'uv' %}
+        ._first .watermark_image,
+        ._second .watermark_image,
+        ._third .watermark_image,
+        ._forth .watermark_image,
+        ._fifth .watermark_image,
+        ._sixth .watermark_image {
+          left: 50%;
+          transform: translateX(-50%);
+          /* align-items: flex-start; */
+        }
+        ._first .watermark_image img,
+        ._second .watermark_image img,
+        ._third .watermark_image img,
+        ._forth .watermark_image img,
+        ._fifth .watermark_image img,
+        ._sixth .watermark_image img {
+          max-width: 70%;
+          max-height: 80%;
+        }
+
+        ._first .watermark_image {
+          top: 42%;
+          max-width: 28%;
+          height: 47%;
+        }
+        ._second .watermark_image {
+          top: 44%;
+          max-width: 35%;
+          height: 35%;
+        }
+        ._third .watermark_image {
+          top: 52%;
+          max-width: 50%;
+          height: 25%;
+        }
+        ._forth .watermark_image {
+          top: 32%;
+          max-width: 50%;
+          height: 28%;
+        }
+        ._fifth .watermark_image {
+          top: 31%;
+          left: 37%;
+          max-width: 21%;
+          height: 17%;
+        }
+        ._sixth .watermark_image {
+          top: 46%;
+          max-width: 48%;
+          height: 25%;
+        }
+      {% else %}
+        ._first .watermark_image {
+          top: 66px;
+        }
+        ._fifth .watermark_image{
+          top: 73px;
+        }
+        ._first .watermark_image img,
+        ._fifth .watermark_image img{
+          max-width: 55px;
+          max-height: 90px;
+        }
+        ._fifth .watermark_image img{
+          max-height: 60px;
+        }
+        ._second .watermark_image{
+          top: 69px;
+          height: 58px;
+          padding-left: 6px;
+        }
+        ._second .watermark_image img{
+          max-height: 30px;
+          max-width: 30px;
+        }
+        ._third .watermark_image{
+          top: 74px;
+        }
+        ._third .watermark_image img{
+          max-width: 17.5px;
+          margin-left: 42px;
+          max-height:30px;
+        }
+        ._forth .watermark_image{
+          top: 90px;
+        }
+        ._forth .watermark_image img{
+          max-width: 55px;
+          max-height:65px;
+        }
+        ._sixth .watermark_image{
+          top: 100px;
+        }
+        ._sixth .watermark_image img{
+          max-width: 35px;
+          max-height: 50px;
+        }
+
+        @media (max-width:1280px){
+          ._first .watermark_image{
+            top: 62px;
+          }
+          ._second .watermark_image{
+            top: 59px;
+          }
+          ._third .watermark_image{
+            top: 67px;
+          }
+          ._forth .watermark_image{
+            top: 81px;
+          }
+        }
+        @media (max-width:1210px){
+          ._first .watermark_image img, ._fifth .watermark_image img{
+            max-width:44px;
+          }
+          ._second .watermark_image img{
+            max-height: 24px;
+          }
+          ._second .watermark_image{
+            top: 54px;
+          }
+          ._third .watermark_image{
+            top: 57px;
+          }
+          ._third .watermark_image img{
+            margin-left: 37px;
+            max-width: 13.5px;
+          }
+          ._forth .watermark_image{
+            top: 73px;
+          }
+          ._forth .watermark_image img{
+            max-width: 47px;
+          }
+          ._sixth .watermark_image{
+            top: 87px;
+          }
+        }
+        @media (max-width:1080px){
+          ._first .watermark_image{
+            top: 51px;
+          }
+          ._first .watermark_image img, ._fifth .watermark_image img{
+            max-width:44px;
+          }
+          ._second .watermark_image img{
+            max-height: 24px;
+          }
+          ._second .watermark_image{
+            top: 44px;
+          }
+          ._third .watermark_image{
+            top: 55px;
+          }
+          ._third .watermark_image img{
+            margin-left: 37px;
+          }
+          ._forth .watermark_image{
+            top: 66px;
+          }
+          ._forth .watermark_image img{
+            max-width: 47px;
+          }
+          ._fifth .watermark_image {
+            top: 57px;
+          }
+          ._sixth .watermark_image{
+            top: 75px;
+          }
+        }
+        @media (max-width:980px){
+          ._first .watermark_image{
+            top: 51px;
+          }
+          ._first .watermark_image img, ._fifth .watermark_image img{
+            max-width:29px;
+          }
+          ._second .watermark_image{
+            height: 32px;
+          }
+          ._second .watermark_image img{
+            max-height: 18px;
+          }
+          ._second .watermark_image{
+            top: 44px;
+          }
+          ._third .watermark_image{
+            top: 50px;
+          }
+          ._third .watermark_image img{
+            margin-left: 28px;
+          }
+          ._forth .watermark_image{
+            top: 66px;
+          }
+          ._forth .watermark_image img{
+            max-width: 27px;
+          }
+          ._fifth .watermark_image {
+            top: 57px;
+          }
+          ._sixth .watermark_image{
+            top: 55px;
+          }
+          ._sixth .watermark_image img{
+            max-width: 23px;
+          }
+        }
+        @media (max-width:880px){
+          ._second .watermark_image{
+            top: 57px;
+          }
+          ._third .watermark_image{
+            top: 57px;
+          }
+          ._third .watermark_image img{
+            margin-left: 37px;
+          }
+        }
+      {% endif %}
+    {% endif %}
+    .garment_colors{
+      display:flex;
+      gap:10px;
+      margin-top:10px;
+      flex-direction:column
+    }
+    .garment_colors p{
+      font-size:14px;
+      font-weight:600;
+    }
+    .colors_box{
+      display:flex;
+      gap:10px;
+    }
+    .colors_box .product-variant__container > div{
+      margin-bottom:10px;
+    }
+    .watermark_image img{
+      max-height:90px;
+    }
+    .dtf_body_image_labels{
+      width:100%;
+      text-align:center;
+      font-weight:bold;
+      position: absolute;
+      top: 5px;
+    }
+    .dtf_body_image_labels span{
+      display:block;
+      font-weight:900;
+    }
+    {% if template.suffix contains 'uv' %}
+    {% else %}
+      @media (max-width:768px){
+        .dtf_body_image_labels p{
+          font-size: 9px;
+        }
+        ._first .watermark_image,
+        ._fifth .watermark_image{
+          top: 50px;
+        }
+        ._first .watermark_image img,
+        ._fifth .watermark_image img{
+          max-width: 27.5px;
+          max-height: 50px;
+        }
+
+        ._second .watermark_image{
+          top: 47px;
+          height: 40px;
+        }
+        ._second .watermark_image img{
+          max-height: 17px;
+          max-width: 20px;
+        }
+
+        ._third .watermark_image{
+          top: 52px;
+        }
+        ._third .watermark_image img{
+          max-width: 11px;
+          margin-left: 28px;
+          max-height:15px;
+        }
+
+        ._forth .watermark_image{
+          top: 65px;
+        }
+        ._forth .watermark_image img{
+          max-width: 23px;
+          max-height:35px;
+        }
+
+        ._sixth .watermark_image{
+          top: 67px;
+        }
+        ._sixth .watermark_image img{
+          max-width: 18px;
+          max-height: 25px;
+        }
+        .garment_colors{
+          flex-direction:column;
+          align-items: flex-start;
+        }
+        .garment_colors p{
+          font-size:12px;
+        }
+        .watermark_image img{
+          max-height: 70px;
+        }
+      }
+    {% endif %}
+    .dtf_header_image {
+      padding:40px;
+      background:#efefef;
+    }
+    .dtf_header_image p{
+      font-weight: 600;
+      opacity: 0.7;
+      font-size: 11px;
+      margin-top: 7px;
+    }
+  </style>
+  <div class="dtf_imgix_images">
+    <div>
+      <div class="dtf_header_image">
+        <h3 class="product__title heading-size--page-title __product-title">Ninja Size Guide</h3>
+        <p>See your design on our most popular styles</p>
+      </div>
+      <div class="dtf_body_image" style="background-color:#ffffff" id="dtf_body_image">
+        <div class="_first" style="background-color:#ffffff">
+          {% if template.suffix contains 'uv' %}
+            <div class="dtf_body_image_labels">
+              <p><span>3" x 6"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/UV-Items_0004_Layer-2.png?v=1741901297" />
+          {% else %}
+            <div class="dtf_body_image_labels">
+              <p><span>11" x 11"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Adult_full_front.png?v=1732212393" />
+          {% endif %}
+          <div class='watermark_image'>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/spacer.gif?v=1740766267" />
+          </div>
+        </div>
+        <div class="_second" style="background-color:#ffffff">
+          {% if template.suffix contains 'uv' %}
+            <div class="dtf_body_image_labels">
+              <p><span>2" x 4"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/UV-Items_0002_Layer-4.png?v=1741901297" />
+          {% else %}
+            <div class="dtf_body_image_labels">
+              <p><span>4" x 2.5"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Hat_750fc1a6-e948-4f65-895e-e157c1c62844.png?v=1732212392" />
+          {% endif %}
+          <div class='watermark_image'>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/spacer.gif?v=1740766267" />
+          </div>
+        </div>
+        <div class="_third" style="background-color:#ffffff">
+          {% if template.suffix contains 'uv' %}
+            <div class="dtf_body_image_labels">
+              <p><span>11" x 9"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/UV-Items_0003_DROP-SHADOW-copy.png?v=1741901297" />
+          {% else %}
+            <div class="dtf_body_image_labels">
+              <p><span>3.5" x 3.5"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/polo_ecbd35c4-c646-4fe8-a667-25f899845222.png?v=1732212393" />
+          {% endif %}
+          <div class='watermark_image'>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/spacer.gif?v=1740766267" />
+          </div>
+        </div>
+        <div class="_forth" style="background-color:#ffffff">
+          {% if template.suffix contains 'uv' %}
+            <div class="dtf_body_image_labels">
+              <p><span>2.5" x 2.5"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/UV-Items_0005_Layer-6.png?v=1741901297" />
+          {% else %}
+            <div class="dtf_body_image_labels">
+              <p><span>7" x 7"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/New_Tote.png?v=1732212393" />
+          {% endif %}
+          <div class='watermark_image'>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/spacer.gif?v=1740766267" />
+          </div>
+        </div>
+        <div class="_fifth" style="background-color:#ffffff">
+          {% if template.suffix contains 'uv' %}
+            <div class="dtf_body_image_labels">
+              <p><span>11" x 9"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/UV-Items_0001_Layer-5.png?v=1741901297" />
+          {% else %}
+            <div class="dtf_body_image_labels">
+              <p><span>9" x 9"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/New_Youth.png?v=1732212394" />
+          {% endif %}
+          <div class='watermark_image'>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/spacer.gif?v=1740766267" />
+          </div>
+        </div>
+        <div class="_sixth" style="background-color:#ffffff">
+          {% if template.suffix contains 'uv' %}
+            <div class="dtf_body_image_labels">
+              <p><span>7.5" x 6"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/UV-Items_0006_Layer-1.png?v=1741901297" />
+          {% else %}
+            <div class="dtf_body_image_labels">
+              <p><span>5" x 5"</span></p>
+            </div>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Apron.png?v=1732212393" />
+          {% endif %}
+          <div class='watermark_image'>
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/spacer.gif?v=1740766267" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="garment_colors">
+      <p>Change your preview items to any color below:</p>
+      <div class="colors_box">
+        <div class="product-variant__container product-variant__container--radio product-variant__container--radio--wrap" style="flex-wrap: wrap;" >
+        <div class="product-variant__item product-variant__item--radio product-variant__item--color">
+          <input onclick="$('.dtf_body_image, .dtf_body_image ._first, .dtf_body_image ._second, .dtf_body_image ._third, .dtf_body_image ._forth, .dtf_body_image ._fifth, .dtf_body_image ._sixth').css({'background-color':'#ffffff'})" checked type="radio" name="garment_color" id="garment_color_1" value="#ffffff"  class="product-variant__input product-variant-value">
+          <label for="garment_color_1" class="tooltip product-variant__label" title="White">
+            <span class="tooltiptext">White</span>
+            <span class="product-variant__item-swatch product-variant__item-swatch--image" style="background-color:#ffffff"></span> 
+          </label>
+        </div>
+        <div class="product-variant__item product-variant__item--radio product-variant__item--color">
+          <input onclick="$('.dtf_body_image, .dtf_body_image ._first, .dtf_body_image ._second, .dtf_body_image ._third, .dtf_body_image ._forth, .dtf_body_image ._fifth, .dtf_body_image ._sixth').css({'background-color':'#000000'})"  type="radio" name="garment_color" id="garment_color_2" value="#000000"  class="product-variant__input product-variant-value">
+          <label for="garment_color_2" class="tooltip product-variant__label" title="Black">
+            <span class="tooltiptext">Black</span>
+            <span class="product-variant__item-swatch product-variant__item-swatch--image" style="background-color:#000000"></span> 
+          </label>
+        </div>
+        <div class="product-variant__item product-variant__item--radio product-variant__item--color">
+          <input onclick="$('.dtf_body_image, .dtf_body_image ._first, .dtf_body_image ._second, .dtf_body_image ._third, .dtf_body_image ._forth, .dtf_body_image ._fifth, .dtf_body_image ._sixth').css({'background-color':'#d8d8d8'})"  type="radio" name="garment_color" id="garment_color_3" value="#d8d8d8"  class="product-variant__input product-variant-value">
+          <label for="garment_color_3" class="tooltip product-variant__label" title="Gray">
+            <span class="tooltiptext">Gray</span>
+            <span class="product-variant__item-swatch product-variant__item-swatch--image" style="background-color:#d8d8d8"></span> 
+          </label>
+        </div>
+
+        <div class="product-variant__item product-variant__item--radio product-variant__item--color">
+          <input onclick="$('.dtf_body_image, .dtf_body_image ._first, .dtf_body_image ._second, .dtf_body_image ._third, .dtf_body_image ._forth, .dtf_body_image ._fifth, .dtf_body_image ._sixth').css({'background-color':'#ff3900'})" type="radio" name="garment_color" id="garment_color_4" value="#ff3900"   class="product-variant__input product-variant-value">
+          <label for="garment_color_4" class="tooltip product-variant__label" title="Orange">
+            <span class="tooltiptext">Orange</span>
+            <span class="product-variant__item-swatch product-variant__item-swatch--image" style="background-color:#ff3900"></span> 
+          </label>
+        </div>
+        <div class="product-variant__item product-variant__item--radio product-variant__item--color">
+          <input onclick="$('.dtf_body_image, .dtf_body_image ._first, .dtf_body_image ._second, .dtf_body_image ._third, .dtf_body_image ._forth, .dtf_body_image ._fifth, .dtf_body_image ._sixth').css({'background-color':'#ffc121'})"  type="radio" name="garment_color" id="garment_color_5" value="#ffc121"  class="product-variant__input product-variant-value">
+          <label for="garment_color_5" class="tooltip product-variant__label" title="Gold">
+            <span class="tooltiptext">Gold</span>
+            <span class="product-variant__item-swatch product-variant__item-swatch--image" style="background-color:#ffc121"></span> 
+          </label>
+        </div>
+        <div class="product-variant__item product-variant__item--radio product-variant__item--color">
+          <input onclick="$('.dtf_body_image, .dtf_body_image ._first, .dtf_body_image ._second, .dtf_body_image ._third, .dtf_body_image ._forth, .dtf_body_image ._fifth, .dtf_body_image ._sixth').css({'background-color':'#f5e851'})"  type="radio" name="garment_color" id="garment_color_6" value="#f5e851"  class="product-variant__input product-variant-value">
+          <label for="garment_color_6" class="tooltip product-variant__label" title="Yellow">
+            <span class="tooltiptext">Yellow</span>
+            <span class="product-variant__item-swatch product-variant__item-swatch--image" style="background-color:#f5e851"></span> 
+          </label>
+        </div>
+        <div class="product-variant__item product-variant__item--radio product-variant__item--color">
+          <input onclick="$('.dtf_body_image, .dtf_body_image ._first, .dtf_body_image ._second, .dtf_body_image ._third, .dtf_body_image ._forth, .dtf_body_image ._fifth, .dtf_body_image ._sixth').css({'background-color':'#82d145'})"  type="radio" name="garment_color" id="garment_color_7" value="#82d145"  class="product-variant__input product-variant-value">
+          <label for="garment_color_7" class="tooltip product-variant__label" title="Green">
+            <span class="tooltiptext">Green</span>
+            <span class="product-variant__item-swatch product-variant__item-swatch--image" style="background-color:#82d145"></span> 
+          </label>
+        </div>
+        <div class="product-variant__item product-variant__item--radio product-variant__item--color">
+          <input onclick="$('.dtf_body_image, .dtf_body_image ._first, .dtf_body_image ._second, .dtf_body_image ._third, .dtf_body_image ._forth, .dtf_body_image ._fifth, .dtf_body_image ._sixth').css({'background-color':'#caf7e5'})"  type="radio" name="garment_color" id="garment_color_8" value="#caf7e5"  class="product-variant__input product-variant-value">
+          <label for="garment_color_8" class="tooltip product-variant__label" title="Mint">
+            <span class="tooltiptext">Mint</span>
+            <span class="product-variant__item-swatch product-variant__item-swatch--image" style="background-color:#caf7e5"></span> 
+          </label>
+        </div>
+        <div class="product-variant__item product-variant__item--radio product-variant__item--color">
+          <input onclick="$('.dtf_body_image, .dtf_body_image ._first, .dtf_body_image ._second, .dtf_body_image ._third, .dtf_body_image ._forth, .dtf_body_image ._fifth, .dtf_body_image ._sixth').css({'background-color':'#5e87a3'})"  type="radio" name="garment_color" id="garment_color_9" value="#5e87a3"  class="product-variant__input product-variant-value">
+          <label for="garment_color_9" class="tooltip product-variant__label" title="Denim">
+            <span class="tooltiptext">Denim</span>
+            <span class="product-variant__item-swatch product-variant__item-swatch--image" style="background-color:#5e87a3"></span> 
+          </label>
+        </div>
+        <div class="product-variant__item product-variant__item--radio product-variant__item--color">
+          <input onclick="$('.dtf_body_image, .dtf_body_image ._first, .dtf_body_image ._second, .dtf_body_image ._third, .dtf_body_image ._forth, .dtf_body_image ._fifth, .dtf_body_image ._sixth').css({'background-color':'#005bd3'})"  type="radio" name="garment_color" id="garment_color_10" value="#005bd3"  class="product-variant__input product-variant-value">
+          <label for="garment_color_10" class="tooltip product-variant__label" title="Blue">
+            <span class="tooltiptext">Blue</span>
+            <span class="product-variant__item-swatch product-variant__item-swatch--image" style="background-color:#005bd3"></span> 
+          </label>
+        </div>
+        <div class="product-variant__item product-variant__item--radio product-variant__item--color custom-color-wrapper">
+          <input  id="custom_color" type="color" name="garment_color" id="garment_color_13" value="#88d4f7"  class="product-variant__input product-variant-value">
+          <label for="garment_color_13" class="tooltip product-variant__label" title="Skyblue">
+            <span class="tooltiptext">Skyblue</span>
+            <span class="product-variant__item-swatch product-variant__item-swatch--image" style="background: url(https://cdn.shopify.com/s/files/1/0558/0265/8899/files/344910.png?v=1732533848) center;"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+  <style>
+    .garment_colors .custom-color-wrapper.is-active > label {
+      border-color: var(--color-text-main) !important;
+      border: 1px solid;
+    }
+  </style>
+  <script>
+    {% if template.suffix contains 'uv' %}
+      isUVProduct = true;
+    {% endif %}
+    document.getElementById("custom_color").addEventListener("input", function() {
+      console.log(this.value);
+      document.getElementById("dtf_body_image").style.backgroundColor = this.value;
+      $( `.dtf_body_image ._first, .dtf_body_image ._second, .dtf_body_image ._third, .dtf_body_image ._forth, .dtf_body_image ._fifth, .dtf_body_image ._sixth` ).css( `background-color`, this.value );
+      this.closest('.custom-color-wrapper').classList.add('is-active');
+      document.querySelectorAll('.garment_colors input[name="garment_color"][type="radio"]').forEach(function(r){ r.checked = false; });
+    })
+    document.querySelectorAll('.garment_colors input[name="garment_color"][type="radio"]').forEach(function(r){
+      r.addEventListener('change', function(){
+        document.querySelectorAll('.garment_colors .custom-color-wrapper.is-active').forEach(function(el){ el.classList.remove('is-active'); });
+      });
+    });
+  </script>
+{% else %}
+  <style>
+    .product-gallery{
+      display:block !important;
+    }
+  </style>
+
+{% endif %}
+<div class="ninja-pricingTier-from-product">
+  {% if template.suffix == 'blanks' %}
+    {% render 'apparel-product-tier-pricing-grid-v2' %}
+  {% endif %}
+</div>
+
+
+{%-liquid
+  assign videoURL = section.settings.youtube_video
+  assign videoFile = section.settings.local_video_file
+  assign videoType = section.settings.video_selection_type
+
+  if videoType == "1"
+  
+    if videoURL contains 'youtube'
+      assign getVideoID = videoURL | split: 'watch?v=' | last
+      assign isYouTube = true
+      assign videoURL = '<iframe class="productVideoModal__video" src="https://www.youtube.com/embed/' | append: getVideoID | append: '?rel=0&modestbranding=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>'
+    endif
+  endif
+-%}
+{%- if template.suffix != 'blanks' -%}
+  <style>
+    @media(max-width:768px){
+      .video-box.video-wrapper {display: none;}
+    }
+  </style>
+  {%- if videoType == "1" -%}
+  <style>
+    .video-box {position: relative; width: 100%; margin: 0 auto; margin-top:16px;}
+    .productVideoModal__video {width: 100%; height: auto; aspect-ratio: 16/9; border-radius: 2px; object-fit: cover;}
+  </style>
+  <div class="video-box">
+    {% if isYouTube %}
+      <div class="videoURL"></div>
+    {% else %}
+      <!--<video autoplay="" loop="" controls="true" playsinline="" class="productVideoModal__video"><source data-src="{{ videoURL }}" type="video/mp4" src="{{ videoURL }}"></video>-->
+    {% endif %}
+  </div>
+  {%- endif -%}
+  {%- if videoType == "2" -%}
+    <style>
+      .video-box {position: relative; width: 100%; margin: 0 auto; margin-top:16px;}
+      .video-wrapper.visible video{opacity:1;border-radius:9px;}
+      .video-wrapper.visible .img-container,.video-wrapper video{max-width:100%;opacity:0;}
+      .video-wrapper .img-container{position:absolute; top:0; bottom:0; right:0; left:0; display: flex; align-items: center; justify-content: center; z-index:1; background-size: contain; background-position: center; background-repeat: no-repeat; cursor:pointer; border-radius:9px; background-size:cover;}
+      .video-play-icon{width:{{ section.settings.play_icon_width }}px; max-height:100%;}
+    </style>
+    <div class="video-box video-wrapper" data-v="{{ videoFile }}">
+      <div class="img-container image-with-text-{{ section.id }}-videobtnelement" style="background-image:url('{{ section.settings.poster_image | image_url }}')">
+        {% if section.settings.video_play_icon %}
+          <a href="javascript:void(0)" class=""><img src="{{ section.settings.video_play_icon | image_url }}" class="video-play-icon" alt="video play" /></a>
+        {% endif %}
+      </div>
+      <video controls class="image-with-text-{{ section.id }}-videoelement">
+        {% for source in videoFile.sources %}
+          <source src="{{ source.url }}" type="{{ source.mime_type }}">
+        {% endfor %}
+        Your browser does not support the video tag.
+      </video>
+    </div>
+      <script>
+          
+        function ImageWithTextInit() {
+            let btn = document.querySelector('.image-with-text-{{ section.id }}-videobtnelement');
+            if(btn) {
+              btn.addEventListener('click', () => {
+                btn.closest(".video-wrapper")?.classList.add("visible");
+                document.querySelector(".image-with-text-{{ section.id }}-videoelement").play()
+              });
+            }
+        }
+      
+        document.addEventListener('DOMContentLoaded', ImageWithTextInit);
+        
+        if (Shopify.designMode) {
+           document.addEventListener('shopify:section:unload', ImageWithTextInit);
+           document.addEventListener('shopify:section:load', ImageWithTextInit);
+        }
+      </script>
+  {%- endif -%}    
+{%- endif -%}
+{% if product.metafields.custom.full_width_preview_image %}
+</div>
+{%  endif %}
+<script>
+  $(function(){
+    if($(window).outerWidth() > 768){
+      var videoURL = '{{videoURL}}</iframe>';
+      $(".videoURL").append(videoURL);
+      console.log(videoURL, "videoURL")
+    }
+
+    $(".product-gallery__thumbnails .thumbnail").click(function(){
+      var _type = $(this).attr("data-media-type");
+      if(_type == "video"){
+        setTimeout(function(){
+          $(".product-gallery-item.css-slide-active").find(".video-popup__play").trigger("click");
+        },1000)
+      }
+    })
+  })
+  $( document )
+  .on(`click`, `video-popup .video-popup__container .video-popup__play`, function( e ) {
+    try {
+      e.stopImmediatePropagation();
+      const getVideoHTML = $( this ).closest( `video-popup` ).find( `template` ).html();
+      const isIframeAvailable = $( this ).closest( `video-popup` ).find( `iframe` ).length;
+
+      if ( isIframeAvailable == 0 ) {
+        $( this ).closest( `video-popup` )
+          .find( `.video-popup__container` )
+          .append( `${ getVideoHTML }` );
+      }
+    } catch ( err ) {
+      console.log( `ERROR video-popup .video-popup__container .video-popup__play`, err.message );
+    }
+  })
+  ;
+</script>
+{% if section.settings.gallery_position_vertical %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (!window.matchMedia("(min-width: 768px)").matches) return;
+  var mainWrap = document.querySelector(".grt-main-image");
+  var thumbs = document.querySelector(".grt-thumbnails");
+  if (!mainWrap || !thumbs) return;
+
+  function setThumbHeight() {
+    var h = Math.round(mainWrap.getBoundingClientRect().height || 0);
+    if (h > 0) thumbs.style.height = h + "px";
+  }
+
+  setThumbHeight();
+  window.addEventListener("load", setThumbHeight);
+
+  if ("ResizeObserver" in window) {
+    var ro = new ResizeObserver(function () { setThumbHeight(); });
+    ro.observe(mainWrap);
+  }
+
+  var t;
+  window.addEventListener("resize", function () {
+    clearTimeout(t);
+    t = setTimeout(setThumbHeight, 80);
+  });
+
+  var img = mainWrap.querySelector("img");
+  if (img) {
+    if (!img.complete) img.addEventListener("load", setThumbHeight, { once: true });
+  }
+});
+</script>
+{% endif %}

@@ -1,0 +1,427 @@
+{%- liquid
+  assign current_tier     = customer.metafields.ninja_rewards.tier_label | default: 'White Belt'
+  assign remaining_cents  = customer.metafields.ninja_rewards.next_tier_gap | default: 250
+
+  case current_tier
+    when 'White Belt'
+      assign tier_threshold  = 250
+      assign next_tier       = 'Yellow Belt'
+      assign tier_name_color = '#b0bec5'
+      assign next_tier_color = '#f5c800'
+    when 'Yellow Belt'
+      assign tier_threshold  = 1000
+      assign next_tier       = 'Blue Belt'
+      assign tier_name_color = '#f5c800'
+      assign next_tier_color = '#2196d4'
+    when 'Blue Belt'
+      assign tier_threshold  = 4000
+      assign next_tier       = 'Black Belt'
+      assign tier_name_color = '#2196d4'
+      assign next_tier_color = '#2a2d35'
+    when 'Black Belt'
+      assign tier_threshold  = 4000
+      assign next_tier       = ''
+      assign tier_name_color = '#2a2d35'
+      assign next_tier_color = ''
+  endcase
+
+  assign tier_threshold_cents = tier_threshold | times: 100
+  assign spent_cents          = customer.metafields.ninja_rewards.trailing_spend | default: 0
+  if spent_cents < 0
+    assign spent_cents = 0
+  endif
+
+  assign yellow_achieved = false
+  assign blue_achieved   = false
+  assign black_achieved  = false
+  if current_tier == 'Yellow Belt' or current_tier == 'Blue Belt' or current_tier == 'Black Belt'
+    assign yellow_achieved = true
+  endif
+  if current_tier == 'Blue Belt' or current_tier == 'Black Belt'
+    assign blue_achieved = true
+  endif
+  if current_tier == 'Black Belt'
+    assign black_achieved = true
+  endif
+
+  case current_tier
+    when 'White Belt'
+      assign tier_fill_pct = spent_cents | times: 100 | divided_by: 250.0 | round
+    when 'Yellow Belt'
+      assign tier_fill_pct = spent_cents | minus: 250 | times: 100 | divided_by: 750.0 | round
+    when 'Blue Belt'
+      assign tier_fill_pct = spent_cents | minus: 1000 | times: 100 | divided_by: 3000.0 | round
+    when 'Black Belt'
+      assign tier_fill_pct = 100
+  endcase
+  if tier_fill_pct > 100
+    assign tier_fill_pct = 100
+  endif
+  if tier_fill_pct < 0
+    assign tier_fill_pct = 0
+  endif
+
+  case current_tier
+    when 'White Belt'
+      assign marker_pct = tier_fill_pct | times: 25 | divided_by: 100
+    when 'Yellow Belt'
+      assign marker_pct = tier_fill_pct | times: 25 | divided_by: 100 | plus: 25
+    when 'Blue Belt'
+      assign marker_pct = tier_fill_pct | times: 25 | divided_by: 100 | plus: 50
+    when 'Black Belt'
+      assign marker_pct = 97
+  endcase
+
+  assign white_img  = 'https://cdn.shopify.com/s/files/1/0558/0265/8899/files/White_Ninja.png?v=1773801925'
+  assign yellow_img = 'https://cdn.shopify.com/s/files/1/0558/0265/8899/files/yellow-ninja-200226.png?v=1771528293'
+  assign blue_img   = 'https://cdn.shopify.com/s/files/1/0558/0265/8899/files/blue-ninja-200226.png?v=1771528293'
+  assign black_img  = 'https://cdn.shopify.com/s/files/1/0558/0265/8899/files/black-ninja-200226.png?v=1771528293'
+-%}
+
+<style>
+  .ltpm-card {
+    background: #f0f4f8;
+    border-radius: 18px;
+    padding: 16px 14px 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .ltpm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .ltpm-tier-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111;
+  }
+  .ltpm-learn-more {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2196d4;
+    text-decoration: none;
+  }
+  .ltpm-tier-desc {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .ltpm-tier-desc strong { color: #111; }
+
+  /* Progress bar section */
+  .ltpm-track {
+    position: relative;
+    margin-bottom: 14px;
+    padding-top: 42px;
+  }
+  .ltpm-marker {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .ltpm-marker-bubble {
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 5px;
+    text-align: center;
+    line-height: 1.4;
+    white-space: nowrap;
+    position: relative;
+  }
+  .ltpm-marker-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1a1a1a;
+    border-bottom: none;
+  }
+  .ltpm-segments {
+    display: flex;
+    height: 8px;
+    border-radius: 99px;
+    overflow: hidden;
+    gap: 3px;
+  }
+  .ltpm-seg {
+    flex: 1;
+    height: 100%;
+    border-radius: 99px;
+    opacity: 0.18;
+  }
+  .ltpm-seg.ltpm-active { opacity: 1; }
+  .ltpm-seg.ltpm-done   { opacity: 0.45; }
+
+  /* Milestones row */
+  .ltpm-milestones {
+    display: flex;
+    gap: 6px;
+  }
+  .ltpm-ms {
+    flex: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s;
+    min-width: 0;
+  }
+  .ltpm-ms.ltpm-ms-current {
+    transform: scale(1.04);
+    z-index: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+  .ltpm-ms-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 4px 6px;
+    position: relative;
+    flex: 1;
+  }
+  .ltpm-badge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 6px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    padding: 2px 4px;
+    border-radius: 3px;
+    line-height: 1;
+  }
+  .ltpm-badge-current {
+    background: #1a1a1a;
+    color: #fff;
+  }
+  .ltpm-badge-next {
+    background: #1a1a1a;
+    color: #fff;
+  }
+  .ltpm-belt-img {
+    width: 38px;
+    height: auto;
+    display: block;
+    margin: 2px 0;
+  }
+  .ltpm-ms.ltpm-ms-current .ltpm-belt-img {
+    width: 44px;
+  }
+  .ltpm-ms-name {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .ltpm-ms-pct {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    margin-top: 1px;
+  }
+  .ltpm-ms-footer {
+    background: #fff;
+    padding: 6px 4px 8px;
+    text-align: center;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ltpm-ms-status {
+    font-size: 8px;
+    line-height: 1.3;
+    color: #64748b;
+  }
+  .ltpm-ms-status.ltpm-status-unlocked {
+    color: #16a34a;
+  }
+  .ltpm-ms-status.ltpm-status-current {
+    color: #16a34a;
+    font-weight: 600;
+  }
+
+  /* Card color themes */
+  .ltpm-ms-top-white {
+    background: #e4e9ee;
+  }
+  .ltpm-ms-top-white .ltpm-ms-name { color: #78909c; }
+  .ltpm-ms-top-white .ltpm-ms-pct  { color: #90a4ae; }
+
+  .ltpm-ms-top-yellow {
+    background: linear-gradient(180deg, #ffe94a 0%, #f5d800 100%);
+  }
+  .ltpm-ms-top-yellow .ltpm-ms-name { color: #78350f; }
+  .ltpm-ms-top-yellow .ltpm-ms-pct  { color: #111; }
+
+  .ltpm-ms-top-blue {
+    background: linear-gradient(180deg, #5bb8f5 0%, #2196d4 100%);
+  }
+  .ltpm-ms-top-blue .ltpm-ms-name { color: rgba(255,255,255,0.85); }
+  .ltpm-ms-top-blue .ltpm-ms-pct  { color: #fff; }
+
+  .ltpm-ms-top-black {
+    background: linear-gradient(180deg, #4a5568 0%, #2a2d35 100%);
+  }
+  .ltpm-ms-top-black .ltpm-ms-name { color: rgba(255,255,255,0.7); }
+  .ltpm-ms-top-black .ltpm-ms-pct  { color: #f1f5f9; }
+</style>
+
+<div class="ltpm-card">
+  <div class="ltpm-header">
+    <div class="ltpm-tier-label">Tier status</div>
+    <a class="ltpm-learn-more" href="/pages/ninja-rewards">Learn More</a>
+  </div>
+
+  <div class="ltpm-tier-desc">
+    You are a <strong style="color:{{ tier_name_color }};">{{ current_tier }}</strong> through the next earning period.
+    {%- if next_tier != blank -%}
+      <br>Spend <strong style="color:#16a34a;">{{ remaining_cents | times: 100 | money }}</strong> to unlock <strong style="color:{{ next_tier_color }};">{{ next_tier }}</strong>.
+    {%- else -%}
+      <br>You've reached the <strong>highest tier!</strong>
+    {%- endif -%}
+  </div>
+
+  <!-- Progress bar with marker -->
+  <div class="ltpm-track">
+    <div class="ltpm-marker" style="left:{{ marker_pct }}%;">
+      <div class="ltpm-marker-bubble">
+        {{ remaining_cents | times: 100 | money }} to
+        {%- if next_tier != blank -%}
+          <span style="color:{{ next_tier_color }}; display:block;">{{ next_tier }}</span>
+        {%- endif -%}
+      </div>
+    </div>
+
+    <div class="ltpm-segments">
+      {%- if current_tier == 'White Belt' -%}
+        <div class="ltpm-seg ltpm-active" style="background:linear-gradient(to right,#b0bec5 {{ tier_fill_pct }}%,#d8dde3 {{ tier_fill_pct }}%);"></div>
+      {%- else -%}
+        <div class="ltpm-seg ltpm-done" style="background:#b0bec5;"></div>
+      {%- endif -%}
+      {%- if current_tier == 'Yellow Belt' -%}
+        <div class="ltpm-seg ltpm-active" style="background:linear-gradient(to right,#f5c800 {{ tier_fill_pct }}%,#d8dde3 {{ tier_fill_pct }}%);"></div>
+      {%- elsif yellow_achieved -%}
+        <div class="ltpm-seg ltpm-done" style="background:#f5c800;"></div>
+      {%- else -%}
+        <div class="ltpm-seg" style="background:#f5c800;"></div>
+      {%- endif -%}
+      {%- if current_tier == 'Blue Belt' -%}
+        <div class="ltpm-seg ltpm-active" style="background:linear-gradient(to right,#2196d4 {{ tier_fill_pct }}%,#d8dde3 {{ tier_fill_pct }}%);"></div>
+      {%- elsif blue_achieved -%}
+        <div class="ltpm-seg ltpm-done" style="background:#2196d4;"></div>
+      {%- else -%}
+        <div class="ltpm-seg" style="background:#2196d4;"></div>
+      {%- endif -%}
+      {%- if current_tier == 'Black Belt' -%}
+        <div class="ltpm-seg ltpm-active" style="background:#2a2d35;"></div>
+      {%- else -%}
+        <div class="ltpm-seg" style="background:#2a2d35;"></div>
+      {%- endif -%}
+    </div>
+  </div>
+
+  <!-- Belt milestone cards -->
+  <div class="ltpm-milestones">
+
+    {%- comment -%}WHITE BELT{%- endcomment -%}
+    <div class="ltpm-ms{% if current_tier == 'White Belt' %} ltpm-ms-current{% endif %}">
+      <div class="ltpm-ms-top ltpm-ms-top-white">
+        {%- if current_tier == 'White Belt' -%}
+          <span class="ltpm-badge ltpm-badge-current">Current</span>
+        {%- endif -%}
+        <img class="ltpm-belt-img" src="{{ white_img }}" alt="White Belt" width="44" height="44" loading="lazy">
+        <div class="ltpm-ms-name">White Belt</div>
+        <div class="ltpm-ms-pct">2%</div>
+      </div>
+      <div class="ltpm-ms-footer">
+        {%- if current_tier == 'White Belt' -%}
+          <div class="ltpm-ms-status ltpm-status-current">{{ spent_cents | times: 100 | money }} spent in last 12 months</div>
+        {%- else -%}
+          <div class="ltpm-ms-status ltpm-status-unlocked">&#10003; Unlocked</div>
+        {%- endif -%}
+      </div>
+    </div>
+
+    {%- comment -%}YELLOW BELT{%- endcomment -%}
+    <div class="ltpm-ms{% if current_tier == 'Yellow Belt' %} ltpm-ms-current{% endif %}">
+      <div class="ltpm-ms-top ltpm-ms-top-yellow">
+        {%- if current_tier == 'Yellow Belt' -%}
+          <span class="ltpm-badge ltpm-badge-current">Current</span>
+        {%- elsif current_tier == 'White Belt' -%}
+          <span class="ltpm-badge ltpm-badge-next">Next</span>
+        {%- endif -%}
+        <img class="ltpm-belt-img" src="{{ yellow_img }}" alt="Yellow Belt" width="44" height="44" loading="lazy">
+        <div class="ltpm-ms-name">Yellow Belt</div>
+        <div class="ltpm-ms-pct">4%</div>
+      </div>
+      <div class="ltpm-ms-footer">
+        {%- if current_tier == 'Yellow Belt' -%}
+          <div class="ltpm-ms-status ltpm-status-current">{{ spent_cents | times: 100 | money }} spent in last 12 months</div>
+        {%- elsif yellow_achieved -%}
+          <div class="ltpm-ms-status ltpm-status-unlocked">&#10003; Unlocked</div>
+        {%- else -%}
+          <div class="ltpm-ms-status">Spend $250 within 12 months</div>
+        {%- endif -%}
+      </div>
+    </div>
+
+    {%- comment -%}BLUE BELT{%- endcomment -%}
+    <div class="ltpm-ms{% if current_tier == 'Blue Belt' %} ltpm-ms-current{% endif %}">
+      <div class="ltpm-ms-top ltpm-ms-top-blue">
+        {%- if current_tier == 'Blue Belt' -%}
+          <span class="ltpm-badge ltpm-badge-current">Current</span>
+        {%- elsif current_tier == 'Yellow Belt' -%}
+          <span class="ltpm-badge ltpm-badge-next">Next</span>
+        {%- endif -%}
+        <img class="ltpm-belt-img" src="{{ blue_img }}" alt="Blue Belt" width="44" height="44" loading="lazy">
+        <div class="ltpm-ms-name">Blue Belt</div>
+        <div class="ltpm-ms-pct">6%</div>
+      </div>
+      <div class="ltpm-ms-footer">
+        {%- if current_tier == 'Blue Belt' -%}
+          <div class="ltpm-ms-status ltpm-status-current">{{ spent_cents | times: 100 | money }} spent in last 12 months</div>
+        {%- elsif blue_achieved -%}
+          <div class="ltpm-ms-status ltpm-status-unlocked">&#10003; Unlocked</div>
+        {%- else -%}
+          <div class="ltpm-ms-status">Spend $1,000 within 12 months</div>
+        {%- endif -%}
+      </div>
+    </div>
+
+    {%- comment -%}BLACK BELT{%- endcomment -%}
+    <div class="ltpm-ms{% if current_tier == 'Black Belt' %} ltpm-ms-current{% endif %}">
+      <div class="ltpm-ms-top ltpm-ms-top-black">
+        {%- if current_tier == 'Black Belt' -%}
+          <span class="ltpm-badge ltpm-badge-current">Current</span>
+        {%- elsif current_tier == 'Blue Belt' -%}
+          <span class="ltpm-badge ltpm-badge-next">Next</span>
+        {%- endif -%}
+        <img class="ltpm-belt-img" src="{{ black_img }}" alt="Black Belt" width="44" height="44" loading="lazy">
+        <div class="ltpm-ms-name">Black Belt</div>
+        <div class="ltpm-ms-pct">10%</div>
+      </div>
+      <div class="ltpm-ms-footer">
+        {%- if current_tier == 'Black Belt' -%}
+          <div class="ltpm-ms-status ltpm-status-current">{{ spent_cents | times: 100 | money }} spent in last 12 months</div>
+        {%- else -%}
+          <div class="ltpm-ms-status">Spend $4,000 within 12 months</div>
+        {%- endif -%}
+      </div>
+    </div>
+
+  </div>
+</div>

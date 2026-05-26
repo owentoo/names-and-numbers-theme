@@ -1,0 +1,695 @@
+{% doc %}
+  @prompt
+    i need a section thats half an auto play video and half an h2, text, and cta or text link , section needs max width in px with horizontal padding options , Horizontal padding should apply with max width , text needs desktop and mobile size option, video needs radius, , give me text alignment options for desktop and mobile , on text link get rid of underline and add weight option , video is not playing
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-video-split-{{ ai_gen_id }} {
+    display: block;
+    width: 100%;
+  }
+
+  .ai-video-split-wrapper-{{ ai_gen_id }} {
+    max-width: calc({{ block.settings.max_width }}px + ({{ block.settings.horizontal_padding }}px * 2));
+    margin: 0 auto;
+    padding-left: {{ block.settings.horizontal_padding }}px;
+    padding-right: {{ block.settings.horizontal_padding }}px;
+  }
+
+  .ai-video-split-container-{{ ai_gen_id }} {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    min-height: {{ block.settings.min_height }}px;
+  }
+
+  .ai-video-split-video-{{ ai_gen_id }} {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background-color: #000000;
+    border-radius: {{ block.settings.video_border_radius }}px;
+  }
+
+  .ai-video-split-video-{{ ai_gen_id }} video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .ai-video-split-video-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .ai-video-split-video-placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    max-width: 300px;
+    max-height: 300px;
+  }
+
+  .ai-video-split-empty-state-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .ai-video-split-content-{{ ai_gen_id }} {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: {{ block.settings.content_padding }}px;
+    background-color: {{ block.settings.content_bg_color }};
+    gap: {{ block.settings.content_gap }}px;
+    text-align: {{ block.settings.text_align_desktop }};
+  }
+
+  .ai-video-split-heading-{{ ai_gen_id }} {
+    margin: 0;
+    font-family: {{ block.settings.heading_font.family }}, {{ block.settings.heading_font.fallback_families }};
+    font-weight: {{ block.settings.heading_font.weight }};
+    font-size: {{ block.settings.heading_size }}px;
+    line-height: 1.2;
+    color: {{ block.settings.heading_color }};
+  }
+
+  .ai-video-split-text-{{ ai_gen_id }} {
+    margin: 0;
+    font-size: {{ block.settings.text_size_desktop }}px;
+    line-height: 1.5;
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-video-split-cta-{{ ai_gen_id }} {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: {{ block.settings.button_padding_vertical }}px {{ block.settings.button_padding_horizontal }}px;
+    background-color: {{ block.settings.button_bg_color }};
+    color: {{ block.settings.button_text_color }};
+    text-decoration: none;
+    border-radius: {{ block.settings.button_border_radius }}px;
+    font-size: {{ block.settings.button_font_size }}px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  {% if block.settings.text_align_desktop == 'left' %}
+    .ai-video-split-cta-{{ ai_gen_id }} {
+      align-self: flex-start;
+    }
+  {% elsif block.settings.text_align_desktop == 'center' %}
+    .ai-video-split-cta-{{ ai_gen_id }} {
+      align-self: center;
+    }
+  {% elsif block.settings.text_align_desktop == 'right' %}
+    .ai-video-split-cta-{{ ai_gen_id }} {
+      align-self: flex-end;
+    }
+  {% endif %}
+
+  .ai-video-split-cta-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_bg_hover_color }};
+    color: {{ block.settings.button_text_hover_color }};
+  }
+
+  .ai-video-split-text-link-{{ ai_gen_id }} {
+    display: inline-block;
+    color: {{ block.settings.text_link_color }};
+    text-decoration: none;
+    font-size: {{ block.settings.text_size_desktop }}px;
+    font-weight: {{ block.settings.text_link_weight }};
+    transition: color 0.3s ease;
+  }
+
+  .ai-video-split-text-link-{{ ai_gen_id }}:hover {
+    color: {{ block.settings.text_link_hover_color }};
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-video-split-wrapper-{{ ai_gen_id }} {
+      max-width: calc({{ block.settings.max_width }}px + ({{ block.settings.horizontal_padding_mobile }}px * 2));
+      padding-left: {{ block.settings.horizontal_padding_mobile }}px;
+      padding-right: {{ block.settings.horizontal_padding_mobile }}px;
+    }
+
+    .ai-video-split-container-{{ ai_gen_id }} {
+      flex-direction: column;
+      min-height: auto;
+    }
+
+    .ai-video-split-video-{{ ai_gen_id }} {
+      min-height: 300px;
+      border-radius: {{ block.settings.video_border_radius_mobile }}px;
+    }
+
+    .ai-video-split-content-{{ ai_gen_id }} {
+      padding: calc({{ block.settings.content_padding }}px * 0.7);
+      text-align: {{ block.settings.text_align_mobile }};
+    }
+
+    .ai-video-split-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size_mobile }}px;
+    }
+
+    .ai-video-split-text-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_mobile }}px;
+    }
+
+    .ai-video-split-text-link-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_mobile }}px;
+    }
+
+    {% if block.settings.text_align_mobile == 'left' %}
+      .ai-video-split-cta-{{ ai_gen_id }} {
+        align-self: flex-start;
+      }
+    {% elsif block.settings.text_align_mobile == 'center' %}
+      .ai-video-split-cta-{{ ai_gen_id }} {
+        align-self: center;
+      }
+    {% elsif block.settings.text_align_mobile == 'right' %}
+      .ai-video-split-cta-{{ ai_gen_id }} {
+        align-self: flex-end;
+      }
+    {% endif %}
+  }
+
+  {% if block.settings.layout == 'video_right' %}
+    .ai-video-split-container-{{ ai_gen_id }} {
+      flex-direction: row-reverse;
+    }
+
+    @media screen and (max-width: 749px) {
+      .ai-video-split-container-{{ ai_gen_id }} {
+        flex-direction: column;
+      }
+    }
+  {% endif %}
+{% endstyle %}
+
+<video-split-{{ ai_gen_id }} class="ai-video-split-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-video-split-wrapper-{{ ai_gen_id }}">
+    <div class="ai-video-split-container-{{ ai_gen_id }}">
+      <div class="ai-video-split-video-{{ ai_gen_id }}">
+        {% if block.settings.video %}
+          <video
+            muted
+            loop
+            playsinline
+            {% if block.settings.video_controls %}controls{% endif %}
+            data-video-{{ ai_gen_id }}
+          >
+            {% for source in block.settings.video.sources %}
+              <source src="{{ source.url }}" type="{{ source.mime_type }}">
+            {% endfor %}
+            Your browser does not support the video tag.
+          </video>
+        {% else %}
+          <div class="ai-video-split-video-placeholder-{{ ai_gen_id }}">
+            {{ 'image' | placeholder_svg_tag }}
+            <div class="ai-video-split-empty-state-{{ ai_gen_id }}">
+              Next, add a video
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="ai-video-split-content-{{ ai_gen_id }}">
+        {% if block.settings.heading != blank %}
+          <h2 class="ai-video-split-heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h2>
+        {% endif %}
+
+        {% if block.settings.text != blank %}
+          <div class="ai-video-split-text-{{ ai_gen_id }}">{{ block.settings.text }}</div>
+        {% endif %}
+
+        {% if block.settings.cta_style == 'button' %}
+          {% if block.settings.button_text != blank and block.settings.button_link != blank %}
+            <a href="{{ block.settings.button_link }}" class="ai-video-split-cta-{{ ai_gen_id }}">
+              {{ block.settings.button_text }}
+            </a>
+          {% endif %}
+        {% elsif block.settings.cta_style == 'text_link' %}
+          {% if block.settings.text_link_text != blank and block.settings.text_link_url != blank %}
+            <a href="{{ block.settings.text_link_url }}" class="ai-video-split-text-link-{{ ai_gen_id }}">
+              {{ block.settings.text_link_text }}
+            </a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</video-split-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class VideoSplit{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.video = this.querySelector('[data-video-{{ ai_gen_id }}]');
+        if (this.video) {
+          this.setupAutoplay();
+          this.setupIntersectionObserver();
+        }
+      }
+
+      setupAutoplay() {
+        this.video.muted = true;
+        const playPromise = this.video.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.catch(function(error) {
+            console.log('Video autoplay prevented:', error);
+          });
+        }
+      }
+
+      setupIntersectionObserver() {
+        const options = {
+          root: null,
+          rootMargin: '0px',
+          threshold: 0.5
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              this.video.play().catch(function(error) {
+                console.log('Video play failed:', error);
+              });
+            } else {
+              this.video.pause();
+            }
+          });
+        }, options);
+
+        observer.observe(this.video);
+      }
+    }
+
+    customElements.define('video-split-{{ ai_gen_id }}', VideoSplit{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Video split",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout",
+      "options": [
+        {
+          "value": "video_left",
+          "label": "Video left"
+        },
+        {
+          "value": "video_right",
+          "label": "Video right"
+        }
+      ],
+      "default": "video_left"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum width",
+      "min": 1000,
+      "max": 2000,
+      "step": 100,
+      "unit": "px",
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding",
+      "label": "Horizontal padding",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding_mobile",
+      "label": "Horizontal padding mobile",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "min_height",
+      "label": "Minimum height",
+      "min": 300,
+      "max": 800,
+      "step": 50,
+      "unit": "px",
+      "default": 500
+    },
+    {
+      "type": "header",
+      "content": "Video"
+    },
+    {
+      "type": "video",
+      "id": "video",
+      "label": "Video"
+    },
+    {
+      "type": "checkbox",
+      "id": "video_controls",
+      "label": "Show video controls",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "video_border_radius",
+      "label": "Border radius desktop",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "video_border_radius_mobile",
+      "label": "Border radius mobile",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Discover our story"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Text",
+      "default": "<p>Experience quality and innovation with every product we create. Our commitment to excellence drives everything we do.</p>"
+    },
+    {
+      "type": "color",
+      "id": "content_bg_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "content_padding",
+      "label": "Padding",
+      "min": 20,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "content_gap",
+      "label": "Spacing between elements",
+      "min": 10,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "select",
+      "id": "text_align_desktop",
+      "label": "Text alignment desktop",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "select",
+      "id": "text_align_mobile",
+      "label": "Text alignment mobile",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Heading style"
+    },
+    {
+      "type": "font_picker",
+      "id": "heading_font",
+      "label": "Font",
+      "default": "inter_n7"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "label": "Size desktop",
+      "min": 20,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "label": "Size mobile",
+      "min": 16,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Text style"
+    },
+    {
+      "type": "range",
+      "id": "text_size_desktop",
+      "label": "Size desktop",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "label": "Size mobile",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Call to action"
+    },
+    {
+      "type": "select",
+      "id": "cta_style",
+      "label": "Style",
+      "options": [
+        {
+          "value": "button",
+          "label": "Button"
+        },
+        {
+          "value": "text_link",
+          "label": "Text link"
+        }
+      ],
+      "default": "button"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "Learn more"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "color",
+      "id": "button_bg_color",
+      "label": "Button background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_bg_hover_color",
+      "label": "Button hover background",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "button_text_hover_color",
+      "label": "Button hover text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "button_padding_vertical",
+      "label": "Button vertical padding",
+      "min": 8,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "button_padding_horizontal",
+      "label": "Button horizontal padding",
+      "min": 16,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "label": "Button border radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "default": 7
+    },
+    {
+      "type": "range",
+      "id": "button_font_size",
+      "label": "Button font size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "text_link_text",
+      "label": "Text link text",
+      "default": "Learn more"
+    },
+    {
+      "type": "url",
+      "id": "text_link_url",
+      "label": "Text link URL"
+    },
+    {
+      "type": "range",
+      "id": "text_link_weight",
+      "label": "Text link weight",
+      "min": 400,
+      "max": 700,
+      "step": 100,
+      "default": 400
+    },
+    {
+      "type": "color",
+      "id": "text_link_color",
+      "label": "Text link color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_link_hover_color",
+      "label": "Text link hover color",
+      "default": "#666666"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Video split"
+    }
+  ]
+}
+{% endschema %}

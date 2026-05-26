@@ -1,0 +1,744 @@
+{%- assign page_url = content_for_header | split:'"pageurl":"' | last | split:'"' | first | split: request.host | last | replace:'\/','/' | replace:'%20',' ' | replace:'\u0026','&'  -%}
+{% assign param_handle = nil %}
+{% assign param_color = nil %}
+{% assign param_variant_id = nil %}
+
+{%- for i in (1..1) -%}
+  {%- unless page_url contains "?" -%}{% break %}{%- endunless -%}
+  {%- assign query_string = page_url | split:'?' | last -%}
+  {%- assign qry_parts= query_string | split:'&' -%}
+
+  {%- for part in qry_parts -%}
+    {%- assign key_and_value = part | split:'=' -%}
+    {%- if key_and_value.size > 1 -%}
+      {% if key_and_value[0] == 'variant' %}
+        {% assign param_arr = key_and_value[1] | split:'_' %}
+        {% assign param_color = param_arr[0] | upcase  %}
+        {% assign param_variant_id = param_arr[1] %}
+        {% assign param_handle = param_arr[2] %}
+      {% endif %}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor -%}
+
+{%
+  assign product = all_products[param_handle];  
+%}
+
+{% assign style_category = 'style-' | append: product.metafields.specs.shirt_style %}
+{% assign style_collection = product.collections | where: "handle", style_category | first %}
+
+{% paginate style_collection.products by 1000 %}
+{% assign sortedColors = style_collection.products | sort: "url"  %}
+{% endpaginate %}
+
+{% assign defaultProduct = blank %}
+{% assign selectedProduct = blank %}
+{% for style_product in sortedColors %} 
+  {% assign shirt_color = style_product.metafields.specs.shirt_color | upcase %}
+  {% if style_product.metafields.specs.shirt_color == product.metafields.specs.default_child_color %}
+      {% assign defaultProduct = style_product %}
+  {% endif %}
+  {% if param_color and shirt_color == param_color %}
+    {% assign selectedProduct = style_product %}
+  {% endif %}
+{% endfor %}
+
+{% if selectedProduct == blank %}
+  {% assign selectedProduct = defaultProduct %}
+{% endif %}
+
+<input type="hidden" id="hf_productStyle" value="{{ selectedProduct.metafields.specs.shirt_style }}" />
+<input type="hidden" id="hf_productColor" value="{{ selectedProduct.metafields.specs.shirt_color }}" />
+<input type="hidden" id="hf_variantId" value="{{ param_variant_id }}" />
+
+{% assign style_category = 'style-' | append: selectedProduct.metafields.specs.shirt_style %}
+{% assign collection = selectedProduct.collections | where: "handle", style_category | first %}
+
+{% paginate collection.products by 1000 %}
+{% assign sortedColors = collection.products | sort: "url"  %}
+{% endpaginate %}
+
+{% assign selectedColor = blank %}
+{% assign selectedColorHex = blank %}
+{% assign selectedColorSecHex = blank %}
+{% assign selectedColorAlt = blank %}
+{% assign selectedColorAltHex = blank %}
+{% assign selectedColorAltSecHex = blank %}
+
+{% for style_product in sortedColors %} 
+  {% assign inventoryTotal=0 %}
+  {% for variant in style_product.variants %}
+  {% assign inventoryTotal = inventoryTotal | plus:variant.inventory_quantity %}
+  {% endfor %}
+
+  {% if inventoryTotal > 0 %}
+    {% if selectedColorAlt == blank %}
+      {% assign selectedColorAlt = style_product.metafields.specs.shirt_color %}
+      {% assign selectedColorAltHex = style_product.metafields.specs.shirt_prim_hex %}
+      {% assign selectedColorAltSecHex = style_product.metafields.specs.shirt_sec_hex %}
+    {% endif %}
+    
+    {% if style_product.metafields.specs.shirt_color == selectedProduct.metafields.specs.shirt_color %}
+      {% assign selectedColor = style_product.metafields.specs.shirt_color %}
+      {% assign selectedColorHex = style_product.metafields.specs.shirt_prim_hex %}
+      {% assign selectedColorSecHex = style_product.metafields.specs.shirt_sec_hex %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+
+{% if selectedColor == blank %}
+  {% assign selectedColor = selectedColorAlt %}
+  {% assign selectedColorHex = selectedColorAltHex %}
+  {% assign selectedColorSecHex = selectedColorAltSecHex %}
+{% endif %}
+
+{% render "apparel-product-color-picker-dev", product: product, colors: sortedColors, selectedColor: selectedColor, selectedColorHex: selectedColorHex, selectedColorSecHex: selectedColorSecHex %}
+
+{% comment %}
+<h5 style="font-size:1.3em;font-weight:700;" class="">Select Color</h5>
+<div id="color-picker" style="margin-bottom:50px;">
+  <div class="wrapper-dropdown">
+  	<span @click="toggleDropdown()" v-html="selector"></span>
+  	<ul class="dropdown" v-show="active">
+  		<li v-for="color in colors" @click="setColor(color.hex, color.name, color.url)"><span class="swatchItem" :style="{background: color.hex}"></span> {{'{{'}}color.name}}<span style="font-weight:bold;color:#ff0000;">{{'{{'}}color.out}}</span></li>
+  	</ul>
+  </div>
+</div>
+{% endcomment %}
+
+<div style="padding:20px;padding-left:20px;background-color:#f6f6f6;padding-right:20px;border-top-left-radius:8px;border-top-right-radius:8px;border-bottom-left-radius:8px;border-bottom-right-radius:8px;">
+  <h5 style="font-size:1em;font-weight:700;margin-bottom:15px;" class="">Choose Size</h5>
+  <div class="flex-bar">
+  {% for variant in selectedProduct.variants %}
+    {% if variant.price == 0 or variant.sku contains "-T" %}
+        {% continue %}
+    {% endif %}
+    <div class="flex-item text-center">
+      <div class="variant-price-2" style="display:block;width:65px;">
+        <label class="font-size--down-2 line-height--up-1 large--line-height--down-1 large--font-size--down-1 padding-top--down-3 large--padding-top--down-1 padding-bottom--down-3 font-bold" style="font-weight: 700;">{{ variant.title }}</label>
+        {% if variant.inventory_quantity <= 0 %}
+          <div style="border-radius: 4px;display:block;border: 1px solid #e0e0e0;width:100%;color: #000000;padding-top:4px;padding-bottom:4px;background-color: #e1e1e1;height:55px;line-height:45px;">
+            <label>OUT</label>
+          </div>        
+        {% else %}
+        <input class="text-center itemQuantity" type="number" min="0" data-id="{{ variant.id }}" data-price="{{ variant.price }}" data-tiers="{{ variant.metafields.custom.tier_pricing }}" data-tp="{{ variant.metafields.custom.tier_pricing | base64_encode }}" data-label="{{ variant.title }}" data-gtin="{{ variant.sku }}" data-max="{{ variant.inventory_quantity }}" placeholder="" value="" style="border-radius: 4px;display:block;padding-top: 1rem;padding-bottom: 1rem; border: 1px solid #e0e0e0;width:100%;margin-bottom:10px;">
+        <label class="font-size--down-2 line-height--up-1 large--line-height--down-1 large--font-size--down-1 padding-top--down-5 large--padding-top--down-0 font-bold">
+          <small data-variant-id="32449812529212" class="font-size--down-3 large--font-size--down-2 font-bold text-primary variant-price-2 padding-bottom--down-1 label-price;padding-top:10px;" style="color: #03406C;font-size:1.1em;font-weight:700;">{{ variant.price | money }}</small>
+        </label>    
+        <div style="font-size:0.8em;">
+          {% if variant.inventory_quantity >= 999 %}
+          <div>999+</div>
+          {% else %}
+          <div>{{ variant.inventory_quantity }}</div>
+          {% endif %}
+          <div>In Stock</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+
+  <div class="errorMessages" style="display:none;color:#ff0000;">
+    <div style="font-weight:700;">Unable to add items to cart:</div>
+    <ul class="errorList" style="margin-top:0px;">    
+    </ul>
+  </div>
+  
+  <div class="product__cart-functions" another-transfer="" style="margin-top:30px;">
+    <div class="addToCartSection flex-buttons">
+      <button type="submit" onclick="addToCart();" name="add" class="add-to-cart button button--solid button--product button--loader button--move">
+        <span class="button__text">              
+            Add To Cart              
+        </span>
+        <span class="button__preloader">
+          <svg class="button__preloader-element" viewBox="25 25 50 50"><circle cx="50" cy="50" r="20" fill="none" stroke-width="4"></circle></svg>
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <div class="product-actions" {{ block.shopify_attributes }}>
+
+    {%- if block.settings.show_price -%}
+  
+      <div class="sidebar-widget sidebar-widget--{{ block.settings.style }} {% unless default_to_first_variant %} hide {% endunless %}"
+        data-js-product-price-extended
+      >
+        {%- if block.settings.style == 'outline' -%}
+          <span class="sidebar-widget__title">{{ 'products.page.price' | t }}</span>
+        {%- endif -%}
+        <div class="sidebar-widget__content">
+          <div>
+          {%- render 'product-price', variant: current_variant, target: current_variant, show_saving: true -%}
+          </div>
+        </div>
+      </div>
+  
+    {%- endif -%}
+  
+    <product-form
+      id="add-to-cart-{{ section.id }}" class="product-form" {% if settings.cart_action == 'overlay' %} data-ajax-cart data-js-product-form {% endif %}
+    >
+  
+      {%- form 'product', product, id: product_form_id, class: 'form', novalidate: 'novalidate', data-type: 'add-to-cart-form' -%}
+        <div class="form__properties"></div>
+  
+        <template>
+          <input type="hidden" name="id" value="{{ current_variant.id }}">
+        </template>
+        <script>
+          document.getElementById('add-to-cart-{{ section.id }}').querySelector('form').append(document.getElementById('add-to-cart-{{ section.id }}').querySelector('template').content.cloneNode(true));
+          {% if b.afterAddtoCart_goCart %}
+            const afterAddtoCart_goCart_redirect = true;
+          {% endif %}
+        </script>
+  
+        {%- liquid
+          if product.gift_card? and block.settings.show_gift_card_recipient
+            render 'gift-card-recipent-form', product: product
+          endif
+        -%}
+  
+        <div class="product__cart-functions">
+  
+          <div class="flex-buttons">
+            {% if b.allowAnotherTransfer and b.anotherTransferPosition == 'above' %}
+              <span
+                class="anotherTransfer above{% if b.fillAnotherTransferBtn %} button button--solid button--product{% endif %}{% if b.fullWidthButtons %} btnFullWidth{% endif %}"
+              >
+                <span class="anotherTransfer__btnText">
+                  {{ b.allowAnotherTransfer__label }}
+                </span>
+              </span>
+            {% endif %}
+  
+            {%- if block.settings.show_quantity_selector -%}
+  
+              <product-quantity class="product-quantity quantity-selector-holder
+                {% if default_to_first_variant %} hide {% endif %}"
+              >
+                <button class="qty-button qty-minus no-js-hidden" aria-label="{{ 'general.accessibility_labels.decrease_quantity' | t }}" role="button" controls="qty-{{ section.id }}">
+                  {%- render 'theme-symbols', icon: 'minus' -%}
+                </button>
+                <label for="qty-{{ section.id }}" class="visually-hidden">{{ 'general.accessibility_labels.quantity' | t }}</label>
+                <input type="number" name="quantity" value="1" min="1" max="999" class="qty qty-selector product__quantity" id="qty-{{ section.id }}">
+                <button class="qty-button qty-plus no-js-hidden" aria-label="{{ 'general.accessibility_labels.increase_quantity' | t }}" role="button" controls="qty-{{ section.id }}">
+                  {%- render 'theme-symbols', icon: 'plus' -%}
+                </button>
+              </product-quantity>
+  
+            {%- endif -%}
+  
+            <button type="submit" name="add" class="
+              add-to-cart button button--solid button--product button--loader button--move
+              {% unless current_variant.available %} disabled {% endunless %}
+              {% unless default_to_first_variant %} disabled {% endunless %}"
+              data-js-product-add-to-cart
+              data-main-product-add-to-cart
+            >
+              <span class="button__text" data-js-product-add-to-cart-text>
+                {%- liquid
+                  unless default_to_first_variant
+                    if product.available
+                      if b.buttonText != blank
+                        echo b.buttonText
+                      else
+                        echo 'products.grid.choose_variant_first' | t
+                      endif
+                    else
+                      echo 'products.page.inventory.sold_out_variant' | t
+                    endif
+                  else
+                    if current_variant.available
+                      if b.buttonText != blank
+                        echo b.buttonText
+                      else
+                        echo 'products.page.add_to_cart_button' | t
+                      endif
+                    else
+                      echo 'products.page.inventory.sold_out_variant' | t
+                    endif
+                  endunless
+                -%}
+              </span>
+              <span class="button__preloader">
+                <svg class="button__preloader-element" viewBox="25 25 50 50"><circle cx="50" cy="50" r="20" fill="none" stroke-width="4"/></svg>
+              </span>
+            </button>
+  
+            {%- liquid
+              if block.settings.show_dynamic_checkout and block.settings.show_gift_card_recipient == false
+                echo form | payment_button
+              endif
+            -%}
+  
+            {% if b.allowAnotherTransfer and b.anotherTransferPosition == 'below' %}
+              <span
+                class="anotherTransfer above{% if b.fillAnotherTransferBtn %} button button--solid button--product{% endif %}{% if b.fullWidthButtons %} btnFullWidth{% endif %}"
+              >
+                <span class="anotherTransfer__btnText">
+                  {{ b.allowAnotherTransfer__label }}
+                </span>
+              </span>
+            {% endif %}
+  
+  
+          </div>
+  
+        </div>
+  
+        {% for item in customTabelItems %}
+            {%- assign tItems = item.settings -%}
+            {%- capture minMax -%}
+              {%- if tItems.title contains '-' -%}
+                {%- assign min = tItems.title | split: '-' | first | strip -%}
+                {%- assign max = tItems.title | split: '-' | last | strip -%}
+              {%- elsif tItems.title contains '+' -%}
+                {%- assign min = tItems.title | split: '+' | first | strip -%}
+                {%- assign max = 1000000 -%}
+              {%- endif -%}
+            {%- endcapture -%}
+            {%- capture percentages -%}
+              {%- if tItems.title_2 contains '%' -%}
+                {%- assign offPercentage = tItems.title_2 | split: '%' | first | strip -%}
+              {%- endif -%}
+            {%- endcapture -%}
+            {% if forloop.first %}
+              {%- assign getUnitPrice_1st = tItems.title_3 | default: '&nbsp;' -%}
+            {% endif %}
+            {% assign _dis = _dis | append :  "min_" %}
+            {% assign _dis = _dis | append :  min %}
+            {% assign _dis = _dis | append : "-off_" %}
+            {% assign _dis = _dis | append : offPercentage %}
+            {% assign _dis = _dis | append : "#" %}
+  
+            {% assign _dis_title = _dis_title | append : offPercentage | append : "%25_off_for_" | append : min | append : "+_transfers#" %}
+            {% assign _dis_title = _dis_title | split : "+" | join : "" %}
+            {% if forloop.last %}
+              <input type="hidden" id="discount_input" name="properties[_discount_input]" value="{{ _dis }}" />
+              <input type="hidden" id="discount_input" name="properties[_discount_name]" value="{{ _dis_title }}" />
+            {% endif %}
+          {% endfor %}
+      {%- endform -%}
+  
+    </product-form>
+  
+    {%- form 'product', product, id: 'product-form-installment' -%}
+      <input type="hidden" name="id" value="{{ current_variant.id }}">
+      {{ form | payment_terms }}
+  
+      {% render 'custom-payment-terms' %}
+    {%- endform -%}
+  
+    {% if block.settings.enable_payment_terms %}
+      {% render 'custom-payment-terms' %}
+    {% endif %}
+  
+    <script>
+      document
+        .querySelector('shopify-payment-terms')
+        .shadowRoot.querySelector('*')
+        .setAttribute('style', 'text-align: center;');
+    </script>
+  
+  </div>
+  
+  <script>
+    if ( typeof loaderGif == 'undefined' ) {
+      loaderGif = `{{ 'loader.gif' | asset_url }}`;
+    }
+    anotherTransfer = false;
+    $( document )
+    .ready(function() {
+      {% if b.buttonText != blank %}
+        KROWN.settings.locales.products_add_to_cart_button = '{{ b.buttonText }}';
+      {% endif %}
+    })
+    .on(`click`, `.anotherTransfer`,async function( e ) {
+      try {
+        e.stopImmediatePropagation();
+        anotherTransfer = true;
+        $( this )
+          .closest( `form` )
+          .find( `.add-to-cart[data-main-product-add-to-cart]` )
+          .click();
+  
+        if ( typeof ElementAvailibility === 'function' ) {
+          ElementAvailibility ( `#site-cart-sidebar.sidebar.sidebar--opened`, 'refreshAll__helper', 30 );
+        }
+      } catch ( err ) {
+        console.log( `ERROR .anotherTransfer`, err.message );
+      }
+    })
+    ;
+  
+    function refreshAll__helper() {
+      try {
+        console.log ( 'refreshAll done' );
+        // location.href = "?";
+        $( `#site-cart-sidebar.sidebar.sidebar--opened` )
+          .find( `.sidebar__close` )
+          .click();
+        $( `.css-slider-dot-navigation .css-slider-dot[data-index="0"]` ).click();
+        $( `button.filepond--file-action-button.filepond--action-revert-item-processing` ).click();
+        $( `.cl-upload--errors.open` ).remove();
+  
+        $( `html, body` ).animate({
+          scrollTop: $( `#site-header` ).offset().top
+        }, 300);
+        $( `.loadingScreen__` ).remove();
+      } catch ( err ) {
+        console.log( `ERROR `, err.message );
+      }
+    }
+  
+    function closeDrawerAfterProductAdded() {
+      $( `#CartDrawer .drawer__close` ).click();
+      $( `html, body` ).animate({ scrollTop: 0 }, `fast`);
+    }
+  </script>
+  
+
+</div>
+
+
+
+<div style="text-align:center;margin-top:20px;font-weight:bold;color:#3E6166;">
+  <div style="display:inline-block;">
+    <span class="material-symbols-outlined" style="vertical-align: bottom; line-height: 50px;">local_shipping</span>
+    <span style="margin-right:30px;vertical-align: bottom; line-height: 50px;">Free 2-Day Shipping</span>
+  </div>
+  <div style="display:inline-block;">
+    <span class="material-symbols-outlined" style="vertical-align: bottom; line-height: 50px;">check_circle</span>
+    <span style="margin-right:30px;vertical-align: bottom; line-height: 50px;">No Minimums</span>
+  </div>
+  <div style="display:inline-block;">
+    <span class="material-symbols-outlined" style="vertical-align: bottom; line-height: 50px;">replay</span>
+    <span style="vertical-align: bottom; line-height: 50px;">Free 45-Day Returns</span>
+  </div>
+</div>
+
+
+
+<style type="text/css">
+  .metafield-rich_text_field ul {
+    padding-left:40px;
+  }
+
+  .product-custom-liquid {
+    margin-top:2rem !important;
+  }
+  
+  .flex-bar {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -moz-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    -webkit-align-items: center;
+    -moz-align-items: center;
+    align-items: flex-start;
+    margin-left: -0.75019rem;
+    flex-wrap: wrap;
+  }
+
+  .flex-item {
+    margin:5px;
+  }
+
+  .text-center {
+    text-align:center;
+  }
+
+  * {
+	box-sizing: border-box;
+	font-family: "Arial";
+  }
+  .wrapper-dropdown {
+      position: relative;
+      width: 300px;
+      background: #FFF;
+      color: #2e2e2e;
+      outline: none;
+      cursor: pointer;
+  }
+  .wrapper-dropdown > span {
+  	width: 100%;
+  	display: block;
+  	border: 1px solid #ababab;
+  	padding: 5px;
+  }
+  .wrapper-dropdown > span > span {
+    padding: 0 12px;
+    margin-right: 5px;
+  }
+  .wrapper-dropdown > span:after {
+      content: "";
+      width: 0;
+      height: 0;
+      position: absolute;
+      right: 16px;
+      top: calc(50% + 4px);
+      margin-top: -6px;
+  	  border-width: 6px 6px 0 6px;
+      border-style: solid;
+  	  border-color: #2e2e2e transparent;
+  }
+  
+  .wrapper-dropdown .dropdown {
+      position: absolute;
+  	  z-index: 10;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      font-weight: normal;
+  	  list-style-type: none;
+  	  padding-left: 0;
+  	  margin: 0;
+  	  border: 1px solid #ababab;
+  	  border-top: 0;
+      max-height:300px;
+      overflow-y:auto;
+  }
+  
+  .wrapper-dropdown .dropdown li {
+      display: block;
+      text-decoration: none;
+      color: #2e2e2e;
+  	  padding: 5px;
+  	  cursor: pointer;
+  }
+  
+  .wrapper-dropdown .dropdown li > span {
+    padding: 0 12px;
+    margin-right: 5px;
+  }
+  
+  .wrapper-dropdown .dropdown li:hover {
+      background: #eee;
+  	  cursor: pointer;
+  }
+
+  .swatchItem {
+    border:1px solid #000;
+  }
+
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+
+</style>
+
+<script>
+  let lastAddToCartTime = 0;
+  function addToCart () {
+    const curTime = new Date().getTime();
+    console.log("AddToCartDetails: lastAddToCartTime=" + lastAddToCartTime + ", curTime=" + curTime + ", diff=" + (curTime - lastAddToCartTime))
+    if (lastAddToCartTime > 0 && (curTime - lastAddToCartTime) <= 3000) {
+      console.log("addtoCart DISALLOWED")
+      return; // prevent multiple AddToCarts from being called within x ms
+    }
+    lastAddToCartTime = curTime;
+    
+    console.log("addToCart called")
+    $(".errorMessages").hide();
+    const itemsToAdd = [];
+    const errorMessages = [];
+    $(".itemQuantity").each(function () {
+      var id = $(this).attr("data-id");
+      var label = $(this).attr("data-label");
+      var quantity = parseInt($(this).val());
+      var quantityMax = parseInt($(this).attr("data-max"));
+      var tp = atob($(this).attr("data-tp"));
+      const properties = {
+        'Color': $("#hf_productColor").val(),
+        '_tp': tp
+      }
+      $(this).css("border","1px solid #e0e0e0")
+      if (quantity > 0) {
+        if (quantity > quantityMax) {          
+          errorMessages.push(`Size ${label} only has ${quantityMax} items in stock.`)
+          $(this).css("border","2px solid #ff0000")
+        }
+        else {
+          itemsToAdd.push({ id, quantity, properties });
+        }
+      }      
+    });
+
+    if (errorMessages.length == 0 && itemsToAdd.length == 0) {
+      errorMessages.push("No quantities chosen")
+    }
+
+    if (errorMessages.length) {
+      $(".errorMessages").show();
+      $(".errorMessages .errorList").html("<li>"+errorMessages.join("</li><li>")+"</li>");
+    }
+    else if (itemsToAdd.length) {
+      console.log("Adding items to cart: " + JSON.stringify(itemsToAdd))
+      $(".addToCartSection button").addClass("working");
+
+      function showCartDrawer (jsonResponse) {
+        $.get('/?section_id=helper-cart', function ( r ) {
+          const sectionInnerHTML = new DOMParser().parseFromString(r, 'text/html');
+          const cartFormInnerHTML = sectionInnerHTML.getElementById('AjaxCartForm').innerHTML;
+    	  const cartSubtotalInnerHTML = sectionInnerHTML.getElementById('AjaxCartSubtotal').innerHTML;
+
+          const cartItems = document.getElementById('AjaxCartForm');
+          cartItems.innerHTML = cartFormInnerHTML;
+          cartItems.ajaxifyCartItems();
+
+          document.getElementById('AjaxCartSubtotal').innerHTML = cartSubtotalInnerHTML;
+
+          document.querySelectorAll('[data-header-cart-count]').forEach(elm=>{
+              //elm.textContent = document.querySelector('#AjaxCartForm [data-cart-count]').textContent;
+              let _cartno = document.querySelector('#AjaxCartForm [data-cart-count]').textContent;
+              elm.textContent = _cartno;
+              elm.setAttribute("data-count",_cartno);
+          });
+          document.querySelectorAll('[data-header-cart-total').forEach(elm=>{
+              elm.textContent = document.querySelector('#AjaxCartForm [data-cart-total]').textContent;
+          });
+
+          //dispatchEvent(new Event('add-to-cart'))
+
+          $('#site-cart-sidebar')[0].show();
+          
+
+          $(".addToCartSection button").removeClass("working");
+          $(".itemQuantity").val("");
+          _saving_update();
+        });        
+      }
+
+      $.ajax({
+        type: "POST",
+        url: '/cart/add.js',
+        data: { items: itemsToAdd },
+        dataType: 'json',
+        success: function (response) {
+          showCartDrawer(response);
+        },
+        error: function (response) {
+          console.log("Could not add items: " + response);
+          $(".errorMessages").show();
+          $(".errorMessages .errorList").html("<li>An error has occurred.  Please try again.</li>");
+        }
+      });
+    }
+  }
+
+  function initColors () {
+    {% comment %}
+    // {{ style_category }}
+  {%  for collection in selectedProduct.collections %}
+    // {{ collection.title }}
+  {%  endfor %}
+    
+    var colors = [];
+  {% for style_product in sortedColors %} 
+    // shirt_prim_hex: {{ style_product.metafields.specs.shirt_prim_hex }}
+    {% assign inventoryTotal=0 %}
+    {% for variant in style_product.variants %}
+    {% assign inventoryTotal = inventoryTotal | plus:variant.inventory_quantity %}
+    {% endfor %}
+  
+    {% if style_product.metafields.specs.shirt_prim_hex %}
+      {% assign colorUrl = "/products/" | append: product.handle | append: "?variant=" | append: style_product.metafields.specs.shirt_color %}
+      {% if inventoryTotal > 0  %}
+        colors.push({ hex: '#{{ style_product.metafields.specs.shirt_prim_hex }}', name: '{{style_product.metafields.specs.shirt_color}}', out: '', url: '{{ colorUrl }}' })
+      {% else %}
+        colors.push({ hex: '#{{ style_product.metafields.specs.shirt_prim_hex }}', name: '{{style_product.metafields.specs.shirt_color}}', out: '(OUT)', url: '{{ colorUrl }}' })
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+    
+    new Vue({
+    	el: '#color-picker',
+    	data: {
+    		active: false,
+    		selectedColor: '#{{ selectedProduct.metafields.specs.shirt_prim_hex }}',
+    		selectedColorName: '{{ selectedProduct.metafields.specs.shirt_color }}',
+    		colors: colors
+    	},
+    	computed: {
+    		selector: function() {
+    			if(!this.selectedColor) {
+    				return 'Color';
+    			}
+    			else {
+    				return '<span class="swatchItem" style="background: ' + this.selectedColor + '"></span> ' + this.selectedColorName;
+    			}
+    		}
+    	},
+    	methods: {
+    		setColor: function(color, colorName, url) {
+    			this.selectedColor = color;
+    			this.selectedColorName = colorName;
+    			this.active = false;
+                //window.history.replaceState(null, null, url + "/" + document.location.search);
+                document.location = url;
+    		},
+    		toggleDropdown: function() {
+    			this.active = !this.active;
+    		},
+    	}
+    });
+    {% endcomment %}
+  }
+
+  function refreshItemPrices () {
+    $(".tierPricingBulkGridTable .tierRow").removeClass("active");
+    const cartTotal = {{ cart.original_total_price }};
+    let formTotalOriginal = 0;
+    $(".itemQuantity").each(function () {
+      const $itemQuantity = $(this);
+      const quantity = parseInt($itemQuantity.val());
+      if (!isNaN(quantity)) {
+        const originalPrice = parseInt($itemQuantity.attr("data-price"));
+        formTotalOriginal += originalPrice*quantity
+      }
+    })
+
+    const virtualTotal = (cartTotal+formTotalOriginal)/100;
+    //console.log("virtualTotal: " + virtualTotal)
+    let tierLevel = 0;
+    if (virtualTotal >= 3800) tierLevel = 7;
+    else if (virtualTotal >= 1750) tierLevel = 6;
+    else if (virtualTotal >= 1000) tierLevel = 5;
+    else if (virtualTotal >= 500) tierLevel = 4;
+    else if (virtualTotal >= 250) tierLevel = 3;
+    else if (virtualTotal >= 150) tierLevel = 2;
+    else if (virtualTotal >= 99) tierLevel = 1;
+
+    if (tierLevel > 0) $(".tierPricingBulkGridTable .tier"+tierLevel).addClass("active");
+
+    $(".itemQuantity").each(function () {
+      const $itemQuantity = $(this);
+      let itemPrice = parseInt($itemQuantity.attr("data-price"));
+      if (tierLevel > 0) {
+        const itemTierLevels = $itemQuantity.attr("data-tiers").split(',');
+        if (itemTierLevels.length == 7) itemPrice = parseInt(itemTierLevels[tierLevel-1])
+      }
+      //console.log("itemPrice: " + itemPrice)
+      $(".label-price",$itemQuantity.parent()).html("$"+(itemPrice/100).toFixed(2));
+    })
+  }
+
+  initColors()
+
+  $(".itemQuantity").on("keyup", function () {
+    refreshItemPrices();
+  })
+  refreshItemPrices();
+</script>

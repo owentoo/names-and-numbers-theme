@@ -1,0 +1,860 @@
+{% doc %}
+  @prompt
+    i need a section with max width with a netflix style carousel of link blocks with an image and text, with roll over options and arrow to show blocks go outside max width, text should be under the image, give the image a max width and ratio option, don't let items fall outside max width and show as many that fit based on max width image width and gap between item, the max width of the content is not being aknowledged, i need margin and padding options for all directions of the section and get rid of the shadow on hover and the max width options need to go smaller text should have a hover color, max width needs to be followed and the text needs weight and size options for desktop and mobile, text falls out of view on rollover, text should not go wider then the image, contect should never fall outside of max width plus padding
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-netflix-carousel-wrapper-{{ ai_gen_id }} {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding-top: {{ block.settings.padding_top }}px;
+    padding-bottom: {{ block.settings.padding_bottom }}px;
+    padding-left: {{ block.settings.padding_left }}px;
+    padding-right: {{ block.settings.padding_right }}px;
+    margin-top: {{ block.settings.margin_top }}px;
+    margin-bottom: {{ block.settings.margin_bottom }}px;
+    margin-left: {{ block.settings.margin_left }}px;
+    margin-right: {{ block.settings.margin_right }}px;
+    overflow: hidden;
+  }
+
+  .ai-netflix-carousel-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    max-width: {{ block.settings.max_width }}px;
+  }
+
+  .ai-netflix-carousel-container-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    max-width: {{ block.settings.max_width }}px;
+    overflow: hidden;
+  }
+
+  .ai-netflix-carousel-track-{{ ai_gen_id }} {
+    display: flex;
+    transition: transform 0.5s ease;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    gap: {{ block.settings.gap }}px;
+  }
+
+  .ai-netflix-carousel-item-{{ ai_gen_id }} {
+    flex: 0 0 auto;
+    width: var(--item-width);
+    position: relative;
+    transition: transform 0.3s ease;
+  }
+
+  .ai-netflix-carousel-item-{{ ai_gen_id }}:hover {
+    transform: scale(1.05);
+    z-index: 2;
+  }
+
+  .ai-netflix-carousel-item-link-{{ ai_gen_id }} {
+    display: block;
+    text-decoration: none;
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-netflix-carousel-item-link-{{ ai_gen_id }}:hover .ai-netflix-carousel-item-title-{{ ai_gen_id }} {
+    color: {{ block.settings.text_hover_color }};
+  }
+
+  .ai-netflix-carousel-item-image-wrapper-{{ ai_gen_id }} {
+    width: 100%;
+    max-width: {{ block.settings.image_max_width }}px;
+    margin: 0 auto;
+    position: relative;
+    aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    border-radius: {{ block.settings.border_radius }}px;
+    overflow: hidden;
+    background-color: #f4f4f4;
+  }
+
+  .ai-netflix-carousel-item-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .ai-netflix-carousel-item-image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-netflix-carousel-item-image-placeholder-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+  }
+
+  .ai-netflix-carousel-item-content-{{ ai_gen_id }} {
+    padding: {{ block.settings.text_spacing }}px 0 0 0;
+    text-align: {{ block.settings.text_alignment }};
+    width: 100%;
+    max-width: {{ block.settings.image_max_width }}px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+
+  .ai-netflix-carousel-item-title-{{ ai_gen_id }} {
+    margin: 0;
+    font-size: {{ block.settings.title_size }}px;
+    font-weight: {{ block.settings.title_weight }};
+    color: {{ block.settings.text_color }};
+    line-height: 1.3;
+    transition: color 0.3s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .ai-netflix-carousel-arrow-{{ ai_gen_id }} {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    background-color: {{ block.settings.arrow_background_color }};
+    color: {{ block.settings.arrow_color }};
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 3;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-netflix-carousel-arrow-{{ ai_gen_id }}:hover {
+    opacity: 1;
+  }
+
+  .ai-netflix-carousel-arrow-prev-{{ ai_gen_id }} {
+    left: 10px;
+  }
+
+  .ai-netflix-carousel-arrow-next-{{ ai_gen_id }} {
+    right: 10px;
+  }
+
+  .ai-netflix-carousel-arrow-icon-{{ ai_gen_id }} {
+    width: 20px;
+    height: 20px;
+  }
+
+  @media screen and (max-width: 767px) {
+    .ai-netflix-carousel-item-image-wrapper-{{ ai_gen_id }} {
+      max-width: {{ block.settings.image_max_width_mobile }}px;
+    }
+    
+    .ai-netflix-carousel-item-content-{{ ai_gen_id }} {
+      max-width: {{ block.settings.image_max_width_mobile }}px;
+    }
+    
+    .ai-netflix-carousel-item-title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.title_size_mobile }}px;
+      font-weight: {{ block.settings.title_weight_mobile }};
+    }
+    
+    .ai-netflix-carousel-arrow-{{ ai_gen_id }} {
+      width: 40px;
+      height: 40px;
+    }
+    
+    .ai-netflix-carousel-arrow-icon-{{ ai_gen_id }} {
+      width: 16px;
+      height: 16px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-netflix-carousel-wrapper-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <netflix-carousel-{{ ai_gen_id }} 
+    class="ai-netflix-carousel-{{ ai_gen_id }}"
+    data-max-width="{{ block.settings.max_width }}"
+    data-image-max-width="{{ block.settings.image_max_width }}"
+    data-image-max-width-mobile="{{ block.settings.image_max_width_mobile }}"
+    data-gap="{{ block.settings.gap }}"
+  >
+    <div class="ai-netflix-carousel-container-{{ ai_gen_id }}">
+      <ul class="ai-netflix-carousel-track-{{ ai_gen_id }}">
+        {% for i in (1..block.settings.number_of_items) %}
+          {% assign image_key = 'image_' | append: i %}
+          {% assign title_key = 'title_' | append: i %}
+          {% assign link_key = 'link_' | append: i %}
+          
+          {% assign image = block.settings[image_key] %}
+          {% assign title = block.settings[title_key] %}
+          {% assign link = block.settings[link_key] %}
+          
+          {% if title != blank %}
+            <li class="ai-netflix-carousel-item-{{ ai_gen_id }}">
+              <a href="{{ link }}" class="ai-netflix-carousel-item-link-{{ ai_gen_id }}">
+                <div class="ai-netflix-carousel-item-image-wrapper-{{ ai_gen_id }}">
+                  {% if image != blank %}
+                    <img 
+                      src="{{ image | image_url: width: 800 }}"
+                      alt="{{ title }}"
+                      loading="lazy"
+                      class="ai-netflix-carousel-item-image-{{ ai_gen_id }}"
+                      width="800"
+                      height="600"
+                    >
+                  {% else %}
+                    <div class="ai-netflix-carousel-item-image-placeholder-{{ ai_gen_id }}">
+                      {{ 'image' | placeholder_svg_tag }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="ai-netflix-carousel-item-content-{{ ai_gen_id }}">
+                  <h3 class="ai-netflix-carousel-item-title-{{ ai_gen_id }}">{{ title }}</h3>
+                </div>
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+      
+      <button class="ai-netflix-carousel-arrow-{{ ai_gen_id }} ai-netflix-carousel-arrow-prev-{{ ai_gen_id }}" aria-label="Previous">
+        <svg class="ai-netflix-carousel-arrow-icon-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      
+      <button class="ai-netflix-carousel-arrow-{{ ai_gen_id }} ai-netflix-carousel-arrow-next-{{ ai_gen_id }}" aria-label="Next">
+        <svg class="ai-netflix-carousel-arrow-icon-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+  </netflix-carousel-{{ ai_gen_id }}>
+</div>
+
+<script>
+  (function() {
+    class NetflixCarousel extends HTMLElement {
+      constructor() {
+        super();
+        this.track = this.querySelector('.ai-netflix-carousel-track-{{ ai_gen_id }}');
+        this.items = this.querySelectorAll('.ai-netflix-carousel-item-{{ ai_gen_id }}');
+        this.prevButton = this.querySelector('.ai-netflix-carousel-arrow-prev-{{ ai_gen_id }}');
+        this.nextButton = this.querySelector('.ai-netflix-carousel-arrow-next-{{ ai_gen_id }}');
+        
+        this.maxWidth = parseInt(this.dataset.maxWidth, 10);
+        this.imageMaxWidth = parseInt(this.dataset.imageMaxWidth, 10);
+        this.imageMaxWidthMobile = parseInt(this.dataset.imageMaxWidthMobile, 10);
+        this.gap = parseInt(this.dataset.gap, 10);
+        
+        this.itemWidth = 0;
+        this.visibleItems = 0;
+        this.totalItems = this.items.length;
+        this.position = 0;
+        this.maxPosition = 0;
+      }
+      
+      connectedCallback() {
+        if (this.items.length <= 0) return;
+        
+        this.calculateDimensions();
+        this.setupEventListeners();
+        this.updateArrowVisibility();
+        
+        window.addEventListener('resize', this.handleResize.bind(this));
+      }
+      
+      calculateDimensions() {
+        const isMobile = window.innerWidth <= 767;
+        const maxImageWidth = isMobile ? this.imageMaxWidthMobile : this.imageMaxWidth;
+        
+        // Calculate container width - respect max-width
+        this.containerWidth = Math.min(this.offsetWidth, this.maxWidth);
+        
+        // Calculate how many items can fit in the container
+        this.visibleItems = Math.floor((this.containerWidth + this.gap) / (maxImageWidth + this.gap));
+        this.visibleItems = Math.max(1, this.visibleItems);
+        
+        // Calculate item width - never exceed maxImageWidth
+        this.itemWidth = Math.min(
+          (this.containerWidth - (this.gap * (this.visibleItems - 1))) / this.visibleItems,
+          maxImageWidth
+        );
+        
+        // Set item width as CSS variable
+        this.items.forEach(item => {
+          item.style.setProperty('--item-width', `${this.itemWidth}px`);
+        });
+        
+        // Calculate max scroll position
+        this.maxPosition = Math.max(0, (this.itemWidth + this.gap) * (this.totalItems - this.visibleItems));
+        
+        // Reset position if needed
+        if (this.position > this.maxPosition) {
+          this.position = this.maxPosition;
+          this.updateSlidePosition();
+        }
+      }
+      
+      setupEventListeners() {
+        this.prevButton.addEventListener('click', this.slidePrev.bind(this));
+        this.nextButton.addEventListener('click', this.slideNext.bind(this));
+      }
+      
+      slidePrev() {
+        // Move by visible items count
+        const moveBy = this.visibleItems;
+        const itemsToMove = (this.itemWidth + this.gap) * moveBy;
+        this.position = Math.max(0, this.position - itemsToMove);
+        this.updateSlidePosition();
+      }
+      
+      slideNext() {
+        // Move by visible items count
+        const moveBy = this.visibleItems;
+        const itemsToMove = (this.itemWidth + this.gap) * moveBy;
+        
+        this.position = Math.min(this.maxPosition, this.position + itemsToMove);
+        this.updateSlidePosition();
+      }
+      
+      updateSlidePosition() {
+        this.track.style.transform = `translateX(-${this.position}px)`;
+        this.updateArrowVisibility();
+      }
+      
+      updateArrowVisibility() {
+        // Hide prev button if at the beginning
+        this.prevButton.style.display = this.position <= 0 ? 'none' : 'flex';
+        
+        // Hide next button if at the end or all items fit
+        this.nextButton.style.display = (this.position >= this.maxPosition || this.totalItems <= this.visibleItems) ? 'none' : 'flex';
+      }
+      
+      handleResize() {
+        this.calculateDimensions();
+        
+        // Reset position on resize
+        this.position = 0;
+        this.updateSlidePosition();
+      }
+    }
+    
+    customElements.define('netflix-carousel-{{ ai_gen_id }}', NetflixCarousel);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Netflix Carousel",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Spacing Settings"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_left",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin left",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_right",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin right",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding left",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding right",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Layout Settings"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 300,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Maximum width",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "number_of_items",
+      "min": 3,
+      "max": 20,
+      "step": 1,
+      "label": "Number of items",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Gap between items",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Image Settings"
+    },
+    {
+      "type": "range",
+      "id": "image_max_width",
+      "min": 80,
+      "max": 400,
+      "step": 10,
+      "unit": "px",
+      "label": "Image max width (desktop)",
+      "default": 300
+    },
+    {
+      "type": "range",
+      "id": "image_max_width_mobile",
+      "min": 60,
+      "max": 250,
+      "step": 10,
+      "unit": "px",
+      "label": "Image max width (mobile)",
+      "default": 200
+    },
+    {
+      "type": "select",
+      "id": "image_aspect_ratio",
+      "label": "Image aspect ratio",
+      "options": [
+        {
+          "value": "1.33333",
+          "label": "4:3 (Landscape)"
+        },
+        {
+          "value": "1",
+          "label": "1:1 (Square)"
+        },
+        {
+          "value": "0.83333",
+          "label": "5:6 (Portrait)"
+        },
+        {
+          "value": "0.666667",
+          "label": "2:3 (Portrait)"
+        },
+        {
+          "value": "1.777778",
+          "label": "16:9 (Widescreen)"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Image border radius",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Text Settings - Desktop"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Title font size",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "title_weight",
+      "label": "Title font weight",
+      "options": [
+        {
+          "value": "300",
+          "label": "Light"
+        },
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi Bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        },
+        {
+          "value": "800",
+          "label": "Extra Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "header",
+      "content": "Text Settings - Mobile"
+    },
+    {
+      "type": "range",
+      "id": "title_size_mobile",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Title font size (mobile)",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "title_weight_mobile",
+      "label": "Title font weight (mobile)",
+      "options": [
+        {
+          "value": "300",
+          "label": "Light"
+        },
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi Bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        },
+        {
+          "value": "800",
+          "label": "Extra Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "range",
+      "id": "text_spacing",
+      "min": 5,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Text spacing from image",
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_hover_color",
+      "label": "Text hover color",
+      "default": "#666666"
+    },
+    {
+      "type": "color",
+      "id": "arrow_color",
+      "label": "Arrow color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "arrow_background_color",
+      "label": "Arrow background color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Item 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_1",
+      "label": "Title",
+      "default": "Item 1"
+    },
+    {
+      "type": "url",
+      "id": "link_1",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_2",
+      "label": "Title",
+      "default": "Item 2"
+    },
+    {
+      "type": "url",
+      "id": "link_2",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_3",
+      "label": "Title",
+      "default": "Item 3"
+    },
+    {
+      "type": "url",
+      "id": "link_3",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_4",
+      "label": "Title",
+      "default": "Item 4"
+    },
+    {
+      "type": "url",
+      "id": "link_4",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_5",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_5",
+      "label": "Title",
+      "default": "Item 5"
+    },
+    {
+      "type": "url",
+      "id": "link_5",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_6",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_6",
+      "label": "Title",
+      "default": "Item 6"
+    },
+    {
+      "type": "url",
+      "id": "link_6",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 7"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_7",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_7",
+      "label": "Title",
+      "default": "Item 7"
+    },
+    {
+      "type": "url",
+      "id": "link_7",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Item 8"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_8",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "title_8",
+      "label": "Title",
+      "default": "Item 8"
+    },
+    {
+      "type": "url",
+      "id": "link_8",
+      "label": "Link"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Netflix Carousel"
+    }
+  ]
+}
+{% endschema %}

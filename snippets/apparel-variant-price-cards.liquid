@@ -1,0 +1,205 @@
+{%- assign page_url = content_for_header
+  | split: '"pageurl":"'
+  | last
+  | split: '"'
+  | first
+  | split: request.host
+  | last
+  | replace: '\/', '/'
+  | replace: '%20', ' '
+  | replace: '\u0026', '&'
+-%}
+{% assign param_color = null %}
+{% assign param_variant_id = null %}
+
+{%- for i in (1..1) -%}
+  {%- unless page_url contains '?' -%}{% break %}{%- endunless -%}
+  {%- assign query_string = page_url | split: '?' | last -%}
+  {%- assign qry_parts = query_string | split: '&' -%}
+
+  {%- for part in qry_parts -%}
+    {%- assign key_and_value = part | split: '=' -%}
+    {%- if key_and_value.size > 1 -%}
+      {% if key_and_value[0] == 'variant' %}
+        {% assign param_arr = key_and_value[1] | split: '_' %}
+        {% assign param_color = param_arr[0] | upcase | url_decode %}
+        {% assign param_variant_id = param_arr[1] %}
+      {% endif %}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor -%}
+
+{% assign defaultVariant = blank %}
+{% assign selectedVariant = blank %}
+{% paginate product.variants by 2049 %}
+{% for variant in product.variants %}
+  {% if variant.inventory_quantity > 0 %}
+    {% assign shirt_color = variant.metafields.specs.shirt_color | upcase %}
+    {% if defaultVariant == blank and variant.metafields.specs.shirt_color == product.metafields.specs.default_child_color %}
+      {% assign defaultVariant = variant %}
+    {% endif %}
+    {% if param_color and shirt_color == param_color %}
+      {% if selectedVariant == blank or variant.price < selectedVariant.price %}
+        {% assign selectedVariant = variant %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% endpaginate %}
+{% if selectedVariant == blank %}
+  {% assign selectedVariant = defaultVariant %}
+{% endif %}
+
+{% assign whitePrice = 0 %}
+{% assign colorPrice = 0 %}
+
+{% paginate product.variants by 9999 %}
+  {% for variant in product.variants %}
+    {% if variant.inventory_quantity > 0 %}
+      {% if variant.metafields.specs.shirt_color != blank %}
+        {% if variant.options[0].name == "WHITE" %}
+          {% if whitePrice == 0 or variant.price < whitePrice %}
+            {% assign whitePrice = variant.price %}
+          {% endif %}          
+        {% elsif variant.options[0].name == "NATURAL"%}
+        {% else %}
+            {% if colorPrice == 0 or variant.price < colorPrice %}
+              {% assign colorPrice = variant.price %}
+            {% endif %}
+        {% endif %}      
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+{% endpaginate %}
+
+{% unless selectedVariant == blank %}
+  {% if selectedVariant.options[0].name == "WHITE" %}
+    {% assign whitePrice = selectedVariant.price %}
+  {% else %}
+    {% assign colorPrice = selectedVariant.price %}
+  {% endif %}
+{% endunless %}
+
+{% assign whiteMSRP = whitePrice | times: 1.96 %}
+{% assign colorMSRP = colorPrice | times: 1.96 %}
+
+<style>
+  .savePercent { display: block; }
+  /* === Blanks price cards === */
+  .template-product-blanks table td > div {
+    padding: 10px 14px !important;
+  }
+  .template-product-blanks table td > div > div:first-child {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #1a1a1a !important;
+    margin-bottom: 6px !important;
+  }
+  .template-product-blanks .savePercent {
+    font-size: 12px !important;
+    padding: 4px 10px !important;
+    border-radius: 4px !important;
+    line-height: 1.2 !important;
+  }
+  .template-product-blanks .bpc-prices {
+    display: flex !important;
+    align-items: baseline !important;
+    gap: 12px !important;
+  }
+  .template-product-blanks .bpc-prices__label {
+    font-size: 10px !important;
+    color: #888 !important;
+    margin-bottom: 1px !important;
+    line-height: 1.2;
+  }
+  .template-product-blanks .bpc-prices__amount {
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    color: #03406c !important;
+    line-height: 1.2;
+  }
+  .template-product-blanks .bpc-prices__amount--retail {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: #bbb !important;
+  }
+  .template-product-blanks table td:nth-child(2) {
+    width: 10px !important;
+  }
+  @media (max-width: 749px) {
+    .template-product-blanks table {
+      border-collapse: collapse !important;
+      table-layout: fixed !important;
+      width: 100% !important;
+    }
+    .template-product-blanks table td:nth-child(1),
+    .template-product-blanks table td:nth-child(3) {
+      width: calc(50% - 5px) !important;
+      position: relative;
+      vertical-align: top;
+    }
+    .template-product-blanks .savePercent {
+      font-size: 10px !important;
+      padding: 3px 8px !important;
+    }
+  }
+</style>
+
+{% if whitePrice > 0 and colorPrice > 0 %}
+<div>
+  <table style="width:100%;">
+    <tr>
+      <td>
+        <div style="padding:20px;background-color:#f6f6f6;padding-right:20px;border-top-left-radius:8px;border-top-right-radius:8px;border-bottom-left-radius:8px;border-bottom-right-radius:8px;overflow:hidden;border:1px solid #e0e0e0;">
+          <div style="font-size:1.1em;font-weight:bold;margin-bottom:20px;">White<div class="savePercent" style="background-color:#fba500;color:#fff;border-radius:5px;padding:5px;padding-left:10px;padding-right:10px;float:right;font-size:0.8em;font-weight:bold;">Save 49%</div></div>
+          <div class="bpc-prices">
+            <div class="bpc-prices__group"><div class="bpc-prices__label">Starting at</div><div class="bpc-prices__amount">{{ whitePrice | money }}</div></div>
+            <div class="bpc-prices__group"><div class="bpc-prices__label">Retail Price</div><div class="bpc-prices__amount bpc-prices__amount--retail"><s>{{ whiteMSRP | money }}</s></div></div>
+          </div>
+        </div>
+      </td>
+      <td style="width:20px;">
+        &nbsp;
+      </td>
+      <td>
+        <div style="padding:20px;background-color:#f6f6f6;padding-right:20px;border-top-left-radius:8px;border-top-right-radius:8px;border-bottom-left-radius:8px;border-bottom-right-radius:8px;overflow:hidden;border:1px solid #e0e0e0;">
+          <div style="font-size:1.1em;font-weight:bold;margin-bottom:20px;">Colors<div class="savePercent" style="background-color:#fba500;color:#fff;border-radius:5px;padding:5px;padding-left:10px;padding-right:10px;float:right;font-size:0.8em;font-weight:bold;">Save 49%</div></div>
+          <div class="bpc-prices">
+            <div class="bpc-prices__group"><div class="bpc-prices__label">Starting at</div><div class="bpc-prices__amount">{{ colorPrice | money }}</div></div>
+            <div class="bpc-prices__group"><div class="bpc-prices__label">Retail Price</div><div class="bpc-prices__amount bpc-prices__amount--retail"><s>{{ colorMSRP | money }}</s></div></div>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+{% elsif colorPrice > 0 %}
+<div>
+  <table style="width:100%;">
+    <tr>
+      <td>
+        <div style="padding:20px;background-color:#f6f6f6;padding-right:20px;border-top-left-radius:8px;border-top-right-radius:8px;border-bottom-left-radius:8px;border-bottom-right-radius:8px;overflow:hidden;border:1px solid #e0e0e0;">
+          <div style="font-size:1.1em;font-weight:bold;margin-bottom:20px;">Colors<div class="savePercent" style="background-color:#fba500;color:#fff;border-radius:5px;padding:5px;padding-left:10px;padding-right:10px;float:right;font-size:0.8em;font-weight:bold;">Save 49%</div></div>
+          <div class="bpc-prices">
+            <div class="bpc-prices__group"><div class="bpc-prices__label">Starting at</div><div class="bpc-prices__amount">{{ colorPrice | money }}</div></div>
+            <div class="bpc-prices__group"><div class="bpc-prices__label">Retail Price</div><div class="bpc-prices__amount bpc-prices__amount--retail"><s>{{ colorMSRP | money }}</s></div></div>
+          </div>
+        </div>
+      </td>
+      <td style="width:20px;">
+        &nbsp;
+      </td>
+      <td style="visibility:hidden;">
+        <div style="padding:20px;background-color:#f6f6f6;padding-right:20px;border-top-left-radius:8px;border-top-right-radius:8px;border-bottom-left-radius:8px;border-bottom-right-radius:8px;overflow:hidden;border:1px solid #e0e0e0;">
+          <div style="font-size:1.1em;font-weight:bold;margin-bottom:20px;">White<div class="savePercent" style="background-color:#fba500;color:#fff;border-radius:5px;padding:5px;padding-left:10px;padding-right:10px;float:right;font-size:0.8em;font-weight:bold;">Save 49%</div></div>
+          <div class="bpc-prices">
+            <div class="bpc-prices__group"><div class="bpc-prices__label">Starting at</div><div class="bpc-prices__amount">{{ whitePrice | money }}</div></div>
+            <div class="bpc-prices__group"><div class="bpc-prices__label">Retail Price</div><div class="bpc-prices__amount bpc-prices__amount--retail"><s>{{ whiteMSRP | money }}</s></div></div>
+          </div>
+        </div>
+      </td>      
+    </tr>
+  </table>
+</div>  
+{% endif %}
+  

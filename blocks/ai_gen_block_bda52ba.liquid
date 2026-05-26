@@ -1,0 +1,834 @@
+{% doc %}
+  @prompt
+    Prompt:
+    
+    Create a full-width section with eight horizontally scrolling blocks using a flex layout. Each block contains a 140x140 square image (1:1 ratio) with text below it, and the entire block (image + text) is a single clickable link. On desktop, the layout stretches across the full width with the blocks laid out in a row. On mobile, the blocks should be scrollable horizontally (side-scroll) with touch/swipe support.
+    
+    Content Elements:
+    
+    8 image blocks (each 140x140)
+    Text label under each image
+    Each block is one unified clickable link (image + text)
+    Layout:
+    
+    Desktop: Full-width horizontal flex row, evenly spaced
+    Mobile: Horizontally scrollable row (side-scroll)
+    Image stacked above text
+    All items centered within their block
+    Customization Settings:
+    
+    Editable image for each block (140x140, 1:1 aspect ratio)
+    Editable text label below each image
+    Editable link URL per block
+    Option to change image and text sizes separately for desktop and mobile
+    Option to adjust spacing between blocks
+    Option to change text alignment (center/left/right)
+    Option to control padding/margin of the section, i need to add a max width to the section, and for the roll over can it rollover text color option, the bg color should go full width the section width should only apply the items, add an option to have the element containing the blocks to be aligned left, right, or center, add options for top, bottom, and side options for section padding and margin, add three more blocks but make sure any blocks without information is hidden once published
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .horizontal-scroll-wrapper-{{ ai_gen_id }} {
+    width: 100%;
+    background-color: {{ block.settings.section_background }};
+    padding-top: {{ block.settings.section_padding_top }}px;
+    padding-bottom: {{ block.settings.section_padding_bottom }}px;
+    padding-left: {{ block.settings.section_padding_sides }}px;
+    padding-right: {{ block.settings.section_padding_sides }}px;
+    margin-top: {{ block.settings.section_margin_top }}px;
+    margin-bottom: {{ block.settings.section_margin_bottom }}px;
+  }
+
+  .horizontal-scroll-section-{{ ai_gen_id }} {
+    width: 100%;
+    max-width: {{ block.settings.section_max_width }}px;
+    margin: 0 auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    {% if block.settings.container_alignment == 'left' %}
+      margin-left: 0;
+      margin-right: auto;
+    {% elsif block.settings.container_alignment == 'right' %}
+      margin-left: auto;
+      margin-right: 0;
+    {% else %}
+      margin-left: auto;
+      margin-right: auto;
+    {% endif %}
+  }
+
+  .horizontal-scroll-section-{{ ai_gen_id }}::-webkit-scrollbar {
+    display: none;
+  }
+
+  .horizontal-scroll-container-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: row;
+    gap: {{ block.settings.block_spacing }}px;
+    padding: 0 {{ block.settings.container_padding }}px;
+  }
+
+  .scroll-block-{{ ai_gen_id }} {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: {{ block.settings.text_alignment }};
+    text-decoration: none;
+    color: {{ block.settings.text_color }};
+    transition: transform 0.3s ease, color 0.3s ease;
+  }
+
+  .scroll-block-{{ ai_gen_id }}:hover {
+    transform: translateY(-5px);
+    color: {{ block.settings.text_hover_color }};
+  }
+
+  .scroll-block-image-wrapper-{{ ai_gen_id }} {
+    width: {{ block.settings.desktop_image_size }}px;
+    height: {{ block.settings.desktop_image_size }}px;
+    overflow: hidden;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    margin-bottom: {{ block.settings.image_text_spacing }}px;
+  }
+
+  .scroll-block-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scroll-block-image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f4f4f4;
+    border-radius: {{ block.settings.image_border_radius }}px;
+  }
+
+  .scroll-block-image-placeholder-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+  }
+
+  .scroll-block-text-{{ ai_gen_id }} {
+    font-size: {{ block.settings.desktop_text_size }}px;
+    font-weight: {{ block.settings.text_weight }};
+    text-align: {{ block.settings.text_alignment }};
+    margin-top: 10px;
+    max-width: {{ block.settings.desktop_image_size }}px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .scroll-block-image-wrapper-{{ ai_gen_id }} {
+      width: {{ block.settings.mobile_image_size }}px;
+      height: {{ block.settings.mobile_image_size }}px;
+    }
+
+    .scroll-block-text-{{ ai_gen_id }} {
+      font-size: {{ block.settings.mobile_text_size }}px;
+      max-width: {{ block.settings.mobile_image_size }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="horizontal-scroll-wrapper-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="horizontal-scroll-section-{{ ai_gen_id }}">
+    <div class="horizontal-scroll-container-{{ ai_gen_id }}">
+      {% if block.settings.item1_image != blank or block.settings.item1_text != blank %}
+        <a href="{{ block.settings.item1_link }}" class="scroll-block-{{ ai_gen_id }}">
+          <div class="scroll-block-image-wrapper-{{ ai_gen_id }}">
+            {% if block.settings.item1_image != blank %}
+              <img 
+                src="{{ block.settings.item1_image | img_url: 'master' }}" 
+                alt="{{ block.settings.item1_text }}"
+                loading="lazy"
+                class="scroll-block-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-block-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="scroll-block-text-{{ ai_gen_id }}">{{ block.settings.item1_text }}</div>
+        </a>
+      {% endif %}
+
+      {% if block.settings.item2_image != blank or block.settings.item2_text != blank %}
+        <a href="{{ block.settings.item2_link }}" class="scroll-block-{{ ai_gen_id }}">
+          <div class="scroll-block-image-wrapper-{{ ai_gen_id }}">
+            {% if block.settings.item2_image != blank %}
+              <img 
+                src="{{ block.settings.item2_image | img_url: 'master' }}" 
+                alt="{{ block.settings.item2_text }}"
+                loading="lazy"
+                class="scroll-block-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-block-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="scroll-block-text-{{ ai_gen_id }}">{{ block.settings.item2_text }}</div>
+        </a>
+      {% endif %}
+
+      {% if block.settings.item3_image != blank or block.settings.item3_text != blank %}
+        <a href="{{ block.settings.item3_link }}" class="scroll-block-{{ ai_gen_id }}">
+          <div class="scroll-block-image-wrapper-{{ ai_gen_id }}">
+            {% if block.settings.item3_image != blank %}
+              <img 
+                src="{{ block.settings.item3_image | img_url: 'master' }}" 
+                alt="{{ block.settings.item3_text }}"
+                loading="lazy"
+                class="scroll-block-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-block-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="scroll-block-text-{{ ai_gen_id }}">{{ block.settings.item3_text }}</div>
+        </a>
+      {% endif %}
+
+      {% if block.settings.item4_image != blank or block.settings.item4_text != blank %}
+        <a href="{{ block.settings.item4_link }}" class="scroll-block-{{ ai_gen_id }}">
+          <div class="scroll-block-image-wrapper-{{ ai_gen_id }}">
+            {% if block.settings.item4_image != blank %}
+              <img 
+                src="{{ block.settings.item4_image | img_url: 'master' }}" 
+                alt="{{ block.settings.item4_text }}"
+                loading="lazy"
+                class="scroll-block-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-block-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="scroll-block-text-{{ ai_gen_id }}">{{ block.settings.item4_text }}</div>
+        </a>
+      {% endif %}
+
+      {% if block.settings.item5_image != blank or block.settings.item5_text != blank %}
+        <a href="{{ block.settings.item5_link }}" class="scroll-block-{{ ai_gen_id }}">
+          <div class="scroll-block-image-wrapper-{{ ai_gen_id }}">
+            {% if block.settings.item5_image != blank %}
+              <img 
+                src="{{ block.settings.item5_image | img_url: 'master' }}" 
+                alt="{{ block.settings.item5_text }}"
+                loading="lazy"
+                class="scroll-block-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-block-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="scroll-block-text-{{ ai_gen_id }}">{{ block.settings.item5_text }}</div>
+        </a>
+      {% endif %}
+
+      {% if block.settings.item6_image != blank or block.settings.item6_text != blank %}
+        <a href="{{ block.settings.item6_link }}" class="scroll-block-{{ ai_gen_id }}">
+          <div class="scroll-block-image-wrapper-{{ ai_gen_id }}">
+            {% if block.settings.item6_image != blank %}
+              <img 
+                src="{{ block.settings.item6_image | img_url: 'master' }}" 
+                alt="{{ block.settings.item6_text }}"
+                loading="lazy"
+                class="scroll-block-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-block-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="scroll-block-text-{{ ai_gen_id }}">{{ block.settings.item6_text }}</div>
+        </a>
+      {% endif %}
+
+      {% if block.settings.item7_image != blank or block.settings.item7_text != blank %}
+        <a href="{{ block.settings.item7_link }}" class="scroll-block-{{ ai_gen_id }}">
+          <div class="scroll-block-image-wrapper-{{ ai_gen_id }}">
+            {% if block.settings.item7_image != blank %}
+              <img 
+                src="{{ block.settings.item7_image | img_url: 'master' }}" 
+                alt="{{ block.settings.item7_text }}"
+                loading="lazy"
+                class="scroll-block-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-block-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="scroll-block-text-{{ ai_gen_id }}">{{ block.settings.item7_text }}</div>
+        </a>
+      {% endif %}
+
+      {% if block.settings.item8_image != blank or block.settings.item8_text != blank %}
+        <a href="{{ block.settings.item8_link }}" class="scroll-block-{{ ai_gen_id }}">
+          <div class="scroll-block-image-wrapper-{{ ai_gen_id }}">
+            {% if block.settings.item8_image != blank %}
+              <img 
+                src="{{ block.settings.item8_image | img_url: 'master' }}" 
+                alt="{{ block.settings.item8_text }}"
+                loading="lazy"
+                class="scroll-block-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-block-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="scroll-block-text-{{ ai_gen_id }}">{{ block.settings.item8_text }}</div>
+        </a>
+      {% endif %}
+
+      {% if block.settings.item9_image != blank or block.settings.item9_text != blank %}
+        <a href="{{ block.settings.item9_link }}" class="scroll-block-{{ ai_gen_id }}">
+          <div class="scroll-block-image-wrapper-{{ ai_gen_id }}">
+            {% if block.settings.item9_image != blank %}
+              <img 
+                src="{{ block.settings.item9_image | img_url: 'master' }}" 
+                alt="{{ block.settings.item9_text }}"
+                loading="lazy"
+                class="scroll-block-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-block-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="scroll-block-text-{{ ai_gen_id }}">{{ block.settings.item9_text }}</div>
+        </a>
+      {% endif %}
+
+      {% if block.settings.item10_image != blank or block.settings.item10_text != blank %}
+        <a href="{{ block.settings.item10_link }}" class="scroll-block-{{ ai_gen_id }}">
+          <div class="scroll-block-image-wrapper-{{ ai_gen_id }}">
+            {% if block.settings.item10_image != blank %}
+              <img 
+                src="{{ block.settings.item10_image | img_url: 'master' }}" 
+                alt="{{ block.settings.item10_text }}"
+                loading="lazy"
+                class="scroll-block-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-block-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="scroll-block-text-{{ ai_gen_id }}">{{ block.settings.item10_text }}</div>
+        </a>
+      {% endif %}
+
+      {% if block.settings.item11_image != blank or block.settings.item11_text != blank %}
+        <a href="{{ block.settings.item11_link }}" class="scroll-block-{{ ai_gen_id }}">
+          <div class="scroll-block-image-wrapper-{{ ai_gen_id }}">
+            {% if block.settings.item11_image != blank %}
+              <img 
+                src="{{ block.settings.item11_image | img_url: 'master' }}" 
+                alt="{{ block.settings.item11_text }}"
+                loading="lazy"
+                class="scroll-block-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-block-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="scroll-block-text-{{ ai_gen_id }}">{{ block.settings.item11_text }}</div>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Horizontal Scroll Blocks",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section Settings"
+    },
+    {
+      "type": "range",
+      "id": "section_max_width",
+      "min": 800,
+      "max": 2000,
+      "step": 50,
+      "unit": "px",
+      "label": "Maximum content width",
+      "default": 1400
+    },
+    {
+      "type": "select",
+      "id": "container_alignment",
+      "label": "Container alignment",
+      "options": [
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "color",
+      "id": "section_background",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Section Spacing"
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "section_padding_sides",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding sides",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "section_margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "section_margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "container_padding",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Container inner padding",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "block_spacing",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Space between blocks",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Image Settings"
+    },
+    {
+      "type": "range",
+      "id": "desktop_image_size",
+      "min": 80,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Image size (desktop)",
+      "default": 140
+    },
+    {
+      "type": "range",
+      "id": "mobile_image_size",
+      "min": 60,
+      "max": 160,
+      "step": 10,
+      "unit": "px",
+      "label": "Image size (mobile)",
+      "default": 120
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Image border radius",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Text Settings"
+    },
+    {
+      "type": "range",
+      "id": "desktop_text_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (desktop)",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "mobile_text_size",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (mobile)",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "text_weight",
+      "label": "Text weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "500"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_hover_color",
+      "label": "Text hover color",
+      "default": "#666666"
+    },
+    {
+      "type": "range",
+      "id": "image_text_spacing",
+      "min": 5,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Space between image and text",
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "Block 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "item1_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item1_text",
+      "label": "Text",
+      "default": "Category 1"
+    },
+    {
+      "type": "url",
+      "id": "item1_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "item2_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item2_text",
+      "label": "Text",
+      "default": "Category 2"
+    },
+    {
+      "type": "url",
+      "id": "item2_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "item3_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item3_text",
+      "label": "Text",
+      "default": "Category 3"
+    },
+    {
+      "type": "url",
+      "id": "item3_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "item4_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item4_text",
+      "label": "Text",
+      "default": "Category 4"
+    },
+    {
+      "type": "url",
+      "id": "item4_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "item5_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item5_text",
+      "label": "Text",
+      "default": "Category 5"
+    },
+    {
+      "type": "url",
+      "id": "item5_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "item6_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item6_text",
+      "label": "Text",
+      "default": "Category 6"
+    },
+    {
+      "type": "url",
+      "id": "item6_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 7"
+    },
+    {
+      "type": "image_picker",
+      "id": "item7_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item7_text",
+      "label": "Text",
+      "default": "Category 7"
+    },
+    {
+      "type": "url",
+      "id": "item7_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 8"
+    },
+    {
+      "type": "image_picker",
+      "id": "item8_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item8_text",
+      "label": "Text",
+      "default": "Category 8"
+    },
+    {
+      "type": "url",
+      "id": "item8_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 9"
+    },
+    {
+      "type": "image_picker",
+      "id": "item9_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item9_text",
+      "label": "Text",
+      "default": "Category 9"
+    },
+    {
+      "type": "url",
+      "id": "item9_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 10"
+    },
+    {
+      "type": "image_picker",
+      "id": "item10_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item10_text",
+      "label": "Text",
+      "default": "Category 10"
+    },
+    {
+      "type": "url",
+      "id": "item10_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 11"
+    },
+    {
+      "type": "image_picker",
+      "id": "item11_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "item11_text",
+      "label": "Text",
+      "default": "Category 11"
+    },
+    {
+      "type": "url",
+      "id": "item11_link",
+      "label": "Link"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Horizontal Scroll Blocks"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,170 @@
+{%-liquid
+  assign ss = section.settings
+  assign sb = section.blocks
+-%}
+{{ 'hp-global.css' | asset_url | stylesheet_tag }}
+{{ 'hp-final-cta.css' | asset_url | stylesheet_tag }}
+
+<div class="container--large">
+  <div class="hpFinalCta">
+    {% if ss.kicker != blank %}
+      <div class="hpFinalCta__kicker">{{ ss.kicker }}</div>
+    {% endif %}
+    {% if ss.heading != blank %}
+      <h2 class="hpFinalCta__heading">{{ ss.heading }}</h2>
+    {% endif %}
+    {% if ss.subtext != blank %}
+      <p class="hpFinalCta__subtext">{{ ss.subtext }}</p>
+    {% endif %}
+
+    <div class="hpFinalCta__buttons">
+      {% if ss.cta_1_text != blank %}
+        <a href="{{ ss.cta_1_url }}" class="hpFinalCta__btn hpFinalCta__btn--{{ ss.cta_1_style }}">
+          {{ ss.cta_1_text }} {% if ss.cta_1_style == 'outlined' %}→{% endif %}
+        </a>
+      {% endif %}
+      {% if ss.cta_2_text != blank %}
+        <a href="{{ ss.cta_2_url }}" class="hpFinalCta__btn hpFinalCta__btn--{{ ss.cta_2_style }}">
+          {{ ss.cta_2_text }}
+        </a>
+      {% endif %}
+    </div>
+
+    {% if sb.size > 0 %}
+      <div class="hpFinalCta__badges">
+        {%- for block in sb -%}
+          {%- assign b = block.settings -%}
+          <div class="hpFinalCta__badge" {{ block.shopify_attributes }}>
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            {{ b.text }}
+          </div>
+        {%- endfor -%}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{%- capture getStyles -%}
+  #shopify-section-{{ section.id }} {
+    background-color: {{ ss.bgColor }};
+    margin-top: {{ ss.secMarginTop_desktop | append: 'px' }};
+    margin-bottom: {{ ss.secMarginBottom_desktop | append: 'px' }} !important;
+  }
+  #shopify-section-{{ section.id }} .hpFinalCta {
+    padding-top: {{ ss.secPaddingTop_desktop | append: 'px' }};
+    padding-bottom: {{ ss.secPaddingBottom_desktop | append: 'px' }};
+  }
+  #shopify-section-{{ section.id }} .hpFinalCta__kicker {
+    color: {{ ss.kickerColor }};
+  }
+  #shopify-section-{{ section.id }} .hpFinalCta__heading,
+  #shopify-section-{{ section.id }} .hpFinalCta__subtext,
+  #shopify-section-{{ section.id }} .hpFinalCta__badges {
+    color: {{ ss.textColor }};
+  }
+  @media (max-width: 1024px) {
+    #shopify-section-{{ section.id }} {
+      margin-top: {{ ss.secMarginTop_tab | append: 'px' }};
+      margin-bottom: {{ ss.secMarginBottom_tab | append: 'px' }} !important;
+    }
+    #shopify-section-{{ section.id }} .hpFinalCta {
+      padding-top: {{ ss.secPaddingTop_tab | append: 'px' }};
+      padding-bottom: {{ ss.secPaddingBottom_tab | append: 'px' }};
+    }
+  }
+  @media (max-width: 600px) {
+    #shopify-section-{{ section.id }} {
+      margin-top: {{ ss.secMarginTop_mobile | append: 'px' }};
+      margin-bottom: {{ ss.secMarginBottom_mobile | append: 'px' }} !important;
+    }
+    #shopify-section-{{ section.id }} .hpFinalCta {
+      padding-top: {{ ss.secPaddingTop_mobile | append: 'px' }};
+      padding-bottom: {{ ss.secPaddingBottom_mobile | append: 'px' }};
+    }
+  }
+  /* Remove gap between last body section and footer caused by
+     theme's .container--vertical-space margin collapsing through
+     an empty footer-group wrapper */
+  .shopify-section-group-footer-group > .container--vertical-space {
+    margin-top: 0 !important;
+  }
+  /* Close gap between main content and footer-group sections.
+     Covers theme's top:-1px offset + any app-injected margins (w3_bg). */
+  .main-content {
+    margin-bottom: -1px;
+  }
+  #main > .shopify-section:last-child {
+    margin-bottom: 0 !important;
+  }
+  .quick-estimate-product-pupUp-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 0 !important;
+    font-size: 0 !important;
+  }
+  /* Remove footer border-top line between 76ers section and footer */
+  .main-footer {
+    border-top: none !important;
+  }
+{%- endcapture -%}
+<style>{{ getStyles }}</style>
+
+{% schema %}
+{
+  "name": "HP - Final CTA",
+  "class": "hp-section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "GET STARTED TODAY" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Ready to Print?" },
+    { "type": "textarea", "id": "subtext", "label": "Subtext", "default": "Join 500,000+ businesses who trust Ninja Transfers." },
+    { "type": "header", "content": "CTA Button 1" },
+    { "type": "text", "id": "cta_1_text", "label": "Button 1 Text", "default": "Order Transfers by Size" },
+    { "type": "url", "id": "cta_1_url", "label": "Button 1 URL" },
+    { "type": "select", "id": "cta_1_style", "label": "Button 1 Style", "options": [{ "value": "outlined", "label": "Outlined" }, { "value": "filled", "label": "Filled" }], "default": "outlined" },
+    { "type": "header", "content": "CTA Button 2" },
+    { "type": "text", "id": "cta_2_text", "label": "Button 2 Text", "default": "Build a Gang Sheet" },
+    { "type": "url", "id": "cta_2_url", "label": "Button 2 URL" },
+    { "type": "select", "id": "cta_2_style", "label": "Button 2 Style", "options": [{ "value": "outlined", "label": "Outlined" }, { "value": "filled", "label": "Filled" }], "default": "filled" },
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "bgColor", "label": "Background Color", "default": "#1a1a1a" },
+    { "type": "color", "id": "textColor", "label": "Text Color", "default": "#ffffff" },
+    { "type": "color", "id": "kickerColor", "label": "Kicker Color", "default": "#019AFF" },
+    { "type": "header", "content": "Desktop Spacing" },
+    { "type": "range", "id": "secMarginTop_desktop", "label": "Margin Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secMarginBottom_desktop", "label": "Margin Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secPaddingTop_desktop", "label": "Padding Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 80 },
+    { "type": "range", "id": "secPaddingBottom_desktop", "label": "Padding Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 80 },
+    { "type": "header", "content": "Tablet Spacing" },
+    { "type": "range", "id": "secMarginTop_tab", "label": "Margin Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secMarginBottom_tab", "label": "Margin Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secPaddingTop_tab", "label": "Padding Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 60 },
+    { "type": "range", "id": "secPaddingBottom_tab", "label": "Padding Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 60 },
+    { "type": "header", "content": "Mobile Spacing" },
+    { "type": "range", "id": "secMarginTop_mobile", "label": "Margin Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secMarginBottom_mobile", "label": "Margin Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secPaddingTop_mobile", "label": "Padding Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 48 },
+    { "type": "range", "id": "secPaddingBottom_mobile", "label": "Padding Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 48 }
+  ],
+  "blocks": [
+    {
+      "type": "trust_badge",
+      "name": "Trust Badge",
+      "limit": 6,
+      "settings": [
+        { "type": "text", "id": "text", "label": "Badge Text", "default": "Free Shipping" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "HP - Final CTA",
+      "blocks": [
+        { "type": "trust_badge", "settings": { "text": "100% Satisfaction" } },
+        { "type": "trust_badge", "settings": { "text": "Free Shipping" } },
+        { "type": "trust_badge", "settings": { "text": "No Minimums" } },
+        { "type": "trust_badge", "settings": { "text": "24hr Turnaround" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

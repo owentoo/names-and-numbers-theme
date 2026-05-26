@@ -1,0 +1,550 @@
+{% doc %}
+  @prompt
+    Create a centered contact form section for influencer partnerships with the following fields: First Name, Last Name, Email, Primary Social Handle, Primary Platform dropdown (Instagram, TikTok, YouTube, Facebook, X (Twitter), Other with conditional text field that appears when Other is selected), Follower Count range dropdown (2K-10K, 10K-50K, 50K-100K, 100K-500K, 500K-1MIL, 1MIL+), Content Niche, and Previous Brand Partnership Experience. The entire form should be centered on the page within a container box, with all form fields and the submit button properly centered within that container. Style the form to match the current theme design and ensure it submits the collected information to an email address., Center this form on the page, Center the contents inside the container, make this container for this section full width, Make the form wider, i want the form to be left justified, but the form itself to be centered on the page and centered within the section/block, make the form input take up the whole element
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-influencer-form-container-{{ ai_gen_id }} {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+    width: 100%;
+    background-color: {{ block.settings.section_background_color }};
+  }
+
+  .ai-influencer-form-{{ ai_gen_id }} {
+    max-width: {{ block.settings.form_width }}px;
+    width: 100%;
+    padding: 40px;
+    background-color: {{ block.settings.background_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .ai-influencer-form__content-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+  }
+
+  .ai-influencer-form__heading-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    margin: 0 0 8px;
+    font-size: {{ block.settings.heading_size }}px;
+    text-align: left;
+    font-family: {{ settings.headings_font_primary.family }}, {{ settings.headings_font_primary.fallback_families }};
+    font-weight: {{ settings.headings_font_primary.weight }};
+  }
+
+  .ai-influencer-form__subtext-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.text_size }}px;
+    text-align: left;
+    margin-bottom: 16px;
+  }
+
+  .ai-influencer-form__row-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .ai-influencer-form__field-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .ai-influencer-form__label-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .ai-influencer-form__input-{{ ai_gen_id }},
+  .ai-influencer-form__select-{{ ai_gen_id }},
+  .ai-influencer-form__textarea-{{ ai_gen_id }} {
+    padding: 12px 16px;
+    border: 1px solid {{ block.settings.input_border_color }};
+    border-radius: {{ block.settings.input_border_radius }}px;
+    font-size: 14px;
+    background-color: {{ block.settings.input_background_color }};
+    color: {{ block.settings.text_color }};
+    font-family: {{ settings.body_font_primary.family }}, {{ settings.body_font_primary.fallback_families }};
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+  }
+
+  .ai-influencer-form__input-{{ ai_gen_id }}:focus,
+  .ai-influencer-form__select-{{ ai_gen_id }}:focus,
+  .ai-influencer-form__textarea-{{ ai_gen_id }}:focus {
+    outline: none;
+    border-color: {{ block.settings.button_color }};
+    box-shadow: 0 0 0 2px {{ block.settings.button_color | color_modify: 'alpha', 0.2 }};
+  }
+
+  .ai-influencer-form__textarea-{{ ai_gen_id }} {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .ai-influencer-form__conditional-{{ ai_gen_id }} {
+    display: none;
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  .ai-influencer-form__conditional-{{ ai_gen_id }}.active {
+    display: block;
+  }
+
+  .ai-influencer-form__conditional-{{ ai_gen_id }} .ai-influencer-form__input-{{ ai_gen_id }} {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .ai-influencer-form__button-{{ ai_gen_id }} {
+    padding: 16px 32px;
+    background-color: {{ block.settings.button_color }};
+    color: {{ block.settings.button_text_color }};
+    border: none;
+    border-radius: {{ block.settings.button_border_radius }}px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    min-width: 200px;
+    align-self: flex-start;
+  }
+
+  .ai-influencer-form__button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_hover_color }};
+  }
+
+  .ai-influencer-form__success-{{ ai_gen_id }} {
+    color: {{ block.settings.success_color }};
+    text-align: left;
+    padding: 16px;
+    background-color: {{ block.settings.success_color | color_modify: 'alpha', 0.1 }};
+    border-radius: {{ block.settings.input_border_radius }}px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .ai-influencer-form__error-{{ ai_gen_id }} {
+    color: {{ block.settings.error_color }};
+    text-align: left;
+    padding: 16px;
+    background-color: {{ block.settings.error_color | color_modify: 'alpha', 0.1 }};
+    border-radius: {{ block.settings.input_border_radius }}px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-influencer-form-container-{{ ai_gen_id }} {
+      padding: 20px 16px;
+      min-height: auto;
+    }
+
+    .ai-influencer-form-{{ ai_gen_id }} {
+      padding: 24px;
+      max-width: 100%;
+    }
+
+    .ai-influencer-form__row-{{ ai_gen_id }} {
+      grid-template-columns: 1fr;
+    }
+
+    .ai-influencer-form__heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size | times: 0.8 }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-influencer-form-container-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <influencer-form-{{ ai_gen_id }} class="ai-influencer-form-{{ ai_gen_id }}">
+    {%- form 'contact' -%}
+      <input type="hidden" name="contact[form_type]" value="influencer_partnership">
+      
+      <div class="ai-influencer-form__content-{{ ai_gen_id }}">
+        {%- if block.settings.heading != blank -%}
+          <h2 class="ai-influencer-form__heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h2>
+        {%- endif -%}
+
+        {%- if block.settings.subtext != blank -%}
+          <div class="ai-influencer-form__subtext-{{ ai_gen_id }}">{{ block.settings.subtext }}</div>
+        {%- endif -%}
+
+        <div class="ai-influencer-form__row-{{ ai_gen_id }}">
+          <div class="ai-influencer-form__field-{{ ai_gen_id }}">
+            <label class="ai-influencer-form__label-{{ ai_gen_id }}" for="first-name-{{ ai_gen_id }}">
+              First Name *
+            </label>
+            <input
+              type="text"
+              id="first-name-{{ ai_gen_id }}"
+              name="contact[first_name]"
+              class="ai-influencer-form__input-{{ ai_gen_id }}"
+              required
+            >
+          </div>
+
+          <div class="ai-influencer-form__field-{{ ai_gen_id }}">
+            <label class="ai-influencer-form__label-{{ ai_gen_id }}" for="last-name-{{ ai_gen_id }}">
+              Last Name *
+            </label>
+            <input
+              type="text"
+              id="last-name-{{ ai_gen_id }}"
+              name="contact[last_name]"
+              class="ai-influencer-form__input-{{ ai_gen_id }}"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="ai-influencer-form__field-{{ ai_gen_id }}">
+          <label class="ai-influencer-form__label-{{ ai_gen_id }}" for="email-{{ ai_gen_id }}">
+            Email Address *
+          </label>
+          <input
+            type="email"
+            id="email-{{ ai_gen_id }}"
+            name="contact[email]"
+            class="ai-influencer-form__input-{{ ai_gen_id }}"
+            required
+          >
+        </div>
+
+        <div class="ai-influencer-form__field-{{ ai_gen_id }}">
+          <label class="ai-influencer-form__label-{{ ai_gen_id }}" for="social-handle-{{ ai_gen_id }}">
+            Primary Social Handle *
+          </label>
+          <input
+            type="text"
+            id="social-handle-{{ ai_gen_id }}"
+            name="contact[social_handle]"
+            class="ai-influencer-form__input-{{ ai_gen_id }}"
+            placeholder="@yourusername"
+            required
+          >
+        </div>
+
+        <div class="ai-influencer-form__field-{{ ai_gen_id }}">
+          <label class="ai-influencer-form__label-{{ ai_gen_id }}" for="platform-{{ ai_gen_id }}">
+            Primary Platform *
+          </label>
+          <select
+            id="platform-{{ ai_gen_id }}"
+            name="contact[platform]"
+            class="ai-influencer-form__select-{{ ai_gen_id }}"
+            required
+          >
+            <option value="">Select Platform</option>
+            <option value="Instagram">Instagram</option>
+            <option value="TikTok">TikTok</option>
+            <option value="YouTube">YouTube</option>
+            <option value="Facebook">Facebook</option>
+            <option value="X (Twitter)">X (Twitter)</option>
+            <option value="Other">Other</option>
+          </select>
+          
+          <div class="ai-influencer-form__conditional-{{ ai_gen_id }}" id="other-platform-{{ ai_gen_id }}">
+            <input
+              type="text"
+              name="contact[other_platform]"
+              class="ai-influencer-form__input-{{ ai_gen_id }}"
+              placeholder="Please specify platform"
+            >
+          </div>
+        </div>
+
+        <div class="ai-influencer-form__field-{{ ai_gen_id }}">
+          <label class="ai-influencer-form__label-{{ ai_gen_id }}" for="follower-count-{{ ai_gen_id }}">
+            Follower Count *
+          </label>
+          <select
+            id="follower-count-{{ ai_gen_id }}"
+            name="contact[follower_count]"
+            class="ai-influencer-form__select-{{ ai_gen_id }}"
+            required
+          >
+            <option value="">Select Range</option>
+            <option value="2K-10K">2K - 10K</option>
+            <option value="10K-50K">10K - 50K</option>
+            <option value="50K-100K">50K - 100K</option>
+            <option value="100K-500K">100K - 500K</option>
+            <option value="500K-1MIL">500K - 1MIL</option>
+            <option value="1MIL+">1MIL+</option>
+          </select>
+        </div>
+
+        <div class="ai-influencer-form__field-{{ ai_gen_id }}">
+          <label class="ai-influencer-form__label-{{ ai_gen_id }}" for="content-niche-{{ ai_gen_id }}">
+            Content Niche *
+          </label>
+          <input
+            type="text"
+            id="content-niche-{{ ai_gen_id }}"
+            name="contact[content_niche]"
+            class="ai-influencer-form__input-{{ ai_gen_id }}"
+            placeholder="e.g., Fashion, Fitness, Beauty, Tech"
+            required
+          >
+        </div>
+
+        <div class="ai-influencer-form__field-{{ ai_gen_id }}">
+          <label class="ai-influencer-form__label-{{ ai_gen_id }}" for="brand-experience-{{ ai_gen_id }}">
+            Previous Brand Partnership Experience
+          </label>
+          <textarea
+            id="brand-experience-{{ ai_gen_id }}"
+            name="contact[brand_experience]"
+            class="ai-influencer-form__textarea-{{ ai_gen_id }}"
+            placeholder="Tell us about your previous brand collaborations and partnership experience..."
+          ></textarea>
+        </div>
+
+        {%- if form.posted_successfully? -%}
+          <div class="ai-influencer-form__success-{{ ai_gen_id }}">
+            {{ block.settings.success_message }}
+          </div>
+        {%- endif -%}
+
+        {%- if form.errors -%}
+          <div class="ai-influencer-form__error-{{ ai_gen_id }}">
+            {{ block.settings.error_message }}
+          </div>
+        {%- endif -%}
+
+        <button type="submit" class="ai-influencer-form__button-{{ ai_gen_id }}">
+          {{ block.settings.button_text }}
+        </button>
+      </div>
+    {%- endform -%}
+  </influencer-form-{{ ai_gen_id }}>
+</div>
+
+<script>
+  (function() {
+    class InfluencerForm{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.platformSelect = this.querySelector('#platform-{{ ai_gen_id }}');
+        this.otherPlatformField = this.querySelector('#other-platform-{{ ai_gen_id }}');
+        
+        if (this.platformSelect && this.otherPlatformField) {
+          this.setupConditionalField();
+        }
+      }
+
+      setupConditionalField() {
+        this.platformSelect.addEventListener('change', () => {
+          if (this.platformSelect.value === 'Other') {
+            this.otherPlatformField.classList.add('active');
+            this.otherPlatformField.querySelector('input').required = true;
+          } else {
+            this.otherPlatformField.classList.remove('active');
+            this.otherPlatformField.querySelector('input').required = false;
+            this.otherPlatformField.querySelector('input').value = '';
+          }
+        });
+      }
+    }
+
+    customElements.define('influencer-form-{{ ai_gen_id }}', InfluencerForm{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Influencer Form",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Partner With Us"
+    },
+    {
+      "type": "textarea",
+      "id": "subtext",
+      "label": "Subtext",
+      "default": "Join our influencer program and collaborate with our brand to create amazing content together."
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "Submit Application"
+    },
+    {
+      "type": "textarea",
+      "id": "success_message",
+      "label": "Success message",
+      "default": "Thank you for your application! We'll review your submission and get back to you within 3-5 business days."
+    },
+    {
+      "type": "textarea",
+      "id": "error_message",
+      "label": "Error message",
+      "default": "Please fill out all required fields and try again."
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "form_width",
+      "min": 600,
+      "max": 1200,
+      "step": 50,
+      "unit": "px",
+      "label": "Form width",
+      "default": 800
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Form border radius",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "input_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Input border radius",
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Button border radius",
+      "default": 6
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "color",
+      "id": "section_background_color",
+      "label": "Section background color",
+      "default": "#f8f8f8"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Form background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "input_background_color",
+      "label": "Input background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "input_border_color",
+      "label": "Input border color",
+      "default": "#cccccc"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_color",
+      "label": "Button hover color",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "success_color",
+      "label": "Success color",
+      "default": "#008060"
+    },
+    {
+      "type": "color",
+      "id": "error_color",
+      "label": "Error color",
+      "default": "#D82C0D"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 20,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size",
+      "default": 16
+    }
+  ],
+  "presets": [
+    {
+      "name": "Influencer Form"
+    }
+  ]
+}
+{% endschema %}

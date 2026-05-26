@@ -1,0 +1,627 @@
+{% doc %}
+  @prompt
+    i need a section with 3-5 icons with 2 lines of text below them, i need text size option for desktop and mobile, and the ability to have the icon above or to the left , section needs a max width with horizontal padding with for desktop and mobile. whole section needs bg color. option , each icon section needs a max width, need gap between for desktop and mobile, on mobile give me the option to put icons to the left of text, and left align text. 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-icon-features-{{ ai_gen_id }} {
+    display: block;
+    width: 100%;
+    background-color: {{ block.settings.section_background }};
+    padding: {{ block.settings.section_padding_desktop }}px {{ block.settings.section_horizontal_padding_desktop }}px;
+  }
+
+  .ai-icon-features-inner-{{ ai_gen_id }} {
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .ai-icon-features-container-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    gap: {{ block.settings.gap_desktop }}px;
+    width: 100%;
+  }
+
+  .ai-icon-feature-item-{{ ai_gen_id }} {
+    display: flex;
+    {% if block.settings.icon_position == 'top' %}
+      flex-direction: column;
+    {% else %}
+      flex-direction: row;
+    {% endif %}
+    align-items: {{ block.settings.alignment }};
+    {% if block.settings.icon_position == 'top' %}
+      text-align: {{ block.settings.alignment }};
+    {% else %}
+      text-align: left;
+    {% endif %}
+    gap: {{ block.settings.item_gap }}px;
+    max-width: {{ block.settings.item_max_width }}px;
+    {% if block.settings.alignment == 'center' %}
+      margin: 0 auto;
+    {% endif %}
+  }
+
+  .ai-icon-feature-icon-wrapper-{{ ai_gen_id }} {
+    width: {{ block.settings.icon_size }}px;
+    height: {{ block.settings.icon_size }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: {{ block.settings.icon_background }};
+    border-radius: {{ block.settings.icon_border_radius }}px;
+    flex-shrink: 0;
+  }
+
+  .ai-icon-feature-icon-wrapper-{{ ai_gen_id }} svg {
+    width: calc({{ block.settings.icon_size }}px * 0.6);
+    height: calc({{ block.settings.icon_size }}px * 0.6);
+    color: {{ block.settings.icon_color }};
+  }
+
+  .ai-icon-feature-icon-wrapper-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .ai-icon-feature-text-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    {% if block.settings.icon_position == 'left' %}
+      flex: 1;
+    {% endif %}
+  }
+
+  .ai-icon-feature-title-{{ ai_gen_id }} {
+    font-family: {{ block.settings.title_font.family }}, {{ block.settings.title_font.fallback_families }};
+    font-weight: {{ block.settings.title_font.weight }};
+    font-size: {{ block.settings.title_size_desktop }}px;
+    color: {{ block.settings.title_color }};
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .ai-icon-feature-description-{{ ai_gen_id }} {
+    font-family: {{ block.settings.description_font.family }}, {{ block.settings.description_font.fallback_families }};
+    font-weight: {{ block.settings.description_font.weight }};
+    font-size: {{ block.settings.description_size_desktop }}px;
+    color: {{ block.settings.description_color }};
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-icon-features-{{ ai_gen_id }} {
+      padding: {{ block.settings.section_padding_mobile }}px {{ block.settings.section_horizontal_padding_mobile }}px;
+    }
+
+    .ai-icon-features-container-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+      gap: {{ block.settings.gap_mobile }}px;
+    }
+
+    .ai-icon-feature-item-{{ ai_gen_id }} {
+      {% if block.settings.icon_position_mobile == 'top' %}
+        flex-direction: column;
+        text-align: {{ block.settings.alignment_mobile }};
+      {% else %}
+        flex-direction: row;
+        text-align: {{ block.settings.alignment_mobile }};
+      {% endif %}
+      {% if block.settings.alignment_mobile == 'center' %}
+        margin: 0 auto;
+      {% else %}
+        margin: 0;
+      {% endif %}
+    }
+
+    .ai-icon-feature-text-{{ ai_gen_id }} {
+      {% if block.settings.icon_position_mobile == 'left' %}
+        flex: 1;
+      {% endif %}
+    }
+
+    .ai-icon-feature-icon-wrapper-{{ ai_gen_id }} {
+      width: {{ block.settings.icon_size_mobile }}px;
+      height: {{ block.settings.icon_size_mobile }}px;
+    }
+
+    .ai-icon-feature-icon-wrapper-{{ ai_gen_id }} svg {
+      width: calc({{ block.settings.icon_size_mobile }}px * 0.6);
+      height: calc({{ block.settings.icon_size_mobile }}px * 0.6);
+    }
+
+    .ai-icon-feature-title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.title_size_mobile }}px;
+    }
+
+    .ai-icon-feature-description-{{ ai_gen_id }} {
+      font-size: {{ block.settings.description_size_mobile }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-icon-features-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-icon-features-inner-{{ ai_gen_id }}">
+    <div class="ai-icon-features-container-{{ ai_gen_id }}">
+      {% for i in (1..5) %}
+        {% liquid
+          assign enabled_key = 'feature_' | append: i | append: '_enabled'
+          assign icon_key = 'feature_' | append: i | append: '_icon'
+          assign title_key = 'feature_' | append: i | append: '_title'
+          assign description_key = 'feature_' | append: i | append: '_description'
+
+          assign enabled = block.settings[enabled_key]
+          assign icon = block.settings[icon_key]
+          assign title = block.settings[title_key]
+          assign description = block.settings[description_key]
+        %}
+
+        {% if enabled %}
+          <div class="ai-icon-feature-item-{{ ai_gen_id }}">
+            <div class="ai-icon-feature-icon-wrapper-{{ ai_gen_id }}">
+              {% if icon != blank %}
+                <img
+                  src="{{ icon | image_url: width: 200 }}"
+                  alt="{{ title | escape }}"
+                  loading="lazy"
+                  width="200"
+                  height="200"
+                >
+              {% else %}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 16v-4"></path>
+                  <path d="M12 8h.01"></path>
+                </svg>
+              {% endif %}
+            </div>
+
+            <div class="ai-icon-feature-text-{{ ai_gen_id }}">
+              {% if title != blank %}
+                <h3 class="ai-icon-feature-title-{{ ai_gen_id }}">{{ title }}</h3>
+              {% endif %}
+
+              {% if description != blank %}
+                <p class="ai-icon-feature-description-{{ ai_gen_id }}">{{ description }}</p>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Icon features",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section style"
+    },
+    {
+      "type": "color",
+      "id": "section_background",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "section_padding_desktop",
+      "label": "Vertical padding on desktop",
+      "min": 0,
+      "max": 120,
+      "step": 5,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_horizontal_padding_desktop",
+      "label": "Horizontal padding on desktop",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_mobile",
+      "label": "Vertical padding on mobile",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_horizontal_padding_mobile",
+      "label": "Horizontal padding on mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "label": "Columns on desktop",
+      "min": 3,
+      "max": 5,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns on mobile",
+      "options": [
+        { "value": "1", "label": "1" },
+        { "value": "2", "label": "2" }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "select",
+      "id": "icon_position",
+      "label": "Icon position on desktop",
+      "options": [
+        { "value": "top", "label": "Top" },
+        { "value": "left", "label": "Left" }
+      ],
+      "default": "top"
+    },
+    {
+      "type": "select",
+      "id": "icon_position_mobile",
+      "label": "Icon position on mobile",
+      "options": [
+        { "value": "top", "label": "Top" },
+        { "value": "left", "label": "Left" }
+      ],
+      "default": "top"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alignment on desktop",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "alignment_mobile",
+      "label": "Alignment on mobile",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "item_max_width",
+      "label": "Item maximum width",
+      "min": 200,
+      "max": 600,
+      "step": 20,
+      "unit": "px",
+      "default": 400
+    },
+    {
+      "type": "range",
+      "id": "gap_desktop",
+      "label": "Gap between items on desktop",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "gap_mobile",
+      "label": "Gap between items on mobile",
+      "min": 10,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "item_gap",
+      "label": "Gap within item",
+      "min": 5,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "header",
+      "content": "Icon style"
+    },
+    {
+      "type": "range",
+      "id": "icon_size",
+      "label": "Icon size on desktop",
+      "min": 40,
+      "max": 120,
+      "step": 5,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "icon_size_mobile",
+      "label": "Icon size on mobile",
+      "min": 30,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 50
+    },
+    {
+      "type": "color",
+      "id": "icon_color",
+      "label": "Icon color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "icon_background",
+      "label": "Icon background",
+      "default": "#f2f2f2"
+    },
+    {
+      "type": "range",
+      "id": "icon_border_radius",
+      "label": "Icon border radius",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "header",
+      "content": "Text style"
+    },
+    {
+      "type": "font_picker",
+      "id": "title_font",
+      "label": "Title font",
+      "default": "inter_n6"
+    },
+    {
+      "type": "range",
+      "id": "title_size_desktop",
+      "label": "Title size on desktop",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "title_size_mobile",
+      "label": "Title size on mobile",
+      "min": 10,
+      "max": 28,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "default": "#000000"
+    },
+    {
+      "type": "font_picker",
+      "id": "description_font",
+      "label": "Description font",
+      "default": "inter_n4"
+    },
+    {
+      "type": "range",
+      "id": "description_size_desktop",
+      "label": "Description size on desktop",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "description_size_mobile",
+      "label": "Description size on mobile",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 13
+    },
+    {
+      "type": "color",
+      "id": "description_color",
+      "label": "Description color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Feature 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_1_enabled",
+      "label": "Enable feature 1",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_1_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "text",
+      "id": "feature_1_title",
+      "label": "Title",
+      "default": "Fast Shipping"
+    },
+    {
+      "type": "text",
+      "id": "feature_1_description",
+      "label": "Description",
+      "default": "Quick delivery on all orders"
+    },
+    {
+      "type": "header",
+      "content": "Feature 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_2_enabled",
+      "label": "Enable feature 2",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_2_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "text",
+      "id": "feature_2_title",
+      "label": "Title",
+      "default": "Premium Quality"
+    },
+    {
+      "type": "text",
+      "id": "feature_2_description",
+      "label": "Description",
+      "default": "High-quality products guaranteed"
+    },
+    {
+      "type": "header",
+      "content": "Feature 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_3_enabled",
+      "label": "Enable feature 3",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_3_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "text",
+      "id": "feature_3_title",
+      "label": "Title",
+      "default": "Secure Payment"
+    },
+    {
+      "type": "text",
+      "id": "feature_3_description",
+      "label": "Description",
+      "default": "Safe and encrypted transactions"
+    },
+    {
+      "type": "header",
+      "content": "Feature 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_4_enabled",
+      "label": "Enable feature 4",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_4_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "text",
+      "id": "feature_4_title",
+      "label": "Title",
+      "default": "24/7 Support"
+    },
+    {
+      "type": "text",
+      "id": "feature_4_description",
+      "label": "Description",
+      "default": "Always here to help you"
+    },
+    {
+      "type": "header",
+      "content": "Feature 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "feature_5_enabled",
+      "label": "Enable feature 5",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "feature_5_icon",
+      "label": "Icon"
+    },
+    {
+      "type": "text",
+      "id": "feature_5_title",
+      "label": "Title",
+      "default": "Easy Returns"
+    },
+    {
+      "type": "text",
+      "id": "feature_5_description",
+      "label": "Description",
+      "default": "Hassle-free return policy"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Icon features"
+    }
+  ]
+}
+{% endschema %}

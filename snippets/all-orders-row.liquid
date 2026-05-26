@@ -1,0 +1,526 @@
+{%- assign first_item = order.line_items | first -%}
+{%- assign item_image = nil -%}
+{%- assign custom_image_url = "" -%}
+{%- assign ao_first_width = "" -%}
+{%- assign ao_first_height = "" -%}
+{%- assign property_size = first_item.properties | size -%}
+{%- if property_size > 0 -%}
+  {%- for p in first_item.properties -%}
+    {%- assign pfirst = p.first | downcase | strip -%}
+    {%- if pfirst == 'preview' and custom_image_url == "" -%}{%- assign custom_image_url = p.last -%}{%- endif -%}
+    {%- if pfirst == '_cartimg' -%}{%- assign custom_image_url = p.last -%}{%- endif -%}
+    {%- if pfirst == 'upload (vector files preferred)' and custom_image_url == "" -%}{%- assign custom_image_url = p.last -%}{%- endif -%}
+    {%- if pfirst == 'preview gang sheet (low res)' and custom_image_url == "" -%}{%- assign custom_image_url = p.last -%}{%- endif -%}
+    {%- if pfirst == 'width' or pfirst == '_width' -%}{%- if p.last != blank -%}{%- assign ao_first_width = p.last -%}{%- endif -%}{%- endif -%}
+    {%- if pfirst == 'height' or pfirst == '_height' -%}{%- if p.last != blank -%}{%- assign ao_first_height = p.last -%}{%- endif -%}{%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+{%- if custom_image_url == "" -%}
+  {%- if first_item.image -%}{%- assign item_image = first_item.image -%}
+  {%- elsif first_item.product.featured_image -%}{%- assign item_image = first_item.product.featured_image -%}{%- endif -%}
+{%- endif -%}
+{%- assign ao_first_variant_title = first_item.variant.title -%}
+{%- assign ao_first_is_style = false -%}
+{%- if ao_first_variant_title contains 'Style #' -%}{%- assign ao_first_is_style = true -%}{%- endif -%}
+
+{%- comment -%} Merged: quantity sum + search titles in single pass {%- endcomment -%}
+{%- assign total_quantity = 0 -%}
+{%- capture search_titles -%}{%- for li in order.line_items -%}{%- assign total_quantity = total_quantity | plus: li.quantity -%} {{ li.title }}{%- endfor -%}{%- endcapture -%}
+
+{%- assign product_name = first_item.product.title | default: first_item.title -%}
+{%- if product_name == blank -%}{%- assign product_name = first_item.title -%}{%- endif -%}
+{%- if product_name contains ' - Style #' -%}{%- assign product_name = product_name | split: ' - Style #' | first | strip -%}{%- elsif product_name contains 'Style #' -%}{%- assign product_name = product_name | split: 'Style #' | first | strip -%}{%- endif -%}
+{%- if ao_first_variant_title != blank and ao_first_variant_title != 'Default Title' -%}{%- assign ao_vt_suffix = ' - ' | append: ao_first_variant_title -%}{%- if product_name contains ao_vt_suffix -%}{%- assign product_name = product_name | remove: ao_vt_suffix -%}{%- endif -%}{%- endif -%}
+
+{%- assign order_nickname = order.metafields.custom.checkout -%}
+
+{%- assign line_count = order.line_items.size -%}
+{%- if line_count == 1 -%}
+  {%- if ao_first_is_style and ao_first_width != "" and ao_first_height != "" -%}
+    {%- capture item_desc -%}{{ ao_first_width }}" &times; {{ ao_first_height }}" &middot; {{ total_quantity }} {% if total_quantity == 1 %}piece{% else %}pieces{% endif %}{%- endcapture -%}
+  {%- else -%}
+    {%- capture item_desc -%}{{ total_quantity }} {% if total_quantity == 1 %}piece{% else %}pieces{% endif %}{%- endcapture -%}
+  {%- endif -%}
+{%- else -%}
+  {%- capture item_desc -%}{{ line_count }} items &middot; {{ total_quantity }} pieces{%- endcapture -%}
+{%- endif -%}
+
+{%- capture search_blob -%}{{ order.name }} {{ order.created_at | date: "%b %-d, %Y" }} {{ order.created_at | date: "%B" }} {{ product_name }} {{ order_nickname }} {{ order.total_price | money }} {{ fulfillment_label }}{{ search_titles }}{%- endcapture -%}
+
+{%- assign fulfillment = order.fulfillment_status -%}
+{%- assign tracking_url = "" -%}
+{%- assign tracking_number = "" -%}
+{%- assign tracking_seen = "|" -%}
+{%- assign tracking_count = 0 -%}
+{%- capture trackings_html_desktop %}{% endcapture -%}
+{%- capture trackings_html_mobile %}{% endcapture -%}
+{%- capture trackings_json_inner %}{% endcapture -%}
+{%- if order.cancelled -%}
+  {%- assign fulfillment_label = "Cancelled" -%}
+  {%- assign badge_class = "ao-badge--grey" -%}
+{%- elsif fulfillment == "fulfilled" -%}
+  {%- assign fulfillment_label = "Fulfilled" -%}
+  {%- assign badge_class = "ao-badge--blue" -%}
+  {%- for li in order.line_items -%}
+    {%- assign li_tn = li.fulfillment.tracking_number -%}
+    {%- if li_tn != blank -%}
+      {%- assign li_tn_key = "|" | append: li_tn | append: "|" -%}
+      {%- unless tracking_seen contains li_tn_key -%}
+        {%- assign tracking_seen = tracking_seen | append: li_tn | append: "|" -%}
+        {%- assign li_tu = li.fulfillment.tracking_url -%}
+        {%- if tracking_number == "" -%}
+          {%- assign tracking_number = li_tn -%}
+          {%- assign tracking_url = li_tu -%}
+        {%- endif -%}
+        {%- capture trackings_html_desktop -%}{{ trackings_html_desktop }}<div class="ao-tracking-callout"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="ao-tracking-callout__label">Tracking:</span> <a href="{{ li_tu }}" target="_blank" rel="noopener" class="ao-tracking-callout__link" onclick="event.stopPropagation()">{{ li_tn }}</a></div>{%- endcapture -%}
+        {%- capture trackings_html_mobile -%}{{ trackings_html_mobile }}<div class="ao-tracking-callout"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="ao-tracking-callout__label">Tracking:</span> <a href="{{ li_tu }}" target="_blank" rel="noopener" class="ao-tracking-callout__link" onclick="event.stopPropagation()">{{ li_tn }}</a></div>{%- endcapture -%}
+        {%- if tracking_count > 0 -%}{%- capture trackings_json_inner -%}{{ trackings_json_inner }},{%- endcapture -%}{%- endif -%}
+        {%- capture trackings_json_inner -%}{{ trackings_json_inner }}{ "number": {{ li_tn | json }}, "url": {{ li_tu | json }} }{%- endcapture -%}
+        {%- assign tracking_count = tracking_count | plus: 1 -%}
+      {%- endunless -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- else -%}
+  {%- assign custom_status = order.metafields.custom.status -%}
+  {%- if custom_status != blank -%}
+    {%- assign fulfillment_label = custom_status -%}
+  {%- else -%}
+    {%- assign fulfillment_label = "Unfulfilled" -%}
+  {%- endif -%}
+  {%- if fulfillment_label == "Artwork Blocked" -%}
+    {%- assign badge_class = "ao-badge--red" -%}
+  {%- else -%}
+    {%- assign badge_class = "ao-badge--green" -%}
+  {%- endif -%}
+{%- endif -%}
+
+{%- assign is_reprint = false -%}
+{%- for tag in order.tags -%}
+  {%- if tag == 'Reprint Order' -%}{%- assign is_reprint = true -%}{%- break -%}{%- endif -%}
+{%- endfor -%}
+
+{%- assign reprint_label_text = "Reprint Order" -%}
+{%- if is_reprint -%}
+  {%- assign reprint_of = order.metafields.custom.reprint_order -%}
+  {%- if reprint_of != blank -%}
+    {%- assign reprint_label_text = "(Reprint Order of " | append: reprint_of | append: ")" -%}
+  {%- endif -%}
+{%- endif -%}
+
+{%- assign zero_price_order = false -%}
+{%- if is_reprint or order.cancelled -%}{%- assign zero_price_order = true -%}{%- endif -%}
+{%- assign zero_price_label = '$0.00' -%}
+{%- if is_reprint -%}{%- assign zero_price_label = 'FREE' -%}{%- endif -%}
+
+{%- comment -%} Determine if reorder should be hidden for this order {%- endcomment -%}
+{%- assign hide_reorder = false -%}
+{%- if order.cancelled -%}{%- assign hide_reorder = true -%}{%- endif -%}
+{%- unless hide_reorder -%}
+  {%- for li in order.line_items -%}
+    {%- comment -%} Hide if product no longer exists in the store {%- endcomment -%}
+    {%- if li.product.title == blank and li.variant.title == blank -%}
+      {%- assign hide_reorder = true -%}
+      {%- break -%}
+    {%- endif -%}
+    {%- comment -%} Hide if custom product type without uploaded artwork {%- endcomment -%}
+    {%- assign li_type_check = li.product.type | downcase -%}
+    {%- assign li_title_check = li.title | downcase -%}
+    {%- assign is_custom_type = false -%}
+    {%- if li_type_check contains 'uv dtf' or li_title_check contains 'uv dtf' or li_type_check contains 'custom transfers' or li_title_check contains 'custom transfers' -%}
+      {%- assign is_custom_type = true -%}
+    {%- endif -%}
+    {%- if is_custom_type -%}
+      {%- assign has_artwork = false -%}
+      {%- for p in li.properties -%}
+        {%- assign pkey = p.first | downcase -%}
+        {%- if pkey == 'preview' or pkey == '_cartimg' or pkey == 'upload (vector files preferred)' or pkey == 'preview gang sheet (low res)' -%}
+          {%- if p.last != blank -%}
+            {%- assign has_artwork = true -%}
+            {%- break -%}
+          {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- unless has_artwork -%}
+        {%- assign hide_reorder = true -%}
+        {%- break -%}
+      {%- endunless -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endunless -%}
+
+{%- comment -%} Hide reorder if order contains ONLY sample pack products (ID 6922214080595) {%- endcomment -%}
+{%- unless hide_reorder -%}
+  {%- assign all_sample_packs = true -%}
+  {%- for li in order.line_items -%}
+    {%- if li.product.id != 6922214080595 -%}
+      {%- assign all_sample_packs = false -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if all_sample_packs -%}{%- assign hide_reorder = true -%}{%- endif -%}
+{%- endunless -%}
+
+{%- comment -%} Hide reorder if order has a resolution reason (unless it contains "shipping") {%- endcomment -%}
+{%- if order.metafields.custom.reso_reason != blank -%}
+  {%- assign reso_lower = order.metafields.custom.reso_reason | downcase -%}
+  {%- unless reso_lower contains 'shipping' -%}{%- assign hide_reorder = true -%}{%- endunless -%}
+{%- endif -%}
+
+{%- comment -%} Invoice data for PDF generation {%- endcomment -%}
+{%- capture invoice_json -%}
+{
+  "order_name": {{ order.name | json }},
+  "date": {{ order.created_at | date: "%B %-d, %Y" | json }},
+  "is_reprint": {{ is_reprint | json }},
+  "cancelled": {{ order.cancelled | json }},
+  "subtotal": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ order.subtotal_price | money | strip_html | json }}{%- endif -%},
+  "shipping": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ order.shipping_price | money | strip_html | json }}{%- endif -%},
+  "tax": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ order.tax_price | money | strip_html | json }}{%- endif -%},
+  "total_discounts": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ order.total_discounts | money | strip_html | json }}{%- endif -%},
+  "total": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ order.total_price | money | strip_html | json }}{%- endif -%},
+  "billing_address": {
+    "name": {{ order.billing_address.name | default: '' | json }},
+    "address1": {{ order.billing_address.address1 | default: '' | json }},
+    "address2": {{ order.billing_address.address2 | default: '' | json }},
+    "city": {{ order.billing_address.city | default: '' | json }},
+    "province": {{ order.billing_address.province | default: '' | json }},
+    "zip": {{ order.billing_address.zip | default: '' | json }},
+    "country": {{ order.billing_address.country | default: '' | json }}
+  },
+  "shipping_address": {
+    "name": {{ order.shipping_address.name | default: '' | json }},
+    "address1": {{ order.shipping_address.address1 | default: '' | json }},
+    "address2": {{ order.shipping_address.address2 | default: '' | json }},
+    "city": {{ order.shipping_address.city | default: '' | json }},
+    "province": {{ order.shipping_address.province | default: '' | json }},
+    "zip": {{ order.shipping_address.zip | default: '' | json }},
+    "country": {{ order.shipping_address.country | default: '' | json }}
+  },
+  "shipping_method": {{ order.shipping_methods.first.title | default: '' | json }},
+  "transactions": [{% for t in order.transactions %}{% if t.status == 'success' %}{ "gateway": {{ t.gateway | json }}, "kind": {{ t.kind | json }}, "amount": {{ t.amount | money | strip_html | json }}, "card_last_four": {{ t.payment_details.credit_card_last_four_digits | default: '' | json }} }{% unless forloop.last %},{% endunless %}{% endif %}{% endfor %}],
+  "line_items": [
+    {%- for li in order.line_items -%}
+    {%- assign inv_variant_title = li.variant.title -%}
+    {%- assign inv_is_style = false -%}
+    {%- if inv_variant_title contains 'Style #' -%}{%- assign inv_is_style = true -%}{%- endif -%}
+    {%- if inv_is_style -%}{%- assign inv_display_title = li.product.title -%}{%- else -%}{%- assign inv_display_title = li.title -%}{%- endif -%}
+    {%- if inv_display_title contains ' - Style #' -%}{%- assign inv_display_title = inv_display_title | split: ' - Style #' | first | strip -%}{%- elsif inv_display_title contains 'Style #' -%}{%- assign inv_display_title = inv_display_title | split: 'Style #' | first | strip -%}{%- endif -%}
+    {%- if inv_variant_title != blank and inv_variant_title != 'Default Title' -%}{%- assign inv_vt_suffix = ' - ' | append: inv_variant_title -%}{%- if inv_display_title contains inv_vt_suffix -%}{%- assign inv_display_title = inv_display_title | remove: inv_vt_suffix -%}{%- endif -%}{%- endif -%}
+    {
+      "title": {{ li.title | json }},
+      "display_title": {{ inv_display_title | json }},
+      "variant_title": {{ li.variant.title | default: '' | json }},
+      "is_style_variant": {{ inv_is_style }},
+      "quantity": {{ li.quantity }},
+      "price": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ li.original_price | money | strip_html | json }}{%- endif -%},
+      "final_price": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ li.final_price | money | strip_html | json }}{%- endif -%},
+      "original_line_price": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ li.original_line_price | money | strip_html | json }}{%- endif -%},
+      "total": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ li.final_line_price | money | strip_html | json }}{%- endif -%},
+      {%- assign inv_img = '' -%}
+      {%- assign inv_fallback = '' -%}
+      {%- assign inv_width = '' -%}
+      {%- assign inv_height = '' -%}
+      {%- for p in li.properties -%}
+        {%- assign ipk = p.first | downcase | strip -%}
+        {%- if ipk == 'preview' and inv_img == '' -%}{%- assign inv_img = p.last -%}{%- endif -%}
+        {%- if ipk == '_cartimg' -%}{%- assign inv_img = p.last -%}{%- endif -%}
+        {%- if ipk == 'upload (vector files preferred)' and inv_img == '' -%}{%- assign inv_img = p.last -%}{%- endif -%}
+        {%- if ipk == 'preview gang sheet (low res)' and inv_img == '' -%}{%- assign inv_img = p.last -%}{%- endif -%}
+        {%- if ipk == 'width' and p.last != blank -%}{%- assign inv_width = p.last -%}{%- endif -%}
+        {%- if ipk == 'height' and p.last != blank -%}{%- assign inv_height = p.last -%}{%- endif -%}
+      {%- endfor -%}
+      {%- if li.image -%}{%- assign inv_fallback = li.image | image_url: width: 160 -%}
+      {%- elsif li.product.featured_image -%}{%- assign inv_fallback = li.product.featured_image | image_url: width: 160 -%}{%- endif -%}
+      {%- if inv_img == '' -%}{%- assign inv_img = inv_fallback -%}{%- endif -%}
+      "image_url": {{ inv_img | json }},
+      "fallback_url": {{ inv_fallback | json }},
+      "width": {{ inv_width | json }},
+      "height": {{ inv_height | json }},
+      "properties": [
+        {%- assign inv_pc = 0 -%}
+        {%- for p in li.properties -%}
+          {%- assign ipk_char = p.first | slice: 0 -%}
+          {%- assign ipk_full = p.first | downcase | strip -%}
+          {%- if ipk_char != '_' and p.last != blank -%}
+            {%- unless inv_is_style and ipk_full == 'width' -%}
+              {%- unless inv_is_style and ipk_full == 'height' -%}
+                {%- unless ipk_full == 'upload (vector files preferred)' -%}
+                  {%- if inv_pc > 0 -%},{%- endif -%}
+                  { "key": {{ p.first | json }}, "value": {{ p.last | truncate: 80 | json }} }
+                  {%- assign inv_pc = inv_pc | plus: 1 -%}
+                {%- endunless -%}
+              {%- endunless -%}
+            {%- endunless -%}
+          {%- endif -%}
+        {%- endfor -%}
+      ]
+    }{%- unless forloop.last -%},{%- endunless -%}
+    {%- endfor -%}
+  ]
+}
+{%- endcapture -%}
+<script type="application/json" class="ao-invoice-data" data-order="{{ order.name | handleize }}">{{ invoice_json | strip_newlines }}</script>
+
+{%- comment -%} Order detail data for in-portal view {%- endcomment -%}
+{%- capture detail_json -%}
+{
+  "order_name": {{ order.name | json }},
+  "date": {{ order.created_at | date: "%b %-d, %Y" | json }},
+  "financial_status": {{ order.financial_status | json }},
+  "fulfillment_label": {{ fulfillment_label | json }},
+  "badge_class": {{ badge_class | json }},
+  "cancelled": {{ order.cancelled | json }},
+  "email": {{ customer.email | json }},
+  "subtotal": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ order.subtotal_price | money | strip_html | json }}{%- endif -%},
+  "shipping": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ order.shipping_price | money | strip_html | json }}{%- endif -%},
+  "shipping_method": {{ order.shipping_methods.first.title | default: '' | json }},
+  "tax": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ order.tax_price | money | strip_html | json }}{%- endif -%},
+  "total_discounts": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ order.total_discounts | money | strip_html | json }}{%- endif -%},
+  "total": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ order.total_price | money | strip_html | json }}{%- endif -%},
+  "tracking_number": {{ tracking_number | json }},
+  "tracking_url": {{ tracking_url | json }},
+  "trackings": [{{ trackings_json_inner }}],
+  "order_nickname": {{ order_nickname | json }},
+  "shipping_address": {
+    "name": {{ order.shipping_address.name | default: '' | json }},
+    "address1": {{ order.shipping_address.address1 | default: '' | json }},
+    "address2": {{ order.shipping_address.address2 | default: '' | json }},
+    "city": {{ order.shipping_address.city | default: '' | json }},
+    "province": {{ order.shipping_address.province | default: '' | json }},
+    "zip": {{ order.shipping_address.zip | default: '' | json }},
+    "country": {{ order.shipping_address.country | default: '' | json }},
+    "phone": {{ order.shipping_address.phone | default: '' | json }}
+  },
+  "billing_address": {
+    "name": {{ order.billing_address.name | default: '' | json }},
+    "address1": {{ order.billing_address.address1 | default: '' | json }},
+    "address2": {{ order.billing_address.address2 | default: '' | json }},
+    "city": {{ order.billing_address.city | default: '' | json }},
+    "province": {{ order.billing_address.province | default: '' | json }},
+    "zip": {{ order.billing_address.zip | default: '' | json }},
+    "country": {{ order.billing_address.country | default: '' | json }},
+    "phone": {{ order.billing_address.phone | default: '' | json }}
+  },
+  "discount_codes": [{% for dc in order.discount_applications %}{{ dc.title | json }}{% unless forloop.last %},{% endunless %}{% endfor %}],
+  "line_items": [
+    {%- for li in order.line_items -%}
+    {%- assign dj_variant_title = li.variant.title -%}
+    {%- assign dj_is_style = false -%}
+    {%- if dj_variant_title contains 'Style #' -%}{%- assign dj_is_style = true -%}{%- endif -%}
+    {%- if dj_is_style -%}{%- assign dj_display_title = li.product.title -%}{%- else -%}{%- assign dj_display_title = li.title -%}{%- endif -%}
+    {%- if dj_display_title contains ' - Style #' -%}{%- assign dj_display_title = dj_display_title | split: ' - Style #' | first | strip -%}{%- elsif dj_display_title contains 'Style #' -%}{%- assign dj_display_title = dj_display_title | split: 'Style #' | first | strip -%}{%- endif -%}
+    {%- if dj_variant_title != blank and dj_variant_title != 'Default Title' -%}{%- assign dj_vt_suffix = ' - ' | append: dj_variant_title -%}{%- if dj_display_title contains dj_vt_suffix -%}{%- assign dj_display_title = dj_display_title | remove: dj_vt_suffix -%}{%- endif -%}{%- endif -%}
+    {
+      "title": {{ li.title | json }},
+      "display_title": {{ dj_display_title | json }},
+      "variant_title": {{ li.variant.title | default: '' | json }},
+      "is_style_variant": {{ dj_is_style }},
+      "quantity": {{ li.quantity }},
+      "price": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ li.original_price | money | strip_html | json }}{%- endif -%},
+      "total": {%- if zero_price_order -%}{{ zero_price_label | json }}{%- else -%}{{ li.final_line_price | money | strip_html | json }}{%- endif -%},
+      "sku": {{ li.sku | default: '' | json }},
+      {%- assign li_detail_img = '' -%}
+      {%- assign li_detail_fallback = '' -%}
+      {%- assign dj_width = '' -%}
+      {%- assign dj_height = '' -%}
+      {%- for p in li.properties -%}
+        {%- assign pk = p.first | downcase | strip -%}
+        {%- if pk == 'preview' and li_detail_img == '' -%}{%- assign li_detail_img = p.last -%}{%- endif -%}
+        {%- if pk == '_cartimg' -%}{%- assign li_detail_img = p.last -%}{%- endif -%}
+        {%- if pk == 'upload (vector files preferred)' and li_detail_img == '' -%}{%- assign li_detail_img = p.last -%}{%- endif -%}
+        {%- if pk == 'preview gang sheet (low res)' and li_detail_img == '' -%}{%- assign li_detail_img = p.last -%}{%- endif -%}
+        {%- if pk == 'width' and p.last != blank -%}{%- assign dj_width = p.last -%}{%- endif -%}
+        {%- if pk == 'height' and p.last != blank -%}{%- assign dj_height = p.last -%}{%- endif -%}
+      {%- endfor -%}
+      {%- if li.image -%}{%- assign li_detail_fallback = li.image | image_url: width: 160 -%}
+      {%- elsif li.product.featured_image -%}{%- assign li_detail_fallback = li.product.featured_image | image_url: width: 160 -%}{%- endif -%}
+      {%- if li_detail_img == '' -%}{%- assign li_detail_img = li_detail_fallback -%}{%- endif -%}
+      "image_url": {{ li_detail_img | json }},
+      "fallback_url": {{ li_detail_fallback | json }},
+      "width": {{ dj_width | json }},
+      "height": {{ dj_height | json }},
+      "properties": [
+        {%- assign od_prop_count = 0 -%}
+        {%- for p in li.properties -%}
+          {%- assign pk_char = p.first | slice: 0 -%}
+          {%- assign pk_full = p.first | downcase | strip -%}
+          {%- if pk_char != '_' and p.last != blank -%}
+            {%- unless dj_is_style and pk_full == 'width' -%}
+              {%- unless dj_is_style and pk_full == 'height' -%}
+                {%- unless pk_full == 'upload (vector files preferred)' -%}
+                  {%- if od_prop_count > 0 -%},{%- endif -%}
+                  { "key": {{ p.first | json }}, "value": {{ p.last | truncate: 80 | json }} }
+                  {%- assign od_prop_count = od_prop_count | plus: 1 -%}
+                {%- endunless -%}
+              {%- endunless -%}
+            {%- endunless -%}
+          {%- endif -%}
+        {%- endfor -%}
+      ],
+      "fulfillment": {
+        {%- if li.fulfillment -%}
+        "status": "fulfilled",
+        "tracking_number": {{ li.fulfillment.tracking_number | default: '' | json }},
+        "tracking_url": {{ li.fulfillment.tracking_url | default: '' | json }},
+        "tracking_company": {{ li.fulfillment.tracking_company | default: '' | json }},
+        "shipment_status": {{ li.fulfillment.shipment_status | default: '' | json }},
+        "created_at": {{ li.fulfillment.created_at | date: "%b %-d, %Y" | json }}
+        {%- else -%}
+        "status": "unfulfilled"
+        {%- endif -%}
+      }
+    }{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+  ]
+}
+{%- endcapture -%}
+<script type="application/json" class="od-detail-data" data-order="{{ order.name | handleize }}">{{ detail_json | strip_newlines }}</script>
+
+{%- comment -%} Merged: 6 variant captures into single pass {%- endcomment -%}
+{%- assign variant_ids = '' -%}
+{%- assign line_item_ids = '' -%}
+{%- assign variant_quantities = '' -%}
+{%- assign variant_inventories = '' -%}
+{%- assign variant_inv_policies = '' -%}
+{%- assign variant_inv_trackers = '' -%}
+{%- for li in order.line_items -%}
+  {%- assign variant_ids = variant_ids | append: li.variant_id | append: ',' -%}
+  {%- assign line_item_ids = line_item_ids | append: li.id | append: ',' -%}
+  {%- assign variant_quantities = variant_quantities | append: li.quantity | append: ',' -%}
+  {%- assign variant_inventories = variant_inventories | append: li.variant.inventory_quantity | append: ',' -%}
+  {%- assign variant_inv_policies = variant_inv_policies | append: li.variant.inventory_policy | append: ',' -%}
+  {%- assign variant_inv_trackers = variant_inv_trackers | append: li.variant.inventory_management | append: ',' -%}
+{%- endfor -%}
+
+  {%- comment -%} Desktop row {%- endcomment -%}
+  <div class="ao-order-row{% if line_count > 1 %} ao-has-items{% endif %}" data-order-id="{{ order.name | handleize }}" data-created="{{ order.created_at | date: '%s' }}" data-status="{{ fulfillment_label | handleize }}" data-search="{{ search_blob | strip_html | strip_newlines | downcase | escape }}">
+    <div class="all-orders__row"{% if line_count > 1 %} data-toggle-order="{{ order.name | handleize }}"{% endif %}>
+    <div class="all-orders__col all-orders__col--order">
+      <div class="all-orders__order-name-row">
+        <a href="#" class="all-orders__order-name-link ao-view-details-btn" data-order-handle="{{ order.name | handleize }}">{{ order.name }}</a>
+        {{ trackings_html_desktop }}
+      </div>
+      <div class="all-orders__order-date">{{ order.created_at | date: "%b %-d, %Y" }}</div>
+      <div class="all-orders__order-product">{{ product_name }}</div>
+      <div class="all-orders__order-desc">{{ item_desc }}{%- if line_count > 1 -%} &mdash; <button type="button" class="ao-expand-btn" style="display:inline;background:none;border:none;outline:none;font-size:inherit;font-weight:600;color:#019AFF;padding:0;margin:0;cursor:pointer;font-family:inherit;-webkit-appearance:none;appearance:none;" data-toggle-order="{{ order.name | handleize }}" onclick="event.stopPropagation(); if(window.__aoToggle) window.__aoToggle(this.getAttribute('data-toggle-order'))">view all <span class="ao-arrow">↓</span></button>{%- endif -%}</div>
+      {%- if order_nickname != blank -%}
+        <div class="all-orders__order-nickname"><span class="all-orders__nickname-label">Order Nickname:</span> <span class="all-orders__nickname-value">{{ order_nickname }}</span></div>
+      {%- endif -%}
+      {%- assign ao_toggle_value_d = order.name | handleize -%}
+      {% render 'order-thumb-strip', order: order, line_count: line_count, toggle_value: ao_toggle_value_d, toggle_attr: 'data-toggle-order' %}
+    </div>
+    <div class="all-orders__col all-orders__col--status">
+      {%- if is_reprint -%}<span class="ao-reprint-label">{{ reprint_label_text }}</span>{%- endif -%}
+      <span class="ao-status {{ badge_class }}">
+        {%- unless order.cancelled -%}
+        <span class="ao-status-icon">
+          {%- if fulfillment == "fulfilled" -%}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          {%- elsif fulfillment_label == "Artwork Blocked" -%}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          {%- else -%}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          {%- endif -%}
+        </span>
+        {%- endunless -%}
+        {{ fulfillment_label }}
+      </span>
+      {%- if fulfillment_label == "Artwork Blocked" -%}
+        <span class="ao-blocked-msg">please call us<br><a href="tel:8883563665">888-356-3665</a></span>
+      {%- endif -%}
+    </div>
+    <div class="all-orders__col all-orders__col--total">
+      <span class="all-orders__price">{%- if zero_price_order -%}{{ zero_price_label }}{%- else -%}{{ order.total_price | money }}{%- endif -%}</span>
+    </div>
+    <div class="all-orders__col all-orders__col--action">
+      <div class="ao-actions">
+        <a href="#" class="ao-view-details-btn" data-order-handle="{{ order.name | handleize }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Details</a>
+        <a href="#" class="ao-invoice-link" onclick="event.stopPropagation();event.preventDefault();window.__ntInvoice(this);" data-order-invoice="{{ order.name | handleize }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Invoice</a>
+        {%- unless hide_reorder -%}
+        <div class="all-orders__reorder-wrap" style="display:none">
+          {%- for li in order.line_items -%}
+            <textarea class="ao-propitems {{ li.variant_id }}">{ {% for property in li.properties %}{{ property.first | json }}:{{ property.last | json }}{% if forloop.last == false %},{% endif %}{% endfor %} }</textarea>
+          {%- endfor -%}
+        </div>
+        <button type="button" class="all-orders__reorder-btn" data-corder-id="{{ order.name }}" data-lineitem-ids="{{ line_item_ids }}" data-variant-ids="{{ variant_ids }}" data-variant-quantities="{{ variant_quantities }}" data-variant-inventories="{{ variant_inventories }}" data-variant-inventory-policies="{{ variant_inv_policies }}" data-variant-inventory-trackers="{{ variant_inv_trackers }}">
+          <svg class="ao-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <span class="ao-btn-text">Reorder</span>
+          <span class="ao-spinner-container"><svg class="ao-spinner" viewBox="0 0 20 20" aria-label="Loading" role="status"><path d="M7.229 1.173a9.25 9.25 0 1 0 11.655 11.412 1.25 1.25 0 1 0-2.4-.698 6.75 6.75 0 1 1-8.506-8.329 1.25 1.25 0 1 0-.75-2.385z" fill="currentColor"/></svg></span>
+        </button>
+        {%- endunless -%}
+      </div>
+    </div>
+  </div>
+
+  {%- if line_count > 1 -%}
+  <div class="ao-line-items">
+    {% render 'order-line-items', order: order, zero_price_order: zero_price_order, zero_price_label: zero_price_label, hide_reorder: hide_reorder %}
+  </div>
+  {%- endif -%}
+</div>
+
+{%- comment -%} Mobile row {%- endcomment -%}
+<div class="ao-order-row-mobile{% if line_count > 1 %} ao-has-items{% endif %}" data-order-id="{{ order.name | handleize }}-m" data-created="{{ order.created_at | date: '%s' }}" data-status="{{ fulfillment_label | handleize }}" data-search="{{ search_blob | strip_html | strip_newlines | downcase | escape }}">
+  <div class="all-orders__row-mobile"{% if line_count > 1 %} data-toggle-order="{{ order.name | handleize }}-m"{% endif %}>
+    <div class="all-orders__mobile-top">
+      <div class="all-orders__mobile-info">
+        <div class="all-orders__mobile-name-price">
+          <a href="#" class="all-orders__order-name-link ao-view-details-btn" data-order-handle="{{ order.name | handleize }}">{{ order.name }}</a>
+          <span class="all-orders__mobile-price-inline">{%- if zero_price_order -%}{{ zero_price_label }}{%- else -%}{{ order.total_price | money }}{%- endif -%}</span>
+        </div>
+        {%- if is_reprint -%}<span class="ao-reprint-label">{{ reprint_label_text }}</span>{%- endif -%}
+        <span class="ao-status {{ badge_class }}">
+          {%- unless order.cancelled -%}
+          <span class="ao-status-icon">
+            {%- if fulfillment == "fulfilled" -%}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            {%- elsif fulfillment_label == "Artwork Blocked" -%}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            {%- else -%}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {%- endif -%}
+          </span>
+          {%- endunless -%}
+          {{ fulfillment_label }}
+        </span>
+        {%- if fulfillment_label == "Artwork Blocked" -%}
+          <span class="ao-blocked-msg">please call us<br><a href="tel:8883563665">888-356-3665</a></span>
+        {%- endif -%}
+        {{ trackings_html_mobile }}
+        <div class="all-orders__order-date">{{ order.created_at | date: "%b %-d, %Y" }}</div>
+        <div class="all-orders__order-product">{{ product_name }}</div>
+        <div class="all-orders__order-desc">{{ item_desc }}{%- if line_count > 1 -%} &mdash; <button type="button" class="ao-expand-btn" style="display:inline;background:none;border:none;outline:none;font-size:inherit;font-weight:600;color:#019AFF;padding:0;margin:0;cursor:pointer;font-family:inherit;-webkit-appearance:none;appearance:none;" data-toggle-order="{{ order.name | handleize }}-m" onclick="event.stopPropagation(); if(window.__aoToggle) window.__aoToggle(this.getAttribute('data-toggle-order'))">view all <span class="ao-arrow">↓</span></button>{%- endif -%}</div>
+        {%- if order_nickname != blank -%}
+          <div class="all-orders__order-nickname"><span class="all-orders__nickname-label">Order Nickname:</span> <span class="all-orders__nickname-value">{{ order_nickname }}</span></div>
+        {%- endif -%}
+        {%- assign ao_toggle_value_m = order.name | handleize | append: '-m' -%}
+        {% render 'order-thumb-strip', order: order, line_count: line_count, toggle_value: ao_toggle_value_m, toggle_attr: 'data-toggle-order', max_thumbs: 5 %}
+      </div>
+      <div class="all-orders__mobile-price">{%- if zero_price_order -%}{{ zero_price_label }}{%- else -%}{{ order.total_price | money }}{%- endif -%}</div>
+    </div>
+    <div class="all-orders__mobile-bottom">
+      <div class="ao-actions">
+        <a href="#" class="ao-view-details-btn" data-order-handle="{{ order.name | handleize }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Details</a>
+        <a href="#" class="ao-invoice-link" onclick="event.stopPropagation();event.preventDefault();window.__ntInvoice(this);" data-order-invoice="{{ order.name | handleize }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Invoice</a>
+        {%- unless hide_reorder -%}
+        <div class="all-orders__reorder-wrap" style="display:none">
+          {%- for li in order.line_items -%}
+            <textarea class="ao-propitems {{ li.variant_id }}">{ {% for property in li.properties %}{{ property.first | json }}:{{ property.last | json }}{% if forloop.last == false %},{% endif %}{% endfor %} }</textarea>
+          {%- endfor -%}
+        </div>
+        <button type="button" class="all-orders__reorder-btn" data-corder-id="{{ order.name }}" data-lineitem-ids="{{ line_item_ids }}" data-variant-ids="{{ variant_ids }}" data-variant-quantities="{{ variant_quantities }}" data-variant-inventories="{{ variant_inventories }}" data-variant-inventory-policies="{{ variant_inv_policies }}" data-variant-inventory-trackers="{{ variant_inv_trackers }}">
+          <svg class="ao-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <span class="ao-btn-text">Reorder</span>
+          <span class="ao-spinner-container"><svg class="ao-spinner" viewBox="0 0 20 20" aria-label="Loading" role="status"><path d="M7.229 1.173a9.25 9.25 0 1 0 11.655 11.412 1.25 1.25 0 1 0-2.4-.698 6.75 6.75 0 1 1-8.506-8.329 1.25 1.25 0 1 0-.75-2.385z" fill="currentColor"/></svg></span>
+        </button>
+        {%- endunless -%}
+      </div>
+    </div>
+  </div>
+
+  {%- if line_count > 1 -%}
+  <div class="ao-line-items">
+    {% render 'order-line-items', order: order, zero_price_order: zero_price_order, zero_price_label: zero_price_label, hide_reorder: hide_reorder %}
+  </div>
+  {%- endif -%}
+</div>

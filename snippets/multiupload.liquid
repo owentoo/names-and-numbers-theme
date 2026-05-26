@@ -1,0 +1,179 @@
+{% render "custom-fileupload" %}
+{{ "customTabelPopup.css" | asset_url | stylesheet_tag }}
+{{ "multiupload.css" | asset_url | stylesheet_tag }}     
+
+  <div class="customTabelPopup__overlay-8 nj-popup no-transparant-bg"  style="display:none;">
+              <div class="customTabelPopup">
+                <span class="customTabelPopup__close" onclick="document.querySelector('.customTabelPopup__overlay-12').style.display = 'grid';document.querySelector('html').style.overflow = 'hidden';"  >
+                  <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+                </span>  
+                <div class="multiupload-popup">
+                    <div class="multiupload-popup-left">
+                        
+                        <ul class="multiupload-files">
+                         
+                        </ul>  
+                              <div class="customDrop">
+                                 <div class="multiupload-add-more "> 
+                                    <h5>More images to upload?</h5>
+                         <div class="file-upload-overlay-3">          
+                          <label class="secondDropZone _2" for="secondFile2">
+                            <div class="secondDropZone__inner">
+                              <div class="secondDropZone__text">
+                                  Drop your files(s) here
+                                </div>
+                                 <span class="_or">or</span>
+                                <b>Upload File(s)</b> 
+                            </div>
+                             {% if customer %} 
+                                <p class="access_old_data">or <a href="#" class="purchase_from_previous" data-type="second_upload" >Choose a previously uploaded design</a></p>
+                              {% else %}
+                               {% comment %}
+                                <p class="access_old_data">or <a data-link="{{ product.url }}?force=upload" href="{{ product.url }}?force=login" class="basic_link">Login</a> to see previous uploads</p>
+                               {% endcomment %}
+                               {% endif %}
+                          </label> 
+                                   <input type="file" multiple id="secondFile2" accept=".eps,application/postscript,image/png,image/jpeg,image/tiff,application/pdf,image/svg+xml">
+                                 </div>
+                                 </div>   
+                              </div>
+                        
+                    </div>
+                               <div class="multiupload-popup-right">
+                                 <div class="multiupload-popup-right-inner">
+                                   
+<div id="free-shipping-bysize">
+  {%-liquid
+      assign bySizeTotal = 0
+      assign blanksTotal = 0
+      assign isBySizeAvailable = false
+      assign isBlankAvailable = false
+      for item in cart.items
+        if item.product.type == 'custom transfers' or item.product.type == 'spangles' or item.product.type == 'UV DTF' or item.product.type == 'UV DTF gang' or item.product.type == 'puff transfers' or item.product.tags contains 'supplies'
+          assign isBySizeAvailable = true
+          assign bySizeTotal = bySizeTotal | plus: item.final_line_price
+        endif
+       
+       assign taglist = item.product.tags | join : " " | downcase
+        if taglist contains 'blank'
+          assign isBlankAvailable = true
+          assign blanksTotal = blanksTotal | plus: item.final_line_price
+        endif
+      endfor
+      capture eligibilityBySize
+        assign a__ = settings.bySize_freeShipping_amount | times: 100
+        if a__ > bySizeTotal
+          assign awayFrom_bysize = a__ | minus: bySizeTotal
+          assign awayFrom_bysize = awayFrom_bysize | divided_by: 100.00 | round: 2
+          assign awayFrom_bysize_0 = awayFrom_bysize | split: '.' | first
+          assign awayFrom_bysize_1 = awayFrom_bysize | split: '.' | last
+          if awayFrom_bysize_1.size == 1
+              assign awayFrom_bysize_1 = awayFrom_bysize_1 | append: '0'
+          endif
+          assign awayFrom_bysize = awayFrom_bysize_0 | append: '.' | append: awayFrom_bysize_1 | prepend: '$'
+          echo settings.bySize_freeShipping_text | replace: '[AMOUNT]', awayFrom_bysize
+        else
+          echo "Congrats! <strong>Free Shipping</strong> Unlocked on <strong>Transfers & Supplies</strong>"
+        endif
+      endcapture
+  
+      capture eligibilityBlanks
+        assign b___ = settings.blanks_freeShipping_amount | times: 100
+        if b___ > blanksTotal
+          assign awayFrom_blanks = b___ | minus: blanksTotal
+          assign awayFrom_blanks = awayFrom_blanks | divided_by: 100.00 | round: 2
+          assign awayFrom_blanks_0 = awayFrom_blanks | split: '.' | first
+          assign awayFrom_blanks_1 = awayFrom_blanks | split: '.' | last
+          if awayFrom_blanks_1.size == 1
+              assign awayFrom_blanks_1 = awayFrom_blanks_1 | append: '0'
+          endif
+          assign awayFrom_blanks = awayFrom_blanks_0 | append: '.' | append: awayFrom_blanks_1 | prepend: '$'
+          echo settings.blanks_freeShipping_text | replace: '[AMOUNT]', awayFrom_blanks
+        else
+          echo "Congrats! <strong>Free Shipping</strong> Unlocked on <strong>Blanks</strong>"
+        endif
+      endcapture
+    -%}
+  
+    {%- if settings.cartFreeShippingBySize or settings.cartFreeShippingBlanks -%}
+      {% if isBySizeAvailable or isBlankAvailable %}
+        <div class="cart-notice text-size--small hide-if-empty-cart">
+          {%- if settings.cartFreeShippingBySize and isBySizeAvailable -%}
+            <free-shipping-bysize class="sidebar-widget__contentItem"
+              free-shipping-amount="{{ settings.bySize_freeShipping_amount | times: 100 }}"
+              data-cart-total="{{ bySizeTotal }}"
+            >
+              {%- assign bySizeToolTip = '<picture class="tooltip"><img src="//ninja-transfers-cdn.imgix.net/info_da70c6e6-1e86-41d3-9035-2bf57d01d406_medium.svg?auto=format,compress&amp;v=1678797665" class="infoIcon infoModal grt-infoicon"><span class="tooltiptext">' | append: settings.bySize_freeShipping_tooltipContent | append: '</span></picture>' -%}
+              <div class="freeShipping__title">
+                  <div>
+                    <span class="freeShipping__content">{{ eligibilityBySize }}</span>
+                  </div>
+                  <span>{{ settings.bySize_freeShipping_title | replace: '[TOOLTIP]', bySizeToolTip }}</span>
+              </div>
+              <span class="cart-notice__slider">
+                <span class="cart-notice__slider-bar" style="background-color: #3eaeff; width: 0;"></span>
+              </span>
+            </free-shipping-bysize>
+          {%- endif -%}
+  
+          {%- if settings.cartFreeShippingBlanks and isBlankAvailable -%}
+            <free-shipping-blanks class="sidebar-widget__contentItem"
+              free-shipping-amount="{{ settings.blanks_freeShipping_amount | times: 100 }}"
+              data-cart-total="{{ blanksTotal }}"
+            >
+              {%- assign blanksToolTip = '<picture class="tooltip"><img src="//ninja-transfers-cdn.imgix.net/info_da70c6e6-1e86-41d3-9035-2bf57d01d406_medium.svg?auto=format,compress&amp;v=1678797665" class="infoIcon infoModal grt-infoicon"><span class="tooltiptext">' | append: settings.blanks_freeShipping_tooltipContent | append: '</span></picture>' -%}
+              <div class="freeShipping__title">
+                  <div>
+                    <span class="freeShipping__content">{{ eligibilityBlanks }}</span>
+                  </div>
+                  <span>{{ settings.blanks_freeShipping_title | replace: '[TOOLTIP]', blanksToolTip }}</span>
+              </div>
+              <span class="cart-notice__slider">
+                <span class="cart-notice__slider-bar" style="background-color: #fba500; width: 0;"></span>
+              </span>
+            </free-shipping-blanks>
+          {%- endif -%}
+        </div>
+      {% endif %}
+    {%- endif -%}
+</div>
+                  <hr style="margin-top: 20px;"/>
+                                     <div class="delivery_info">
+                             
+                                     </div>
+                                    <custom-table></custom-table>
+                                   <precut-wrapper></precut-wrapper> 
+                                  
+                               
+                                 <hr/>
+                 <style>
+                  .multiupload-popup-right [data-js-free-shipping-slider]{
+                     width:23% !important;
+                   }
+                 </style>                
+               <div  class="product-form"> 
+			{% comment %}
+                 <div class="multiupload-cart-total">
+                 <ul>
+                    <li><span>Designs</span><span>2</span></li>
+                   <li><span>Order Total</span><span>{{ 40000 | money }}</span></li>
+                   <li class="multipupload_discount"><span>Cumulative Discount (35% Off)</span><span>-{{ 20000 | money }}</span></li>
+                   <li><span>Subtotal</span><span>{{ 20000 | money }}</span></li> 
+                 </ul> 
+               </div>
+               {% endcomment %}
+                 <div class="flex-buttons">
+                 <button type="button" name="addx" disabled class="addToCartGroupItems_popup add-to-cart button button--solid button--product button--loader button--move __secondry-checkout" >
+                        <span class="button__text" >Proceed to Checkout</span>
+                      </button>
+                 </div>
+                  <div id="multiuplod_rewards" class="multiupload-rewards-slice">
+                     {% render 'reward-point-info' , reward_msg:block.settings.reward_msg ,reward_title: block.settings.reward_popup_title, reward_text:block.settings.reward_popup_msg, classneed : "__product-page", type : 'product', price : product.first_available_variant.price %}
+                  </div>
+               </div>    
+                                    </div>   
+
+                               </div> 
+                </div>
+              </div>
+            </div>

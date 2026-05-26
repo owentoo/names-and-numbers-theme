@@ -1,0 +1,49 @@
+<script>
+  // Function to check if cookie exists
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  }
+  
+    // Create cookie if on blank template and cookie not already set
+      {%- assign ifblank = false -%}
+      {% if template == 'collection.blanks' or collection.metafields.custom.apparel_filters %}
+        {% assign ifblank = true %}
+      {% endif %}
+      {% if template == 'product.blanks' %}
+        {% assign ifblank = true %}
+      {% endif %}
+      
+  {% if ifblank %}
+      document.querySelector("#site-header").classList.add("blankmode");
+      if (!getCookie('blankpage')) {
+        document.cookie = "blankpage=1; path=/; max-age=86400"; // valid for 1 day
+      }
+  {% else %}
+    {% unless request.page_type == "search" %}
+    if (getCookie('blankpage')) {
+        document.cookie = "blankpage=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    }
+  {% endunless %}
+  {% endif %}
+    
+    {% if request.page_type == "search" %}
+    // Remove cookie if on search-result template
+      if (getCookie('blankpage')) {
+        document.querySelectorAll('.announcement-bar__sitebuttonsLink').forEach((el, index) => {
+          el.classList.remove('active');
+          if (index === 1) {
+            el.classList.add('active');
+          }
+        });
+
+        document.querySelector("#search-form-sidebar").setAttribute("placeholder",blk);
+        document.querySelector("#site-header").classList.add("blankmode");
+        document.querySelector(".announcemen-wrapper").classList.add("blankmode");
+        document.querySelector("sidebar-drawer#site-menu-sidebar").classList.add("blankmode");
+      }
+    {% endif %}
+  
+</script>

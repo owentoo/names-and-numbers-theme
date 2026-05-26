@@ -1,0 +1,541 @@
+{% doc %}
+  @prompt
+    Create a full-width, sticky scroll-pin slider section that holds five slides. Each slide contains a green heading and an image, and as the user scrolls the section pins to the viewport until all five variations are viewed, then unpins. Slides should fade smoothly into view on scroll.
+    Content elements:
+    Five slide blocks, each with:
+    A text field for green headline text
+    An image picker for a slide image
+    Layout & behavior:
+    Section spans edge-to-edge but content is centered within a max-width container
+    Sticky container pins at top of viewport while scrolling through the five viewports (5×100vh height)
+    Only one slide is visible at a time; others are hidden behind (absolute positioning)
+    Fade transition between slides tied to scroll position (ease 0.6s)
+    Customization settings:
+    Editable green text for each of the five slides
+    Image picker for each slide
+    Desktop & mobile font-size and font-weight options for the green text
+    Desktop & mobile width/height options for slide images
+    Padding controls (top, bottom, left, right) at section level
+    Margin controls (top, bottom) at section level
+    Max-width container control
+    Animation settings:
+    Smooth fade duration setting
+    Option to adjust scroll pin spacing”, the section should remain in view and slides should cycle as you scroll until you reach the last list and smooth transition, the section is not remaining stationary, the section should take up 80vh until it has cycled all slides, the section is not remaing static
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .scroll-pin-slider-{{ ai_gen_id }} {
+    width: 100%;
+    height: calc({{ block.settings.scroll_pin_spacing }}vh * 5); /* 5 slides with configurable height */
+    position: relative;
+    margin-top: {{ block.settings.margin_top }}px;
+    margin-bottom: {{ block.settings.margin_bottom }}px;
+  }
+
+  .scroll-pin-slider__sticky-container-{{ ai_gen_id }} {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 80vh;
+    overflow: hidden;
+    z-index: 1;
+    padding-top: {{ block.settings.padding_top }}px;
+    padding-bottom: {{ block.settings.padding_bottom }}px;
+  }
+
+  .scroll-pin-slider__content-{{ ai_gen_id }} {
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    height: 100%;
+    padding-left: {{ block.settings.padding_left }}px;
+    padding-right: {{ block.settings.padding_right }}px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  .scroll-pin-slider__slide-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity {{ block.settings.fade_duration }}s ease;
+    pointer-events: none;
+  }
+
+  .scroll-pin-slider__slide-{{ ai_gen_id }}.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .scroll-pin-slider__heading-{{ ai_gen_id }} {
+    color: {{ block.settings.heading_color }};
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: {{ block.settings.heading_font_weight }};
+    font-size: {{ block.settings.heading_font_size }}px;
+  }
+
+  .scroll-pin-slider__image-container-{{ ai_gen_id }} {
+    width: {{ block.settings.image_width }}px;
+    height: {{ block.settings.image_height }}px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .scroll-pin-slider__image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scroll-pin-slider__image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f4f4f4;
+  }
+
+  .scroll-pin-slider__image-placeholder-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+    opacity: 0.5;
+  }
+
+  @media screen and (max-width: 749px) {
+    .scroll-pin-slider__heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_font_size_mobile }}px;
+      font-weight: {{ block.settings.heading_font_weight_mobile }};
+    }
+
+    .scroll-pin-slider__image-container-{{ ai_gen_id }} {
+      width: {{ block.settings.image_width_mobile }}px;
+      height: {{ block.settings.image_height_mobile }}px;
+    }
+  }
+{% endstyle %}
+
+<scroll-pin-slider-{{ ai_gen_id }} 
+  class="scroll-pin-slider-{{ ai_gen_id }}" 
+  {{ block.shopify_attributes }}
+  data-scroll-pin-spacing="{{ block.settings.scroll_pin_spacing }}"
+>
+  <div class="scroll-pin-slider__sticky-container-{{ ai_gen_id }}">
+    <div class="scroll-pin-slider__content-{{ ai_gen_id }}">
+      {% for i in (1..5) %}
+        {% assign heading_key = 'slide_' | append: i | append: '_heading' %}
+        {% assign image_key = 'slide_' | append: i | append: '_image' %}
+        <div class="scroll-pin-slider__slide-{{ ai_gen_id }}" data-slide-index="{{ i }}">
+          <h2 class="scroll-pin-slider__heading-{{ ai_gen_id }}">{{ block.settings[heading_key] }}</h2>
+          <div class="scroll-pin-slider__image-container-{{ ai_gen_id }}">
+            {% if block.settings[image_key] != blank %}
+              <img 
+                src="{{ block.settings[image_key] | image_url: width: 1000 }}" 
+                alt="{{ block.settings[image_key].alt | escape }}"
+                loading="lazy"
+                class="scroll-pin-slider__image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="scroll-pin-slider__image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</scroll-pin-slider-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class ScrollPinSlider extends HTMLElement {
+      constructor() {
+        super();
+        this.slides = Array.from(this.querySelectorAll(`.scroll-pin-slider__slide-{{ ai_gen_id }}`));
+        this.totalSlides = this.slides.length;
+        this.scrollPinSpacing = parseInt(this.dataset.scrollPinSpacing) || 100;
+        this.currentSlide = 0;
+        this.initialized = false;
+      }
+
+      connectedCallback() {
+        if (this.initialized) return;
+        this.initialized = true;
+
+        // Set initial slide active
+        if (this.slides.length > 0) {
+          this.slides[0].classList.add('active');
+        }
+
+        // Bind scroll handler
+        this.handleScroll = this.handleScroll.bind(this);
+        window.addEventListener('scroll', this.handleScroll, { passive: true });
+        
+        // Initial check
+        setTimeout(() => {
+          this.handleScroll();
+        }, 100);
+      }
+
+      disconnectedCallback() {
+        window.removeEventListener('scroll', this.handleScroll);
+      }
+
+      handleScroll() {
+        // Get element position relative to the document
+        const rect = this.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const offsetTop = rect.top + scrollTop;
+        
+        // Calculate the scroll progress through the section
+        const sectionHeight = this.offsetHeight;
+        const scrollPosition = scrollTop - offsetTop;
+        const viewportHeight = window.innerHeight;
+        
+        // Calculate which slide should be active based on scroll position
+        const slideHeight = this.scrollPinSpacing / 100 * viewportHeight;
+        const slideIndex = Math.floor(scrollPosition / slideHeight);
+        
+        // Ensure index is within bounds
+        const boundedSlideIndex = Math.max(0, Math.min(slideIndex, this.totalSlides - 1));
+        
+        // Update slides if needed
+        if (boundedSlideIndex !== this.currentSlide) {
+          this.slides.forEach(slide => slide.classList.remove('active'));
+          
+          if (this.slides[boundedSlideIndex]) {
+            this.slides[boundedSlideIndex].classList.add('active');
+          }
+          
+          this.currentSlide = boundedSlideIndex;
+        }
+      }
+    }
+
+    customElements.define('scroll-pin-slider-{{ ai_gen_id }}', ScrollPinSlider);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Scroll Pin Slider",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Slide 1"
+    },
+    {
+      "type": "text",
+      "id": "slide_1_heading",
+      "label": "Heading",
+      "default": "First Slide Heading"
+    },
+    {
+      "type": "image_picker",
+      "id": "slide_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "header",
+      "content": "Slide 2"
+    },
+    {
+      "type": "text",
+      "id": "slide_2_heading",
+      "label": "Heading",
+      "default": "Second Slide Heading"
+    },
+    {
+      "type": "image_picker",
+      "id": "slide_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "header",
+      "content": "Slide 3"
+    },
+    {
+      "type": "text",
+      "id": "slide_3_heading",
+      "label": "Heading",
+      "default": "Third Slide Heading"
+    },
+    {
+      "type": "image_picker",
+      "id": "slide_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "header",
+      "content": "Slide 4"
+    },
+    {
+      "type": "text",
+      "id": "slide_4_heading",
+      "label": "Heading",
+      "default": "Fourth Slide Heading"
+    },
+    {
+      "type": "image_picker",
+      "id": "slide_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "header",
+      "content": "Slide 5"
+    },
+    {
+      "type": "text",
+      "id": "slide_5_heading",
+      "label": "Heading",
+      "default": "Fifth Slide Heading"
+    },
+    {
+      "type": "image_picker",
+      "id": "slide_5_image",
+      "label": "Image"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#00A651"
+    },
+    {
+      "type": "range",
+      "id": "heading_font_size",
+      "min": 20,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading font size (desktop)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "heading_font_size_mobile",
+      "min": 16,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading font size (mobile)",
+      "default": 28
+    },
+    {
+      "type": "select",
+      "id": "heading_font_weight",
+      "label": "Heading font weight (desktop)",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "select",
+      "id": "heading_font_weight_mobile",
+      "label": "Heading font weight (mobile)",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "header",
+      "content": "Image Settings"
+    },
+    {
+      "type": "range",
+      "id": "image_width",
+      "min": 200,
+      "max": 1200,
+      "step": 50,
+      "unit": "px",
+      "label": "Image width (desktop)",
+      "default": 600
+    },
+    {
+      "type": "range",
+      "id": "image_height",
+      "min": 200,
+      "max": 800,
+      "step": 50,
+      "unit": "px",
+      "label": "Image height (desktop)",
+      "default": 400
+    },
+    {
+      "type": "range",
+      "id": "image_width_mobile",
+      "min": 150,
+      "max": 600,
+      "step": 50,
+      "unit": "px",
+      "label": "Image width (mobile)",
+      "default": 300
+    },
+    {
+      "type": "range",
+      "id": "image_height_mobile",
+      "min": 150,
+      "max": 600,
+      "step": 50,
+      "unit": "px",
+      "label": "Image height (mobile)",
+      "default": 250
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Max width of content",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding left",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding right",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Animation"
+    },
+    {
+      "type": "range",
+      "id": "fade_duration",
+      "min": 0.2,
+      "max": 1,
+      "step": 0.1,
+      "label": "Fade duration (seconds)",
+      "default": 0.6
+    },
+    {
+      "type": "range",
+      "id": "scroll_pin_spacing",
+      "min": 50,
+      "max": 150,
+      "step": 10,
+      "unit": "vh",
+      "label": "Scroll pin spacing per slide",
+      "default": 100
+    }
+  ],
+  "presets": [
+    {
+      "name": "Scroll Pin Slider"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,559 @@
+{% doc %}
+  @prompt
+    Create a full-width Shopify section with a large H1 that says “Perfect for [example]”, where the word inside the brackets changes as the user scrolls. Next to the H1, show a matching image that also changes in sync with the text. Below the H1, include a paragraph that also updates with each example. Use a two-column layout on desktop: text on the left, image on the right. On mobile, stack the text above the image.
+    
+    Include settings to:
+    
+    Add up to 5 examples, each with:
+    A keyword to replace in the H1 (e.g., “family trips”, “small businesses”)
+    An image (desktop and mobile size options)
+    A matching paragraph of descriptive text
+    Control scroll trigger distance
+    Set max width of the text container
+    Customize padding and margin (top, bottom, sides)
+    Adjust font sizes and weight for desktop and mobile
+    Optional background color or gradient for the section
+    The text and image should animate in (fade or slide) when switching. Make sure all elements stay within the section bounds and don’t overflow on scroll.
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-scroll-examples-{{ ai_gen_id }} {
+    width: 100%;
+    position: relative;
+    padding: {{ block.settings.padding_top }}px {{ block.settings.padding_sides }}px {{ block.settings.padding_bottom }}px;
+    margin-top: {{ block.settings.margin_top }}px;
+    margin-bottom: {{ block.settings.margin_bottom }}px;
+    background: {{ block.settings.background }};
+    overflow: hidden;
+  }
+
+  .ai-scroll-examples-container-{{ ai_gen_id }} {
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+  }
+
+  .ai-scroll-examples-text-{{ ai_gen_id }} {
+    flex: 1;
+    min-width: 300px;
+  }
+
+  .ai-scroll-examples-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size_desktop }}px;
+    font-weight: {{ block.settings.heading_weight }};
+    line-height: 1.2;
+    margin: 0 0 20px;
+    transition: opacity 0.5s ease;
+  }
+
+  .ai-scroll-examples-paragraph-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text_size_desktop }}px;
+    line-height: 1.5;
+    transition: opacity 0.5s ease;
+  }
+
+  .ai-scroll-examples-image-{{ ai_gen_id }} {
+    flex: 1;
+    min-width: 300px;
+    position: relative;
+    height: 400px;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  .ai-scroll-examples-image-item-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    object-fit: cover;
+  }
+
+  .ai-scroll-examples-image-item-{{ ai_gen_id }}.active {
+    opacity: 1;
+  }
+
+  .ai-scroll-examples-image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f4f4f4;
+    border-radius: 8px;
+  }
+
+  .ai-scroll-examples-image-placeholder-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+    opacity: 0.5;
+  }
+
+  .ai-scroll-examples-keyword-{{ ai_gen_id }} {
+    display: inline-block;
+    position: relative;
+    min-width: 120px;
+    text-align: center;
+  }
+
+  .ai-scroll-examples-keyword-item-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .ai-scroll-examples-keyword-item-{{ ai_gen_id }}.active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-scroll-examples-container-{{ ai_gen_id }} {
+      flex-direction: column;
+    }
+
+    .ai-scroll-examples-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size_mobile }}px;
+    }
+
+    .ai-scroll-examples-paragraph-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_mobile }}px;
+    }
+
+    .ai-scroll-examples-image-{{ ai_gen_id }} {
+      height: 300px;
+      width: 100%;
+    }
+  }
+{% endstyle %}
+
+<scroll-examples-{{ ai_gen_id }} 
+  class="ai-scroll-examples-{{ ai_gen_id }}" 
+  data-trigger-distance="{{ block.settings.scroll_trigger_distance }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="ai-scroll-examples-container-{{ ai_gen_id }}">
+    <div class="ai-scroll-examples-text-{{ ai_gen_id }}">
+      <h1 class="ai-scroll-examples-heading-{{ ai_gen_id }}">
+        Perfect for 
+        <span class="ai-scroll-examples-keyword-{{ ai_gen_id }}">
+          {% for i in (1..5) %}
+            {% assign keyword_key = 'keyword_' | append: i %}
+            {% if block.settings[keyword_key] != blank %}
+              <span 
+                class="ai-scroll-examples-keyword-item-{{ ai_gen_id }} {% if forloop.first %}active{% endif %}" 
+                data-index="{{ forloop.index0 }}"
+              >
+                {{ block.settings[keyword_key] }}
+              </span>
+            {% endif %}
+          {% endfor %}
+        </span>
+      </h1>
+      
+      <div class="ai-scroll-examples-paragraphs-{{ ai_gen_id }}">
+        {% for i in (1..5) %}
+          {% assign paragraph_key = 'paragraph_' | append: i %}
+          {% if block.settings[paragraph_key] != blank %}
+            <div 
+              class="ai-scroll-examples-paragraph-{{ ai_gen_id }} {% if forloop.first %}active{% endif %}" 
+              data-index="{{ forloop.index0 }}" 
+              {% unless forloop.first %}style="display: none;"{% endunless %}
+            >
+              {{ block.settings[paragraph_key] }}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    
+    <div class="ai-scroll-examples-image-{{ ai_gen_id }}">
+      {% for i in (1..5) %}
+        {% assign image_key = 'image_' | append: i %}
+        {% assign image_mobile_key = 'image_mobile_' | append: i %}
+        
+        {% if block.settings[image_key] != blank %}
+          <img 
+            class="ai-scroll-examples-image-item-{{ ai_gen_id }} {% if forloop.first %}active{% endif %}" 
+            data-index="{{ forloop.index0 }}"
+            src="{{ block.settings[image_key] | image_url: width: 800 }}"
+            srcset="{{ block.settings[image_key] | image_url: width: 400 }} 400w,
+                    {{ block.settings[image_key] | image_url: width: 600 }} 600w,
+                    {{ block.settings[image_key] | image_url: width: 800 }} 800w,
+                    {{ block.settings[image_key] | image_url: width: 1200 }} 1200w"
+            sizes="(max-width: 749px) 100vw, 50vw"
+            loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+            alt="{{ block.settings[image_key].alt | escape }}"
+            width="{{ block.settings[image_key].width }}"
+            height="{{ block.settings[image_key].height }}"
+          >
+        {% endif %}
+      {% endfor %}
+      
+      {% assign has_images = false %}
+      {% for i in (1..5) %}
+        {% assign image_key = 'image_' | append: i %}
+        {% if block.settings[image_key] != blank %}
+          {% assign has_images = true %}
+          {% break %}
+        {% endif %}
+      {% endfor %}
+      
+      {% unless has_images %}
+        <div class="ai-scroll-examples-image-placeholder-{{ ai_gen_id }}">
+          {{ 'image' | placeholder_svg_tag }}
+        </div>
+      {% endunless %}
+    </div>
+  </div>
+</scroll-examples-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class ScrollExamples extends HTMLElement {
+      constructor() {
+        super();
+        this.keywordItems = this.querySelectorAll('.ai-scroll-examples-keyword-item-{{ ai_gen_id }}');
+        this.paragraphs = this.querySelectorAll('.ai-scroll-examples-paragraph-{{ ai_gen_id }}');
+        this.images = this.querySelectorAll('.ai-scroll-examples-image-item-{{ ai_gen_id }}');
+        this.triggerDistance = parseInt(this.getAttribute('data-trigger-distance')) || 300;
+        this.currentIndex = 0;
+        this.totalItems = this.keywordItems.length;
+        this.scrollY = 0;
+        this.ticking = false;
+      }
+
+      connectedCallback() {
+        if (this.totalItems <= 1) return;
+        
+        window.addEventListener('scroll', () => {
+          this.scrollY = window.scrollY;
+          if (!this.ticking) {
+            window.requestAnimationFrame(() => {
+              this.checkScrollPosition();
+              this.ticking = false;
+            });
+            this.ticking = true;
+          }
+        });
+        
+        this.checkScrollPosition();
+      }
+
+      checkScrollPosition() {
+        const rect = this.getBoundingClientRect();
+        const elementTop = rect.top + window.scrollY;
+        const elementHeight = rect.height;
+        const viewportHeight = window.innerHeight;
+        
+        // Calculate how far we've scrolled through the element
+        const scrollPosition = window.scrollY - elementTop + viewportHeight / 2;
+        const scrollPercentage = Math.max(0, Math.min(1, scrollPosition / (elementHeight + viewportHeight / 2)));
+        
+        // Calculate which item should be active based on scroll percentage
+        const newIndex = Math.min(
+          this.totalItems - 1,
+          Math.floor(scrollPercentage * this.totalItems * (elementHeight / this.triggerDistance))
+        );
+        
+        if (newIndex !== this.currentIndex && newIndex >= 0 && newIndex < this.totalItems) {
+          this.updateActiveItem(newIndex);
+        }
+      }
+
+      updateActiveItem(newIndex) {
+        // Update keywords
+        this.keywordItems.forEach((item, index) => {
+          if (index === newIndex) {
+            item.classList.add('active');
+          } else {
+            item.classList.remove('active');
+          }
+        });
+        
+        // Update paragraphs
+        this.paragraphs.forEach((item, index) => {
+          if (index === newIndex) {
+            item.style.display = 'block';
+            setTimeout(() => {
+              item.classList.add('active');
+            }, 50);
+          } else {
+            item.classList.remove('active');
+            setTimeout(() => {
+              if (index !== newIndex) {
+                item.style.display = 'none';
+              }
+            }, 500);
+          }
+        });
+        
+        // Update images
+        this.images.forEach((item, index) => {
+          if (index === newIndex) {
+            item.classList.add('active');
+          } else {
+            item.classList.remove('active');
+          }
+        });
+        
+        this.currentIndex = newIndex;
+      }
+    }
+
+    customElements.define('scroll-examples-{{ ai_gen_id }}', ScrollExamples);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Scroll Examples",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "keyword_1",
+      "label": "Example 1 keyword",
+      "default": "family trips"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Example 1 image"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_1",
+      "label": "Example 1 paragraph",
+      "default": "Our product is designed to make family trips easier and more enjoyable. Perfect for parents who want to create lasting memories without the stress."
+    },
+    {
+      "type": "text",
+      "id": "keyword_2",
+      "label": "Example 2 keyword",
+      "default": "small businesses"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Example 2 image"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_2",
+      "label": "Example 2 paragraph",
+      "default": "Small businesses can leverage our platform to grow their customer base and streamline operations. We provide the tools you need to succeed."
+    },
+    {
+      "type": "text",
+      "id": "keyword_3",
+      "label": "Example 3 keyword",
+      "default": "creative projects"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Example 3 image"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_3",
+      "label": "Example 3 paragraph",
+      "default": "Unleash your creativity with our versatile tools. Whether you're designing, writing, or building, we've got everything you need for your creative projects."
+    },
+    {
+      "type": "text",
+      "id": "keyword_4",
+      "label": "Example 4 keyword"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Example 4 image"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_4",
+      "label": "Example 4 paragraph"
+    },
+    {
+      "type": "text",
+      "id": "keyword_5",
+      "label": "Example 5 keyword"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_5",
+      "label": "Example 5 image"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_5",
+      "label": "Example 5 paragraph"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Maximum width",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "scroll_trigger_distance",
+      "min": 100,
+      "max": 1000,
+      "step": 50,
+      "unit": "px",
+      "label": "Scroll trigger distance",
+      "default": 300
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_sides",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding sides",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 20,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 20,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "heading_size_desktop",
+      "min": 24,
+      "max": 72,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (desktop)",
+      "default": 48
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 20,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (mobile)",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "heading_weight",
+      "min": 400,
+      "max": 900,
+      "step": 100,
+      "label": "Heading weight",
+      "default": 700
+    },
+    {
+      "type": "range",
+      "id": "text_size_desktop",
+      "min": 14,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (desktop)",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (mobile)",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color_background",
+      "id": "background",
+      "label": "Background",
+      "default": "linear-gradient(0deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 1))"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Scroll Examples"
+    }
+  ]
+}
+{% endschema %}

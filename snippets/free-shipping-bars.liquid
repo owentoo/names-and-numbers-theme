@@ -1,0 +1,165 @@
+{%- comment -%}
+Free shipping progress bars (Transfers & Supplies + Blanks).
+
+Renders <div class="grt-cart-reposition">…</div> when:
+  (settings.cartFreeShippingBySize OR settings.cartFreeShippingBlanks) AND
+  (isBySizeAvailable OR isBlankAvailable)
+
+Otherwise renders nothing — caller can detect via capture + unless ... blank.
+
+Currently used by:
+- snippets/cart-subtotal.liquid (cart page right column, hidden on mobile via CSS)
+- snippets/cart-form-page.liquid (cart page mobile top)
+
+Drawer (snippets/cart-form.liquid) keeps its own inline copy for now — not refactored.
+
+NOTE: bySize_freeShipping_amt (lines 64, 105 below) is an undefined-variable typo
+preserved verbatim from cart-subtotal.liquid. Do not fix in this task — flagged for
+a separate cart-audit task.
+{%- endcomment -%}
+
+{%liquid
+  assign disvalue = 0
+  for dis in cart.cart_level_discount_applications
+    assign discount_n = dis.total_allocated_amount | times : 1
+    assign disvalue = disvalue | plus : discount_n
+  endfor
+  assign bysizediscount = disvalue
+%}
+{% assign localzone = localization.country.iso_code %}
+
+{% case localzone %}
+  {% when "CA" %}
+   {% assign bySize_freeShipping_amount = settings.bySize_freeShipping_amount_ca %}
+    {% assign nwprice = bySize_freeShipping_amount | prepend : "$" %}
+    {% assign nwprice = nwprice | append : " CAD" %}
+  {% else %}
+   {% assign bySize_freeShipping_amount = settings.bySize_freeShipping_amount %}
+   {% assign nwprice = bySize_freeShipping_amount | prepend : "$" %}
+{% endcase %}
+
+{%-liquid
+    assign bySizeTotal = 0
+    assign blanksTotal = 0
+    assign isBySizeAvailable = false
+    assign isBlankAvailable = false
+    for item in cart.items
+        if item.product.type == 'custom transfers' or item.product.type == 'custom transfers gang' or item.product.type == 'spangles' or item.product.type == 'UV DTF' or item.product.type == 'UV DTF gang' or item.product.type == 'puff transfers' or item.product.tags contains 'supplies' or item.product.tags contains 'crafts'
+            assign isBySizeAvailable = true
+            assign bySizeTotal = bySizeTotal | plus: item.final_line_price
+        endif
+
+        assign taglist = item.product.tags | join : " " | downcase
+        if taglist contains 'blank'
+            assign isBlankAvailable = true
+            assign blanksTotal = blanksTotal | plus: item.final_line_price
+        endif
+    endfor
+
+    if bySizeTotal < bysizediscount
+      assign bysizediscount = bySizeTotal
+    endif
+    if bysizediscount > bySize_freeShipping_amount and bysizediscount > bySizeTotal
+      assign bysizediscount = bySize_freeShipping_amt
+    endif
+    assign bySizeTotal = bySizeTotal | minus : bysizediscount
+    capture eligibilityBySize
+        assign a__ = bySize_freeShipping_amount | times: 100
+
+        if a__ > bySizeTotal
+            assign awayFrom_bysize = a__ | minus: bySizeTotal
+            assign awayFrom_bysize = awayFrom_bysize | divided_by: 100.00 | round: 2
+            assign awayFrom_bysize_0 = awayFrom_bysize | split: '.' | first
+            assign awayFrom_bysize_1 = awayFrom_bysize | split: '.' | last
+            if awayFrom_bysize_1.size == 1
+                assign awayFrom_bysize_1 = awayFrom_bysize_1 | append: '0'
+            endif
+            assign awayFrom_bysize = awayFrom_bysize_0 | append: '.' | append: awayFrom_bysize_1 | prepend: '$'
+            echo 'Add <strong class="fs-card__amount">' | append: awayFrom_bysize | append: '</strong> for <strong>Free Ship</strong>'
+        else
+            echo '<strong>Free Ship</strong> Unlocked!'
+        endif
+    endcapture
+
+    case localzone
+    when "CA"
+      assign b___ship = settings.blanks_freeShipping_amount_CA
+      assign b___nwprice = b___ship | prepend : "$"
+      assign b___nwprice = b___nwprice | append : " CAD"
+      assign blanks_freeShipping_tooltipContent = settings.blanks_freeShipping_tooltipContent_ca
+    else
+     assign b___ship = settings.blanks_freeShipping_amount
+     assign b___nwprice = b___ship | prepend : "$"
+     assign blanks_freeShipping_tooltipContent = settings.blanks_freeShipping_tooltipContent
+  endcase
+
+      assign blankdiscount = disvalue
+      assign b___dis = b___ship | times : 100
+
+      if blankdiscount > blanksTotal
+        assign blankdiscount = blanksTotal
+      endif
+     assign blanksTotal = blanksTotal | minus : blankdiscount
+    if blankdiscount > b___dis and blankdiscount > blanksTotal
+      assign bysizediscount = bySize_freeShipping_amt
+    endif
+
+    capture eligibilityBlanks
+        assign b___ = b___ship | times: 100
+        if b___ > blanksTotal
+            assign awayFrom_blanks = b___ | minus: blanksTotal
+            assign awayFrom_blanks = awayFrom_blanks | divided_by: 100.00 | round: 2
+            assign awayFrom_blanks_0 = awayFrom_blanks | split: '.' | first
+            assign awayFrom_blanks_1 = awayFrom_blanks | split: '.' | last
+            if awayFrom_blanks_1.size == 1
+                assign awayFrom_blanks_1 = awayFrom_blanks_1 | append: '0'
+            endif
+            assign awayFrom_blanks = awayFrom_blanks_0 | append: '.' | append: awayFrom_blanks_1 | prepend: '$'
+            echo 'Add <strong class="fs-card__amount">' | append: awayFrom_blanks | append: '</strong> for <strong>Free Ship</strong>'
+        else
+            echo '<strong>Free Ship</strong> Unlocked!'
+        endif
+    endcapture
+-%}
+
+{%- if settings.cartFreeShippingBySize or settings.cartFreeShippingBlanks -%}
+  {% if isBySizeAvailable or isBlankAvailable %}
+    <div class="grt-cart-reposition">
+      {%- if settings.cartFreeShippingBySize and isBySizeAvailable -%}
+        <div class="fs-card fs-card--bysize">
+          <span class="fs-card__label">Transfers &amp; Supplies</span>
+          <span class="fs-card__body">{{ eligibilityBySize }}</span>
+          <div class="fs-card__bar-row">
+            <free-shipping-bysize class="sidebar-widget__contentItem freeship_zone{{ localzone | downcase }}"
+              free-shipping-amount="{{ bySize_freeShipping_amount | times: 100 }}"
+              data-cart-total="{{ bySizeTotal }}"
+            >
+              <span class="cart-notice__slider">
+                <span class="cart-notice__slider-bar" style="background-color: #3eaeff; width: 0;"></span>
+              </span>
+            </free-shipping-bysize>
+            <span class="fs-card__threshold">{{ nwprice }}</span>
+          </div>
+        </div>
+      {%- endif -%}
+
+      {%- if settings.cartFreeShippingBlanks and isBlankAvailable -%}
+        <div class="fs-card fs-card--blanks">
+          <span class="fs-card__label">Blank Apparel</span>
+          <span class="fs-card__body">{{ eligibilityBlanks }}</span>
+          <div class="fs-card__bar-row">
+            <free-shipping-blanks class="sidebar-widget__contentItem freeshipzone{{ localzone | downcase }}"
+              free-shipping-amount="{{ b___ship | times: 100 }}"
+              data-cart-total="{{ blanksTotal }}"
+            >
+              <span class="cart-notice__slider">
+                <span class="cart-notice__slider-bar" style="background-color: #fba500; width: 0;"></span>
+              </span>
+            </free-shipping-blanks>
+            <span class="fs-card__threshold">{{ b___nwprice }}</span>
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+  {% endif %}
+{%- endif -%}

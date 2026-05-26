@@ -1,0 +1,966 @@
+{% assign is_logged_in = false %}
+{% if customer %}{% assign is_logged_in = true %}{% endif %}
+
+{% if request.design_mode %}
+  {% if section.settings.preview_state == 'logged_in' %}{% assign is_logged_in = true %}{% endif %}
+  {% if section.settings.preview_state == 'logged_out' %}{% assign is_logged_in = false %}{% endif %}
+{% endif %}
+
+{% assign display_name    = section.settings.preview_first_name | default: 'Ninja' %}
+{% assign display_tier    = 'White Belt' %}
+{% assign tier_color_name = 'White' %}
+{% assign display_pct     = '2%' %}
+{% assign remaining_cents = 250 %}
+{% assign next_tier       = 'Yellow Belt' %}
+{% assign next_tier_color = 'Yellow' %}
+{% assign accent_color    = '#FFFFFF' %}
+
+{% assign available_value = 0 %}
+{% if customer %}
+  {% assign display_name    = customer.first_name | default: display_name %}
+  {% assign display_tier    = customer.metafields.ninja_rewards.tier_label | default: 'White Belt' %}
+  {% assign remaining_cents = customer.metafields.ninja_rewards.next_tier_gap | default: remaining_cents %}
+  {% assign available_value = customer.store_credit_account.balance | default: 0 %}
+{% endif %}
+
+{% if display_tier == 'Yellow Belt' %}
+  {% assign tier_color_name = 'Yellow' %}
+  {% assign display_pct     = '4%' %}
+  {% assign next_tier       = 'Blue Belt' %}
+  {% assign next_tier_color = 'Blue' %}
+  {% assign accent_color    = '#f5c800' %}
+{% elsif display_tier == 'Blue Belt' %}
+  {% assign tier_color_name = 'Blue' %}
+  {% assign display_pct     = '6%' %}
+  {% assign next_tier       = 'Black Belt' %}
+  {% assign next_tier_color = 'Black' %}
+  {% assign accent_color    = '#4ea8f5' %}
+{% elsif display_tier == 'Black Belt' %}
+  {% assign tier_color_name = 'Black' %}
+  {% assign display_pct     = '10%' %}
+  {% assign next_tier       = '' %}
+  {% assign next_tier_color = '' %}
+  {% assign accent_color    = '#94a3b8' %}
+{% endif %}
+
+{{ 'hp-global.css' | asset_url | stylesheet_tag }}
+
+<style>
+  .ninja-rewards-stats {
+    order: -2;
+  }
+  .nrs-wrap {
+    background: {{ section.settings.background_color }};
+    width: 100%;
+    padding-top: {{ section.settings.padding_top }}px;
+    padding-bottom: {{ section.settings.padding_bottom }}px;
+    padding-left: 24px;
+    padding-right: 24px;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .nrs-inner {
+    max-width: {{ section.settings.max_width }}px;
+    margin: 0 auto;
+    padding-left: {{ section.settings.inner_padding }}px;
+    padding-right: {{ section.settings.inner_padding }}px;
+    text-align: {{ section.settings.text_align }};
+  }
+
+  /* ── Heading ── */
+  .nrs-heading {
+    font-size: {{ section.settings.heading_size }}px;
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 0 0 {{ section.settings.heading_spacing }}px 0;
+  }
+  .nrs-heading .nrs-welcome {
+    color: {{ section.settings.heading_font_color | default: '#6b7280' }};
+    font-weight: 400;
+  }
+  .nrs-heading .nrs-name {
+    color: {{ section.settings.heading_font_color | default: '#fff' }};
+    font-weight: 700;
+  }
+
+  /* ── Stats Row ── */
+  .nrs-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: {{ section.settings.column_gap }}px;
+  }
+  .nrs-stat {
+    text-align: left;
+    padding-left: {{ section.settings.column_gap }}px;
+    border-left: 1px solid rgba(0,0,0,0.1);
+  }
+  .nrs-stat:first-child {
+    border-left: none;
+    padding-left: 0;
+  }
+
+  /* ── Label / Value / Sub ── */
+  .nrs-label {
+    font-size: {{ section.settings.label_size }}px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: {{ section.settings.label_font_color | default: '#6b7280' }};
+    margin-bottom: 8px;
+    white-space: nowrap;
+  }
+  .nrs-value {
+    font-size: {{ section.settings.value_size }}px;
+    font-weight: 800;
+    color: {% if section.settings.value_font_color != blank %}{{ section.settings.value_font_color }}{% else %}{{ accent_color }}{% endif %};
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .nrs-earning-short { display: none; }
+
+  /* ── VIP Perks Row ── */
+  .nrs-perks {
+    border-top: 1px solid rgba(0,0,0,0.1);
+    margin-top: 8px;
+    padding-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .nrs-perks-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 20px;
+    border-right: 1px solid rgba(0,0,0,0.1);
+    margin-right: 20px;
+    flex-shrink: 0;
+  }
+  .nrs-perks-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .nrs-perks-icon svg {
+    width: 12px;
+    height: 12px;
+    stroke: #fff;
+    stroke-width: 2.5;
+    fill: none;
+  }
+  .nrs-perks-label-text {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .nrs-perks-list {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .nrs-perk-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 20px;
+    padding: 5px 12px 5px 8px;
+    border-width: 1px;
+    border-style: solid;
+  }
+  .nrs-perk-check {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .nrs-perk-check svg {
+    width: 8px;
+    height: 8px;
+    stroke-width: 2.5;
+    fill: none;
+  }
+  .nrs-perk-text {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* ── Desktop inline layout ── */
+  @media (min-width: 641px) {
+    .nrs-wrap {
+      padding-left: 0;
+      padding-right: 0;
+    }
+    .nrs-inner {
+      max-width: 1400px;
+      padding-left: 40px;
+      padding-right: 40px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .nrs-perks {
+      width: 100%;
+    }
+    .nrs-heading {
+      margin: 0;
+      white-space: nowrap;
+      flex-shrink: 0;
+      padding-right: {{ section.settings.column_gap }}px;
+      border-right: none;
+      margin-right: 0;
+      line-height: 1;
+    }
+    .nrs-grid {
+      display: flex;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+    .nrs-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .nrs-stat:first-child {
+      border-left: none;
+      padding-left: 0;
+    }
+    .nrs-label {
+      margin-bottom: 0;
+      line-height: 1;
+    }
+    .nrs-value {
+      line-height: 1;
+    }
+  }
+
+  /* ── Mobile toggle (hidden on desktop) ── */
+  .nrs-perks-toggle {
+    display: none;
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 640px) {
+    .nrs-wrap {
+      padding-top: {{ section.settings.mobile_padding_top }}px;
+      padding-bottom: 12px;
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    .nrs-inner {
+      display: block;
+      max-width: none;
+      padding-left: {{ section.settings.mobile_inner_padding }}px;
+      padding-right: {{ section.settings.mobile_inner_padding }}px;
+      position: relative;
+    }
+    .nrs-heading {
+      font-size: {{ section.settings.mobile_heading_size }}px;
+      margin-bottom: 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .nrs-heading .nrs-welcome {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: {{ section.settings.label_font_color | default: '#6b7280' }};
+    }
+    .nrs-heading .nrs-name {
+      font-size: {{ section.settings.mobile_heading_size }}px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: {{ section.settings.heading_font_color | default: '#fff' }};
+    }
+    /* Tier stat floats to top-right next to heading */
+    .nrs-stat--tier {
+      position: absolute;
+      top: 0;
+      right: 0;
+      text-align: left;
+      border-left: none !important;
+      padding-left: 0 !important;
+      flex: none !important;
+    }
+    /* Hide Earning and Next Tier stats on mobile */
+    .nrs-stat--earning,
+    .nrs-stat--next {
+      display: none !important;
+    }
+    /* Balance / Ninja Cash floats to top-center between name and tier */
+    .nrs-stat--balance {
+      position: absolute;
+      top: 0;
+      left: 55%;
+      transform: translateX(-50%);
+      text-align: left;
+      border-left: none !important;
+      padding-left: 0 !important;
+      flex: none !important;
+    }
+    .nrs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .nrs-stat {
+      padding-left: 0;
+      border-left: none;
+    }
+    .nrs-label {
+      font-size: {{ section.settings.mobile_label_size }}px;
+      margin-bottom: 4px;
+    }
+    .nrs-value {
+      font-size: {{ section.settings.mobile_value_size }}px;
+      white-space: nowrap;
+    }
+    .nrs-earning-full { display: none; }
+    .nrs-earning-short { display: inline; }
+    /* Hide <details> toggle completely on mobile */
+    .nrs-perks-toggle {
+      display: none !important;
+    }
+    /* Show desktop perks row on mobile, restyled for mobile */
+    .nrs-perks--desktop {
+      display: flex !important;
+      flex-wrap: wrap;
+      align-items: center;
+      row-gap: 12px;
+      column-gap: 7px;
+      border-top: 1px solid rgba(0,0,0,0.1);
+      margin-top: 6px;
+      padding-top: 6px;
+    }
+    .nrs-perks--desktop .nrs-perks-label {
+      border-right: none;
+      margin-right: 4px;
+      padding-right: 0;
+      flex-shrink: 0;
+      flex-basis: 100%;
+    }
+    .nrs-perks--desktop .nrs-perks-icon {
+      width: 20px;
+      height: 20px;
+    }
+    .nrs-perks--desktop .nrs-perks-icon svg {
+      width: 11px;
+      height: 11px;
+    }
+    .nrs-perks--desktop .nrs-perks-label-text {
+      font-size: 11px;
+    }
+    .nrs-perks--desktop .nrs-perks-list {
+      display: contents;
+    }
+    /* Mobile-only pill reorder: Pre-Cut + Jump on top line, Expedited Shipping on bottom */
+    .nrs-perks--desktop .nrs-perks-list .nrs-perk-pill:nth-child(1) { order: 3; }
+    .nrs-perks--desktop .nrs-perks-list .nrs-perk-pill:nth-child(2) { order: 1; }
+    .nrs-perks--desktop .nrs-perks-list .nrs-perk-pill:nth-child(3) { order: 2; }
+    .nrs-perks--desktop .nrs-perk-pill {
+      border-radius: 20px;
+      padding: 5px 12px 5px 8px;
+    }
+    .nrs-perks--desktop .nrs-perk-check {
+      width: 15px;
+      height: 15px;
+    }
+    .nrs-perks--desktop .nrs-perk-check svg {
+      width: 7px;
+      height: 7px;
+    }
+    .nrs-perks--desktop .nrs-perk-text {
+      font-size: 11px;
+      white-space: normal;
+      line-height: 1.3;
+    }
+  }
+</style>
+
+{% if is_logged_in %}
+  <div class="nrs-wrap">
+    <div class="nrs-inner">
+      <h2 class="nrs-heading">
+        <span class="nrs-welcome" id="nrs-greeting">Welcome</span>
+        <span class="nrs-name">Ninja {{ display_name }}</span>
+      </h2>
+      <script>
+        (function(){
+          var h = new Date().getHours();
+          var g = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
+          var el = document.getElementById('nrs-greeting');
+          if(el) el.textContent = g;
+        })();
+      </script>
+      <div class="nrs-grid">
+
+        <div class="nrs-stat nrs-stat--tier">
+          <div class="nrs-label">{{ section.settings.label_rank }}</div>
+          <div class="nrs-value">{{ tier_color_name }} Belt</div>
+        </div>
+
+        <div class="nrs-stat nrs-stat--earning">
+          <div class="nrs-label">{{ section.settings.label_earning }}</div>
+          <div class="nrs-value"><span class="nrs-earning-full">{{ display_pct }} Cash Back</span><span class="nrs-earning-short">{{ display_pct }}</span></div>
+        </div>
+
+        <div class="nrs-stat nrs-stat--balance">
+          <div class="nrs-label">{{ section.settings.label_balance }}</div>
+          <div class="nrs-value" style="color: #27AF1A;">{{ available_value | money }}</div>
+        </div>
+
+        {% if next_tier != blank %}
+          <div class="nrs-stat nrs-stat--next">
+            <div class="nrs-label">{{ section.settings.label_next_tier }} {{ next_tier_color }} Belt</div>
+            <div class="nrs-value">{{ remaining_cents | times: 100 | money }}</div>
+          </div>
+        {% endif %}
+
+      </div>
+
+      {%- comment -%} VIP Perks – show if customer has one of 3 configurable tags {%- endcomment -%}
+      {%- assign matched_group = '' -%}
+      {%- if customer -%}
+        {%- for i in (1..3) -%}
+          {%- assign tag_key = 'perks_tag_' | append: i -%}
+          {%- assign tag_val = section.settings[tag_key] -%}
+          {%- if tag_val != blank -%}
+            {%- for t in customer.tags -%}
+              {%- if t == tag_val -%}
+                {%- assign matched_group = i -%}
+                {%- break -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+          {%- if matched_group != '' -%}{%- break -%}{%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+
+      {%- if matched_group != '' -%}
+        {%- assign label_key = 'perks_label_' | append: matched_group -%}
+        {%- assign color_key = 'perks_color_' | append: matched_group -%}
+        {%- assign perks_label = section.settings[label_key] | default: 'VIP Perks Unlocked' -%}
+        {%- assign perks_color = section.settings[color_key] | default: '#019AFF' -%}
+
+        {%- comment -%} Count filled perks for the mobile toggle label {%- endcomment -%}
+        {%- assign perks_count = 0 -%}
+        {%- for j in (1..6) -%}
+          {%- assign perk_key = 'perks_' | append: matched_group | append: '_perk_' | append: j -%}
+          {%- if section.settings[perk_key] != blank -%}
+            {%- assign perks_count = perks_count | plus: 1 -%}
+          {%- endif -%}
+        {%- endfor -%}
+
+        {%- comment -%} Desktop: inline row (unchanged) {%- endcomment -%}
+        <div class="nrs-perks nrs-perks--desktop">
+          <div class="nrs-perks-label">
+            <div class="nrs-perks-icon" style="background:{{ perks_color }};">
+              <svg viewBox="0 0 12 12"><polygon points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9.5 3,11 3.5,7.5 1,5 4.5,4.5"/></svg>
+            </div>
+            <span class="nrs-perks-label-text" style="color:{{ perks_color }};">{{ perks_label }}</span>
+          </div>
+          <div class="nrs-perks-list">
+            {%- for j in (1..6) -%}
+              {%- assign perk_key = 'perks_' | append: matched_group | append: '_perk_' | append: j -%}
+              {%- assign perk_text = section.settings[perk_key] -%}
+              {%- if perk_text != blank -%}
+                <div class="nrs-perk-pill" style="background:{{ perks_color | color_modify: 'alpha', 0.15 }};border-color:{{ perks_color | color_modify: 'alpha', 0.5 }};">
+                  <div class="nrs-perk-check" style="background:{{ perks_color | color_modify: 'alpha', 0.35 }};">
+                    <svg viewBox="0 0 8 8" style="stroke:{{ perks_color }};"><polyline points="1,4 3,6 7,2"/></svg>
+                  </div>
+                  <span class="nrs-perk-text" style="color:{{ perks_color }};">{{ perk_text }}</span>
+                </div>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+        </div>
+
+        {%- comment -%} Mobile: collapsible toggle {%- endcomment -%}
+        <details class="nrs-perks-toggle">
+          <summary class="nrs-perks-toggle-bar" style="color:{{ perks_color }};">
+            <div class="nrs-perks-icon" style="background:{{ perks_color }};">
+              <svg viewBox="0 0 12 12"><polygon points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9.5 3,11 3.5,7.5 1,5 4.5,4.5"/></svg>
+            </div>
+            <span class="nrs-perks-toggle-text">{{ perks_count }} {{ perks_label }}</span>
+            <svg class="nrs-perks-chevron" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 5,5 9,1"/></svg>
+          </summary>
+          <div class="nrs-perks-list">
+            {%- for j in (1..6) -%}
+              {%- assign perk_key = 'perks_' | append: matched_group | append: '_perk_' | append: j -%}
+              {%- assign perk_text = section.settings[perk_key] -%}
+              {%- if perk_text != blank -%}
+                <div class="nrs-perk-pill" style="background:{{ perks_color | color_modify: 'alpha', 0.08 }};border-color:{{ perks_color | color_modify: 'alpha', 0.35 }};">
+                  <div class="nrs-perk-check" style="background:{{ perks_color | color_modify: 'alpha', 0.2 }};">
+                    <svg viewBox="0 0 8 8" style="stroke:{{ perks_color }};"><polyline points="1,4 3,6 7,2"/></svg>
+                  </div>
+                  <span class="nrs-perk-text" style="color:{{ perks_color | color_lighten: 30 }};">{{ perk_text }}</span>
+                </div>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+        </details>
+      {%- endif -%}
+
+    </div>
+  </div>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Rewards Stats",
+  "tag": "section",
+  "class": "ninja-rewards-stats",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Desktop Settings"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Top Padding",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Bottom Padding",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "label": "Heading Text Size",
+      "min": 8,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 52
+    },
+    {
+      "type": "range",
+      "id": "heading_spacing",
+      "label": "Heading / Stats Spacing",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "label_size",
+      "label": "Label Text Size",
+      "info": "RANK, EARNING, BALANCE, etc.",
+      "min": 8,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "value_size",
+      "label": "Value Text Size",
+      "info": "Blue, 4% Back, $00.00, etc.",
+      "min": 8,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 38
+    },
+    {
+      "type": "range",
+      "id": "inner_padding",
+      "label": "Inner Padding (Left & Right)",
+      "min": 0,
+      "max": 200,
+      "step": 4,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "column_gap",
+      "label": "Column Spacing",
+      "info": "Space between each stat column.",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Mobile Settings"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "label": "Top Padding",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "label": "Bottom Padding",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "mobile_heading_size",
+      "label": "Heading Text Size",
+      "min": 16,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "mobile_heading_spacing",
+      "label": "Heading / Stats Spacing",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "mobile_label_size",
+      "label": "Label Text Size",
+      "min": 8,
+      "max": 16,
+      "step": 1,
+      "unit": "px",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "mobile_value_size",
+      "label": "Value Text Size",
+      "min": 16,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 26
+    },
+    {
+      "type": "range",
+      "id": "mobile_inner_padding",
+      "label": "Inner Padding (Left & Right)",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "mobile_column_gap",
+      "label": "Column Spacing",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Category Labels"
+    },
+    {
+      "type": "text",
+      "id": "label_rank",
+      "label": "Column 1 Label",
+      "default": "Your Tier"
+    },
+    {
+      "type": "text",
+      "id": "label_earning",
+      "label": "Column 2 Label",
+      "default": "Earning"
+    },
+    {
+      "type": "text",
+      "id": "label_balance",
+      "label": "Column 3 Label",
+      "default": "Balance"
+    },
+    {
+      "type": "text",
+      "id": "label_next_tier",
+      "label": "Column 4 Label",
+      "info": "The next belt color is appended automatically.",
+      "default": "Way From"
+    },
+    {
+      "type": "text",
+      "id": "label_max_rank",
+      "label": "Column 4 Label (Max Rank)",
+      "info": "Shown when the customer is already Black Belt.",
+      "default": "Status"
+    },
+    {
+      "type": "header",
+      "content": "VIP Perks – Group 1"
+    },
+    {
+      "type": "text",
+      "id": "perks_tag_1",
+      "label": "Customer Tag",
+      "info": "Show this perk set when customer has this exact tag."
+    },
+    {
+      "type": "text",
+      "id": "perks_label_1",
+      "label": "Perks Label",
+      "default": "VIP Perks Unlocked"
+    },
+    {
+      "type": "color",
+      "id": "perks_color_1",
+      "label": "Accent Color",
+      "default": "#019AFF"
+    },
+    {
+      "type": "text",
+      "id": "perks_1_perk_1",
+      "label": "Perk 1"
+    },
+    {
+      "type": "text",
+      "id": "perks_1_perk_2",
+      "label": "Perk 2"
+    },
+    {
+      "type": "text",
+      "id": "perks_1_perk_3",
+      "label": "Perk 3"
+    },
+    {
+      "type": "text",
+      "id": "perks_1_perk_4",
+      "label": "Perk 4"
+    },
+    {
+      "type": "text",
+      "id": "perks_1_perk_5",
+      "label": "Perk 5"
+    },
+    {
+      "type": "text",
+      "id": "perks_1_perk_6",
+      "label": "Perk 6"
+    },
+    {
+      "type": "header",
+      "content": "VIP Perks – Group 2"
+    },
+    {
+      "type": "text",
+      "id": "perks_tag_2",
+      "label": "Customer Tag",
+      "info": "Show this perk set when customer has this exact tag."
+    },
+    {
+      "type": "text",
+      "id": "perks_label_2",
+      "label": "Perks Label",
+      "default": "VIP Perks Unlocked"
+    },
+    {
+      "type": "color",
+      "id": "perks_color_2",
+      "label": "Accent Color",
+      "default": "#019AFF"
+    },
+    {
+      "type": "text",
+      "id": "perks_2_perk_1",
+      "label": "Perk 1"
+    },
+    {
+      "type": "text",
+      "id": "perks_2_perk_2",
+      "label": "Perk 2"
+    },
+    {
+      "type": "text",
+      "id": "perks_2_perk_3",
+      "label": "Perk 3"
+    },
+    {
+      "type": "text",
+      "id": "perks_2_perk_4",
+      "label": "Perk 4"
+    },
+    {
+      "type": "text",
+      "id": "perks_2_perk_5",
+      "label": "Perk 5"
+    },
+    {
+      "type": "text",
+      "id": "perks_2_perk_6",
+      "label": "Perk 6"
+    },
+    {
+      "type": "header",
+      "content": "VIP Perks – Group 3"
+    },
+    {
+      "type": "text",
+      "id": "perks_tag_3",
+      "label": "Customer Tag",
+      "info": "Show this perk set when customer has this exact tag."
+    },
+    {
+      "type": "text",
+      "id": "perks_label_3",
+      "label": "Perks Label",
+      "default": "VIP Perks Unlocked"
+    },
+    {
+      "type": "color",
+      "id": "perks_color_3",
+      "label": "Accent Color",
+      "default": "#019AFF"
+    },
+    {
+      "type": "text",
+      "id": "perks_3_perk_1",
+      "label": "Perk 1"
+    },
+    {
+      "type": "text",
+      "id": "perks_3_perk_2",
+      "label": "Perk 2"
+    },
+    {
+      "type": "text",
+      "id": "perks_3_perk_3",
+      "label": "Perk 3"
+    },
+    {
+      "type": "text",
+      "id": "perks_3_perk_4",
+      "label": "Perk 4"
+    },
+    {
+      "type": "text",
+      "id": "perks_3_perk_5",
+      "label": "Perk 5"
+    },
+    {
+      "type": "text",
+      "id": "perks_3_perk_6",
+      "label": "Perk 6"
+    },
+    {
+      "type": "header",
+      "content": "General"
+    },
+    {
+      "type": "select",
+      "id": "text_align",
+      "label": "Text Alignment",
+      "options": [
+        { "value": "left",   "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right",  "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Section Max Width",
+      "min": 600,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "default": 850
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background Color",
+      "default": "#1d2433"
+    },
+    {
+      "type": "color",
+      "id": "heading_font_color",
+      "label": "Heading Font Color",
+      "info": "Color of the greeting text (Good Afternoon, Ninja Justin)",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "label_font_color",
+      "label": "Stats Label Font Color",
+      "info": "Color of stat labels (Your Tier, Earning, Ninja Cash, etc.)",
+      "default": "#6b7280"
+    },
+    {
+      "type": "color",
+      "id": "value_font_color",
+      "label": "Stats Value Font Color",
+      "info": "Color of stat values. Leave blank to use tier accent color.",
+      "default": "#ffffff"
+    },
+    {
+      "type": "select",
+      "id": "preview_state",
+      "label": "Preview State",
+      "info": "Only affects the theme editor. Live site always uses actual login status.",
+      "options": [
+        { "value": "auto",       "label": "Auto (live login status)" },
+        { "value": "logged_in",  "label": "Logged In" },
+        { "value": "logged_out", "label": "Logged Out" }
+      ],
+      "default": "logged_in"
+    },
+    {
+      "type": "text",
+      "id": "preview_first_name",
+      "label": "Preview First Name",
+      "default": "Justin"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Rewards Stats"
+    }
+  ]
+}
+{% endschema %}

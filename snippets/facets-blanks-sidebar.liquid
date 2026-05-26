@@ -1,0 +1,337 @@
+{{ 'component-range-slider.css' | asset_url | stylesheet_tag }}
+
+{%- liquid
+  assign sort_by = results.sort_by | default: results.default_sort_by
+  if results.url
+    assign results_url = results.url
+  else
+    assign terms = results.terms | escape
+    assign results_url = '?q=' | append: terms | append: '&options%5Bprefix%5D=last&sort_by=' | append: sort_by
+  endif
+
+  assign active_count = 0
+  for filter in results.filters
+    assign active_count = active_count | plus: filter.active_values.size
+    if filter.type == 'price_range'
+      if filter.min_value.value != nil or filter.max_value.value != nil
+        assign active_count = active_count | plus: 1
+      endif
+    endif
+  endfor
+
+  assign comma_currencies = 'ANG,ARS,BRL,BYN,BYR,CLF,CLP,COP,CRC,CZK,DKK,EUR,HRK,HUF,IDR,ISK,MZN,NOK,PLN,RON,RUB,TRY,UYU,VES,VND' | split: ','
+  assign use_comma = false
+  if comma_currencies contains cart.currency.iso_code
+    assign use_comma = true
+  endif
+
+  assign color_labels = settings.color_swatches_labels | split: ','
+-%}
+
+<div class="bh-sidebar-panel">
+
+  {%- comment -%} Active filter chips {%- endcomment -%}
+  {%- assign has_active = false -%}
+  {%- for filter in results.filters -%}
+    {%- if filter.active_values.size > 0 -%}{%- assign has_active = true -%}{%- endif -%}
+    {%- if filter.type == 'price_range' -%}{%- if filter.min_value.value != nil or filter.max_value.value != nil -%}{%- assign has_active = true -%}{%- endif -%}{%- endif -%}
+  {%- endfor -%}
+  {%- if has_active -%}
+    <div class="bh-sb-active">
+      {%- for filter in results.filters -%}
+        {%- for value in filter.active_values -%}
+          <a class="bh-sb-chip js-facet-remove" href="{{ value.url_to_remove }}">
+            {{ value.label | escape }} <span aria-hidden="true">&times;</span>
+          </a>
+        {%- endfor -%}
+        {%- if filter.type == 'price_range' -%}
+          {%- if filter.min_value.value != nil or filter.max_value.value != nil -%}
+            <a class="bh-sb-chip js-facet-remove" href="{{ filter.url_to_remove }}">
+              {{ filter.min_value.value | default: 0 | money }}&ndash;{{ filter.max_value.value | default: filter.range_max | money }} <span aria-hidden="true">&times;</span>
+            </a>
+          {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+      <a href="{{ results_url }}" class="bh-sb-clear js-facet-remove">Clear all</a>
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} Sort moved to grid header (bh-grid-sort in facets-header.liquid) {%- endcomment -%}
+
+  {%- comment -%} Filter groups as accordion — ordered: Cut, Colors, Sizes, Brands, then rest {%- endcomment -%}
+  {%- if enable_filtering -%}
+
+    {%- comment -%} Build ordered render list — priority varies by template {%- endcomment -%}
+    {%- if template.suffix == 'blanks-home' -%}
+      {%- assign bh_priority = 'price|colors|sizes|brand|cut' | split: '|' -%}
+    {%- elsif template.suffix == 'blanks-collection' -%}
+      {%- assign bh_priority = 'price|cut|colors|brand|sizes' | split: '|' -%}
+    {%- else -%}
+      {%- assign bh_priority = 'cut|colors|sizes|brand' | split: '|' -%}
+    {%- endif -%}
+
+    {%- assign bh_ordered_labels = '' -%}
+    {%- for prio in bh_priority -%}
+      {%- for filter in results.filters -%}
+        {%- assign _fld = filter.label | downcase -%}
+        {%- assign _match = false -%}
+        {%- case prio -%}
+          {%- when 'cut' -%}
+            {%- if _fld == 'cut' -%}{%- assign _match = true -%}{%- endif -%}
+          {%- when 'colors' -%}
+            {%- if _fld == 'colors' or _fld == 'color' or _fld == 'colour' -%}{%- assign _match = true -%}{%- endif -%}
+          {%- when 'sizes' -%}
+            {%- if _fld == 'sizes' or _fld == 'size' -%}{%- assign _match = true -%}{%- endif -%}
+          {%- when 'brand' -%}
+            {%- if _fld == 'brands' or _fld == 'brand' or _fld == 'vendor' -%}{%- assign _match = true -%}{%- endif -%}
+          {%- when 'price' -%}
+            {%- if _fld == 'price' or filter.type == 'price_range' -%}{%- assign _match = true -%}{%- endif -%}
+        {%- endcase -%}
+        {%- if _match -%}
+          {%- assign bh_ordered_labels = bh_ordered_labels | append: filter.label | append: '|||' -%}{%- break -%}
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endfor -%}
+
+    {%- comment -%} Append remaining filters in default order, skipping priority + always-excluded {%- endcomment -%}
+    {%- for filter in results.filters -%}
+      {%- assign _fld = filter.label | downcase -%}
+      {%- assign _check = filter.label | append: '|||' -%}
+      {%- if bh_ordered_labels contains _check -%}{%- continue -%}{%- endif -%}
+      {%- if _fld == 'category' or _fld == 'product type' or _fld == 'color names' or _fld == 'colour names' -%}{%- continue -%}{%- endif -%}
+      {%- assign bh_ordered_labels = bh_ordered_labels | append: filter.label | append: '|||' -%}
+    {%- endfor -%}
+    {%- assign bh_ordered_list = bh_ordered_labels | split: '|||' -%}
+
+    {%- assign bh_render_pos = 0 -%}
+    {%- for ordered_label in bh_ordered_list -%}
+      {%- if ordered_label == '' -%}{%- continue -%}{%- endif -%}
+      {%- assign bh_render_pos = bh_render_pos | plus: 1 -%}
+      {%- for filter in results.filters -%}
+        {%- if filter.label != ordered_label -%}{%- continue -%}{%- endif -%}
+        {%- assign filter_label_down = filter.label | downcase -%}
+
+      {%- comment -%} Hide filter options matching the current collection, then hide groups with ≤1 remaining {%- endcomment -%}
+      {%- if filter.type != 'price_range' -%}
+        {%- assign bh_available_opts = 0 -%}
+        {%- for value in filter.values -%}
+          {%- assign bh_val_handle = value.label | handleize -%}
+          {%- if bh_val_handle.size >= 4 and results.handle contains bh_val_handle -%}{%- continue -%}{%- endif -%}
+          {%- if value.count > 0 or value.active -%}
+            {%- assign bh_available_opts = bh_available_opts | plus: 1 -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {%- if bh_available_opts <= 1 -%}{%- continue -%}{%- endif -%}
+      {%- endif -%}
+      {%- assign is_color_filter = false -%}
+      {%- if color_labels contains filter_label_down -%}
+        {%- assign is_color_filter = true -%}
+      {%- endif -%}
+      {%- comment -%} Also match common color filter label variants {%- endcomment -%}
+      {%- if filter_label_down == 'colors' or filter_label_down == 'colour' or filter_label_down == 'color' or filter_label_down == 'colour' -%}
+        {%- assign is_color_filter = true -%}
+      {%- endif -%}
+      {%- assign filter_active = false -%}
+      {%- if filter.active_values.size > 0 -%}{%- assign filter_active = true -%}{%- endif -%}
+      {%- if filter.type == 'price_range' -%}
+        {%- if filter.min_value.value != nil or filter.max_value.value != nil -%}{%- assign filter_active = true -%}{%- endif -%}
+      {%- endif -%}
+
+      <details class="bh-sb-group{% if filter_active %} bh-sb-group--active{% endif %}"
+        {%- if bh_render_pos <= 4 or filter_active %} open{% endif %}>
+        <summary class="bh-sb-group__hd">
+          <span class="bh-sb-group__label">{{ filter.label | escape }}</span>
+          {%- if filter_active and filter.active_values.size > 0 -%}
+            <span class="bh-sb-group__badge">{{ filter.active_values.size }}</span>
+          {%- endif -%}
+          <svg class="bh-sb-group__chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+            <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </summary>
+
+        <div class="bh-sb-group__body">
+          <facet-filters-form>
+            <form id="BhSb-{{ filter.label | handleize }}" class="bh-sb-form">
+              {%- if results.terms -%}
+                <input type="hidden" name="q" value="{{ results.terms | escape }}">
+                <input type="hidden" name="options[prefix]" value="last">
+              {%- elsif results.current_vendor or results.current_type -%}
+                <input type="hidden" name="q" value="{{ results.current_vendor }}{{ results.current_type }}">
+              {%- endif -%}
+
+              {%- if is_color_filter -%}
+                {%- comment -%} Color swatches — always render circles with 5-tier fallback:
+                  1. value.swatch.image (Shopify native)
+                  2. value.swatch.color (Shopify native)
+                  3. images[color-handle.png] (theme asset)
+                  4. hardcoded hex map by color family name
+                  5. #ccc fallback
+                {%- endcomment -%}
+                {%- assign swatch_count = filter.values.size -%}
+                <ul class="bh-sb-swatch-grid" id="bh-sb-sw-{{ filter.label | handleize }}">
+                  {%- for value in filter.values -%}
+                    {%- assign bh_val_handle = value.label | handleize -%}
+                    {%- if bh_val_handle.size >= 4 and results.handle contains bh_val_handle -%}{%- continue -%}{%- endif -%}
+                    {%- assign sw_color = '' -%}
+                    {%- assign sw_image = nil -%}
+                    {%- assign sw_asset = nil -%}
+                    {%- assign sw_map = '' -%}
+                    {%- assign _cl = value.label | downcase -%}
+
+                    {%- comment -%} Check special CSS-class colors FIRST (override any Shopify native swatch) {%- endcomment -%}
+                    {%- case _cl -%}
+                      {%- when 'white' -%}                                   {%- assign sw_map = 'white' -%}
+                      {%- when 'multi', 'multicolor', 'multicolour' -%}      {%- assign sw_map = 'multi' -%}
+                      {%- when 'tie-dye', 'tiedye', 'tie dye' -%}           {%- assign sw_map = 'tiedye' -%}
+                    {%- endcase -%}
+
+                    {%- if sw_map == '' -%}
+                      {%- comment -%} Standard fallback: Shopify native → theme asset → hex map → #ccc {%- endcomment -%}
+                      {%- if value.swatch.color != blank -%}{%- assign sw_color = value.swatch.color -%}{%- endif -%}
+                      {%- if value.swatch.image != blank -%}{%- assign sw_image = value.swatch.image -%}{%- endif -%}
+                      {%- if sw_color == '' and sw_image == blank -%}
+                        {%- assign sw_asset_name = value.label | handleize | append: '.png' -%}
+                        {%- assign sw_asset = images[sw_asset_name] -%}
+                      {%- endif -%}
+                      {%- if sw_color == '' and sw_image == blank and sw_asset == blank -%}
+                        {%- case _cl -%}
+                          {%- when 'black' -%}                {%- assign sw_map = '#1a1a1a' -%}
+                          {%- when 'blue' -%}                 {%- assign sw_map = '#2a5aad' -%}
+                          {%- when 'brown' -%}                {%- assign sw_map = '#7b4f2e' -%}
+                          {%- when 'camo' -%}                 {%- assign sw_map = 'camo' -%}
+                          {%- when 'green' -%}                {%- assign sw_map = '#2e7d32' -%}
+                          {%- when 'grey', 'gray' -%}         {%- assign sw_map = '#9e9e9e' -%}
+                          {%- when 'neutral' -%}              {%- assign sw_map = '#c4b49a' -%}
+                          {%- when 'orange' -%}               {%- assign sw_map = '#e87722' -%}
+                          {%- when 'pink' -%}                 {%- assign sw_map = '#e9638a' -%}
+                          {%- when 'purple' -%}               {%- assign sw_map = '#6a1b9a' -%}
+                          {%- when 'red' -%}                  {%- assign sw_map = '#cc1f1f' -%}
+                          {%- when 'safety' -%}               {%- assign sw_map = '#f5a800' -%}
+                          {%- when 'yellow' -%}               {%- assign sw_map = '#f5d020' -%}
+                        {%- endcase -%}
+                      {%- endif -%}
+                    {%- endif -%}
+                    <li{% if forloop.index > 18 and value.active == false %} class="bh-sb-hidden"{% endif %}>
+                      <label class="bh-swatch-wrap{% if value.active %} bh-swatch-wrap--on{% endif %}{% if value.count == 0 and value.active == false %} bh-swatch-wrap--dim{% endif %}" title="{{ value.label | escape }}" data-tip="{{ value.label | escape }}">
+                        <input type="checkbox" name="{{ value.param_name }}" value="{{ value.value }}"
+                          class="bh-swatch-chk"
+                          {% if value.active %}checked{% endif %}
+                          {% if value.count == 0 and value.active == false %}disabled{% endif %}
+                        >
+                        {%- if sw_image != nil -%}
+                          <img class="bh-swatch-lg" src="{{ sw_image | image_url: width: 40, height: 40, crop: 'center' }}" width="28" height="28" loading="lazy" alt="{{ value.label | escape }}">
+                        {%- elsif sw_color != '' -%}
+                          <span class="bh-swatch-lg" style="background-color:{{ sw_color }}"></span>
+                        {%- elsif sw_asset != blank -%}
+                          <span class="bh-swatch-lg" style="background-image:url('{{ sw_asset | image_url: width: 40 }}');background-size:cover"></span>
+                        {%- elsif sw_map == 'multi' -%}
+                          <span class="bh-swatch-lg bh-sw-multi"></span>
+                        {%- elsif sw_map == 'tiedye' -%}
+                          <span class="bh-swatch-lg bh-sw-tiedye"></span>
+                        {%- elsif sw_map == 'camo' -%}
+                          <span class="bh-swatch-lg bh-sw-camo"></span>
+                        {%- elsif sw_map == 'white' -%}
+                          <span class="bh-swatch-lg bh-sw-white"></span>
+                        {%- elsif sw_map != '' -%}
+                          <span class="bh-swatch-lg" style="background-color:{{ sw_map }}"></span>
+                        {%- else -%}
+                          <span class="bh-swatch-lg" style="background-color:#ccc"></span>
+                        {%- endif -%}
+                        {%- if value.active -%}
+                          <span class="bh-swatch-check" aria-hidden="true">
+                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          </span>
+                        {%- endif -%}
+                      </label>
+                    </li>
+                  {%- endfor -%}
+                </ul>
+                {%- if swatch_count > 18 -%}
+                  <button type="button" class="bh-sb-show-all" data-target="bh-sb-sw-{{ filter.label | handleize }}">
+                    Show all ({{ swatch_count }})
+                  </button>
+                {%- endif -%}
+
+              {%- elsif filter.type == 'price_range' -%}
+                <price-range class="bh-sb-price">
+                  <div class="bh-sb-price__field">
+                    <span class="bh-sb-price__sym">{{ cart.currency.symbol }}</span>
+                    <input type="number" name="{{ filter.min_value.param_name }}" placeholder="0" min="0"
+                      {%- if filter.min_value.value -%}
+                        {%- if use_comma -%}value="{{ filter.min_value.value | money_without_currency | replace: '.', '' | replace: ',', '.' | round }}"
+                        {%- else -%}value="{{ filter.min_value.value | money_without_currency | replace: ',', '' | round }}"
+                        {%- endif -%}
+                      {%- endif -%}
+                      {%- if use_comma -%}max="{{ filter.range_max | money_without_currency | replace: '.', '' | replace: ',', '.' | round }}"
+                      {%- else -%}max="{{ filter.range_max | money_without_currency | replace: ',', '' | round }}"
+                      {%- endif -%}
+                    >
+                  </div>
+                  <span class="bh-sb-price__sep">–</span>
+                  <div class="bh-sb-price__field">
+                    <span class="bh-sb-price__sym">{{ cart.currency.symbol }}</span>
+                    <input type="number" name="{{ filter.max_value.param_name }}" min="0"
+                      {%- if filter.max_value.value -%}
+                        {%- if use_comma -%}value="{{ filter.max_value.value | money_without_currency | replace: '.', '' | replace: ',', '.' | ceil }}"
+                        {%- else -%}value="{{ filter.max_value.value | money_without_currency | replace: ',', '' | ceil }}"
+                        {%- endif -%}
+                      {%- endif -%}
+                      {%- if use_comma -%}placeholder="{{ filter.range_max | money_without_currency | replace: '.', '' | replace: ',', '.' | ceil }}" max="{{ filter.range_max | money_without_currency | replace: '.', '' | replace: ',', '.' | ceil }}"
+                      {%- else -%}placeholder="{{ filter.range_max | money_without_currency | replace: ',', '' | ceil }}" max="{{ filter.range_max | money_without_currency | replace: ',', '' | ceil }}"
+                      {%- endif -%}
+                    >
+                  </div>
+                </price-range>
+                <button type="button" class="bh-sb-apply" onclick="this.closest('form').dispatchEvent(new Event('input', {bubbles:true}))">Apply</button>
+
+              {%- else -%}
+                {%- comment -%} Standard checklist with Show all {%- endcomment -%}
+                <ul class="bh-sb-checklist" id="bh-sb-list-{{ filter.label | handleize }}">
+                  {%- for value in filter.values -%}
+                    {%- assign bh_val_handle = value.label | handleize -%}
+                    {%- if bh_val_handle.size >= 4 and results.handle contains bh_val_handle -%}{%- continue -%}{%- endif -%}
+                    <li{% if forloop.index > 6 and value.active == false %} class="bh-sb-hidden"{% endif %}>
+                      <label class="bh-sb-check{% if value.count == 0 and value.active == false %} bh-sb-check--dim{% endif %}">
+                        <input type="checkbox" name="{{ value.param_name }}" value="{{ value.value }}"
+                          {% if value.active %}checked{% endif %}
+                          {% if value.count == 0 and value.active == false %}disabled{% endif %}
+                        >
+                        <span>{{ value.label | escape }}</span>
+                        <span class="bh-sb-count">({{ value.count }})</span>
+                      </label>
+                    </li>
+                  {%- endfor -%}
+                </ul>
+                {%- if filter.values.size > 6 -%}
+                  <button type="button" class="bh-sb-show-all" data-target="bh-sb-list-{{ filter.label | handleize }}">
+                    Show all ({{ filter.values.size }})
+                  </button>
+                {%- endif -%}
+              {%- endif -%}
+
+            </form>
+          </facet-filters-form>
+        </div>
+      </details>
+        {%- break -%}
+      {%- endfor -%}
+    {%- endfor -%}
+  {%- endif -%}
+
+</div>
+
+<script src="{{ 'component-range-slider.js' | asset_url }}" defer></script>
+<script>
+(function () {
+  document.querySelectorAll('.bh-sb-show-all').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var container = document.getElementById(btn.getAttribute('data-target'));
+      if (!container) return;
+      container.querySelectorAll('.bh-sb-hidden').forEach(function (el) {
+        el.classList.remove('bh-sb-hidden');
+      });
+      btn.style.display = 'none';
+    });
+  });
+})();
+</script>

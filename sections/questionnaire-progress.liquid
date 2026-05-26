@@ -1,0 +1,460 @@
+{%- comment -%}
+  Sample Questions Progress — non-invasive enhancement that adds:
+    1. A green checkmark badge next to each question once answered
+    2. A "X of N completed" progress bar above the questionnaire
+
+  Implementation strategy: the questions-block is rendered into the
+  product form by the sampleQuestions case in main-product.liquid.
+  Rather than editing that very large file, this section watches the
+  DOM for the block to appear, injects the progress bar and per-item
+  checkmark badges, and listens for change events to update state.
+
+  Designed for product.samples.json — safe to leave on other product
+  templates because it short-circuits if no questions-block is found.
+{%- endcomment -%}
+
+{%- liquid
+  assign track_color   = section.settings.track_color   | default: '#f1f5f9'
+  assign fill_start    = section.settings.fill_start    | default: '#22c55e'
+  assign fill_end      = section.settings.fill_end      | default: '#16a34a'
+  assign label_color   = section.settings.label_color   | default: '#4b5563'
+  assign count_color   = section.settings.count_color   | default: '#111111'
+  assign percent_color = section.settings.percent_color | default: '#6b7280'
+  assign done_color    = section.settings.done_color    | default: '#15803d'
+  assign check_bg      = section.settings.check_bg      | default: '#16a34a'
+  assign check_color   = section.settings.check_color   | default: '#ffffff'
+  assign success_bg    = section.settings.success_bg    | default: '#f0fdf4'
+  assign success_brd   = section.settings.success_brd   | default: '#bbf7d0'
+-%}
+
+<div data-sq-progress-section="{{ section.id }}" data-debug-marker="SQPRG_RENDER_OK"></div>
+<style>
+  [data-sq-progress-section] { display: none !important; }
+  /* ── Progress bar ─────────────────────────────────────────────── */
+  questions-block .sampleQuestions__progress {
+    margin: -4px 0 22px;
+  }
+  questions-block .sampleQuestions__progress-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  questions-block .sampleQuestions__progress-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: {{ label_color }};
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+  }
+  questions-block .sampleQuestions__progress-count {
+    font-weight: 700;
+    color: {{ count_color }};
+    font-variant-numeric: tabular-nums;
+  }
+  questions-block .sampleQuestions__progress-percent {
+    font-size: 12px;
+    font-weight: 700;
+    color: {{ percent_color }};
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  questions-block .sampleQuestions__progress-label[data-complete="true"],
+  questions-block .sampleQuestions__progress-label[data-complete="true"] .sampleQuestions__progress-count,
+  questions-block .sampleQuestions__progress-percent[data-complete="true"] {
+    color: {{ done_color }};
+  }
+  questions-block .sampleQuestions__progress-track {
+    position: relative;
+    height: 8px;
+    background: {{ track_color }};
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  questions-block .sampleQuestions__progress-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0%;
+    background: linear-gradient(90deg, {{ fill_start }} 0%, {{ fill_end }} 100%);
+    border-radius: 999px;
+    transition: width .45s cubic-bezier(.2,.7,.2,1);
+  }
+  questions-block .sampleQuestions__progress-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+    opacity: 0;
+    transition: opacity .25s ease;
+  }
+  questions-block .sampleQuestions__progress-fill[data-just-changed="true"]::after {
+    opacity: 1;
+  }
+
+  /* ── Question label re-layout + checkmark badge ──────────────── */
+  questions-block .sampleQuestions__question {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  /* The original CSS in main-product.liquid puts a red asterisk via
+     ::after on .sampleQuestions__question. With our flex layout that
+     asterisk would sit AFTER the checkmark badge. Hide that one and
+     re-add it on the new inner text span instead. */
+  questions-block .sampleQuestions__item:has(.sampleQuestions__select[required]) .sampleQuestions__question::after {
+    display: none !important;
+  }
+  questions-block .sampleQuestions__item:has(.sampleQuestions__select[required]) .sampleQuestions__question-text::after {
+    content: ' *';
+    color: #dc2626;
+    margin-left: 2px;
+    font-weight: 700;
+  }
+
+  questions-block .sampleQuestions__check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: {{ check_bg }};
+    color: {{ check_color }};
+    flex-shrink: 0;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+    box-shadow: 0 0 0 0 rgba(22,163,74, 0.35);
+  }
+  questions-block .sampleQuestions__check svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 3;
+  }
+  questions-block .sampleQuestions__item.is-complete .sampleQuestions__check {
+    opacity: 1;
+    transform: scale(1);
+  }
+  questions-block .sampleQuestions__check[data-just-changed="true"] {
+    animation: sq-pulse .55s ease-out;
+  }
+  @keyframes sq-pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(22,163,74, 0.45); }
+    100% { box-shadow: 0 0 0 12px rgba(22,163,74, 0);   }
+  }
+  /* Soft success tint on the completed select */
+  questions-block .sampleQuestions__item.is-complete .sampleQuestions__select {
+    border-color: {{ success_brd }};
+    background-color: {{ success_bg }};
+  }
+  questions-block .sampleQuestions__item.is-complete .sampleQuestions__select:focus {
+    border-color: {{ done_color }};
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.18);
+  }
+
+  @media (max-width: 749px) {
+    questions-block .sampleQuestions__progress {
+      margin: -2px 0 18px;
+    }
+    questions-block .sampleQuestions__progress-label {
+      font-size: 12px;
+    }
+    questions-block .sampleQuestions__progress-percent {
+      font-size: 11px;
+    }
+    questions-block .sampleQuestions__check {
+      width: 20px;
+      height: 20px;
+    }
+    questions-block .sampleQuestions__check svg {
+      width: 12px;
+      height: 12px;
+    }
+  }
+</style>
+
+<script>
+  (function() {
+    var LABEL_TEMPLATE = {{ section.settings.label_template | default: '%count% of %total% completed' | json }};
+    var ALL_DONE_LABEL = {{ section.settings.label_all_done | default: 'All set — ready to claim your pack' | json }};
+    var INJECTED_FLAG  = '__sqProgressInjected';
+
+    var CHECK_SVG =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+    function injectInto(block) {
+      if (!block || block[INJECTED_FLAG]) return false;
+      var items = block.querySelectorAll('.sampleQuestions__item');
+      if (!items.length) return false;
+      block[INJECTED_FLAG] = true;
+
+      /* 1. Wrap each question label's text node in a span so the red
+            "*" asterisk (still applied via ::after on the question
+            element in the upstream CSS) and the new check badge can
+            coexist in a flex row. Then append the badge. */
+      items.forEach(function(item) {
+        var label = item.querySelector('.sampleQuestions__question');
+        if (!label || label.dataset.sqEnhanced === '1') return;
+        var existingText = label.textContent.trim();
+        label.textContent = '';
+        var textSpan = document.createElement('span');
+        textSpan.className = 'sampleQuestions__question-text';
+        textSpan.textContent = existingText;
+        label.appendChild(textSpan);
+
+        var check = document.createElement('span');
+        check.className = 'sampleQuestions__check';
+        check.setAttribute('data-sq-check', '');
+        check.setAttribute('aria-hidden', 'true');
+        check.innerHTML = CHECK_SVG;
+        label.appendChild(check);
+        label.dataset.sqEnhanced = '1';
+      });
+
+      /* 2. Insert the progress bar before the first question item.
+            Anchored on the first item so we land below the heading
+            even when one is present. */
+      var firstItem = block.querySelector('.sampleQuestions__item');
+      if (firstItem && !block.querySelector('[data-sq-progress]')) {
+        var total = items.length;
+        var progress = document.createElement('div');
+        progress.className = 'sampleQuestions__progress';
+        progress.setAttribute('data-sq-progress', '');
+        progress.setAttribute('data-sq-total', String(total));
+        progress.setAttribute('role', 'status');
+        progress.setAttribute('aria-live', 'polite');
+        progress.innerHTML =
+          '<div class="sampleQuestions__progress-row">' +
+            '<span class="sampleQuestions__progress-label" data-sq-label>' +
+              '<span class="sampleQuestions__progress-count" data-sq-count>0</span> of ' + total + ' completed' +
+            '</span>' +
+            '<span class="sampleQuestions__progress-percent" data-sq-percent>0%</span>' +
+          '</div>' +
+          '<div class="sampleQuestions__progress-track">' +
+            '<div class="sampleQuestions__progress-fill" data-sq-fill style="width:0%"></div>' +
+          '</div>';
+        firstItem.parentNode.insertBefore(progress, firstItem);
+      }
+
+      /* 3. Wire up listener once on the block. */
+      block.addEventListener('change', function(e) {
+        if (e.target && e.target.classList && e.target.classList.contains('sampleQuestions__select')) {
+          updateProgress(block, e.target);
+        }
+      });
+
+      /* Initial render — handles back-button restores. */
+      updateProgress(block, null);
+      return true;
+    }
+
+    function updateProgress(block, changedSelect) {
+      var items = block.querySelectorAll('.sampleQuestions__item');
+      var total = items.length;
+      if (!total) return;
+      var completed = 0;
+
+      items.forEach(function(item) {
+        var sel = item.querySelector('.sampleQuestions__select');
+        var check = item.querySelector('[data-sq-check]');
+        var isComplete = !!(sel && sel.value);
+        var wasComplete = item.classList.contains('is-complete');
+        item.classList.toggle('is-complete', isComplete);
+        if (isComplete) completed++;
+        if (check && isComplete && !wasComplete && sel === changedSelect) {
+          check.setAttribute('data-just-changed', 'true');
+          setTimeout(function() { check.removeAttribute('data-just-changed'); }, 600);
+        }
+      });
+
+      var bar = block.querySelector('[data-sq-progress]');
+      if (!bar) return;
+      var pct = Math.round((completed / total) * 100);
+      var fill  = bar.querySelector('[data-sq-fill]');
+      var count = bar.querySelector('[data-sq-count]');
+      var pctEl = bar.querySelector('[data-sq-percent]');
+      var label = bar.querySelector('[data-sq-label]');
+      var allDone = (completed === total);
+
+      if (fill)  fill.style.width = pct + '%';
+      if (pctEl) pctEl.textContent = pct + '%';
+
+      if (label) {
+        if (allDone && ALL_DONE_LABEL) {
+          label.textContent = ALL_DONE_LABEL;
+        } else {
+          /* Rebuild label from template so {count}/{total} show
+             the live values. We reconstruct innerHTML so the bold
+             count <span> is preserved even after the all-done
+             text path swaps it out. */
+          var tmpl = LABEL_TEMPLATE
+            .replace('%count%', '<span class="sampleQuestions__progress-count" data-sq-count>' + completed + '</span>')
+            .replace('%total%', String(total));
+          label.innerHTML = tmpl;
+        }
+        label.setAttribute('data-complete', allDone ? 'true' : 'false');
+      }
+      if (pctEl) pctEl.setAttribute('data-complete', allDone ? 'true' : 'false');
+      if (count && !allDone) count.textContent = String(completed);
+
+      if (fill && changedSelect) {
+        fill.setAttribute('data-just-changed', 'true');
+        setTimeout(function() { fill.removeAttribute('data-just-changed'); }, 500);
+      }
+    }
+
+    function tryInject() {
+      var block = document.querySelector('questions-block');
+      return injectInto(block);
+    }
+
+    /* questions-block is appended into the product form via jQuery
+       on document.ready, but we don't know exactly when. Try once
+       immediately, then poll briefly, then watch the DOM. */
+    function init() {
+      if (tryInject()) return;
+
+      var attempts = 0;
+      var poll = setInterval(function() {
+        attempts++;
+        if (tryInject() || attempts >= 40) {
+          clearInterval(poll);
+        }
+      }, 150);
+
+      /* Long-tail safety net: a MutationObserver catches the case
+         where the block appears later than ~6s (slow connections,
+         lazy-loaded forms, etc). Disconnects once injection lands. */
+      if (typeof MutationObserver !== 'undefined') {
+        var mo = new MutationObserver(function() {
+          if (tryInject()) {
+            mo.disconnect();
+            clearInterval(poll);
+          }
+        });
+        mo.observe(document.body, { childList: true, subtree: true });
+        /* Auto-disconnect after 30s so we don't observe forever. */
+        setTimeout(function() { mo.disconnect(); }, 30000);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Questionnaire Progress",
+  "tag": "section",
+  "class": "section--questionnaire-progress",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Labels"
+    },
+    {
+      "type": "text",
+      "id": "label_template",
+      "label": "Progress label template",
+      "info": "Use %count% and %total% as placeholders.",
+      "default": "%count% of %total% completed"
+    },
+    {
+      "type": "text",
+      "id": "label_all_done",
+      "label": "All-completed label",
+      "info": "Shown once every question is answered. Leave blank to keep the count format.",
+      "default": "All set — ready to claim your pack"
+    },
+    {
+      "type": "header",
+      "content": "Progress bar colors"
+    },
+    {
+      "type": "color",
+      "id": "track_color",
+      "label": "Track (unfilled)",
+      "default": "#f1f5f9"
+    },
+    {
+      "type": "color",
+      "id": "fill_start",
+      "label": "Fill — start",
+      "default": "#22c55e"
+    },
+    {
+      "type": "color",
+      "id": "fill_end",
+      "label": "Fill — end",
+      "default": "#16a34a"
+    },
+    {
+      "type": "color",
+      "id": "label_color",
+      "label": "Label color",
+      "default": "#4b5563"
+    },
+    {
+      "type": "color",
+      "id": "count_color",
+      "label": "Count number color",
+      "default": "#111111"
+    },
+    {
+      "type": "color",
+      "id": "percent_color",
+      "label": "Percent text color",
+      "default": "#6b7280"
+    },
+    {
+      "type": "color",
+      "id": "done_color",
+      "label": "All-done text color",
+      "default": "#15803d"
+    },
+    {
+      "type": "header",
+      "content": "Checkmark badge"
+    },
+    {
+      "type": "color",
+      "id": "check_bg",
+      "label": "Badge background",
+      "default": "#16a34a"
+    },
+    {
+      "type": "color",
+      "id": "check_color",
+      "label": "Badge icon color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Completed dropdown styling"
+    },
+    {
+      "type": "color",
+      "id": "success_bg",
+      "label": "Background tint",
+      "default": "#f0fdf4"
+    },
+    {
+      "type": "color",
+      "id": "success_brd",
+      "label": "Border tint",
+      "default": "#bbf7d0"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Questionnaire Progress"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,2549 @@
+{%- comment -%}
+  My Designs panel — shared between the standalone page and the
+  product-page "Choose a previously uploaded design" picker modal.
+  Pass `picker: true` to render in picker mode (hides delete/archive
+  actions, shows USE DESIGNS in the selection bar).
+{%- endcomment -%}
+
+{%- assign md_is_picker = picker | default: false -%}
+{%- assign md_forced_type = forced_type | default: '' -%}
+{%- assign md_allow_multi = allow_multi | default: false -%}
+
+<div class="md-container{% if md_is_picker %} md-container--picker{% endif %}{% if md_forced_type != '' %} md-container--forced-type md-container--forced-{{ md_forced_type }}{% endif %}" data-customer-id="{{ customer.id }}"{% if md_is_picker %} data-picker="true"{% endif %}{% if md_forced_type != '' %} data-forced-type="{{ md_forced_type }}"{% endif %}{% if md_allow_multi %} data-allow-multi="true"{% endif %}>
+
+  {%- comment -%} ===== FILTER BAR ===== {%- endcomment -%}
+  <div class="md-header">
+    <h2 class="md-title">My Designs</h2>
+  </div>
+
+  <div class="md-filters">
+    <div class="md-filters__row">
+      <div class="md-filters__groups">
+        <div class="md-filters__group" data-filter-group="source">
+          <button class="md-tab md-tab--active" data-source="all">All Images <span class="md-tab__count">0</span></button>
+          <button class="md-tab" data-source="purchases">Purchases <span class="md-tab__count">0</span></button>
+          <button class="md-tab" data-source="uploads">Uploads <span class="md-tab__count">0</span></button>
+          <button class="md-tab" data-source="archive">Archive <span class="md-tab__count">0</span></button>
+        </div>
+        <div class="md-filters__group" data-filter-group="type">
+          <button class="md-tab md-tab--active" data-type="all">All Types <span class="md-tab__count">0</span></button>
+          <button class="md-tab" data-type="bysize">By Size <span class="md-tab__count">0</span></button>
+          <button class="md-tab" data-type="gangsheet">Gang Sheet <span class="md-tab__count">0</span></button>
+        </div>
+      </div>
+      <div class="md-filters__search">
+        <svg class="md-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="md-search-input" placeholder="Search by file name..." autocomplete="off">
+        <button type="button" class="md-search-clear" style="display:none">&times;</button>
+      </div>
+    </div>
+  </div>
+  <div class="md-selection-toolbar">
+    <button type="button" class="md-deselect-all" style="display:none">Deselect All</button>
+  </div>
+
+  {%- comment -%} ===== ARCHIVE WARNING BANNER ===== {%- endcomment -%}
+  <div class="md-archive-banner" style="display:none">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span>These images have been archived. You can restore them from here.</span>
+  </div>
+
+  {%- comment -%} ===== LOADING STATE ===== {%- endcomment -%}
+  <div class="md-loading">
+    <div class="md-loading__spinner"></div>
+    <span>Loading your designs...</span>
+  </div>
+
+  {%- comment -%} ===== IMAGE GRID ===== {%- endcomment -%}
+  <div class="md-grid" style="display:none"></div>
+  <div class="md-upload-inputs" hidden>
+    <input type="file" class="md-upload-input" data-upload-target="bysize" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.ai,.eps,.psd,.tif,.tiff" multiple>
+    <input type="file" class="md-upload-input" data-upload-target="gangsheet" accept=".png,.pdf,.ai">
+  </div>
+
+  {%- comment -%} ===== EMPTY STATE ===== {%- endcomment -%}
+  <div class="md-empty" style="display:none">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+    <p class="md-empty__title">No designs found</p>
+    <p class="md-empty__sub">Try adjusting your filters or upload a new design.</p>
+  </div>
+
+  {%- comment -%} ===== SELECTION ACTION BAR ===== {%- endcomment -%}
+  <div class="md-selection-bar" style="display:none" aria-live="polite">
+    <div class="md-selection-bar__summary-group">
+      <button type="button" class="md-selection-bar__btn md-selection-bar__btn--danger" data-selection-action="archive">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><path d="M7 7l1 12a1.5 1.5 0 0 0 1.49 1.38h5.02A1.5 1.5 0 0 0 16 19L17 7"/><path d="M10 11v5"/><path d="M14 11v5"/></svg>
+        <span>Archive</span>
+      </button>
+      <div class="md-selection-bar__summary">0 items selected</div>
+    </div>
+    <div class="md-selection-bar__note" aria-live="polite"></div>
+    <div class="md-selection-bar__actions">
+      <button type="button" class="md-selection-bar__btn md-selection-bar__btn--primary" data-selection-action="primary"></button>
+      <button type="button" class="md-selection-bar__btn md-selection-bar__btn--secondary" data-selection-action="secondary"></button>
+    </div>
+  </div>
+
+  {%- comment -%} ===== DELETE MODAL ===== {%- endcomment -%}
+  <div class="md-modal-overlay" style="display:none">
+    <div class="md-modal">
+      <h3 class="md-modal__title">Delete Permanently</h3>
+      <p class="md-modal__text">Are you sure you want to delete "<span class="md-modal__name"></span>"? This action cannot be undone.</p>
+      <div class="md-modal__actions">
+        <button type="button" class="md-modal__cancel">Cancel</button>
+        <button type="button" class="md-modal__confirm">Yes, delete permanently</button>
+      </div>
+    </div>
+  </div>
+
+  {%- comment -%} ===== ARCHIVE CONFIRM MODAL ===== {%- endcomment -%}
+  <div class="md-archive-overlay" style="display:none">
+    <div class="md-modal">
+      <h3 class="md-modal__title">Archive Design</h3>
+      <p class="md-modal__text">Are you sure you want to archive "<span class="md-archive-modal__name"></span>"? You can restore it later from the Archive tab.</p>
+      <div class="md-modal__actions">
+        <button type="button" class="md-archive-modal__cancel">Cancel</button>
+        <button type="button" class="md-archive-modal__confirm">Yes, archive</button>
+      </div>
+    </div>
+  </div>
+
+  {%- comment -%} ===== IMAGE LIGHTBOX MODAL ===== {%- endcomment -%}
+  <div class="md-lightbox" style="display:none">
+    <button class="md-lightbox__close" aria-label="Close">&times;</button>
+    <div class="md-lightbox__spinner"><div></div><div></div><div></div><p class="md-lightbox__spinner-text">Loading image, may take a few seconds</p></div>
+    <img class="md-lightbox__img" src="" alt="">
+  </div>
+
+  {%- comment -%} ===== ORDERING OPTIONS MODAL ===== {%- endcomment -%}
+  <div class="md-oo-overlay" style="display:none">
+    <div class="md-oo-modal">
+      <div class="md-oo-header">
+        <h3 class="md-oo-title">Ordering options</h3>
+        <button type="button" class="md-oo-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="md-oo-grid">
+        <a href="#" class="md-oo-card" data-handle="uv-dtf-stickers-decals-by-size">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/UV-by-size-hero-v4-1.jpg?v=1754065953" alt="UV By Size" loading="lazy">
+          <span class="md-oo-card__name">UV By Size</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="3d-puff-transfers">
+          <img src="https://ninjatransfers.com/cdn/shop/files/3d_Puff_Transfer_2700f976-338f-45e1-8cbb-21e2e08ac09e.png?v=1764968108" alt="Puff Transfer" loading="lazy">
+          <span class="md-oo-card__name">Puff Transfer</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="vinyl-stickers">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Custom_Vinyl_Stickers.jpg?v=1759871344" alt="Vinyl Stickers" loading="lazy">
+          <span class="md-oo-card__name">Vinyl Stickers</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="spangle-transfers">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/DTF_Spangle_Transfers_579ce79c-f7e0-4ad4-a21e-96c57347c601.png?v=1764969544" alt="Spangle Transfer" loading="lazy">
+          <span class="md-oo-card__name">Spangle Transfer</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="custom-magnets">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Magnet_main.jpg?v=1759242125" alt="Custom Magnets" loading="lazy">
+          <span class="md-oo-card__name">Custom Magnets</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="custom-soft-vinyl-keychains">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Custom_Keychain_Duo.png?v=1762551290" alt="Soft Vinyl Keychains" loading="lazy">
+          <span class="md-oo-card__name">Soft Vinyl Keychains</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="truck-stickers">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/custom-truck-stickersninja-patches-347968.png?v=1762462265" alt="Truck Stickers" loading="lazy">
+          <span class="md-oo-card__name">Truck Stickers</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="bumper-stickers">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/custom-bumper-stickersninja-patches-565643.png?v=1762462265" alt="Bumper Stickers" loading="lazy">
+          <span class="md-oo-card__name">Bumper Stickers</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="3d-glitter-puff-transfers">
+          <img src="https://ninjatransfers.com/cdn/shop/files/Glitter_puff_Transfers.png?v=1764968777" alt="3D Glitter Puff" loading="lazy">
+          <span class="md-oo-card__name">3D Glitter Puff</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="indoor-floor-graphics">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Indoor_floor_graphics.png?v=1765488325" alt="Indoor Floor Graphics" loading="lazy">
+          <span class="md-oo-card__name">Indoor Floor Graphics</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="outdoor-floor-graphics">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Outdoor_floor_graphics.png?v=1765488305" alt="Outdoor Floor Graphics" loading="lazy">
+          <span class="md-oo-card__name">Outdoor Floor Graphics</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="window-clings">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/ieAHVtChyFCyct5VAWi6n.png?v=1767630230" alt="Window Clings" loading="lazy">
+          <span class="md-oo-card__name">Window Clings</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-card" data-handle="low-tac-wall-graphics">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/wallgraphic02.png?v=1766507125" alt="Low Tac Wall Graphics" loading="lazy">
+          <span class="md-oo-card__name">Low Tac Wall Graphics</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {%- comment -%} ===== GANG SHEET ORDERING OPTIONS MODAL ===== {%- endcomment -%}
+  <div class="md-oo-gs-overlay" style="display:none">
+    <div class="md-oo-modal">
+      <div class="md-oo-header">
+        <h3 class="md-oo-title">Ordering options</h3>
+        <button type="button" class="md-oo-gs-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="md-oo-grid">
+        <a href="#" class="md-oo-gs-card" data-gs-handle="uv-dtf-gang-sheets" data-gs-variant="">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/UV-product-hero-upload-gangsheet-V3.jpg?v=1762457677" alt="UV Gang Sheet" loading="lazy">
+          <span class="md-oo-card__name">UV Gang Sheet</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-gs-card" data-gs-handle="premium-dtf-gang-sheets" data-gs-variant="41169635737683">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/GlitterDTF1.png" alt="Glitter Gang Sheet" loading="lazy">
+          <span class="md-oo-card__name">Glitter Gang Sheet</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-gs-card" data-gs-handle="premium-dtf-gang-sheets" data-gs-variant="42151907655763">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Glow_in_Dark_DTF_Transfers_22.png" alt="Glow Gang Sheet" loading="lazy">
+          <span class="md-oo-card__name">Glow Gang Sheet</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-gs-card" data-gs-handle="premium-dtf-gang-sheets" data-gs-variant="42439210565715">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Gold_Foil_1_1.png" alt="Gold Foil Gang Sheet" loading="lazy">
+          <span class="md-oo-card__name">Gold Foil Gang Sheet</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+        <a href="#" class="md-oo-gs-card" data-gs-handle="premium-dtf-gang-sheets" data-gs-variant="42439210598483">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/silver_foil_1_1.png" alt="Silver Foil Magnets" loading="lazy">
+          <span class="md-oo-card__name">Silver Foil Gang Sheet</span>
+          <span class="md-oo-card__cta">+ Order now</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {%- comment -%} ===== TOAST ===== {%- endcomment -%}
+  <div class="md-toast"></div>
+</div>
+
+{%- comment -%} ============================= CSS ============================= {%- endcomment -%}
+<style>
+  /* --- Container & Header --- */
+  .md-container { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111; position: relative; }
+  .md-header { margin-bottom: 20px; }
+  .md-title { font-size: 22px; font-weight: 700; color: #111; margin: 0; }
+  .md-selection-toolbar { display: flex; justify-content: flex-end; min-height: 20px; margin: 8px 0 20px; }
+  .md-deselect-all { background: none; border: none; padding: 0; color: #019aff; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; }
+  .md-deselect-all:hover { color: #0079cc; text-decoration: underline; }
+
+  /* --- Filter Bar --- */
+  .md-filters { margin-bottom: 20px; }
+  .md-filters__row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .md-filters__groups { display: flex; justify-content: space-between; width: 100%; gap: 12px; flex-wrap: wrap; }
+  .md-filters__group { display: inline-flex; background: #f3f4f6; border-radius: 8px; padding: 3px; gap: 2px; }
+  .md-tab { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: none; border-radius: 6px; background: transparent; color: #6b7280; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: inherit; }
+  .md-tab:hover { color: #019AFF; background: #e0f2ff; }
+  .md-tab--active { background: #019AFF; color: #fff !important; box-shadow: 0 1px 3px rgba(1,154,255,0.3); }
+  .md-tab--active:hover { background: #019AFF; color: #fff !important; }
+  .md-tab__count { font-size: 11px; font-weight: 600; background: #e5e7eb; color: #6b7280; border-radius: 10px; padding: 1px 7px; min-width: 20px; text-align: center; line-height: 16px; }
+  .md-tab--active .md-tab__count { background: rgba(255,255,255,0.25); color: #fff; }
+
+  /* --- Search --- */
+  .md-filters__search { position: relative; min-width: 220px; flex-shrink: 0; }
+  .md-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
+  .md-search-input { width: 100%; padding: 8px 32px 8px 36px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; color: #111; background: #fff; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
+  .md-search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  .md-search-input::placeholder { color: #9ca3af; }
+  .md-search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #9ca3af; font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .md-search-clear:hover { color: #374151; }
+
+  /* --- Archive Banner --- */
+  .md-archive-banner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; margin-bottom: 20px; font-size: 13px; color: #854d0e; }
+  .md-archive-banner svg { flex-shrink: 0; color: #ca8a04; }
+
+  /* --- Loading --- */
+  .md-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 80px 20px; color: #94a3b8; font-size: 14px; }
+  .md-loading__spinner { width: 32px; height: 32px; border: 3px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: md-spin 0.7s linear infinite; }
+  @keyframes md-spin { to { transform: rotate(360deg); } }
+
+  /* --- Grid --- */
+  .md-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+
+  /* All grid rows match row 1 height. JS sets --md-row-height to the
+     measured dual upload card height when present; otherwise falls back to
+     auto so rows size to their content. min-height on each card is the
+     reliable lever — grid-auto-rows alone proved flaky with the var()
+     fallback inside minmax(). */
+  .md-grid { grid-auto-rows: minmax(var(--md-row-height, auto), auto); }
+  .md-grid > .md-card { min-height: var(--md-row-height, auto); }
+
+  /* --- Card --- */
+  .md-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; transition: box-shadow 0.2s, transform 0.15s, opacity 0.3s; position: relative; display: flex; flex-direction: column; }
+  /* Push the View/trash row to the bottom so it sits flush even when grid
+     stretches the card to a taller row height (e.g. row 1 with the dual
+     upload card). Without this, the action row stays under the filename
+     and leaves empty space below. */
+  .md-card .md-card__action { margin-top: auto; }
+  .md-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-2px); }
+  .md-card--fading { opacity: 0; transform: scale(0.95); pointer-events: none; }
+
+  /* Thumbnail — canonical site-wide transparent-checker pattern. SVG
+     inlined (rather than var(--nt-checker-image)) because the picker
+     popup renders my-designs-panel inside a stacking context where the
+     :root custom properties were silently failing to resolve in some
+     surfaces. The inlined SVG matches the one in assets/theme.css
+     :root and assets/__blanksUploadHelper.css `file-preview preview-block`,
+     so all upload-transparency surfaces (file preview, cart preview,
+     My Designs tiles, Recent Designs, Previous Designs picker) now
+     paint the exact same checker. !important guards against the older
+     light-grey gradient bleeding back in via specificity. */
+  .md-card__thumb { position: relative; aspect-ratio: 1; overflow: hidden;
+    background-color: #f2f2f2 !important;
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbD0iI0M1QzVDNSIgZD0iTTAgMGg0djRIMHpNMCA4aDR2NEgwek0xNiA4aC00VjRoNHpNMTYgMTZoLTR2LTRoNHpNOCAwaDR2NEg4ek04IDhoNHY0SDh6TTggOEg0VjRoNHpNOCAxNkg0di00aDR6Ii8+PHBhdGggZmlsbD0iIzlCOUI5QiIgZD0iTTQgMGg0djRINHpNNCA4aDR2NEg0ek0xMiA4SDhWNGg0ek0xMiAxNkg4di00aDR6TTEyIDBoNHY0aC00ek0xMiA4aDR2NGgtNHpNNCA4SDBWNGg0ek00IDE2SDB2LTRoNHoiLz48L3N2Zz4=") !important;
+    background-position: center center !important;
+    background-size: 10px !important;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    box-sizing: border-box;
+  }
+  .md-card__thumb img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; object-position: center; display: block; }
+  /* Gang sheet thumbnails: scale down to show entire sheet in the card */
+  .md-card--gangsheet .md-card__thumb img { object-fit: contain; object-position: center; }
+  .md-card--uploading .md-card__thumb { cursor: default; }
+  .md-card--uploading .md-card__thumb::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.72); z-index: 1; }
+  .md-card__upload-spinner { position: absolute; top: 50%; left: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; border: 3px solid rgba(1,154,255,0.18); border-top-color: #019aff; border-radius: 50%; animation: md-spin 0.7s linear infinite; z-index: 2; }
+  .md-card__upload-copy { position: absolute; left: 12px; right: 12px; bottom: 14px; text-align: center; font-size: 11px; font-weight: 600; color: #4b5563; z-index: 2; }
+  .md-card__badge { position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em; z-index: 2; }
+  .md-card__badge--bysize { background: #dbeafe; color: #1e40af; }
+  .md-card__badge--gangsheet { background: #fae8ff; color: #7e22ce; }
+  .md-card__badge--upload { background: #f0fdf4; color: #16a34a; }
+  .md-card__badge--purchase { background: #fff7ed; color: #c2410c; }
+
+  .md-card--selected { border-color: #019aff; box-shadow: 0 0 0 2px rgba(1,154,255,0.14), 0 12px 24px rgba(1,154,255,0.12); }
+  .md-card--selection-disabled .md-card__thumb::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.45); z-index: 1; pointer-events: none; }
+  .md-card__select { position: absolute; top: 8px; left: 8px; z-index: 4; width: 22px; height: 22px; border: 1.5px solid #cbd5e1; border-radius: 6px; background: rgba(255,255,255,0.96); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s; box-shadow: 0 1px 3px rgba(15,23,42,0.08); }
+  .md-card__select:hover { border-color: #019aff; }
+  .md-card__select svg { width: 13px; height: 13px; stroke: #fff; opacity: 0; transition: opacity 0.15s; }
+  .md-card__select--selected { border-color: #019aff; background: #019aff; }
+  .md-card__select--selected svg { opacity: 1; }
+  .md-card__select--disabled { background: #e5e7eb; border-color: #d1d5db; cursor: not-allowed; }
+  .md-card__select--disabled svg { display: none; }
+
+  /* Mobile archive trash icon button (hidden on desktop) */
+  .md-card__trash { display: none; }
+
+  /* Mobile restore text (hidden on desktop, shown on mobile) */
+  .md-card__action-restore { display: none; font-size: 11px; font-weight: 600; color: #16a34a; text-decoration: none; font-family: inherit; cursor: pointer; background: none; border: none; padding: 0; transition: color 0.15s; }
+  .md-card__action-restore:hover { color: #15803d; }
+
+  /* Archive confirm modal — reuse .md-modal styles, override confirm button to blue */
+  .md-archive-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+  /* !important on color/background to beat the site\'s global <button> rules,
+     which otherwise paint the "Yes, archive" label as dark text on the
+     blue fill. */
+  .md-archive-modal__confirm { padding: 10px 20px; border: none !important; border-radius: 8px; background: #019AFF !important; color: #fff !important; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .md-archive-modal__confirm:hover { background: #0079cc !important; color: #fff !important; }
+  .md-archive-modal__cancel { padding: 10px 20px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #374151; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .md-archive-modal__cancel:hover { background: #f9fafb; }
+
+  /* Card info */
+  .md-card__info { padding: 10px 12px 12px; }
+  .md-card__name { font-size: 12px; font-weight: 600; color: #111; margin: 0 0 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.4; }
+  .md-card__meta { font-size: 11px; color: #9ca3af; margin: 0; display: flex; align-items: center; gap: 6px; }
+  .md-card__meta-dot { width: 3px; height: 3px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
+
+  /* Card bottom actions */
+  .md-card__action { padding: 0 12px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .md-card__action-btn { background: none; border: none; font-size: 11px; color: #6b7280; cursor: pointer; padding: 0; font-family: inherit; text-decoration: underline; transition: color 0.15s; }
+  .md-card__action-btn:hover { color: #111; }
+  .md-card__archive-icon { background: none; border: none; color: #6b7280; cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; transition: color 0.15s, opacity 0.15s; }
+  .md-card__archive-icon:hover { color: #111; opacity: 0.85; }
+  .md-card__archive-icon svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .md-card__action-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .md-card__view-img { background: none; border: none; font-size: 11px; color: #019AFF; cursor: pointer; padding: 0; font-family: inherit; font-weight: 500; transition: color 0.15s; display: inline-flex; align-items: center; gap: 3px; }
+  .md-card__view-img:hover { color: #0079cc; }
+
+  /* Upload cards */
+  .md-upload-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; box-sizing: border-box; }
+  .md-upload-card--single { padding: 12px; height: 100%; }
+  .md-upload-card--dual { padding: 12px; height: 100%; }
+  /* Dual upload card holds both tiles stacked inside one cell. Desktop pins
+     it to row 1 spanning 2 image-card columns. Mobile makes it span the
+     full width across rows 1 & 2 so each tile keeps a comfortable height. */
+  .md-upload-card--dual { grid-column: 1 / span 2; grid-row: 1; }
+  @media (max-width: 749px) {
+    .md-upload-card--dual { grid-column: 1 / -1; grid-row: 1 / span 2; }
+  }
+  .md-upload-card__stack { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+  .md-upload-tile { width: 100%; border: 1.5px dashed #cbd5e1; border-radius: 12px; background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px 14px; box-sizing: border-box; color: #111827; font-family: inherit; cursor: pointer; transition: border-color 0.15s, background 0.15s, box-shadow 0.15s; }
+  .md-upload-tile:hover { border-color: #019aff; box-shadow: 0 8px 22px rgba(1,154,255,0.12); background: linear-gradient(180deg, #ffffff 0%, #eff8ff 100%); }
+  .md-upload-tile--dragover { border-color: #019aff; background: linear-gradient(180deg, #eef8ff 0%, #dff2ff 100%); box-shadow: 0 0 0 2px rgba(1,154,255,0.12); }
+  .md-upload-tile--error { border-color: #ef4444; background: linear-gradient(180deg, #fff7f7 0%, #ffeaea 100%); box-shadow: 0 0 0 2px rgba(239,68,68,0.12); }
+  .md-upload-tile--error .md-upload-tile__icon { background: #fee2e2; color: #dc2626; }
+  .md-upload-tile--error .md-upload-tile__note { color: #dc2626; }
+  .md-upload-card--single .md-upload-tile { height: 100%; min-height: 100%; }
+  .md-upload-card--dual .md-upload-tile { flex: 1; min-height: 0; padding: 10px 14px; }
+  .md-upload-card--dual .md-upload-tile__icon { margin-top: 0; margin-bottom: 6px; }
+  .md-upload-card--dual .md-upload-tile__title { margin-bottom: 6px; }
+  .md-upload-card--dual .md-upload-tile__browse { margin-bottom: 4px; }
+  .md-upload-card--dual .md-upload-tile__note { margin-top: 2px; top: 0; }
+  .md-upload-tile__icon { width: 36px; height: 36px; border-radius: 999px; background: #e0f2ff; color: #019aff; display: inline-flex; align-items: center; justify-content: center; margin-top: 5px; margin-bottom: 12px; }
+  .md-upload-tile__icon svg { width: 17px; height: 17px; }
+  .md-upload-tile__title { font-size: 11.7px; font-weight: 700; color: #111827; margin-bottom: 10px; line-height: 1.3; }
+  .md-upload-tile__browse { display: inline-flex; align-items: center; justify-content: center; min-width: 83px; padding: 7px 13px; border-radius: 999px; background: #019aff; color: #fff; font-size: 10.8px; font-weight: 700; margin-bottom: 8px; }
+  .md-upload-tile__note { font-size: 9.9px; color: #6b7280; line-height: 1.35; margin-top: 4px; position: relative; top: -5px; }
+  .md-upload-tile__note--muted { color: #6b7280; }
+
+  /* Bulk selection bar */
+  .md-selection-bar { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; padding: 14px 18px; background: rgba(17,24,39,0.96); color: #fff; border-radius: 16px; box-shadow: 0 18px 48px rgba(15,23,42,0.28); z-index: 9998; width: min(calc(100vw - 32px), 760px); box-sizing: border-box; }
+  /* Hide the fixed selection bar whenever ANY ancestor of the panel is
+     `hidden`. Covers the mauh "Previous" panel on mobile-app-home and
+     any other tab system that uses the `hidden` attribute and KEEPS
+     the bar inside the panel. */
+  [hidden] .md-selection-bar,
+  [hidden] .md-selection-bar * {
+    display: none !important;
+  }
+
+  /* dtfut tabs special case: the JS below (line ~781) reparents the
+     bar out of its tab panel and appends it to .dtfut__panel-wrap so
+     it lays out at the bottom of the panel card. That puts the bar
+     OUTSIDE the [hidden] Previous Designs panel — the rule above
+     can't reach it. Use :has() to check whether the Previous Designs
+     panel is currently `.is-active` within the wrap; if not, hide
+     the bar. The bar's own JS still controls its visibility WITHIN
+     the recent tab via the inline display:none/flex (selection
+     count > 0). */
+  .dtfut__panel-wrap:not(:has(.dtfut__panel[data-dtfut-panel="recent"].is-active)) .md-selection-bar,
+  .dtfut__panel-wrap:not(:has(.dtfut__panel[data-dtfut-panel="recent"].is-active)) .md-selection-bar * {
+    display: none !important;
+  }
+  .md-selection-bar__summary-group { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .md-selection-bar__summary { font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .md-selection-bar__note { font-size: 12px; font-weight: 600; color: #f87171; text-align: right; margin-left: auto; }
+  .md-selection-bar__actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex: 1; }
+  .md-selection-bar__btn { border-radius: 999px; border: 1px solid transparent; padding: 11px 18px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; transition: transform 0.15s, filter 0.15s, background 0.15s, border-color 0.15s; white-space: nowrap; }
+  .md-selection-bar__btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+  .md-selection-bar__btn--primary { background: #019aff; color: #fff; }
+  .md-selection-bar__btn--secondary { background: transparent; color: #fff; border-color: rgba(255,255,255,0.3); }
+  .md-selection-bar__btn--success { background: #16a34a; color: #fff; }
+  .md-selection-bar__btn--danger { background: #4b5563; color: #fff; display: inline-flex; align-items: center; gap: 8px; }
+  .md-selection-bar__btn--danger svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Image lightbox */
+  .md-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 99999; padding: 24px; cursor: pointer; }
+  .md-lightbox__close { position: absolute; top: 16px; right: 20px; background: none; border: none; color: #fff; font-size: 36px; cursor: pointer; line-height: 1; z-index: 2; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; opacity: 0.8; transition: opacity 0.15s; }
+  .md-lightbox__close:hover { opacity: 1; }
+  .md-lightbox__img { max-width: 90vw; max-height: 85vh; object-fit: contain; border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,0.4); cursor: default; background: #fff; }
+  .md-lightbox__img--loading { display: none; }
+  .md-lightbox__spinner { display: none; }
+  .md-lightbox__spinner--visible { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .md-lightbox__spinner-text { width: 100%; text-align: center; color: rgba(255,255,255,0.7); font-size: 13px; margin: 12px 0 0; font-weight: 400; }
+  .md-lightbox__spinner div { width: 12px; height: 12px; border-radius: 50%; background: #fff; animation: md-lb-pulse 1.2s ease-in-out infinite; }
+  .md-lightbox__spinner div:nth-child(2) { animation-delay: 0.2s; }
+  .md-lightbox__spinner div:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes md-lb-pulse { 0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+  /* --- Empty State --- */
+  .md-empty { text-align: center; padding: 60px 20px; }
+  .md-empty svg { margin-bottom: 16px; }
+  .md-empty__title { font-size: 16px; font-weight: 600; color: #374151; margin: 0 0 6px; }
+  .md-empty__sub { font-size: 13px; color: #9ca3af; margin: 0; }
+
+  /* --- Modal --- */
+  .md-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+  .md-modal { background: #fff; border-radius: 12px; padding: 28px; max-width: 420px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .md-modal__title { font-size: 18px; font-weight: 700; color: #111; margin: 0 0 12px; }
+  .md-modal__text { font-size: 14px; color: #6b7280; margin: 0 0 24px; line-height: 1.5; }
+  .md-modal__name { font-weight: 600; color: #111; }
+  .md-modal__actions { display: flex; justify-content: flex-end; gap: 10px; }
+  .md-modal__cancel { padding: 10px 20px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #374151; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .md-modal__cancel:hover { background: #f9fafb; }
+  .md-modal__confirm { padding: 10px 20px; border: none; border-radius: 8px; background: #dc2626; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .md-modal__confirm:hover { background: #b91c1c; }
+
+  /* --- Toast --- */
+  .md-toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.3s, transform 0.3s; z-index: 10000; pointer-events: none; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
+  .md-toast--visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* --- Ordering Options Modal --- */
+  .md-oo-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+  .md-oo-modal { background: #fff; border-radius: 14px; max-width: 720px; width: 100%; max-height: 85vh; box-shadow: 0 20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; overflow: hidden; }
+  .md-oo-header { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px 0; flex-shrink: 0; }
+  .md-oo-title { font-size: 18px; font-weight: 700; color: #111; margin: 0; line-height: 36px; }
+  .md-oo-close, .md-oo-gs-close { background: none; border: none; font-size: 28px; color: #6b7280; cursor: pointer; line-height: 1; padding: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: background 0.15s, color 0.15s; font-family: inherit; }
+  .md-oo-close:hover, .md-oo-gs-close:hover { background: #f3f4f6; color: #111; }
+  .md-oo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 12px 24px 24px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .md-oo-card, .md-oo-gs-card { display: flex; flex-direction: column; align-items: center; text-decoration: none; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px 10px 14px; transition: border-color 0.15s, box-shadow 0.15s; cursor: pointer; }
+  .md-oo-card:hover, .md-oo-gs-card:hover { border-color: #019AFF; box-shadow: 0 2px 12px rgba(1,154,255,0.12); }
+  .md-oo-card img, .md-oo-gs-card img { width: 80px; height: 80px; object-fit: contain; border-radius: 6px; margin-bottom: 10px; }
+  .md-oo-card__name { font-size: 12px; font-weight: 600; color: #111; text-align: center; margin-bottom: 4px; }
+  .md-oo-card__cta { font-size: 11px; font-weight: 600; color: #019AFF; }
+
+  /* --- Gang Sheet Ordering Options Modal (reuse oo-modal styles) --- */
+  .md-oo-gs-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+
+  /* --- Responsive --- */
+  @media (max-width: 768px) {
+    /* Container padding so nothing touches screen edges */
+    .md-container { padding: 0 16px; box-sizing: border-box; overflow: hidden; }
+    .md-title { font-size: 18px; }
+
+    /* Filters: stack vertically, full width */
+    .md-filters__row { flex-direction: column; gap: 10px; }
+    .md-filters__groups { flex-direction: column; width: 100%; gap: 8px; }
+
+    /* Tabs fill evenly across the row, never overflow */
+    .md-filters__group { width: 100%; border-radius: 8px; padding: 3px; gap: 2px; box-sizing: border-box; }
+    .md-tab { padding: 7px 6px; font-size: 12px; gap: 0; flex: 1; justify-content: center; min-width: 0; }
+    .md-tab__count { display: none; }
+
+    .md-filters__search { width: 100%; min-width: 0; }
+
+    /* 2-column grid */
+    .md-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+    .md-card:hover { transform: none; box-shadow: none; }
+
+    .md-card__action-restore { display: inline; }
+    .md-card__action { padding: 8px 10px 10px; border-top: 1px solid #f3f4f6; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .md-card__action-row { display: flex; }
+
+    /* Hide archive text button on mobile — replaced by trash icon */
+    .md-card__action-btn[data-archive-id] { display: none; }
+    .md-card__archive-icon { display: none; }
+
+    .md-upload-card--single,
+    .md-upload-card--dual { padding: 10px; aspect-ratio: auto; }
+    .md-upload-card__stack { gap: 8px; }
+    .md-upload-tile { padding: 10px 10px; }
+    .md-upload-tile__icon { display: none; }
+    .md-upload-tile__title { font-size: 12px; margin-bottom: 8px; }
+    .md-upload-tile__browse { min-width: 86px; padding: 7px 12px; font-size: 11px; }
+    .md-upload-tile__note { font-size: 10px; margin-top: 0; top: 0; }
+
+    /* Delete permanently removed — users can only restore from archive */
+
+    /* Show mobile trash icon in the bottom action row */
+    .md-card__trash { display: inline-flex; position: static; width: 24px; height: 24px; border-radius: 0; background: transparent; align-items: center; justify-content: center; border: none; cursor: pointer; transition: opacity 0.15s; padding: 0; margin-left: auto; }
+    .md-card__trash:hover { background: transparent; opacity: 0.75; }
+    .md-card__trash svg { width: 14px; height: 14px; stroke: #6b7280; fill: none; stroke-width: 2; }
+
+    /* Fullscreen ordering options modal on mobile */
+    .md-oo-overlay { padding: 0; }
+    .md-oo-modal { max-width: 100%; border-radius: 0; margin: 0; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; }
+    .md-oo-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px; }
+    .md-oo-header { padding: 18px 16px 0; }
+    .md-oo-close, .md-oo-gs-close { font-size: 36px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+
+    /* Fullscreen gang sheet ordering options modal on mobile */
+    .md-oo-gs-overlay { padding: 0; }
+    .md-oo-gs-overlay .md-oo-modal { max-width: 100%; border-radius: 0; margin: 0; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; }
+    .md-oo-gs-overlay .md-oo-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px; }
+    .md-oo-gs-overlay .md-oo-header { padding: 18px 16px 0; }
+
+    /* Archive confirm modal stacking on mobile */
+    .md-archive-overlay .md-modal__actions { flex-direction: column; }
+    .md-archive-modal__cancel, .md-archive-modal__confirm { width: 100%; text-align: center; }
+
+    /* Card info tighter on mobile */
+    .md-card__info { padding: 8px 10px 6px; }
+    .md-card__name { font-size: 11px; }
+    .md-card__meta { font-size: 10px; flex-wrap: wrap; }
+
+    /* Badge smaller on mobile */
+    .md-card__badge { font-size: 9px; padding: 2px 6px; }
+    .md-card__select { width: 20px; height: 20px; }
+
+    .md-selection-bar { bottom: 14px; flex-direction: column; align-items: stretch; gap: 12px; padding: 14px; }
+    .md-selection-bar__summary-group { width: 100%; order: 1; justify-content: center; gap: 10px; flex-wrap: wrap; }
+    .md-selection-bar__summary { text-align: center; width: 100%; }
+    .md-selection-bar__note { text-align: center; width: 100%; margin-left: 0; order: 2; }
+    .md-selection-bar__btn--danger { width: 100%; justify-content: center; }
+    .md-selection-bar__actions { width: 100%; flex-direction: column; order: 0; }
+    .md-selection-bar__btn { width: 100%; }
+    .md-selection-toolbar { margin: 8px 0 16px; }
+
+    .md-modal { padding: 20px; }
+    .md-modal__actions { flex-direction: column; }
+    .md-modal__cancel, .md-modal__confirm { width: 100%; text-align: center; }
+  }
+
+  /* Extra small screens */
+  @media (max-width: 400px) {
+    .md-tab { padding: 6px 4px; font-size: 11px; }
+    .md-grid { gap: 8px; }
+    .md-card__action-cta { font-size: 10.5px; }
+    .md-card__action-btn { font-size: 10.5px; }
+  }
+
+  /* ============================ PICKER MODE ============================ */
+  /* Applied when rendered inside the product-page "Choose a previously uploaded design"
+     modal. Hides destructive / admin affordances and repurposes the
+     selection bar primary button as USE DESIGNS. */
+  .md-container--picker { padding: 12px 0 0; }
+  .md-container--picker .md-title,
+  .md-container--picker .md-header,
+  .md-container--picker .md-card__trash,
+  .md-container--picker .md-card__view-img,
+  .md-container--picker .md-card__action,
+  .md-container--picker .md-card__action-row,
+  .md-container--picker .md-selection-bar__btn--secondary,
+  .md-container--picker .md-selection-bar__btn--delete,
+  .md-container--picker .md-upload-card,
+  .md-container--picker .md-card__info,
+  .md-container--picker .md-oo-overlay,
+  .md-container--picker .md-oo-gs-overlay { display: none !important; }
+
+  /* Center the overlay's child and size the modal to the viewport.
+     The :not() guard keeps the inline display:none from the HTML working —
+     !important only kicks in once fadeIn has swapped display to block. */
+  .customTabelPopup__overlay-3:has(.customTabelPopup--md-picker):not([style*="display: none"]) {
+    display: grid !important;
+    place-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+    height: 100%;
+  }
+  .customTabelPopup--md-picker {
+    width: min(900px, calc(100vw - 40px));
+    max-width: 900px;
+    height: min(860px, calc(100vh - 40px));
+    margin: 0 !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-top: 52px; /* room for absolute-positioned header row */
+    padding-bottom: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .customTabelPopup--md-picker > .md-container--picker {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* Mobile: keep the inner container as the constrained-height scroll
+     context (same approach as desktop). The popup gets `overflow: hidden`
+     further down (for selection-bar pinning), so popup-level scrolling
+     is not available — the grid must scroll inside .md-container--picker. */
+  @media (max-width: 768px) {
+    .md-container--picker { padding: 0 12px; }
+    .customTabelPopup--md-picker > .md-container--picker { flex: 1 1 0; min-height: 0; }
+    .customTabelPopup--md-picker { height: calc(100vh - 20px); height: calc(100dvh - 20px); width: calc(100vw - 20px); }
+    .customTabelPopup__overlay-3:has(.customTabelPopup--md-picker):not([style*="display: none"]) { padding: 10px; }
+  }
+
+  /* Header row: absolute-position both title and close button at top:20
+     so they sit in a shared 24px-tall row and don't push content down. */
+  .customTabelPopup--md-picker > h4 {
+    top: 20px !important;
+    left: 20px !important;
+    right: auto;
+    margin: 0 !important;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 24px;
+    height: 24px;
+  }
+  .customTabelPopup__overlay-3 .customTabelPopup--md-picker > .customTabelPopup__close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    left: auto;
+    margin: 0 !important;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  /* When the product forces a design type (by-size PDP, gang-sheet PDP),
+     hide the type filter bar. The upload tile and grid filtering follow
+     from pre-setting typeFilter to the forced value (see JS init). */
+  .md-container--forced-type .md-filters__group[data-filter-group="type"] {
+    display: none !important;
+  }
+
+  /* Selection bar pinned FLUSH to the bottom of the modal frame.
+     CRITICAL: `.md-container` has `position: relative` baked in (line 239).
+     The bar lives inside `.md-container--picker`, so without an override
+     the bar's `position: absolute` resolves to .md-container (which grows
+     with the tile list) instead of the modal frame — making the bar
+     float wherever the tile list ends. We strip the relative positioning
+     off `.md-container--picker` (picker mode only — base .md-container
+     elsewhere keeps it) so the bar climbs the offset-parent chain up to
+     `.customTabelPopup--md-picker`. */
+  .customTabelPopup--md-picker {
+    position: relative !important;
+    overflow: hidden !important;
+    padding-bottom: 80px !important;
+  }
+  .customTabelPopup--md-picker > .md-container--picker {
+    position: static !important;  /* defeat the inherited `.md-container { position: relative }` */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain;
+  }
+  .customTabelPopup--md-picker .md-selection-bar {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    transform: none !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    border-radius: 0 0 12px 12px !important;
+    padding: 16px 24px !important;
+    box-sizing: border-box !important;
+    z-index: 10;
+  }
+  @media (max-width: 768px) {
+    .customTabelPopup--md-picker {
+      padding-bottom: 72px !important;
+    }
+    .customTabelPopup--md-picker .md-selection-bar {
+      padding: 12px 16px !important;
+      border-radius: 0 !important;
+    }
+  }
+</style>
+
+{%- comment -%} ============================= JS ============================= {%- endcomment -%}
+<script>
+(function() {
+  /* Claim the next un-initialized .md-container. The snippet can be rendered
+     more than once on the same page (e.g. dtf-upload-tabs "Recent Designs" tab
+     plus the "Choose a previously uploaded design" picker modal), and each
+     render emits its own copy of this script. Without :not([data-md-init]),
+     every IIFE re-initializes the first container and later ones stay stuck
+     on the loading spinner. */
+  var container = document.querySelector('.md-container:not([data-md-init])');
+  if (!container) return;
+  container.setAttribute('data-md-init', '1');
+
+  var CUSTOMER_ID = container.getAttribute('data-customer-id');
+  if (!CUSTOMER_ID) return;
+
+  var IS_PICKER = container.getAttribute('data-picker') === 'true';
+  var FORCED_TYPE = container.getAttribute('data-forced-type') || '';
+  var ALLOW_MULTI = container.getAttribute('data-allow-multi') === 'true';
+
+  var API = 'https://hpz51rjda5.execute-api.us-east-1.amazonaws.com/production';
+  var IMGIX_HOST = 'ninjauploads-production.imgix.net';
+  var S3_HOST = 'ninja-services-production-ninjauploadss3bucket-zks2mguobhe4.s3.amazonaws.com';
+  var STORAGE_KEY = 'nt-designs-archived-' + CUSTOMER_ID;
+  /* --- State --- */
+  var allDesigns = [];
+  var pendingUploads = [];
+  var localUploadedDesigns = [];
+  var uploadedPreviewMap = {};
+  var uploadTileErrors = {};
+  var sourceFilter = 'all';
+  var typeFilter = (FORCED_TYPE === 'bysize' || FORCED_TYPE === 'gangsheet') ? FORCED_TYPE : 'all';
+  var searchQuery = '';
+  var selectedDesignIds = [];
+  var uploadTileErrorTimers = {};
+
+  /* --- DOM refs --- */
+  var gridEl = container.querySelector('.md-grid');
+  var loadingEl = container.querySelector('.md-loading');
+  var emptyEl = container.querySelector('.md-empty');
+  var archiveBanner = container.querySelector('.md-archive-banner');
+  var modalOverlay = container.querySelector('.md-modal-overlay');
+  var modalName = container.querySelector('.md-modal__name');
+  var modalCancel = container.querySelector('.md-modal__cancel');
+  var modalConfirm = container.querySelector('.md-modal__confirm');
+  var toastEl = container.querySelector('.md-toast');
+  var searchInput = container.querySelector('.md-search-input');
+  var searchClear = container.querySelector('.md-search-clear');
+  var uploadInputs = container.querySelectorAll('.md-upload-input');
+  var selectionBar = container.querySelector('.md-selection-bar');
+
+  /* ─────────────────────────────────────────────────────────────────
+     Position the selection action bar INSIDE the dtfut panel-wrap.
+     .dtfut has `filter: drop-shadow(...)` in dtf-upload-tabs.css, which
+     creates a containing block for any position:fixed descendant — so the
+     bar\'s default `position: fixed; bottom: 24px` resolves to .dtfut
+     instead of the viewport. We previously worked around this by moving
+     the bar to <body>, but that left the bar floating at viewport bottom,
+     visually disconnected from the panel on desktop.
+     New approach: reparent the bar to `.dtfut__panel-wrap` and switch it
+     to position:absolute pinned to the bottom of that wrapper. The bar
+     stays visually inside the picker panel, and z-index:9998 keeps it
+     above the design grid (which has no explicit z-index).
+     Skipped for the picker modal context (.customTabelPopup--md-picker)
+     and the standalone /account/designs page — those already work. */
+  if (selectionBar && container.closest('.dtfut') && !container.closest('.customTabelPopup--md-picker')) {
+    var panelWrap = container.closest('.dtfut').querySelector('.dtfut__panel-wrap');
+    if (panelWrap) {
+      panelWrap.appendChild(selectionBar);
+      selectionBar.style.position = 'absolute';
+      selectionBar.style.left = '0';
+      selectionBar.style.right = '0';
+      selectionBar.style.bottom = '0';
+      selectionBar.style.transform = 'none';
+      selectionBar.style.width = '100%';
+      selectionBar.style.maxWidth = '100%';
+      selectionBar.style.borderRadius = '0 0 12px 12px';
+      selectionBar.style.margin = '0';
+      selectionBar.style.zIndex = '50';
+    }
+  }
+
+  /* Query summary/action buttons FROM the bar (not the container) — they
+     live inside the bar, and the bar may have been reparented to body
+     above. deselectAllBtn lives outside the bar so it stays in container. */
+  var selectionSummary = selectionBar && selectionBar.querySelector('.md-selection-bar__summary');
+  var deselectAllBtn = container.querySelector('.md-deselect-all');
+  var selectionArchiveBtn = selectionBar && selectionBar.querySelector('[data-selection-action="archive"]');
+  var selectionPrimaryBtn = selectionBar && selectionBar.querySelector('[data-selection-action="primary"]');
+  var selectionSecondaryBtn = selectionBar && selectionBar.querySelector('[data-selection-action="secondary"]');
+  var pendingDeleteId = null;
+
+  /* Archive confirm modal elements */
+  var archiveOverlay = container.querySelector('.md-archive-overlay');
+  var archiveModalName = container.querySelector('.md-archive-modal__name');
+  var archiveModalCancel = container.querySelector('.md-archive-modal__cancel');
+  var archiveModalConfirm = container.querySelector('.md-archive-modal__confirm');
+  var pendingArchiveId = null;
+  var pendingArchiveIds = [];
+
+
+  /* --- Archive helpers (localStorage) --- */
+  function getArchived() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; }
+  }
+  function setArchived(arr) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); } catch(e) {}
+  }
+  function isArchived(id) {
+    return getArchived().indexOf(String(id)) > -1;
+  }
+  function archiveItem(id) {
+    var arr = getArchived();
+    var sid = String(id);
+    if (arr.indexOf(sid) === -1) { arr.push(sid); setArchived(arr); }
+    try { window.dispatchEvent(new CustomEvent('nt-archive-changed', { detail: { source: 'my-designs', ids: [sid] } })); } catch(e) {}
+  }
+  function unarchiveItem(id) {
+    var arr = getArchived().filter(function(x) { return x !== String(id); });
+    setArchived(arr);
+    try { window.dispatchEvent(new CustomEvent('nt-archive-changed', { detail: { source: 'my-designs', ids: [String(id)], action: 'unarchive' } })); } catch(e) {}
+  }
+
+  /* --- Filename extraction (matches existing pattern) --- */
+  function extractFileName(url) {
+    var name = url;
+    if (url.indexOf('imgix.net') > -1) {
+      name = url.replace('https://','').split('?')[0].split('/')[1] || name;
+      if (name.indexOf('____image') > -1) {
+        var ext = name.split('.').pop();
+        name = name.split('____image')[0] + '.' + ext;
+      }
+    } else if (url.indexOf('upload.cloudlift.app') > -1) {
+      name = url.split('transferss/')[1] || name;
+    } else if (url.indexOf('ninja-services-production') > -1) {
+      name = url.replace('https://','').split('?')[0].split('/')[1] || name;
+    } else if (url.indexOf('amazonaws') > -1) {
+      name = url.replace('https://','').split('?')[0].split('/')[2] || name;
+    }
+    try { name = decodeURIComponent(name); } catch(e) {}
+    return name;
+  }
+
+  /* --- Compressed thumb URL --- */
+  function thumbUrl(url, isGang) {
+    var compressed = url.replace(S3_HOST, IMGIX_HOST);
+    var sep = compressed.indexOf('?') > -1 ? '&' : '?';
+    if (needsRemotePreview(url)) {
+      /* AI/EPS/PDF/SVG/TIF: convert to PNG — match DTF product page pattern (no trim/dpi that break conversion) */
+      if (isGang) {
+        return compressed + sep + 'fm=png&w=600&h=600&fit=clip&auto=compress&q=15';
+      }
+      return compressed + sep + 'fm=png&w=600&auto=compress&q=15';
+    }
+    if (isGang) {
+      /* Gang sheets: fit full image in 600×600 box, no trim so full layout is visible */
+      return compressed + sep + 'w=600&h=600&fit=clip&auto=compress&q=15&dpi=72';
+    }
+    return compressed + sep + 'h=300&auto=compress&q=10&dpi=72&trim=colorUnlessAlpha';
+  }
+
+  function sanitizeFileName(name) {
+    return (name || 'upload')
+      .replace(/[^a-z0-9\s]/gi, '')
+      .replace(/[_\s]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase() || 'upload';
+  }
+
+  function normalizeFileKey(url) {
+    try {
+      var clean = (url || '').split('?')[0];
+      var parts = clean.split('/');
+      return decodeURIComponent(parts[parts.length - 1] || clean);
+    } catch (e) {
+      return (url || '').split('?')[0];
+    }
+  }
+
+  function makeUploadMatchKey(fileOrKey, isGangSheet) {
+    var sourceValue = '';
+    if (typeof fileOrKey === 'string') {
+      sourceValue = fileOrKey;
+    } else if (fileOrKey) {
+      sourceValue = fileOrKey.file || fileOrKey.key || fileOrKey.s3File || '';
+    }
+    var baseKey = normalizeFileKey(sourceValue);
+    return baseKey + '|' + (isGangSheet ? '1' : '0');
+  }
+
+  function uniq(arr) {
+    return arr.filter(function(item, index) { return arr.indexOf(item) === index; });
+  }
+
+  function wait(ms) {
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
+  }
+
+  function makeUploadTempId() {
+    return 'pending-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  }
+
+  function makeVectorPlaceholderThumb(name) {
+    var ext = ((name || '').split('.').pop() || 'file').toUpperCase();
+    var label = ext.length > 5 ? 'FILE' : ext;
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">' +
+      '<rect width="600" height="600" fill="#f8fafc"/>' +
+      '<rect x="46" y="46" width="508" height="508" rx="28" fill="#ffffff" stroke="#dbe5f1" stroke-width="12"/>' +
+      '<rect x="150" y="120" width="300" height="360" rx="24" fill="#eff6ff" stroke="#93c5fd" stroke-width="10"/>' +
+      '<path d="M220 200h160M220 255h160M220 310h120" stroke="#60a5fa" stroke-width="18" stroke-linecap="round"/>' +
+      '<text x="300" y="410" text-anchor="middle" font-family="Arial, sans-serif" font-size="64" font-weight="700" fill="#1d4ed8">' + label + '</text>' +
+      '<text x="300" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" fill="#64748b">Generating preview...</text>' +
+    '</svg>';
+    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+  }
+
+  function getPendingVisibleUploads() {
+    return pendingUploads.filter(function(item) {
+      if (sourceFilter === 'archive') return false;
+      if (typeFilter === 'bysize' && item.gangsheet) return false;
+      if (typeFilter === 'gangsheet' && !item.gangsheet) return false;
+      return true;
+    });
+  }
+
+  function shouldShowUploadCards() {
+    return sourceFilter !== 'archive';
+  }
+
+  function getUploadTileError(target) {
+    return uploadTileErrors[target] || '';
+  }
+
+  function getUploadTileNote(target, defaultText) {
+    return getUploadTileError(target) || defaultText;
+  }
+
+  function getUploadTileClasses(target) {
+    return 'md-upload-tile' + (getUploadTileError(target) ? ' md-upload-tile--error' : '');
+  }
+
+  function getUploadCardsHtml() {
+    if (!shouldShowUploadCards()) return '';
+    var icon = '<span class="md-upload-tile__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M20 16.5A3.5 3.5 0 0 1 16.5 20h-9A3.5 3.5 0 0 1 4 16.5"/></svg></span>';
+    var bySizeTile = '<button type="button" class="' + getUploadTileClasses('bysize') + '" data-upload-open="bysize" data-upload-dropzone="bysize">' + icon + '<span class="md-upload-tile__title">Upload By Size</span><span class="md-upload-tile__browse">Browse</span><span class="md-upload-tile__note">' + getUploadTileNote('bysize', 'Drag &amp; Drop (10 file limit)') + '</span></button>';
+    var gangSheetTile = '<button type="button" class="' + getUploadTileClasses('gangsheet') + '" data-upload-open="gangsheet" data-upload-dropzone="gangsheet">' + icon + '<span class="md-upload-tile__title">Upload Gang Sheet</span><span class="md-upload-tile__browse">Browse</span><span class="md-upload-tile__note md-upload-tile__note--muted">' + getUploadTileNote('gangsheet', 'One file at a time') + '</span></button>';
+    if (typeFilter === 'bysize') return '<div class="md-upload-card md-upload-card--single md-upload-card--bysize">' + bySizeTile + '</div>';
+    if (typeFilter === 'gangsheet') return '<div class="md-upload-card md-upload-card--single md-upload-card--gangsheet">' + gangSheetTile + '</div>';
+    /* At 5-per-row the columns are narrow enough that a single dual-stack
+       card looks cramped; render the two tiles as their own single cards
+       (matching the By Size / Gang Sheet filter views) so they auto-place
+       in cols 1 and 2 of row 1 with the same outer card chrome. */
+    var standalone = container.closest && container.closest('.md-standalone');
+    if (standalone && standalone.getAttribute('data-cols') === '5') {
+      return '<div class="md-upload-card md-upload-card--single md-upload-card--bysize">' + bySizeTile + '</div>' +
+             '<div class="md-upload-card md-upload-card--single md-upload-card--gangsheet">' + gangSheetTile + '</div>';
+    }
+    return '<div class="md-upload-card md-upload-card--dual"><div class="md-upload-card__stack">' + bySizeTile + gangSheetTile + '</div></div>';
+  }
+
+  function getPendingUploadHtml(item) {
+    var pendingBadge = item.gangsheet ? '<span class="md-card__badge md-card__badge--gangsheet">Gang Sheet</span>' : '<span class="md-card__badge md-card__badge--bysize">By Size</span>';
+    return '<div class="md-card md-card--uploading' + (item.gangsheet ? ' md-card--gangsheet' : '') + '" data-pending-upload-id="' + item.id + '">' +
+      '<div class="md-card__thumb">' +
+        pendingBadge +
+        (item.previewUrl ? '<img src="' + item.previewUrl + '" alt="' + item.fileName.replace(/"/g, '&quot;') + '" loading="lazy">' : '') +
+        '<div class="md-card__upload-spinner"></div>' +
+        '<div class="md-card__upload-copy">Uploading...</div>' +
+      '</div>' +
+      '<div class="md-card__info">' +
+        '<p class="md-card__name" data-tooltip="' + item.fileName.replace(/"/g, '&quot;') + '">' + smartFileName(item.fileName, 22) + '</p>' +
+        '<p class="md-card__meta"><span>Upload in progress</span></p>' +
+      '</div>' +
+      '<div class="md-card__action"><div class="md-card__action-row"><span class="md-card__action-btn" style="text-decoration:none;cursor:default;color:#9ca3af;">Please wait</span></div></div>' +
+    '</div>';
+  }
+
+  /* --- File extension --- */
+  function fileExt(url) {
+    try {
+      var path = url.split('?')[0];
+      var ext = path.split('.').pop().toLowerCase();
+      if (ext.length > 5) return '';
+      return ext.toUpperCase();
+    } catch(e) { return ''; }
+  }
+
+  /* --- Smart filename truncation: keep the extension attached after truncation --- */
+  function smartFileName(name, maxLen) {
+    if (!name) return '';
+    maxLen = maxLen || 28;
+    var dotIdx = name.lastIndexOf('.');
+    var ext = dotIdx > -1 ? name.substring(dotIdx + 1).toLowerCase() : '';
+    var base = dotIdx > -1 ? name.substring(0, dotIdx) : name;
+    var suffix = ext ? '.' + ext : '';
+    var totalMax = maxLen - suffix.length;
+    if (totalMax < 6) totalMax = 6;
+    if (base.length > totalMax) {
+      base = base.substring(0, totalMax - 3) + '...';
+    }
+    return base + suffix;
+  }
+
+  /* --- Vector file detection --- */
+  var VECTOR_EXTS = ['ai', 'eps', 'pdf', 'svg', 'tif', 'tiff', 'psd'];
+  var REMOTE_PREVIEW_EXTS = ['ai', 'eps', 'pdf', 'svg', 'tif', 'tiff', 'psd'];
+  function isVectorFile(url) {
+    try {
+      var ext = url.split('?')[0].split('.').pop().toLowerCase();
+      return VECTOR_EXTS.indexOf(ext) > -1;
+    } catch(e) { return false; }
+  }
+
+  function needsRemotePreview(url) {
+    try {
+      var ext = url.split('?')[0].split('.').pop().toLowerCase();
+      return REMOTE_PREVIEW_EXTS.indexOf(ext) > -1;
+    } catch(e) { return false; }
+  }
+
+  /* --- Extract width/height from variant_title like "4x6", "10.5 x 12" --- */
+  function extractDimensions(str) {
+    if (!str) return null;
+    var match = str.match(/([\d.]+)[^0-9.]*([\d.]+)/);
+    if (match) {
+      var width = parseFloat(match[1]);
+      var height = parseFloat(match[2]);
+      if (width > 0 && height > 0) {
+        return { width: String(width), height: String(height) };
+      }
+    }
+    return null;
+  }
+
+  /* --- Build vector dimension params if applicable --- */
+  function vectorParams(item) {
+    if (!isVectorFile(item.file)) return '';
+    var dims = extractDimensions(item.variantTitle);
+    if (dims) return '&orderFileWidth=' + dims.width + '&orderFileHeight=' + dims.height;
+    return '';
+  }
+
+  function getOriginalOrderFile(item) {
+    if (!item) return '';
+    /* AI/EPS/PSD: DTF page uses sendApiRequest which expects the S3 or full URL */
+    /* PDF: DTF page converts S3→imgix+fm=png explicitly */
+    /* TIF/TIFF/SVG: DTF page has no special handler — send imgix URL so the browser can render via imgix auto-conversion */
+    var ext = fileExt(item.file);
+    var needsS3 = ['ai', 'eps', 'pdf', 'psd'].indexOf(ext) > -1;
+    if (needsS3) {
+      if (item.s3File) return item.s3File.split('?')[0];
+      return item.file.replace(IMGIX_HOST, S3_HOST).split('?')[0];
+    }
+    return item.file.split('?')[0];
+  }
+
+  /* --- Reorder URL --- */
+  function reorderUrl(item) {
+    var f = getOriginalOrderFile(item);
+    var vp = vectorParams(item);
+    /* For purchased designs (item.orderName present) we route through the
+       JSON `?my_designs_selection=` payload so the orderName travels with
+       the design to the product page. The `?file=` shape can only carry a
+       URL; the destination's cart-add pipeline can't recover "previously
+       on order # NT-…" from a bare file URL alone. The consumer side
+       (bySize.js / bySize_popular.js / pdp_transferBySize-multiupload.js
+       sharedSelection readers) seeds window.__designReUsedByUrl +
+       __designReUsedByName + the legacy `ordername` / `grt_photo_id` /
+       `designtype` globals from the payload, and the cart-serialize code
+       stamps `properties[design re-used]` from there. Uploads (no
+       orderName) keep the lighter `?file=` path for backward compat. */
+    if (item.gangsheet) {
+      if (item.orderName) {
+        var gsPayload = [{ id: String(item.id), name: item.fileName, fileURL: f, orderName: String(item.orderName) }];
+        return buildDestinationUrl('/products/premium-dtf-gang-sheets?my_designs_selection=' + encodeURIComponent(JSON.stringify(gsPayload)));
+      }
+      return buildDestinationUrl('/products/premium-dtf-gang-sheets?file=' + encodeURIComponent(f) + vp);
+    }
+    if (item.orderName) {
+      var bsPayload = [{ id: String(item.id), name: item.fileName, fileURL: f, orderName: String(item.orderName) }];
+      var dims = extractDimensions(item.variantTitle);
+      if (dims) { bsPayload[0].designWidth = dims.width; bsPayload[0].designHeight = dims.height; }
+      return buildDestinationUrl('/products/dtf-transfers?my_designs_selection=' + encodeURIComponent(JSON.stringify(bsPayload)));
+    }
+    return buildDestinationUrl('/products/dtf-transfers?file=' + encodeURIComponent(f) + vp);
+  }
+
+  function uvReorderUrl(item) {
+    var f = getOriginalOrderFile(item);
+    var vp = vectorParams(item);
+    return buildDestinationUrl('/products/uv-dtf-stickers-decals-by-size?file=' + encodeURIComponent(f) + vp);
+  }
+
+  function buildDestinationUrl(path) {
+    var url = new URL(path, window.location.origin);
+    var currentParams = new URLSearchParams(window.location.search);
+    if (currentParams.has('preview_theme_id')) {
+      url.searchParams.set('preview_theme_id', currentParams.get('preview_theme_id'));
+    }
+    return url.pathname + url.search;
+  }
+
+  function buildBulkSelectionPayload(items) {
+    return items.map(function(item) {
+      var payload = {
+        id: String(item.id),
+        name: item.fileName,
+        fileURL: getOriginalOrderFile(item)
+      };
+      var dims = extractDimensions(item.variantTitle);
+      if (dims) {
+        payload.designWidth = dims.width;
+        payload.designHeight = dims.height;
+      }
+      /* Carry the source order name into the destination product page so
+         the upload pipeline there can stamp properties[design re-used]
+         with "previously on order # NT-…" on cart-add. The consumer
+         (bySize_popular.js / bySize.js / pdp_transferBySize-multiupload.js
+         sharedSelection reader) populates window.__designReUsedByName /
+         __designReUsedByUrl from this. Only set when present + on a
+         purchased-source design (uploads have no orderName). */
+      if (item.orderName) {
+        payload.orderName = String(item.orderName);
+      }
+      return payload;
+    });
+  }
+
+  function openBulkBySizeSelection(productPath, items) {
+    var url = new URL(productPath, window.location.origin);
+    url.searchParams.set('my_designs_selection', encodeURIComponent(JSON.stringify(buildBulkSelectionPayload(items))));
+    var currentParams = new URLSearchParams(window.location.search);
+    if (currentParams.has('preview_theme_id')) {
+      url.searchParams.set('preview_theme_id', currentParams.get('preview_theme_id'));
+    }
+    window.location.href = url.pathname + url.search;
+  }
+
+  function getSelectedDesigns() {
+    return selectedDesignIds.map(function(id) {
+      return allDesigns.find(function(item) { return String(item.id) === String(id); });
+    }).filter(Boolean);
+  }
+
+  function hasSelectedGangSheet(items) {
+    return items.some(function(item) { return item.gangsheet; });
+  }
+
+  function isSelectionDisabled(item, selectedItems) {
+    if (sourceFilter === 'archive') return false;
+    if (selectedItems.length === 0) return false;
+    var isSelected = selectedDesignIds.indexOf(String(item.id)) > -1;
+    if (isSelected) return false;
+    /* Picker mode on gang-sheet products: never disable — clicks always
+       replace the current selection (single-select). */
+    if (IS_PICKER && FORCED_TYPE === 'gangsheet') return false;
+    /* Picker mode on non-multi-upload products: single-select with replace. */
+    if (IS_PICKER && !ALLOW_MULTI) return false;
+    return false;
+  }
+
+  function clearSelection() {
+    selectedDesignIds = [];
+  }
+
+  function getUploadInput(target) {
+    return container.querySelector('.md-upload-input[data-upload-target="' + target + '"]');
+  }
+
+  function isValidUploadFile(file) {
+    return !!(file && file.name && file.size > 0 && file.size <= 5368709120);
+  }
+
+  function isValidGangSheetFile(file) {
+    if (!file || !file.name) return false;
+    var ext = '.' + ((file.name.split('.').pop() || '').toLowerCase());
+    return ['.ai', '.png', '.pdf'].indexOf(ext) > -1;
+  }
+
+  function showUploadTileError(target, message) {
+    uploadTileErrors[target] = message;
+    render();
+    if (uploadTileErrorTimers[target]) {
+      clearTimeout(uploadTileErrorTimers[target]);
+    }
+    uploadTileErrorTimers[target] = setTimeout(function() {
+      delete uploadTileErrors[target];
+      render();
+    }, 3000);
+  }
+
+  function crc32FromArrayBuffer(arrayBuffer) {
+    var table = crc32FromArrayBuffer.table || (function() {
+      var c;
+      var table = [];
+      for (var n = 0; n < 256; n++) {
+        c = n;
+        for (var k = 0; k < 8; k++) {
+          c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+        }
+        table[n] = c >>> 0;
+      }
+      crc32FromArrayBuffer.table = table;
+      return table;
+    })();
+    var crc = 0 ^ (-1);
+    var bytes = new Uint8Array(arrayBuffer);
+    for (var i = 0; i < bytes.length; i++) {
+      crc = (crc >>> 8) ^ table[(crc ^ bytes[i]) & 0xFF];
+    }
+    return ((crc ^ (-1)) >>> 0).toString(16);
+  }
+
+  async function getFileCrc(file) {
+    try {
+      var buffer = await file.arrayBuffer();
+      return crc32FromArrayBuffer(buffer);
+    } catch (e) {
+      return '';
+    }
+  }
+
+  async function getPresignedUploadUrl(fileName, fileType) {
+    var response = await fetch(API + '/uploads/getPresignedUploadUrl?file_name=' + encodeURIComponent(fileName) + '&file_type=' + encodeURIComponent(fileType || 'application/octet-stream'));
+    if (!response.ok) throw new Error('Failed to get upload URL');
+    return response.json();
+  }
+
+  async function saveUploadRecord(payload) {
+    console.log('[My Designs] saveUploadRecord payload:', JSON.stringify(payload));
+    var body = JSON.stringify([payload]);
+    /* Use $.ajax to match the DTF product page request format exactly */
+    return new Promise(function(resolve, reject) {
+      $.ajax({
+        url: API + '/uploads/saveData',
+        method: 'post',
+        dataType: 'json',
+        data: body,
+        success: function(resp) {
+          console.log('[My Designs] saveUploadRecord success:', JSON.stringify(resp));
+          resolve(resp);
+        },
+        error: function(xhr) {
+          console.error('[My Designs] saveUploadRecord failed:', xhr.status, xhr.responseText);
+          reject(new Error('Failed to save upload (' + xhr.status + ')'));
+        }
+      });
+    });
+  }
+
+  async function uploadFileToLibrary(file, isGangSheet) {
+    var ext = (file.name.split('.').pop() || '').toLowerCase();
+    var randomName = sanitizeFileName(file.name.split('.').slice(0, -1).join('.') || file.name) + '____image_' + Date.now() + '_' + Math.floor(Math.random() * 1000) + (ext ? '.' + ext : '');
+    console.log('[My Designs] uploadFileToLibrary start:', file.name, 'type:', file.type, 'size:', file.size, 'randomName:', randomName);
+    var presignData = await getPresignedUploadUrl(randomName, file.type || 'application/octet-stream');
+    console.log('[My Designs] presignData:', JSON.stringify(presignData));
+    if (!presignData || !presignData.url || !presignData.sourceUrl) throw new Error('Upload URL was not returned');
+
+    var putResponse = await fetch(presignData.url, {
+      method: 'PUT',
+      body: file
+    });
+    console.log('[My Designs] S3 PUT status:', putResponse.status, putResponse.statusText);
+    if (!putResponse.ok) throw new Error('Upload failed (S3 PUT ' + putResponse.status + ')');
+
+    var filePath = (presignData.sourceUrl || '').replace(S3_HOST, IMGIX_HOST);
+    if (!filePath) {
+      filePath = 'https://' + IMGIX_HOST + '/' + randomName;
+    }
+    var fileCrc = await getFileCrc(file);
+
+    await wait(1500);
+
+    await saveUploadRecord({
+      variant_title: 'custom',
+      file: filePath,
+      customer_id: CUSTOMER_ID,
+      file_name: file.name,
+      file_crc: fileCrc,
+      product_id: 'my-designs',
+      gangsheet: !!isGangSheet
+    });
+
+    return {
+      key: normalizeFileKey(filePath),
+      file: filePath,
+      s3File: presignData.sourceUrl,
+      fileName: file.name,
+      gangsheet: !!isGangSheet
+    };
+  }
+
+  function addPendingUpload(file, isGangSheet) {
+    var isRemotePreview = needsRemotePreview(file && file.name ? file.name : '');
+    var pending = {
+      id: makeUploadTempId(),
+      fileName: file.name,
+      gangsheet: !!isGangSheet,
+      previewUrl: isRemotePreview ? '' : URL.createObjectURL(file)
+    };
+    pendingUploads.push(pending);
+    render();
+    return pending.id;
+  }
+
+  function removePendingUpload(id) {
+    pendingUploads = pendingUploads.filter(function(item) {
+      if (item.id === id) {
+        if (item.previewUrl) {
+          var previewStillInUse = Object.keys(uploadedPreviewMap).some(function(key) {
+            return uploadedPreviewMap[key] === item.previewUrl;
+          });
+          if (!previewStillInUse) {
+            try { URL.revokeObjectURL(item.previewUrl); } catch (e) {}
+          }
+        }
+        return false;
+      }
+      return true;
+    });
+  }
+
+  function getRenderThumb(item) {
+    var key = normalizeFileKey(item.file);
+    var s3Key = item.s3File ? normalizeFileKey(item.s3File) : '';
+    return item.localThumb || uploadedPreviewMap[key] || (s3Key ? uploadedPreviewMap[s3Key] : '') || item.thumb;
+  }
+
+  function setUploadedPreview(uploadRef, previewSrc) {
+    if (!uploadRef || !previewSrc) return;
+    uploadedPreviewMap[uploadRef.key] = previewSrc;
+    if (uploadRef.s3File) {
+      uploadedPreviewMap[normalizeFileKey(uploadRef.s3File)] = previewSrc;
+    }
+  }
+
+  function hasResolvedUploadPreview(item) {
+    if (!item) return false;
+    if (!needsRemotePreview(item.file || '')) return true;
+    var key = normalizeFileKey(item.file || '');
+    var s3Key = item.s3File ? normalizeFileKey(item.s3File) : '';
+    return !!(uploadedPreviewMap[key] || (s3Key && uploadedPreviewMap[s3Key]));
+  }
+
+  function updateLocalUploadedThumb(uploadRef, previewSrc) {
+    if (!uploadRef || !previewSrc) return;
+    var matchKey = makeUploadMatchKey(uploadRef.file, !!uploadRef.gangsheet);
+    var didUpdate = false;
+
+    localUploadedDesigns = localUploadedDesigns.map(function(item) {
+      if (makeUploadMatchKey(item, !!item.gangsheet) === matchKey) {
+        didUpdate = true;
+        return Object.assign({}, item, { localThumb: previewSrc, thumb: previewSrc });
+      }
+      return item;
+    });
+
+    allDesigns = allDesigns.map(function(item) {
+      if (makeUploadMatchKey(item, !!item.gangsheet) === matchKey) {
+        return Object.assign({}, item, { localThumb: previewSrc, thumb: previewSrc });
+      }
+      return item;
+    });
+
+    return didUpdate;
+  }
+
+  function syncLocalUploadedDesigns(fetchedDesigns) {
+    var nextSelectedIds = selectedDesignIds.slice();
+
+    localUploadedDesigns = localUploadedDesigns.map(function(localItem) {
+      var matchKey = makeUploadMatchKey(localItem, !!localItem.gangsheet);
+      var fetchedItem = fetchedDesigns.find(function(item) {
+        return makeUploadMatchKey(item, !!item.gangsheet) === matchKey;
+      });
+
+      if (!fetchedItem) return localItem;
+
+      if (String(localItem.id).indexOf('local-') === 0) {
+        nextSelectedIds = nextSelectedIds.map(function(id) {
+          return String(id) === String(localItem.id) ? String(fetchedItem.id) : id;
+        });
+      }
+
+      return Object.assign({}, localItem, fetchedItem, {
+        id: fetchedItem.id,
+        localThumb: localItem.localThumb || fetchedItem.localThumb || '',
+        thumb: localItem.localThumb || fetchedItem.thumb,
+        timestamp: fetchedItem.timestamp || localItem.timestamp,
+        fileName: fetchedItem.fileName || localItem.fileName,
+        s3File: fetchedItem.s3File || localItem.s3File
+      });
+    });
+
+    selectedDesignIds = uniq(nextSelectedIds);
+  }
+
+  function refreshUploadedImgixPreview(uploadRef, attempt) {
+    if (!uploadRef || !needsRemotePreview(uploadRef.file)) return Promise.resolve('');
+    var imgixSrc = thumbUrl(uploadRef.s3File || uploadRef.file, uploadRef.gangsheet);
+    if (!imgixSrc || imgixSrc.indexOf(IMGIX_HOST) === -1) return Promise.resolve('');
+
+    return new Promise(function(resolve) {
+      var tries = typeof attempt === 'number' ? attempt : 0;
+      var retrySrc = imgixSrc + (imgixSrc.indexOf('?') > -1 ? '&' : '?') + 'preview_refresh=' + Date.now() + '-' + tries;
+      var probe = new Image();
+
+      probe.onload = function() {
+        setUploadedPreview(uploadRef, imgixSrc);
+        updateLocalUploadedThumb(uploadRef, imgixSrc);
+        render();
+        resolve(imgixSrc);
+      };
+
+      probe.onerror = function() {
+        if (tries >= 14) {
+          resolve('');
+          return;
+        }
+        setTimeout(function() {
+          refreshUploadedImgixPreview(uploadRef, tries + 1).then(resolve);
+        }, 1200);
+      };
+
+      probe.src = retrySrc;
+    });
+  }
+
+  async function fetchDesignData() {
+    var results = await Promise.all([
+      fetch(API + '/uploads/fetchDataNew?customer_id=' + CUSTOMER_ID).then(function(r) { return r.json(); }).catch(function() { return []; }),
+      fetch(API + '/uploads/orderDataNew?customer_id=' + CUSTOMER_ID + '&gangsheet=false').then(function(r) { return r.json(); }).catch(function() { return []; }),
+      fetch(API + '/uploads/orderDataNew?customer_id=' + CUSTOMER_ID + '&gangsheet=true').then(function(r) { return r.json(); }).catch(function() { return []; })
+    ]);
+
+    var uploadData = results[0] && results[0].data ? results[0].data : results[0];
+    var purchaseBySize = results[1] && results[1].data ? results[1].data : results[1];
+    var purchaseGang = results[2] && results[2].data ? results[2].data : results[2];
+    var designs = [];
+    if (Array.isArray(uploadData)) uploadData.forEach(function(item) { designs.push(processItem(item, 'upload')); });
+    if (Array.isArray(purchaseBySize)) purchaseBySize.forEach(function(item) { designs.push(processItem(item, 'purchase', false)); });
+    if (Array.isArray(purchaseGang)) purchaseGang.forEach(function(item) { designs.push(processItem(item, 'purchase', true)); });
+    syncLocalUploadedDesigns(designs);
+    var localKeys = localUploadedDesigns.map(function(item) {
+      return makeUploadMatchKey(item, !!item.gangsheet);
+    });
+    designs = designs.filter(function(item) {
+      return localKeys.indexOf(makeUploadMatchKey(item, !!item.gangsheet)) === -1;
+    });
+    designs = localUploadedDesigns.concat(designs);
+    designs.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+    return designs;
+  }
+
+  async function fetchDesigns(options) {
+    options = options || {};
+    if (!options.silent) {
+      loadingEl.style.display = 'flex';
+      gridEl.style.display = 'none';
+      emptyEl.style.display = 'none';
+    }
+
+    allDesigns = await fetchDesignData();
+
+    if (!options.silent) {
+      loadingEl.style.display = 'none';
+    }
+
+    if (typeof options.afterLoad === 'function') options.afterLoad(allDesigns);
+    render();
+  }
+
+  function selectUploadedRefs(uploadedRefs) {
+    if (!uploadedRefs || uploadedRefs.length === 0) return [];
+    var matchedIds = allDesigns.filter(function(item) {
+      var itemKey = normalizeFileKey(item.file);
+      return uploadedRefs.some(function(ref) {
+        return ref.key === itemKey && !!ref.gangsheet === !!item.gangsheet;
+      });
+    }).map(function(item) { return String(item.id); });
+    if (matchedIds.length) {
+      selectedDesignIds = uniq(selectedDesignIds.concat(matchedIds));
+    }
+    return matchedIds;
+  }
+
+  function addLocalUploadedDesign(uploadRef, previewUrl) {
+    var localId = 'local-' + uploadRef.key + '-' + Date.now();
+    var localThumb = previewUrl || '';
+    var localDesign = {
+      id: localId,
+      file: uploadRef.file,
+      s3File: uploadRef.s3File || '',
+      fileName: uploadRef.fileName,
+      thumb: localThumb || thumbUrl(uploadRef.file, uploadRef.gangsheet),
+      localThumb: localThumb,
+      date: '',
+      timestamp: Math.floor(Date.now() / 1000),
+      gangsheet: !!uploadRef.gangsheet,
+      source: 'upload',
+      variantTitle: '',
+      orderName: ''
+    };
+    localUploadedDesigns = localUploadedDesigns.filter(function(item) {
+      return makeUploadMatchKey(item, !!item.gangsheet) !== makeUploadMatchKey(uploadRef.file, !!uploadRef.gangsheet);
+    });
+    localUploadedDesigns.unshift(localDesign);
+    selectedDesignIds = uniq(selectedDesignIds.filter(function(id) { return id.indexOf('local-') !== 0; }).concat([String(localId)]));
+    /* De-dupe allDesigns against ALL local uploads (not just current), to prevent brief duplicate render between upload complete and fetch */
+    var localKeySet = {};
+    localUploadedDesigns.forEach(function(d) { localKeySet[makeUploadMatchKey(d, !!d.gangsheet)] = true; });
+    allDesigns = localUploadedDesigns.concat(allDesigns.filter(function(item) {
+      return !localKeySet[makeUploadMatchKey(item, !!item.gangsheet)];
+    }));
+    allDesigns.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+    return localId;
+  }
+
+  async function resolveUploadedDesign(uploadRef, pendingId) {
+    var pendingItem = pendingUploads.find(function(entry) { return entry.id === pendingId; });
+    var needsImgixPreview = needsRemotePreview(uploadRef.file);
+
+    if (needsImgixPreview) {
+      /* Keep the spinner visible while imgix generates the PNG preview */
+      var imgixThumb = await refreshUploadedImgixPreview(uploadRef);
+      addLocalUploadedDesign(uploadRef, imgixThumb || '');
+      removePendingUpload(pendingId);
+      render();
+    } else {
+      var localPreview = pendingItem && pendingItem.previewUrl ? pendingItem.previewUrl : '';
+      addLocalUploadedDesign(uploadRef, localPreview);
+      removePendingUpload(pendingId);
+      render();
+    }
+
+    await wait(needsImgixPreview ? 250 : 1200);
+    await fetchDesigns({ silent: true, afterLoad: function() {
+      selectUploadedRefs([uploadRef]);
+    }});
+  }
+
+  async function handleUploadFiles(fileList, isGangSheet, fromDrop) {
+    var files = Array.prototype.slice.call(fileList || []).filter(isValidUploadFile);
+    if (!files.length) return;
+
+    if (isGangSheet && files.some(function(file) { return !isValidGangSheetFile(file); })) {
+      showUploadTileError('gangsheet', 'We accept the following file types png, ai, pdf');
+      return;
+    }
+
+    if (isGangSheet && files.length > 1) {
+      files = [files[0]];
+      showToast('Gang sheet upload only accepts 1 file at a time.');
+    }
+
+    if (!isGangSheet && files.length > 10) {
+      showUploadTileError('bysize', '10 file limit at a time');
+      showToast('You can upload up to 10 by size files at once.');
+      return;
+    }
+
+    for (var i = 0; i < files.length; i++) {
+      var file = files[i];
+      var pendingId = addPendingUpload(file, isGangSheet);
+      try {
+        var uploadRef = await uploadFileToLibrary(file, isGangSheet);
+        var pendingItem = pendingUploads.find(function(entry) { return entry.id === pendingId; });
+        if (pendingItem && pendingItem.previewUrl && !needsRemotePreview(uploadRef.file)) {
+          uploadedPreviewMap[uploadRef.key] = pendingItem.previewUrl;
+          if (uploadRef.s3File) {
+            uploadedPreviewMap[normalizeFileKey(uploadRef.s3File)] = pendingItem.previewUrl;
+          }
+        }
+        await resolveUploadedDesign(uploadRef, pendingId);
+      } catch (e) {
+        console.error('[My Designs] Upload error:', e.message, e);
+        removePendingUpload(pendingId);
+        render();
+        showToast('Upload failed. Please try again.');
+      }
+    }
+  }
+
+  function toggleDesignSelection(id) {
+    var sid = String(id);
+    var item = allDesigns.find(function(entry) { return String(entry.id) === sid; });
+    if (!item) return;
+    var index = selectedDesignIds.indexOf(sid);
+    if (index > -1) {
+      selectedDesignIds.splice(index, 1);
+      render();
+      return;
+    }
+
+    var selectedItems = getSelectedDesigns();
+    if (isSelectionDisabled(item, selectedItems)) return;
+
+    if (sourceFilter === 'archive') {
+      selectedDesignIds.push(sid);
+      render();
+      return;
+    }
+
+    if (IS_PICKER && !ALLOW_MULTI) {
+      selectedDesignIds = [sid];
+    } else {
+      selectedDesignIds.push(sid);
+    }
+    render();
+  }
+
+  function updateSelectionBar(visibleItems) {
+    var visibleIds = visibleItems.map(function(item) { return String(item.id); });
+    selectedDesignIds = selectedDesignIds.filter(function(id) {
+      return visibleIds.indexOf(String(id)) > -1;
+    });
+
+    var selectedItems = getSelectedDesigns();
+    if (!selectionBar) return;
+    if (selectedItems.length === 0) {
+      selectionBar.style.display = 'none';
+      if (deselectAllBtn) deselectAllBtn.style.display = 'none';
+      return;
+    }
+
+    var count = selectedItems.length;
+    if (deselectAllBtn) deselectAllBtn.style.display = 'inline-flex';
+    var selectionNote = container.querySelector('.md-selection-bar__note');
+    if (sourceFilter === 'archive') {
+      selectionSummary.textContent = count + ' ' + (count === 1 ? 'item selected' : 'items selected');
+      selectionPrimaryBtn.textContent = count === 1 ? 'Restore Image' : 'Restore Images';
+      selectionPrimaryBtn.classList.add('md-selection-bar__btn--success');
+      selectionPrimaryBtn.classList.remove('md-selection-bar__btn--primary');
+      if (selectionArchiveBtn) selectionArchiveBtn.style.display = 'none';
+      selectionSecondaryBtn.style.display = 'none';
+      if (selectionNote) { selectionNote.textContent = ''; selectionNote.style.display = 'none'; }
+      selectionBar.style.display = 'flex';
+      return;
+    }
+
+    selectionPrimaryBtn.classList.add('md-selection-bar__btn--primary');
+    selectionPrimaryBtn.classList.remove('md-selection-bar__btn--success');
+    selectionSummary.textContent = count + ' ' + (count === 1 ? 'item selected' : 'items selected');
+
+    if (IS_PICKER) {
+      selectionPrimaryBtn.textContent = count === 1 ? 'Use Design' : 'Use Designs';
+      if (selectionArchiveBtn) selectionArchiveBtn.style.display = 'inline-flex';
+      selectionSecondaryBtn.style.display = 'none';
+      if (selectionNote) { selectionNote.textContent = ''; selectionNote.style.display = 'none'; }
+      selectionBar.style.display = 'flex';
+      return;
+    }
+
+    if (selectionArchiveBtn) selectionArchiveBtn.style.display = 'inline-flex';
+    var blockMultiGangSheet = count > 1 && hasSelectedGangSheet(selectedItems);
+    if (blockMultiGangSheet) {
+      selectionPrimaryBtn.style.display = 'none';
+      selectionSecondaryBtn.style.display = 'none';
+      if (selectionNote) {
+        selectionNote.textContent = 'Only 1 gang sheet can be ordered at a time';
+        selectionNote.style.display = '';
+      }
+    } else {
+      selectionPrimaryBtn.style.display = '';
+      selectionSecondaryBtn.style.display = '';
+      if (selectionNote) { selectionNote.textContent = ''; selectionNote.style.display = 'none'; }
+      var isGangSheetOnly = count === 1 && selectedItems[0].gangsheet;
+      if (isGangSheetOnly) {
+        selectionPrimaryBtn.textContent = 'Order as DTF Gang Sheet';
+        selectionSecondaryBtn.textContent = 'Other Ordering Options';
+      } else if (count === 1) {
+        selectionPrimaryBtn.textContent = 'Order as DTF';
+        selectionSecondaryBtn.textContent = 'Other Ordering Options';
+      } else {
+        selectionPrimaryBtn.textContent = 'Order as DTF';
+        selectionSecondaryBtn.textContent = 'Order as UV DTF';
+      }
+    }
+
+    selectionBar.style.display = 'flex';
+  }
+
+  /* --- Relative time label --- */
+  function timeAgoLabel(timestamp, source) {
+    if (!timestamp) return source === 'upload' ? 'Uploaded' : 'Purchased';
+    var nowSec = Math.floor(Date.now() / 1000);
+    var diff = nowSec - timestamp;
+    if (diff < 0) diff = 0;
+    var days = Math.floor(diff / 86400);
+    var prefix = source === 'upload' ? 'Uploaded' : 'Purchased';
+    if (days === 0) {
+      var hours = Math.floor(diff / 3600);
+      if (hours === 0) return prefix + ' just now';
+      if (hours === 1) return prefix + ' 1 hour ago';
+      return prefix + ' ' + hours + ' hours ago';
+    }
+    if (days === 1) return prefix + ' 1 day ago';
+    return prefix + ' ' + days + ' days ago';
+  }
+
+  /* --- Toast --- */
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('md-toast--visible');
+    setTimeout(function() { toastEl.classList.remove('md-toast--visible'); }, 3000);
+  }
+
+  /* --- Count badges --- */
+  function updateCounts() {
+    var archived = getArchived();
+    var counts = { all: 0, uploads: 0, purchases: 0, archive: 0, allType: 0, bysize: 0, gangsheet: 0 };
+
+    allDesigns.forEach(function(d) {
+      /* Source counts respect the current type filter */
+      if (typeFilter === 'bysize' && d.gangsheet) return;
+      if (typeFilter === 'gangsheet' && !d.gangsheet) return;
+      var isArch = archived.indexOf(String(d.id)) > -1;
+      if (isArch) {
+        counts.archive++;
+      } else {
+        counts.all++;
+        if (d.source === 'upload') counts.uploads++;
+        if (d.source === 'purchase') counts.purchases++;
+      }
+    });
+
+    /* Type counts depend on current source filter */
+    var filtered = allDesigns.filter(function(d) {
+      var isArch = archived.indexOf(String(d.id)) > -1;
+      if (sourceFilter === 'archive') return isArch;
+      if (isArch) return false;
+      if (sourceFilter === 'uploads') return d.source === 'upload';
+      if (sourceFilter === 'purchases') return d.source === 'purchase';
+      return true;
+    });
+    filtered.forEach(function(d) {
+      counts.allType++;
+      if (d.gangsheet) counts.gangsheet++; else counts.bysize++;
+    });
+
+    /* Update DOM */
+    container.querySelectorAll('[data-source]').forEach(function(btn) {
+      var key = btn.getAttribute('data-source');
+      var c = key === 'all' ? counts.all : key === 'uploads' ? counts.uploads : key === 'purchases' ? counts.purchases : counts.archive;
+      btn.querySelector('.md-tab__count').textContent = c;
+      btn.style.display = c === 0 ? 'none' : '';
+    });
+    container.querySelectorAll('[data-type]').forEach(function(btn) {
+      var key = btn.getAttribute('data-type');
+      var c = key === 'all' ? counts.allType : key === 'bysize' ? counts.bysize : counts.gangsheet;
+      btn.querySelector('.md-tab__count').textContent = c;
+      btn.style.display = c === 0 ? 'none' : '';
+    });
+  }
+
+  /* --- Render grid --- */
+  function render() {
+    var archived = getArchived();
+    var q = searchQuery.toLowerCase().trim();
+    var isArchiveView = sourceFilter === 'archive';
+
+    /* Show/hide archive banner */
+    archiveBanner.style.display = isArchiveView ? 'flex' : 'none';
+
+    /* Filter designs */
+    var visible = allDesigns.filter(function(d) {
+      var isArch = archived.indexOf(String(d.id)) > -1;
+      /* Source filter */
+      if (isArchiveView) { if (!isArch) return false; }
+      else { if (isArch) return false; }
+
+      if (!isArchiveView) {
+        var isLocalUploadCard = String(d.id).indexOf('local-') === 0;
+        if (sourceFilter === 'uploads' && d.source !== 'upload' && !isLocalUploadCard) return false;
+        if (sourceFilter === 'purchases' && d.source !== 'purchase' && !isLocalUploadCard) return false;
+      }
+
+      /* Type filter */
+      if (typeFilter === 'bysize' && d.gangsheet) return false;
+      if (typeFilter === 'gangsheet' && !d.gangsheet) return false;
+
+      /* Search — fuzzy match: each search word must appear somewhere in the searchable string.
+         Underscores, hyphens, and dots in filenames are treated as spaces so
+         "awz test" matches "awz_test", "awz-test", "awz.test", etc. */
+      if (q) {
+        var typeLabel = d.gangsheet ? 'gang sheet' : 'by size';
+        var sourceLabel = d.source === 'upload' ? 'upload' : 'purchase';
+        var searchable = (d.fileName + ' ' + typeLabel + ' ' + sourceLabel).toLowerCase().replace(/[_\-\.]/g, ' ');
+        var words = q.replace(/[_\-\.]/g, ' ').split(/\s+/).filter(function(w) { return w.length > 0; });
+        var allMatch = words.every(function(w) { return searchable.indexOf(w) > -1; });
+        if (!allMatch) return false;
+      }
+
+      return true;
+    });
+
+    updateSelectionBar(visible);
+    var pendingVisible = getPendingVisibleUploads();
+    var uploadCardsHtml = getUploadCardsHtml();
+
+    /* Build HTML */
+    if (visible.length === 0 && pendingVisible.length === 0 && !uploadCardsHtml) {
+      gridEl.style.display = 'none';
+      emptyEl.style.display = 'block';
+      emptyEl.querySelector('.md-empty__title').textContent = isArchiveView ? 'No archived designs' : 'No designs found';
+      emptyEl.querySelector('.md-empty__sub').textContent = isArchiveView ? 'Designs you archive will appear here.' : 'Try adjusting your filters or upload a new design.';
+    } else {
+      emptyEl.style.display = 'none';
+      gridEl.style.display = 'grid';
+
+      var html = uploadCardsHtml;
+      pendingVisible.forEach(function(item) {
+        html += getPendingUploadHtml(item);
+      });
+      visible.forEach(function(d) {
+        var selectedItems = getSelectedDesigns();
+        var isSelected = selectedDesignIds.indexOf(String(d.id)) > -1;
+        var selectionDisabled = isArchiveView ? false : isSelectionDisabled(d, selectedItems);
+        var renderThumb = getRenderThumb(d);
+        var typeBadge = d.gangsheet ? '<span class="md-card__badge md-card__badge--gangsheet">Gang Sheet</span>' : '<span class="md-card__badge md-card__badge--bysize">By Size</span>';
+        var selectClass = 'md-card__select';
+        if (isSelected) selectClass += ' md-card__select--selected';
+        if (selectionDisabled) selectClass += ' md-card__select--disabled';
+        var selectSquare = '<button type="button" class="' + selectClass + '" data-select-id="' + d.id + '" aria-label="' + (isSelected ? 'Deselect design' : 'Select design') + '" aria-pressed="' + (isSelected ? 'true' : 'false') + '">' +
+          '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5 8 6.5 11 12.5 5"></polyline></svg>' +
+        '</button>';
+
+        var bottomAction = '';
+        if (isArchiveView) {
+          bottomAction = '<div class="md-card__action-row">' +
+                           '<button class="md-card__view-img" data-view-src="' + renderThumb + '" data-view-name="' + d.fileName.replace(/"/g, '&quot;') + '">View<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>' +
+                           '<button class="md-card__action-restore" data-restore-id="' + d.id + '">Restore</button>' +
+                         '</div>';
+        } else {
+          bottomAction = '<div class="md-card__action-row">' +
+                           '<button class="md-card__view-img" data-view-src="' + renderThumb + '" data-view-name="' + d.fileName.replace(/"/g, '&quot;') + '">View<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>' +
+                           '<button class="md-card__action-btn md-card__archive-icon" data-archive-id="' + d.id + '" aria-label="Archive" data-tooltip="Archive">' +
+                             '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/><path d="M10 10v6"/><path d="M14 10v6"/></svg>' +
+                           '</button>' +
+                           '<button class="md-card__trash" data-archive-id="' + d.id + '" aria-label="Archive" data-tooltip="Archive">' +
+                             '<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/><path d="M10 10v6"/><path d="M14 10v6"/></svg>' +
+                           '</button>' +
+                         '</div>';
+        }
+
+        var cardClass = 'md-card' + (d.gangsheet ? ' md-card--gangsheet' : '');
+        if (isSelected) cardClass += ' md-card--selected';
+        if (selectionDisabled) cardClass += ' md-card--selection-disabled';
+        html += '<div class="' + cardClass + '" data-design-id="' + d.id + '">' +
+          '<div class="md-card__thumb">' +
+            selectSquare +
+            typeBadge +
+            '<img src="' + renderThumb + '" alt="' + d.fileName.replace(/"/g, '&quot;') + '" loading="lazy" onerror="this.style.display=\'none\'">' +
+          '</div>' +
+          '<div class="md-card__info">' +
+            '<p class="md-card__name" data-tooltip="' + d.fileName.replace(/"/g, '&quot;') + '">' + smartFileName(d.fileName, 22) + '</p>' +
+            '<p class="md-card__meta">' +
+              '<span>' + timeAgoLabel(d.timestamp, d.source) + '</span>' +
+            '</p>' +
+          '</div>' +
+          '<div class="md-card__action">' + bottomAction + '</div>' +
+        '</div>';
+      });
+
+      gridEl.innerHTML = html;
+    }
+
+    updateCounts();
+    syncRowHeights();
+  }
+
+  /* Match all grid rows to row 1's height. Row 1 is taller than later rows
+     when the dual upload card's content exceeds the image-card intrinsic
+     height (e.g. at 5 per row). We measure the dual card and expose its
+     height to CSS as --md-row-height; CSS uses it via grid-auto-rows.
+
+     Mobile note: at <=749px the dual card spans 2 rows (grid-row: 1 / span 2),
+     so its offsetHeight is ~2× one row. Feeding that back into grid-auto-rows
+     would double the row min-height each frame until the ResizeObserver loop
+     guard kicks in, leaving the upload box gigantic. We skip the row-matching
+     trick on mobile — the 1- and 2-col layouts size fine naturally. */
+  var _rowHeightObserver = null;
+  function syncRowHeights() {
+    if (!gridEl) return;
+    var dual = gridEl.querySelector('.md-upload-card--dual');
+    if (_rowHeightObserver) {
+      _rowHeightObserver.disconnect();
+      _rowHeightObserver = null;
+    }
+    var isMobile = window.matchMedia && window.matchMedia('(max-width: 749px)').matches;
+    if (!dual || isMobile || typeof ResizeObserver === 'undefined') {
+      gridEl.style.removeProperty('--md-row-height');
+      return;
+    }
+    _rowHeightObserver = new ResizeObserver(function(entries) {
+      for (var i = 0; i < entries.length; i++) {
+        /* Use offsetHeight (border-box) so the value includes the dual
+           card's padding + border. contentRect.height excludes those and
+           leaves row 2 ~26px shorter than row 1. */
+        var h = entries[i].target.offsetHeight;
+        if (h > 0) gridEl.style.setProperty('--md-row-height', h + 'px');
+      }
+    });
+    _rowHeightObserver.observe(dual);
+  }
+
+  /* --- Process API data --- */
+  function processItem(raw, source, isGang) {
+    var gang = typeof raw.gangsheet !== 'undefined' ? !!raw.gangsheet : !!isGang;
+
+    /* Filename: prefer file_name from API, fall back to URL extraction */
+    var fileName = (raw.file_name && raw.file_name.length > 0) ? raw.file_name : extractFileName(raw.file || '');
+
+    /* Date: use human-readable string fields; formatted_date is a Unix timestamp (number) */
+    var dateStr = raw.uploaded_date || raw.order_date || raw.purchased_at || '';
+    if (typeof dateStr !== 'string') dateStr = '';
+    if (source === 'upload' && dateStr.indexOf('Purchased') > -1) {
+      dateStr = dateStr.replace('Purchased', 'Uploaded');
+    }
+
+    /* Stable ID: photo_id (uploads) or derive from file URL (orders) */
+    var id = raw.photo_id || raw.id || '';
+    if (!id && raw.file) {
+      id = source + '-' + raw.file.split('/').pop().split('?')[0];
+    }
+    if (!id) {
+      id = source + '-' + Math.random().toString(36).substr(2,9);
+    }
+
+    /* Timestamp for sorting (numeric, higher = newer) */
+    var ts = 0;
+    if (typeof raw.formatted_date === 'number') {
+      ts = raw.formatted_date;
+    } else if (typeof raw.formatted_date === 'string' && raw.formatted_date.length > 0) {
+      ts = new Date(raw.formatted_date).getTime() / 1000 || 0;
+    }
+
+    return {
+      id: id,
+      file: raw.file || '',
+      s3File: isVectorFile(raw.file || '') ? (raw.file || '').replace(IMGIX_HOST, S3_HOST).split('?')[0] : '',
+      fileName: fileName,
+      thumb: thumbUrl(raw.file || '', gang),
+      date: dateStr,
+      timestamp: ts,
+      gangsheet: gang,
+      source: source,
+      variantTitle: raw.variant_title || '',
+      orderName: raw.order_name || ''
+    };
+  }
+
+  /* --- Event: Source tabs --- */
+  container.querySelectorAll('[data-source]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      container.querySelectorAll('[data-source]').forEach(function(b) { b.classList.remove('md-tab--active'); });
+      btn.classList.add('md-tab--active');
+      sourceFilter = btn.getAttribute('data-source');
+      clearSelection();
+      render();
+    });
+  });
+
+  /* --- Event: Per-row toggle from the standalone section ---
+     The standalone My Designs section (sections/my-designs.liquid) owns the
+     Per Row picker. When the user changes cols, the upload card layout
+     changes shape (e.g. 1 dual card → 2 single cards at 5-per-row), so the
+     section dispatches `mds:cols-change` and we rebuild the grid. */
+  (function bindMdsColsChange() {
+    var standalone = container.closest && container.closest('.md-standalone');
+    if (!standalone) return;
+    standalone.addEventListener('mds:cols-change', function() { render(); });
+  })();
+
+  /* --- Event: Type tabs --- */
+  container.querySelectorAll('[data-type]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      container.querySelectorAll('[data-type]').forEach(function(b) { b.classList.remove('md-tab--active'); });
+      btn.classList.add('md-tab--active');
+      typeFilter = btn.getAttribute('data-type');
+      clearSelection();
+      render();
+    });
+  });
+
+  /* --- Event: Search --- */
+  searchInput.addEventListener('input', function() {
+    searchQuery = searchInput.value;
+    searchClear.style.display = searchQuery ? 'block' : 'none';
+    clearSelection();
+    render();
+  });
+  searchClear.addEventListener('click', function() {
+    searchInput.value = '';
+    searchQuery = '';
+    searchClear.style.display = 'none';
+    clearSelection();
+    render();
+  });
+
+  uploadInputs.forEach(function(input) {
+    input.addEventListener('change', function(e) {
+      var isGangSheet = input.getAttribute('data-upload-target') === 'gangsheet';
+      handleUploadFiles(e.target.files, isGangSheet, false);
+      input.value = '';
+    });
+  });
+
+  container.addEventListener('click', function(e) {
+    var uploadBtn = e.target.closest('[data-upload-open]');
+    if (!uploadBtn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var target = uploadBtn.getAttribute('data-upload-open');
+    var input = getUploadInput(target);
+    if (input) input.click();
+  });
+
+  container.addEventListener('dragover', function(e) {
+    var uploadTile = e.target.closest('[data-upload-dropzone]');
+    if (!uploadTile) return;
+    e.preventDefault();
+    uploadTile.classList.add('md-upload-tile--dragover');
+  });
+
+  container.addEventListener('dragleave', function(e) {
+    var uploadTile = e.target.closest('[data-upload-dropzone]');
+    if (!uploadTile) return;
+    if (uploadTile.contains(e.relatedTarget)) return;
+    uploadTile.classList.remove('md-upload-tile--dragover');
+  });
+
+  container.addEventListener('drop', function(e) {
+    var uploadTile = e.target.closest('[data-upload-dropzone]');
+    if (!uploadTile) return;
+    e.preventDefault();
+    uploadTile.classList.remove('md-upload-tile--dragover');
+    var target = uploadTile.getAttribute('data-upload-dropzone');
+    handleUploadFiles(e.dataTransfer.files, target === 'gangsheet', true);
+  });
+
+  /* --- Event: Restore / Archive / Delete (delegated) --- */
+  container.addEventListener('click', function(e) {
+    var selectBtn = e.target.closest('[data-select-id]');
+    if (selectBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (selectBtn.classList.contains('md-card__select--disabled')) return;
+      toggleDesignSelection(selectBtn.getAttribute('data-select-id'));
+      return;
+    }
+
+    var thumbArea = e.target.closest('.md-card__thumb');
+    if (thumbArea && !e.target.closest('.md-card__trash') && !e.target.closest('.md-card__badge')) {
+      var thumbCard = thumbArea.closest('.md-card[data-design-id]');
+      if (thumbCard) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleDesignSelection(thumbCard.getAttribute('data-design-id'));
+        return;
+      }
+    }
+
+    /* Restore button — unarchive and re-render */
+    var restoreBtn = e.target.closest('[data-restore-id]');
+    if (restoreBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      var id = restoreBtn.getAttribute('data-restore-id');
+      var card = container.querySelector('.md-card[data-design-id="' + id + '"]');
+      unarchiveItem(id);
+      if (card) {
+        card.classList.add('md-card--fading');
+        setTimeout(function() { render(); }, 300);
+      } else {
+        render();
+      }
+      showToast('Design restored');
+      return;
+    }
+
+    /* Archive button — open confirmation modal */
+    var archBtn = e.target.closest('[data-archive-id]');
+    if (archBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      pendingArchiveIds = [];
+      pendingArchiveId = archBtn.getAttribute('data-archive-id');
+      var design = allDesigns.find(function(d) { return String(d.id) === String(pendingArchiveId); });
+      archiveModalName.textContent = design ? design.fileName : 'this design';
+      archiveOverlay.style.display = 'flex';
+      return;
+    }
+
+    /* Delete button — open delete modal */
+    var delBtn = e.target.closest('[data-delete-id]');
+    if (delBtn) {
+      e.preventDefault();
+      pendingDeleteId = delBtn.getAttribute('data-delete-id');
+      var design = allDesigns.find(function(d) { return String(d.id) === String(pendingDeleteId); });
+      modalName.textContent = design ? design.fileName : 'this design';
+      modalOverlay.style.display = 'flex';
+      return;
+    }
+  });
+
+  /* --- Modal cancel --- */
+  modalCancel.addEventListener('click', function() {
+    modalOverlay.style.display = 'none';
+    pendingDeleteId = null;
+  });
+  modalOverlay.addEventListener('click', function(e) {
+    if (e.target === modalOverlay) {
+      modalOverlay.style.display = 'none';
+      pendingDeleteId = null;
+    }
+  });
+
+  /* --- Modal confirm delete --- */
+  modalConfirm.addEventListener('click', function() {
+    if (!pendingDeleteId) return;
+    var id = pendingDeleteId;
+    modalOverlay.style.display = 'none';
+
+    /* Fade out card */
+    var card = container.querySelector('.md-card[data-design-id="' + id + '"]');
+    if (card) card.classList.add('md-card--fading');
+
+    /* Call delete API */
+    fetch(API + '/uploads/deleteData?customer_id=' + CUSTOMER_ID + '&photo_id=' + id)
+      .then(function() {
+        /* Remove from data */
+        allDesigns = allDesigns.filter(function(d) { return String(d.id) !== String(id); });
+        unarchiveItem(id);
+        setTimeout(function() { render(); }, 300);
+        showToast('Design permanently deleted');
+      })
+      .catch(function() {
+        showToast('Failed to delete. Please try again.');
+        if (card) card.classList.remove('md-card--fading');
+      });
+
+    pendingDeleteId = null;
+  });
+
+  /* --- Archive Confirm Modal --- */
+  archiveModalCancel.addEventListener('click', function() {
+    archiveOverlay.style.display = 'none';
+    pendingArchiveId = null;
+    pendingArchiveIds = [];
+  });
+  archiveOverlay.addEventListener('click', function(e) {
+    if (e.target === archiveOverlay) {
+      archiveOverlay.style.display = 'none';
+      pendingArchiveId = null;
+      pendingArchiveIds = [];
+    }
+  });
+  archiveModalConfirm.addEventListener('click', function() {
+    if (!pendingArchiveId && !pendingArchiveIds.length) return;
+    archiveOverlay.style.display = 'none';
+    var ids = pendingArchiveIds.length ? pendingArchiveIds.slice() : [pendingArchiveId];
+    ids.forEach(function(id) {
+      archiveItem(id);
+      var card = container.querySelector('.md-card[data-design-id="' + id + '"]');
+      if (card) {
+        card.classList.add('md-card--fading');
+      }
+    });
+    setTimeout(function() { render(); }, 300);
+    showToast(ids.length === 1 ? 'Design archived' : 'Designs archived');
+    pendingArchiveId = null;
+    pendingArchiveIds = [];
+  });
+
+  /* --- Ordering Options Modal --- */
+  var ooOverlay = container.querySelector('.md-oo-overlay');
+  var ooClose = container.querySelector('.md-oo-close');
+  var ooCurrentFile = '';
+
+  /* Open modal from "More Ordering Options" button */
+  container.addEventListener('click', function(e) {
+    var ooBtn = e.target.closest('[data-oo-file]');
+    if (ooBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      ooCurrentFile = decodeURIComponent(ooBtn.getAttribute('data-oo-file'));
+      var vp = decodeURIComponent(ooBtn.getAttribute('data-oo-vp') || '');
+      /* Set hrefs on all product cards — append vector dimension params if present */
+      ooOverlay.querySelectorAll('.md-oo-card').forEach(function(card) {
+        var handle = card.getAttribute('data-handle');
+        card.href = '/products/' + handle + '?file=' + encodeURIComponent(ooCurrentFile) + vp;
+      });
+      ooOverlay.style.display = 'flex';
+    }
+  });
+
+  /* Close modal */
+  if (ooClose) {
+    ooClose.addEventListener('click', function() { ooOverlay.style.display = 'none'; });
+  }
+  if (ooOverlay) {
+    ooOverlay.addEventListener('click', function(e) {
+      if (e.target === ooOverlay) ooOverlay.style.display = 'none';
+    });
+  }
+
+  /* --- Gang Sheet Ordering Options Modal --- */
+  var ooGsOverlay = container.querySelector('.md-oo-gs-overlay');
+  var ooGsClose = container.querySelector('.md-oo-gs-close');
+
+  /* Open gang sheet modal from "More Ordering Options" button */
+  container.addEventListener('click', function(e) {
+    var gsBtn = e.target.closest('[data-oo-gs-file]');
+    if (gsBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      var gsFile = decodeURIComponent(gsBtn.getAttribute('data-oo-gs-file'));
+      var gsVp = decodeURIComponent(gsBtn.getAttribute('data-oo-vp') || '');
+      /* Set hrefs on all gang sheet product cards — append vector dimension params if present */
+      ooGsOverlay.querySelectorAll('.md-oo-gs-card').forEach(function(card) {
+        var handle = card.getAttribute('data-gs-handle');
+        var variant = card.getAttribute('data-gs-variant');
+        var url = '/products/' + handle + '?';
+        if (variant) url += 'variant=' + variant + '&';
+        url += 'file=' + encodeURIComponent(gsFile) + gsVp;
+        card.href = url;
+      });
+      ooGsOverlay.style.display = 'flex';
+    }
+  });
+
+  /* Close gang sheet modal */
+  if (ooGsClose) {
+    ooGsClose.addEventListener('click', function() { ooGsOverlay.style.display = 'none'; });
+  }
+  if (ooGsOverlay) {
+    ooGsOverlay.addEventListener('click', function(e) {
+      if (e.target === ooGsOverlay) ooGsOverlay.style.display = 'none';
+    });
+  }
+
+  if (selectionPrimaryBtn) {
+    selectionPrimaryBtn.addEventListener('click', function() {
+      var selectedItems = getSelectedDesigns();
+      if (selectedItems.length === 0) return;
+      if (sourceFilter === 'archive') {
+        selectedItems.forEach(function(item) {
+          unarchiveItem(item.id);
+        });
+        clearSelection();
+        render();
+        showToast(selectedItems.length === 1 ? 'Image restored' : 'Images restored');
+        return;
+      }
+      if (IS_PICKER) {
+        container.dispatchEvent(new CustomEvent('md-picker:use-designs', {
+          bubbles: true,
+          detail: { items: selectedItems }
+        }));
+        // Clear the selection + re-render so the action bar dismisses after
+        // the customer\'s pick is applied. The modal picker doesn\'t care
+        // (its overlay hides anyway), but the inline dtfut Previous Designs
+        // tab would otherwise show a stale "1 item selected" bar pinned to
+        // the upload section post-upload.
+        clearSelection();
+        render();
+        return;
+      }
+      if (selectedItems.length === 1 && selectedItems[0].gangsheet) {
+        window.location.href = reorderUrl(selectedItems[0]);
+        return;
+      }
+      if (selectedItems.length === 1) {
+        window.location.href = reorderUrl(selectedItems[0]);
+        return;
+      }
+      openBulkBySizeSelection('/products/dtf-transfers', selectedItems);
+    });
+  }
+
+  if (selectionArchiveBtn) {
+    selectionArchiveBtn.addEventListener('click', function() {
+      var selectedItems = getSelectedDesigns();
+      if (selectedItems.length === 0 || sourceFilter === 'archive') return;
+      pendingArchiveId = null;
+      pendingArchiveIds = selectedItems.map(function(item) { return String(item.id); });
+      archiveModalName.textContent = selectedItems.length === 1 ? selectedItems[0].fileName : (selectedItems.length + ' selected designs');
+      archiveOverlay.style.display = 'flex';
+    });
+  }
+
+  if (selectionSecondaryBtn) {
+    selectionSecondaryBtn.addEventListener('click', function() {
+      var selectedItems = getSelectedDesigns();
+      if (selectedItems.length === 0) return;
+      if (selectedItems.length === 1 && selectedItems[0].gangsheet) {
+        var gangSheetItem = selectedItems[0];
+        var gsVp = vectorParams(gangSheetItem);
+        ooGsOverlay.querySelectorAll('.md-oo-gs-card').forEach(function(card) {
+          var handle = card.getAttribute('data-gs-handle');
+          var variant = card.getAttribute('data-gs-variant');
+          var url = '/products/' + handle + '?';
+          if (variant) url += 'variant=' + variant + '&';
+          url += 'file=' + encodeURIComponent(gangSheetItem.file.split('?')[0]) + gsVp;
+          card.href = url;
+        });
+        ooGsOverlay.style.display = 'flex';
+        return;
+      }
+      if (selectedItems.length === 1) {
+        var bySizeItem = selectedItems[0];
+        var bsVp = vectorParams(bySizeItem);
+        ooCurrentFile = bySizeItem.file.split('?')[0];
+        ooOverlay.querySelectorAll('.md-oo-card').forEach(function(card) {
+          var handle = card.getAttribute('data-handle');
+          card.href = '/products/' + handle + '?file=' + encodeURIComponent(ooCurrentFile) + bsVp;
+        });
+        ooOverlay.style.display = 'flex';
+        return;
+      }
+      openBulkBySizeSelection('/products/uv-dtf-stickers-decals-by-size', selectedItems);
+    });
+  }
+
+  if (deselectAllBtn) {
+    deselectAllBtn.addEventListener('click', function() {
+      clearSelection();
+      render();
+    });
+  }
+
+  /* --- Image Lightbox --- */
+  var lightbox = container.querySelector('.md-lightbox');
+  var lightboxImg = lightbox ? lightbox.querySelector('.md-lightbox__img') : null;
+  var lightboxClose = lightbox ? lightbox.querySelector('.md-lightbox__close') : null;
+  var lightboxSpinner = lightbox ? lightbox.querySelector('.md-lightbox__spinner') : null;
+
+  /* Stash the lightbox's original parent so we can put it back on
+     close. The lightbox needs to live in <body> while open so its
+     position:fixed escapes any transformed/filtered ancestor (the
+     gang-sheet picker modal traps it inside the centered modal box,
+     making the dark overlay narrow and white space visible outside
+     that area). */
+  var lightboxOriginalParent = lightbox ? lightbox.parentNode : null;
+
+  function openLightbox(src, alt) {
+    if (!lightbox || !lightboxImg) return;
+    /* Move to body so the dark backdrop covers the full viewport */
+    if (lightbox.parentNode !== document.body) {
+      document.body.appendChild(lightbox);
+    }
+    /* Show spinner, hide image until loaded */
+    lightboxImg.classList.add('md-lightbox__img--loading');
+    if (lightboxSpinner) lightboxSpinner.classList.add('md-lightbox__spinner--visible');
+    /* Use a higher-res version for the lightbox (handle both standard and vector/convert thumb URLs) */
+    var hiRes = src.replace(/h=300/, 'h=1200').replace(/q=10/, 'q=70')
+                   .replace(/w=600&auto/, 'w=2000&auto').replace(/q=15/, 'q=70');
+    lightboxImg.onload = function() {
+      lightboxImg.classList.remove('md-lightbox__img--loading');
+      if (lightboxSpinner) lightboxSpinner.classList.remove('md-lightbox__spinner--visible');
+    };
+    lightboxImg.onerror = function() {
+      lightboxImg.classList.remove('md-lightbox__img--loading');
+      if (lightboxSpinner) lightboxSpinner.classList.remove('md-lightbox__spinner--visible');
+    };
+    lightboxImg.src = hiRes;
+    lightboxImg.alt = alt || '';
+    lightbox.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.style.display = 'none';
+    lightboxImg.onload = null;
+    lightboxImg.onerror = null;
+    lightboxImg.src = '';
+    lightboxImg.classList.remove('md-lightbox__img--loading');
+    if (lightboxSpinner) lightboxSpinner.classList.remove('md-lightbox__spinner--visible');
+    document.body.style.overflow = '';
+    /* Put the lightbox back where we found it so subsequent renders /
+       container queries don't get confused by a missing element. */
+    if (lightboxOriginalParent && lightbox.parentNode !== lightboxOriginalParent) {
+      lightboxOriginalParent.appendChild(lightbox);
+    }
+  }
+
+  /* Click "View Image" button */
+  container.addEventListener('click', function(e) {
+    var btn = e.target.closest('.md-card__view-img');
+    if (btn) {
+      e.preventDefault();
+      openLightbox(btn.getAttribute('data-view-src'), btn.getAttribute('data-view-name'));
+    }
+  });
+
+  /* Close lightbox — close on EXPLICIT X click, ESC key, OR any click
+     inside the lightbox that's not on the image itself or the close
+     button. Earlier this only fired when `e.target === lightbox`, but
+     when the lightbox uses overflow:auto + align-items:flex-start
+     (gang-sheet override in product-page-popups.liquid) clicks can
+     land on the inner scrollable container instead of the lightbox
+     root. Checking "is the click outside the image and outside the
+     close button" works regardless of intermediate scroll wrappers. */
+  if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+  if (lightbox) {
+    lightbox.addEventListener('click', function(e) {
+      if (e.target === lightboxImg) return;
+      if (e.target.closest && e.target.closest('.md-lightbox__close')) return;
+      closeLightbox();
+    });
+  }
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && lightbox && lightbox.style.display !== 'none') closeLightbox();
+  });
+
+  /* --- Listen for archive changes from Recent Designs → re-render --- */
+  window.addEventListener('nt-archive-changed', function(e) {
+    if (e.detail && e.detail.source === 'recent-designs') {
+      render();
+    }
+  });
+
+  /* --- Init --- */
+  fetchDesigns();
+
+  /* --- Picker modal dismiss behaviour ---
+     Close the "Choose a previously uploaded design" modal when the user clicks the
+     backdrop (anything outside the white panel), the close button, or
+     presses Escape. The overlay CSS uses display:grid !important to beat
+     jQuery fadeIn's inline style, so we must close with setProperty()
+     using !important as well. */
+  if (IS_PICKER) {
+    var pickerOverlay = container.closest('.customTabelPopup__overlay-3');
+    var pickerModal = container.closest('.customTabelPopup--md-picker');
+    var closePickerOverlay = function() {
+      if (!pickerOverlay) return;
+      pickerOverlay.style.setProperty('display', 'none', 'important');
+    };
+    if (pickerOverlay) {
+      pickerOverlay.addEventListener('click', function(e) {
+        if (e.target === pickerOverlay) closePickerOverlay();
+      });
+      document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape' && e.key !== 'Esc') return;
+        if (getComputedStyle(pickerOverlay).display === 'none') return;
+        closePickerOverlay();
+      });
+      var pickerClose = pickerOverlay.querySelector('.customTabelPopup__close');
+      if (pickerClose) {
+        /* The existing inline onclick uses style.display='none' which can't
+           beat our !important rule; replace it with a matching close. */
+        pickerClose.onclick = null;
+        pickerClose.addEventListener('click', function(e) {
+          e.stopPropagation();
+          closePickerOverlay();
+        });
+      }
+    }
+    /* Guard: prevent clicks inside the white panel from bubbling to the
+       backdrop handler above (so scrollbar clicks, etc. don't dismiss). */
+    if (pickerModal) {
+      pickerModal.addEventListener('click', function(e) { e.stopPropagation(); });
+    }
+    /* Expose closer so the USE DESIGNS bridge can cleanly close too.
+       Only set when this picker actually owns an overlay — the dtf-upload-tabs
+       "Recent Designs" panel renders my-designs-panel with picker:true but
+       has no .customTabelPopup__overlay-3 ancestor, and we don't want it to
+       overwrite the modal picker's working closer. */
+    if (pickerOverlay) window.__closeMdPicker = closePickerOverlay;
+
+    /* Reset picker to a fresh state (no selection, default tab, empty
+       search, scrolled to top) each time the overlay is opened. */
+    var resetPickerState = function() {
+      sourceFilter = 'all';
+      searchQuery = '';
+      if (searchInput) searchInput.value = '';
+      var clearBtn = container.querySelector('.md-search-clear');
+      if (clearBtn) clearBtn.style.display = 'none';
+      container.querySelectorAll('[data-source]').forEach(function(b) { b.classList.remove('md-tab--active'); });
+      var allTab = container.querySelector('[data-source="all"]');
+      if (allTab) allTab.classList.add('md-tab--active');
+      clearSelection();
+      if (gridEl) gridEl.scrollTop = 0;
+      if (pickerModal) pickerModal.scrollTop = 0;
+      render();
+    };
+    /* Body scroll lock: prevent the product page behind the modal from
+       scrolling when the user drags on mobile. iOS-safe via position:fixed. */
+    function lockBodyScroll() {
+      if (document.body.hasAttribute('data-md-picker-locked')) return;
+      var y = window.scrollY || window.pageYOffset || 0;
+      document.body.setAttribute('data-md-picker-locked', String(y));
+      document.body.style.position = 'fixed';
+      document.body.style.top = '-' + y + 'px';
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+    }
+    function unlockBodyScroll() {
+      if (!document.body.hasAttribute('data-md-picker-locked')) return;
+      var y = parseInt(document.body.getAttribute('data-md-picker-locked'), 10) || 0;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      document.body.removeAttribute('data-md-picker-locked');
+      window.scrollTo(0, y);
+    }
+    if (pickerOverlay && typeof MutationObserver !== 'undefined') {
+      var wasVisible = getComputedStyle(pickerOverlay).display !== 'none';
+      if (wasVisible) lockBodyScroll();
+      new MutationObserver(function() {
+        var nowVisible = getComputedStyle(pickerOverlay).display !== 'none';
+        if (nowVisible && !wasVisible) { resetPickerState(); lockBodyScroll(); }
+        if (!nowVisible && wasVisible) unlockBodyScroll();
+        wasVisible = nowVisible;
+      }).observe(pickerOverlay, { attributes: true, attributeFilter: ['style', 'class'] });
+    }
+  }
+
+})();
+</script>

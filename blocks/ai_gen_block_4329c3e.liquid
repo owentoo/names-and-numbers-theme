@@ -1,0 +1,903 @@
+{% doc %}
+  @prompt
+    I need a section that follows the theme max width and all horizontal padding and margin rules. add a max width that option that does not exceed the themes max width. I need a two column layout. On the right an embedded YouTube video with a width option. and on the left a container with a heading and para text. i need text weight, size, color, and alignment options . All settings need desktop and mobile rules. Also i need a play icon setting, section max width not being acknowledged. and make Video Play Icon have an option to upload and size your own. Layout setting should be simple like video right or left on desktop and top or bottom on mobile, the content is not falling within the max width. i also need vertical padding and margin for desktop and mobile, i need the content to fall in the themes max width, and all it's horizontal padding , and margin rules, all horizontal padding and margin should be adjustable all vertical should be pulled from the theme, get rid of Content horizontal padding,Video horizontal padding,Video horizontal margin. Give me vertical padding and margin options, vertical padding and margin is not working, all Vertical Spacing - padding and margin is not doing anything, give me an option for a bg color that covers the whole section, i don't see the background color and Vertical Spacing is doing nothing., not seeing Section Background, Section background color is still not visable, the Section Background /
+    Section background color is not visible please make this work, the section background colot still is not doing anything. but give me the option to add a cta below the text, get rid of background color, Vertical Spacing not working
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-video-text-section-{{ ai_gen_id }} {
+    width: 100%;
+    padding-top: {{ block.settings.vertical_padding_desktop }}px;
+    padding-bottom: {{ block.settings.vertical_padding_desktop }}px;
+    margin-top: {{ block.settings.vertical_margin_desktop }}px;
+    margin-bottom: {{ block.settings.vertical_margin_desktop }}px;
+  }
+
+  .ai-video-text-container-{{ ai_gen_id }} {
+    max-width: min({{ block.settings.max_width }}px, {{ settings.theme_max_width }}px);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: {{ block.settings.horizontal_padding_desktop }}px;
+    padding-right: {{ block.settings.horizontal_padding_desktop }}px;
+    display: grid;
+    {% if block.settings.desktop_layout == 'video_right' %}
+      grid-template-columns: 1fr {{ block.settings.video_width_desktop }}%;
+    {% else %}
+      grid-template-columns: {{ block.settings.video_width_desktop }}% 1fr;
+    {% endif %}
+    gap: {{ block.settings.content_gap_desktop }}px;
+    align-items: center;
+  }
+
+  .ai-video-text-content-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap:16px;
+    margin-left: {{ block.settings.content_horizontal_margin_desktop }}px;
+    margin-right: {{ block.settings.content_horizontal_margin_desktop }}px;
+    {% if block.settings.desktop_layout == 'video_right' %}
+      order: 1;
+    {% else %}
+      order: 2;
+    {% endif %}
+  }
+
+  .ai-video-text-video-container-{{ ai_gen_id }} {
+    {% if block.settings.desktop_layout == 'video_right' %}
+      order: 2;
+    {% else %}
+      order: 1;
+    {% endif %}}
+
+  .ai-video-text-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size_desktop }}px;
+    font-weight: {{ block.settings.heading_weight }};
+    color: {{ block.settings.heading_color }};
+    text-align: {{ block.settings.text_alignment_desktop }};
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .ai-video-text-paragraph-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text_size_desktop }}px;
+    font-weight: {{ block.settings.text_weight }};
+    color: {{ block.settings.text_color }};
+    text-align: {{ block.settings.text_alignment_desktop }};
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .ai-video-text-cta-{{ ai_gen_id }} {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: {{ block.settings.cta_padding_vertical }}px {{ block.settings.cta_padding_horizontal }}px;
+    background-color: {{ block.settings.cta_background_color }};
+    color: {{ block.settings.cta_text_color }};
+    text-decoration: none;
+    border-radius: {{ block.settings.cta_border_radius }}px;
+    font-size: {{ block.settings.cta_font_size }}px;
+    font-weight: {{ block.settings.cta_font_weight }};
+    border: {{ block.settings.cta_border_width }}px solid {{ block.settings.cta_border_color }};
+    transition: all 0.3s ease;
+    cursor: pointer;
+    {% if block.settings.text_alignment_desktop == 'center' %}
+      align-self: center;
+    {% elsif block.settings.text_alignment_desktop == 'right' %}
+      align-self: flex-end;
+    {% else %}
+      align-self: flex-start;
+    {% endif %}
+  }
+
+  .ai-video-text-cta-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.cta_hover_background_color }};
+    color: {{ block.settings.cta_hover_text_color }};
+    border-color: {{ block.settings.cta_hover_border_color }};
+    transform: translateY(-2px);
+  }
+
+  .ai-video-text-video-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%;
+    border-radius: {{ settings.widgets_border_radius }}px;
+    overflow: hidden;
+  }
+
+  .ai-video-text-video-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .ai-video-text-play-overlay-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.3s ease;z-index: 1;
+  }
+
+  .ai-video-text-play-overlay-{{ ai_gen_id }}:hover {
+    opacity: 0.8;
+  }
+
+  .ai-video-text-play-icon-{{ ai_gen_id }} {
+    width: {{ block.settings.play_icon_size }}px;
+    height: {{ block.settings.play_icon_size }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+  }
+
+  .ai-video-text-play-overlay-{{ ai_gen_id }}:hover .ai-video-text-play-icon-{{ ai_gen_id }} {
+    transform: scale(1.1);
+  }
+
+  .ai-video-text-play-icon-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .ai-video-text-play-icon-default-{{ ai_gen_id }} {
+    background: {{ block.settings.play_icon_color }};
+    border-radius: 50%;
+  }
+
+  .ai-video-text-play-icon-default-{{ ai_gen_id }} svg {
+    width: calc({{ block.settings.play_icon_size }}px * 0.4);
+    height: calc({{ block.settings.play_icon_size }}px * 0.4);fill: {{ block.settings.play_icon_arrow_color }};margin-left: 4px;
+  }
+
+  .ai-video-text-video-hidden-{{ ai_gen_id }} {
+    display: none;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-video-text-section-{{ ai_gen_id }} {
+      padding-top: {{ block.settings.vertical_padding_mobile }}px;
+      padding-bottom: {{ block.settings.vertical_padding_mobile }}px;
+      margin-top: {{ block.settings.vertical_margin_mobile }}px;
+      margin-bottom: {{ block.settings.vertical_margin_mobile }}px;
+    }
+
+    .ai-video-text-container-{{ ai_gen_id }} {
+      grid-template-columns: 1fr;
+      gap: {{ block.settings.content_gap_mobile }}px;
+      padding-left: {{ block.settings.horizontal_padding_mobile }}px;
+      padding-right: {{ block.settings.horizontal_padding_mobile }}px;
+    }
+
+    .ai-video-text-content-{{ ai_gen_id }} {
+      margin-left: {{ block.settings.content_horizontal_margin_mobile }}px;
+      margin-right: {{ block.settings.content_horizontal_margin_mobile }}px;{% if block.settings.mobile_layout == 'content_top' %}
+        order: 1;
+      {% else %}
+        order: 2;
+      {% endif %}
+    }
+
+    .ai-video-text-video-container-{{ ai_gen_id }} {
+      width: {{ block.settings.video_width_mobile }}%;
+      margin-left: auto;
+      margin-right: auto;
+      {% if block.settings.mobile_layout == 'content_top' %}
+        order: 2;
+      {% else %}
+        order: 1;
+      {% endif %}
+    }
+
+    .ai-video-text-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size_mobile }}px;
+      text-align: {{ block.settings.text_alignment_mobile }};
+    }
+
+    .ai-video-text-paragraph-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_mobile }}px;
+      text-align: {{ block.settings.text_alignment_mobile }};
+    }
+
+    .ai-video-text-cta-{{ ai_gen_id }} {
+      font-size: {{ block.settings.cta_font_size_mobile }}px;
+      padding: {{ block.settings.cta_padding_vertical_mobile }}px {{ block.settings.cta_padding_horizontal_mobile }}px;
+      {% if block.settings.text_alignment_mobile == 'center' %}
+        align-self: center;
+      {% elsif block.settings.text_alignment_mobile == 'right' %}
+        align-self: flex-end;
+      {% else %}
+        align-self: flex-start;
+      {% endif %}
+    }
+
+    .ai-video-text-play-icon-{{ ai_gen_id }} {
+      width: {{ block.settings.play_icon_size | times: 0.75 }}px;
+      height: {{ block.settings.play_icon_size | times: 0.75 }}px;}
+
+    .ai-video-text-play-icon-default-{{ ai_gen_id }} svg {
+      width: calc({{ block.settings.play_icon_size | times: 0.75 }}px * 0.4);
+      height: calc({{ block.settings.play_icon_size | times: 0.75 }}px * 0.4);
+    }
+  }
+{% endstyle %}
+
+<video-text-section-{{ ai_gen_id }} class="ai-video-text-section-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-video-text-container-{{ ai_gen_id }}">
+    <div class="ai-video-text-content-{{ ai_gen_id }}">
+      {% if block.settings.heading != blank %}
+        <h2 class="ai-video-text-heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h2>
+      {% endif %}
+      {% if block.settings.text != blank %}
+        <div class="ai-video-text-paragraph-{{ ai_gen_id }}">{{ block.settings.text }}</div>
+      {% endif %}
+      {% if block.settings.show_cta and block.settings.cta_text != blank %}
+        <a 
+          href="{{ block.settings.cta_link }}" 
+          class="ai-video-text-cta-{{ ai_gen_id }}"
+          {% if block.settings.cta_link == blank %}onclick="return false;"{% endif %}
+        >
+          {{ block.settings.cta_text }}
+        </a>
+      {% endif %}
+    </div><div class="ai-video-text-video-container-{{ ai_gen_id }}"><div class="ai-video-text-video-wrapper-{{ ai_gen_id }}">
+        {% if block.settings.show_play_icon %}
+          <div class="ai-video-text-play-overlay-{{ ai_gen_id }}" data-video-overlay>
+            <div class="ai-video-text-play-icon-{{ ai_gen_id }} {% unless block.settings.custom_play_icon %}ai-video-text-play-icon-default-{{ ai_gen_id }}{% endunless %}">
+              {% if block.settings.custom_play_icon %}
+                <img
+                  src="{{ block.settings.custom_play_icon | image_url: width: 200}}"
+                  alt="Play video"
+                  width="{{ block.settings.play_icon_size }}"
+                  height="{{ block.settings.play_icon_size }}"
+                  loading="lazy"
+                >
+              {% else %}
+                <svg viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if block.settings.youtube_url != blank %}
+          <iframe
+            class="ai-video-text-video-{{ ai_gen_id }} {% if block.settings.show_play_icon %}ai-video-text-video-hidden-{{ ai_gen_id }}{% endif %}"
+            data-video-iframe
+            {% unless block.settings.show_play_icon %}src="{{ block.settings.youtube_url }}"{% endunless %}
+            title="YouTube video player"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+        {% else %}
+          <div class="ai-video-text-video-{{ ai_gen_id }}" style="background: #f4f4f4; display: flex; align-items: center; justify-content: center; color: #666;">
+            <span>YouTube video will appear here</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</video-text-section-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class VideoTextSection{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.overlay = this.querySelector('[data-video-overlay]');
+        this.iframe = this.querySelector('[data-video-iframe]');
+        
+        if (this.overlay && this.iframe) {
+          this.setupVideoPlayback();
+        }
+      }
+
+      setupVideoPlayback() {
+        this.overlay.addEventListener('click', () => {
+          const youtubeUrl = '{{ block.settings.youtube_url }}';
+          if (youtubeUrl) {
+            this.iframe.src = youtubeUrl + '&autoplay=1';
+            this.iframe.classList.remove('ai-video-text-video-hidden-{{ ai_gen_id }}');
+            this.overlay.style.display = 'none';
+          }
+        });
+      }
+    }
+
+    customElements.define('video-text-section-{{ ai_gen_id }}', VideoTextSection{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Video Text Section",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum width",
+      "min": 1000,
+      "max": 1400,
+      "step": 50,
+      "unit": "px",
+      "default": 1400
+    },
+    {
+      "type": "select",
+      "id": "desktop_layout",
+      "label": "Desktop layout",
+      "options": [
+        {
+          "value": "video_right",
+          "label": "Video on right"
+        },
+        {
+          "value": "video_left",
+          "label": "Video on left"
+        }
+      ],
+      "default": "video_right"
+    },
+    {
+      "type": "select",
+      "id": "mobile_layout",
+      "label": "Mobile layout",
+      "options": [
+        {
+          "value": "content_top",
+          "label": "Content on top"
+        },
+        {
+          "value": "video_top",
+          "label": "Video on top"
+        }
+      ],
+      "default": "content_top"
+    },
+    {
+      "type": "range",
+      "id": "video_width_desktop",
+      "label": "Video width on desktop",
+      "min": 30,
+      "max": 70,
+      "step": 5,
+      "unit": "%",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "video_width_mobile",
+      "label": "Video width on mobile",
+      "min": 80,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "header",
+      "content": "Section Spacing - Desktop"
+    },
+    {
+      "type": "range",
+      "id": "vertical_padding_desktop",
+      "label": "Top and bottom padding",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "vertical_margin_desktop",
+      "label": "Top and bottom margin",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Section Spacing - Mobile"
+    },
+    {
+      "type": "range",
+      "id": "vertical_padding_mobile",
+      "label": "Top and bottom padding",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "vertical_margin_mobile",
+      "label": "Top and bottom margin",
+      "min": 0,
+      "max": 80,
+      "step": 10,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Container Spacing - Desktop"
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding_desktop",
+      "label": "Container left and right padding",
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "content_gap_desktop",
+      "label": "Gap between content and video",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "content_horizontal_margin_desktop",
+      "label": "Content left and right margin",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Container Spacing - Mobile"
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding_mobile",
+      "label": "Container left and right padding",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "content_gap_mobile",
+      "label": "Gap between content and video",
+      "min": 15,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "content_horizontal_margin_mobile",
+      "label": "Content left and right margin",
+      "min": 0,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Watch Our Story"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Text",
+      "default": "<p>Discover how we create amazing products that make a difference in people's lives.</p>"
+    },
+    {
+      "type": "url",
+      "id": "youtube_url",
+      "label": "YouTube embed URL"
+    },
+    {
+      "type": "header",
+      "content": "Call to Action"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_cta",
+      "label": "Show call to action button",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "cta_text",
+      "label": "Button text",
+      "default": "Learn More"
+    },
+    {
+      "type": "url",
+      "id": "cta_link",
+      "label": "Button link"
+    },
+    {
+      "type": "color",
+      "id": "cta_background_color",
+      "label": "Button background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "cta_text_color",
+      "label": "Button text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "cta_hover_background_color",
+      "label": "Button hover background color",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "cta_hover_text_color",
+      "label": "Button hover text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "cta_border_color",
+      "label": "Button border color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "cta_hover_border_color",
+      "label": "Button hover border color",
+      "default": "#333333"
+    },
+    {
+      "type": "range",
+      "id": "cta_border_width",
+      "label": "Button border width",
+      "min": 0,
+      "max": 4,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "cta_border_radius",
+      "label": "Button border radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "default": 5
+    },
+    {
+      "type": "range",
+      "id": "cta_font_size",
+      "label": "Button font size (desktop)",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "cta_font_size_mobile",
+      "label": "Button font size (mobile)",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "cta_font_weight",
+      "label": "Button font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi Bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_vertical",
+      "label": "Button vertical padding (desktop)",
+      "min": 8,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_horizontal",
+      "label": "Button horizontal padding (desktop)",
+      "min": 16,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_vertical_mobile",
+      "label": "Button vertical padding (mobile)",
+      "min": 6,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_horizontal_mobile",
+      "label": "Button horizontal padding (mobile)",
+      "min": 12,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Heading Style - Desktop"
+    },
+    {
+      "type": "range",
+      "id": "heading_size_desktop",
+      "label": "Heading size",
+      "min": 20,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 36
+    },
+    {
+      "type": "select",
+      "id": "heading_weight",
+      "label": "Heading weight",
+      "options": [
+        {
+          "value": "300",
+          "label": "Light"
+        },
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi Bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment_desktop",
+      "label": "Text alignment on desktop",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Heading Style - Mobile"
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "label": "Heading size",
+      "min": 16,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "default": 28
+    },
+    {
+      "type": "select",
+      "id": "text_alignment_mobile",
+      "label": "Text alignment on mobile",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Text Style - Desktop"
+    },
+    {
+      "type": "range",
+      "id": "text_size_desktop",
+      "label": "Text size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "text_weight",
+      "label": "Text weight",
+      "options": [
+        {
+          "value": "300",
+          "label": "Light"
+        },
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Text Style - Mobile"
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "label": "Text size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Video Play Icon"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_play_icon",
+      "label": "Show play icon overlay",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "custom_play_icon",
+      "label": "Custom play icon"
+    },
+    {
+      "type": "range",
+      "id": "play_icon_size",
+      "label": "Play icon size",
+      "min": 40,
+      "max": 120,
+      "step": 10,
+      "unit": "px",
+      "default": 80
+    },
+    {
+      "type": "color",
+      "id": "play_icon_color",
+      "label": "Default play icon background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "play_icon_arrow_color",
+      "label": "Default play icon arrow color",
+      "default": "#000000"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Video Text Section"
+    }
+  ]
+}
+{% endschema %}

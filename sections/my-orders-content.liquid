@@ -1,0 +1,585 @@
+{%- comment -%}
+  My Orders — All Orders Content
+  Loaded via AJAX into the Members Portal right-hand panel.
+  Single paginate block (50/page) + Load More — keeps Liquid memory low for
+  customers with many orders. Additional pages are fetched via AJAX and
+  appended client-side; search/filter/sort operate on all loaded rows.
+{%- endcomment -%}
+
+<script>
+(function() {
+  /* If loaded standalone (not AJAX-injected into portal), redirect to portal with tab param */
+  if (!document.querySelector('.mp-ajax-content')) {
+    var url = '/pages/welcome?tab=my-orders';
+    var params = new URLSearchParams(window.location.search);
+    if (params.has('preview_theme_id')) url += '&preview_theme_id=' + params.get('preview_theme_id');
+    window.location.replace(url);
+  }
+})();
+</script>
+
+{%- if customer -%}
+
+<div id="ao-portal-{{ section.id }}" class="all-orders-wrap" style="padding:0;max-width:100%;">
+  <h1 class="all-orders__title">My Orders</h1>
+  <div class="all-orders__toolbar">
+    <div class="ao-filters" id="ao-filters-portal">
+      <button type="button" class="ao-filter-pill ao-filter-pill--active" data-filter="all">All</button>
+      <button type="button" class="ao-filter-pill" data-filter="art-review"><span class="ao-pill-full">Art Review</span><span class="ao-pill-short">Art</span></button>
+      <button type="button" class="ao-filter-pill" data-filter="in-production"><span class="ao-pill-full">In Production</span><span class="ao-pill-short">Production</span></button>
+      <button type="button" class="ao-filter-pill" data-filter="fulfilled">Fulfilled</button>
+      <button type="button" class="ao-filter-pill" data-filter="cancelled">Cancelled</button>
+    </div>
+    <div class="all-orders__search">
+      <div class="all-orders__search-inner">
+        <svg class="all-orders__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="all-orders__search-input" placeholder="Search orders..." autocomplete="off">
+        <button type="button" class="all-orders__search-clear" style="display:none" aria-label="Clear search">&times;</button>
+      </div>
+    </div>
+    <span class="all-orders__toolbar-count"></span>
+  </div>
+  <div class="all-orders__search-no-results" style="display:none">No orders found matching your search.</div>
+
+  <div class="ao-page-block" data-per-page="50">
+  {% paginate customer.orders by 50 %}
+    {%- if customer.orders.size > 0 -%}
+    <div class="all-orders__count" data-total="{{ paginate.items }}">Showing 1–{{ paginate.page_size | at_most: paginate.items }} of {{ paginate.items }} orders</div>
+    <div class="all-orders__table">
+      <div class="all-orders__thead">
+        <span class="all-orders__col all-orders__col--order">ORDER</span>
+        <span class="all-orders__col all-orders__col--status">STATUS</span>
+        <span class="all-orders__col all-orders__col--total">TOTAL</span>
+        <span class="all-orders__col all-orders__col--action"></span>
+      </div>
+      {%- for order in customer.orders -%}
+        {%- render 'all-orders-row', order: order -%}
+      {%- endfor -%}
+    </div>
+    {%- if paginate.next -%}
+    <div class="ao-load-more-wrap">
+      <button type="button" class="ao-load-more-btn" data-next-url="{{ paginate.next.url }}">
+        <span class="ao-lm-text">Load more orders</span>
+        <span class="ao-lm-spinner" aria-hidden="true"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-dasharray="31.4 94.2"/></svg></span>
+      </button>
+    </div>
+    {%- endif -%}
+    {%- else -%}
+      <div class="all-orders__empty"><p>You haven't placed any orders yet.</p><a href="/collections/all" class="all-orders__shop-btn">Start Shopping</a></div>
+    {%- endif -%}
+  {% endpaginate %}
+  </div>
+</div>
+
+{%- else -%}
+<div class="ao-login-prompt" style="text-align:center;padding:60px 20px;">
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+  <h2 style="font-size:20px;font-weight:700;color:#111;margin:0 0 8px;">Log in to view your orders</h2>
+  <p style="font-size:15px;color:#6b7280;margin:0 0 20px;">Sign in to your account to access your order history.</p>
+  <a href="/pages/welcome" style="display:inline-block;padding:10px 28px;background:#019AFF;color:#fff;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;">Go to Members Portal</a>
+</div>
+{%- endif -%}
+
+<style>
+  /* ===== All-orders (standalone / AJAX-injected) ===== */
+  .all-orders-wrap { font-family: inherit; }
+  .all-orders__title { font-size: 24px; font-weight: 700; margin: 0 0 16px 0; line-height: 1.3; }
+  .all-orders__toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .all-orders__search { flex: 1 1 220px; min-width: 0; }
+  .all-orders__search-inner { position: relative; }
+  .all-orders__search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
+  .all-orders__search-input { width: 100%; padding: 8px 34px 8px 36px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; color: #111; background: #fff; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
+  .all-orders__search-input::placeholder { color: #9ca3af; }
+  .all-orders__search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  .all-orders__search-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: none; font-size: 18px; color: #9ca3af; cursor: pointer; padding: 2px 6px; line-height: 1; }
+  .all-orders__search-clear:hover { color: #374151; }
+  .all-orders__controls { display: flex; align-items: center; gap: 8px; white-space: nowrap; flex-shrink: 0; }
+  .all-orders__control-label { font-size: 13px; color: #6b7280; font-weight: 500; }
+  .all-orders__control-select { padding: 8px 32px 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; font-size: 13px; color: #111; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+  .all-orders__control-select:hover { border-color: #9ca3af; }
+  .all-orders__toolbar-count { font-size: 14px; color: #6b7280; white-space: nowrap; flex-shrink: 0; margin-left: auto; }
+  .all-orders__search-no-results { text-align: center; padding: 32px 16px; color: #6b7280; font-size: 15px; }
+  .ao-filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .ao-filter-pill { padding: 6px 16px; border: 1px solid #e5e7eb; border-radius: 20px; background: #fff; font-size: 13px; font-weight: 500; color: #374151; cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: inherit; line-height: 1.4; }
+  .ao-filter-pill:hover { border-color: #d1d5db; background: #f9fafb; }
+  .ao-filter-pill--active { background: #019AFF; color: #fff; border-color: #019AFF; }
+  .ao-filter-pill--active:hover { background: #0180d4; border-color: #0180d4; }
+  .ao-pill-short { display: none; }
+  .all-orders__mobile-name-price { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .all-orders__mobile-price-inline { font-size: 16px; font-weight: 700; color: #111; white-space: nowrap; display: none; }
+  .all-orders__count { display: none; }
+  .all-orders__table { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background: #fff; }
+  .all-orders__thead { display: grid; grid-template-columns: minmax(220px, 1fr) 120px 70px minmax(280px, 1.2fr); gap: 0 16px; align-items: center; padding: 12px 20px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; color: #6b7280; letter-spacing: 0.05em; text-transform: uppercase; }
+  .all-orders__row { display: grid; grid-template-columns: minmax(220px, 1fr) 120px 70px minmax(280px, 1.2fr); gap: 0 16px; align-items: center; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
+  .all-orders__row:last-of-type { border-bottom: none; }
+  .all-orders__row-mobile { display: none; }
+  .all-orders__order-name a { font-size: 15px; font-weight: 700; color: #111; text-decoration: none; }
+  .all-orders__order-name a:hover { text-decoration: underline; }
+  .all-orders__order-name-row { display: flex; flex-direction: column; gap: 2px; }
+  .all-orders__order-name-link { font-size: 15px; font-weight: 700; color: #111; text-decoration: none; }
+  .all-orders__order-name-link:hover { text-decoration: underline; }
+  .ao-tracking-inline { font-size: 12px; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+  .ao-tracking-sep { display: none; }
+  .ao-tracking-inline-label { font-weight: 600; color: #111; }
+  .ao-tracking-inline-link { color: #2563eb; text-decoration: none; }
+  .ao-tracking-inline-link:hover { text-decoration: underline; }
+  .ao-tracking-callout { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 0; background: transparent; border-radius: 0; font-size: 12px; color: #1e40af; max-width: 100%; flex-wrap: wrap; }
+  .ao-tracking-callout svg { flex-shrink: 0; color: #3b82f6; }
+  .ao-tracking-callout__label { font-weight: 600; white-space: nowrap; }
+  .ao-tracking-callout__link { color: #2563eb; text-decoration: none; font-weight: 500; word-break: break-all; }
+  .ao-tracking-callout__link:hover { text-decoration: underline; }
+  .all-orders__order-date { font-size: 13px; color: #6b7280; margin-top: 2px; }
+  .all-orders__order-product { font-size: 13px; color: #374151; margin-top: 2px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+  .all-orders__order-desc { font-size: 13px; color: #9ca3af; margin-top: 2px; }
+  .all-orders__order-nickname { font-size: 12px; font-weight: 700; color: #111; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+  .all-orders__nickname-label { font-weight: 700; color: #111; }
+  .all-orders__nickname-value { color: #6b7280; }
+  .all-orders__price { font-size: 16px; font-weight: 700; color: #111; }
+  .all-orders__col--status { text-align: center; }
+  .all-orders__col--total { text-align: right; }
+  .all-orders__col--action { text-align: right; }
+  .all-orders__reorder-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 8px 18px; border: none; border-radius: 8px; background: #019AFF; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; min-width: 90px; }
+  .all-orders__reorder-btn:hover { background: #0180d4; }
+  .ao-view-details-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 8px 14px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #374151; font-size: 12px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.15s, border-color 0.15s; white-space: nowrap; }
+  .ao-view-details-btn:hover { background: #f9fafb; border-color: #9ca3af; }
+  a.all-orders__order-name-link.ao-view-details-btn { display: inline !important; padding: 0 !important; border: none !important; border-radius: 0 !important; background: none !important; color: #111 !important; font-size: 15px !important; font-weight: 700 !important; white-space: normal !important; min-height: 0 !important; }
+  a.all-orders__order-name-link.ao-view-details-btn:hover { background: none !important; border-color: transparent !important; text-decoration: underline !important; }
+  .ao-reprint-label { display: block; font-size: 12px; font-weight: 400; color: #16a34a !important; line-height: 1.3; text-align: center; }
+  .ao-invoice-link { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 14px; border: 1px solid #d1d5db; border-radius: 7px; background: #fff; color: #374151; font-size: 12px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background 0.15s, border-color 0.15s; white-space: nowrap; }
+  .ao-invoice-link:hover { background: #f9fafb; border-color: #9ca3af; }
+  .all-orders__reorder-btn.loading .ao-btn-text { display: none; }
+  .all-orders__reorder-btn.loading .ao-spinner-container { display: inline-flex; }
+  .ao-spinner-container { display: none; height: 18px; align-items: center; }
+  .ao-spinner { animation: ao-spin 0.6s linear infinite; height: 18px; width: 18px; }
+  @keyframes ao-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .all-orders__empty { text-align: center; padding: 48px 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }
+  .all-orders__empty p { font-size: 16px; color: #6b7280; margin: 0 0 16px; }
+  .all-orders__shop-btn { display: inline-block; padding: 10px 24px; background: #111; color: #fff; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500; }
+  .ao-order-row { border-bottom: 1px solid #e5e5e3; }
+  .ao-order-row:last-child { border-bottom: none; }
+  .ao-order-row .all-orders__row { border-bottom: none; }
+  .ao-order-row-mobile { display: none; }
+  .ao-has-items .all-orders__row { cursor: default; }
+  .ao-order-row .all-orders__row:hover { background: rgba(1, 154, 255, 0.06); }
+  .ao-order-row-mobile .all-orders__row-mobile:hover { background: rgba(1, 154, 255, 0.06); }
+  .ao-thumb-count { position: absolute; bottom: -2px; right: -6px; background: #1a1a1a; color: #fff; font-size: 10px; font-weight: 600; border-radius: 20px; padding: 1px 5px; white-space: nowrap; line-height: 16px; font-family: ui-monospace, SFMono-Regular, monospace; }
+  .ao-status { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .ao-status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .ao-badge--green { color: #16a34a; background: #f0fdf4; }
+  .ao-badge--green .ao-status-dot { background: #16a34a; }
+  .ao-badge--blue { color: #2563eb; background: #eff6ff; }
+  .ao-badge--blue .ao-status-dot { background: #2563eb; }
+  .ao-badge--red { color: #dc2626; background: #fef2f2; }
+  .ao-badge--red .ao-status-dot { background: #dc2626; }
+  .ao-badge--grey { color: #1f2937; background: #f3f4f6; }
+  .ao-badge--grey .ao-status-dot { background: #9ca3af; }
+  .all-orders__col--status { display: flex; flex-direction: column; align-items: center; gap: 6px; justify-self: center; }
+  .ao-status-tracking-group { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .ao-tracking-wrap { font-size: 11px; line-height: 1.3; white-space: nowrap; }
+  .ao-tracking-label { font-weight: 600; color: #111; }
+  .ao-tracking-link { color: #2563eb; text-decoration: none; word-break: break-all; }
+  .ao-tracking-link:hover { text-decoration: underline; }
+  .ao-status-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .ao-blocked-msg { font-size: 11px; color: #dc2626; line-height: 1.4; text-align: center; display: block; margin-top: 4px; }
+  .ao-blocked-msg a { color: #dc2626; text-decoration: underline; }
+  .ao-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: nowrap; }
+  .ao-expand-btn { display: inline; background: none; border: none; outline: none; font-size: inherit; font-weight: 600; color: #019AFF; padding: 0; margin: 0; cursor: pointer; font-family: inherit; -webkit-appearance: none; appearance: none; }
+  .ao-expand-btn:hover { color: #0180d4; background: none; border-color: transparent; }
+  .ao-arrow { display: inline-block; }
+  .ao-order-row.expanded .ao-expand-btn { color: #0180d4; }
+  .ao-order-row-mobile.expanded .ao-expand-btn { color: #0180d4; }
+  .ao-line-items { display: none; border-top: 1px dashed #e5e5e3; background: #fafaf9; padding: 0 20px 4px 20px; animation: aoSlideDown 0.2s ease; }
+  .ao-order-row.expanded .ao-line-items,
+  .ao-order-row-mobile.expanded .ao-line-items { display: block; }
+  @keyframes aoSlideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .ao-status-block { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .ao-line-item { display: grid; grid-template-columns: 40px 1fr auto auto; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #ececea; }
+  .ao-line-item:last-child { border-bottom: none; }
+  .ao-li-thumb { width: 36px; height: 36px; border-radius: 6px; border: 1px solid #e5e5e3; overflow: hidden; background: #eee; display: flex; align-items: center; justify-content: center; }
+  .ao-li-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .ao-li-name { font-size: 13px; font-weight: 700; color: #1a1a1a; }
+  .ao-li-sub { font-size: 13px; color: #9ca3af; margin-top: 2px; }
+  .ao-li-price { font-size: 13px; font-weight: 500; color: #555; white-space: nowrap; }
+  .ao-thumb-strip { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: nowrap; }
+  .ao-strip-thumb { width: 37px; height: 37px; border-radius: 7px; overflow: hidden; border: 1px solid #e5e5e3; background: #f0f0ee; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .ao-strip-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .ao-strip-more { font-size: 12px; font-weight: 600; color: #019AFF; white-space: nowrap; margin-left: 2px; background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; }
+  .ao-no-image { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: #f0f0ee; font-size: 7px; font-weight: 600; color: #999; text-align: center; line-height: 1.15; text-transform: uppercase; padding: 2px; box-sizing: border-box; }
+  .ao-li-reorder-btn { display: inline-flex; align-items: center; justify-content: center; padding: 4px 12px; border: 1px solid #019AFF; border-radius: 6px; background: #019AFF; color: #fff; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: inherit; min-width: 70px; height: 28px; }
+  .ao-li-reorder-btn:hover { background: #0180d4; color: #fff; border-color: #0180d4; }
+  .ao-li-reorder-btn.loading .ao-li-btn-text { display: none; }
+  .ao-li-reorder-btn.loading .ao-li-spinner-container { display: inline-flex; }
+  .ao-li-spinner-container { display: none; height: 14px; align-items: center; }
+
+  /* ===== Load More ===== */
+  .ao-load-more-wrap { margin-top: 20px; text-align: center; }
+  .ao-load-more-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 28px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #111; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; min-height: 40px; font-family: inherit; }
+  .ao-load-more-btn:hover { background: #f9fafb; border-color: #9ca3af; }
+  .ao-load-more-btn.loading .ao-lm-text { display: none; }
+  .ao-load-more-btn.loading .ao-lm-spinner { display: inline-flex; }
+  .ao-lm-spinner { display: none; align-items: center; color: #019AFF; }
+  .ao-lm-spinner svg { width: 20px; height: 20px; animation: ao-spin 0.7s linear infinite; }
+
+  /* ===== Mobile ===== */
+  @media (max-width: 768px) {
+    .all-orders__title { font-size: 20px; }
+    .ao-filters { width: 100%; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+    .ao-filter-pill { font-size: 12px; padding: 6px 12px; flex-shrink: 0; }
+    .ao-pill-full { display: none; }
+    .ao-pill-short { display: inline; }
+    .all-orders__toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
+    .all-orders__search { flex: 1 1 auto; }
+    .all-orders__controls { flex-wrap: wrap; gap: 6px; }
+    .all-orders__control-select { min-height: 40px; }
+    .all-orders__toolbar-count { margin-left: 0; }
+
+    /* Hide desktop grid, show mobile cards */
+    .all-orders__thead,
+    .all-orders__row { display: none; }
+    .ao-order-row { display: none; }
+    .ao-order-row-mobile { display: block; border-bottom: 1px solid #e5e5e3; }
+    .ao-order-row-mobile:last-child { border-bottom: none; }
+    .all-orders__row-mobile { display: block; padding: 16px; border-bottom: none; }
+    .all-orders__row-mobile:last-of-type { border-bottom: none; }
+
+    /* Mobile card layout */
+    .all-orders__mobile-top { display: flex; align-items: flex-start; gap: 0; flex-wrap: wrap; }
+    .all-orders__mobile-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .all-orders__order-name-row { flex-wrap: wrap; }
+    .all-orders__order-name-link { font-size: 15px; }
+    .ao-expand-btn { font-size: inherit; }
+    .ao-has-items .all-orders__row-mobile { cursor: default; }
+    .all-orders__order-date { font-size: 14px; }
+    .all-orders__order-product { font-size: 14px; max-width: 100%; }
+    .all-orders__order-desc { font-size: 14px; }
+    .all-orders__order-nickname { font-size: 13px; max-width: 100%; }
+    .all-orders__mobile-price { display: none; }
+    .all-orders__mobile-price-inline { display: inline; }
+    .all-orders__mobile-name-price { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .all-orders__mobile-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-top: 12px; gap: 8px; }
+    .ao-order-row-mobile .ao-line-items { padding: 0 16px 4px 16px; }
+
+    /* Status badges */
+    .ao-status { font-size: 14px; padding: 4px 10px; align-self: flex-start; }
+    .ao-blocked-msg { font-size: 12px; }
+    .ao-tracking-wrap { font-size: 14px; }
+    .ao-tracking-inline { display: none; }
+
+    /* Buttons — 44px tap targets */
+    .all-orders__reorder-btn { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 18px; font-size: 14px; flex: 1 1 0; min-width: 0; }
+    .ao-view-details-btn { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 14px; font-size: 14px; flex: 1 1 0; min-width: 0; }
+    a.all-orders__order-name-link.ao-view-details-btn { display: inline !important; padding: 0 !important; border: none !important; border-radius: 0 !important; background: none !important; color: #111 !important; font-size: 15px !important; font-weight: 700 !important; white-space: normal !important; min-height: 0 !important; flex: none !important; min-width: 0 !important; align-items: unset !important; justify-content: unset !important; }
+    .ao-reprint-label { text-align: left !important; margin-top: 2px; display: block; }
+    .ao-invoice-link { font-size: 14px; min-height: 44px; display: flex; align-items: center; justify-content: center; flex-basis: 100%; }
+    .ao-actions { display: flex; flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 8px; width: 100%; }
+
+    /* Expanded line items — reflow */
+    .ao-line-item { grid-template-columns: 40px 1fr; gap: 8px 12px; }
+    .ao-li-price { grid-column: 2; font-size: 14px; margin-top: -4px; }
+    .ao-li-reorder { grid-column: 2; }
+    .ao-li-reorder-btn { min-height: 40px; font-size: 14px; padding: 6px 14px; }
+    .ao-li-name { font-size: 14px; }
+    .ao-li-sub { font-size: 14px; }
+
+    /* Load More */
+    .ao-load-more-btn { min-height: 44px; font-size: 15px; padding: 10px 24px; width: 100%; max-width: 320px; }
+  }
+</style>
+
+<script>
+(function() {
+  /* ===== All-orders panel (AJAX-loaded) ===== */
+  var aoWrap = document.getElementById('ao-portal-{{ section.id }}');
+  if (!aoWrap) return;
+
+  var aoBlock = aoWrap.querySelector('.ao-page-block');
+  var aoTable = aoBlock ? aoBlock.querySelector('.all-orders__table') : null;
+  var aoToolbarCount = aoWrap.querySelector('.all-orders__toolbar-count');
+  var aoSearchInput = aoWrap.querySelector('.all-orders__search-input');
+  var aoClearBtn = aoWrap.querySelector('.all-orders__search-clear');
+  var aoNoResults = aoWrap.querySelector('.all-orders__search-no-results');
+  var aoFilterPills = aoWrap.querySelectorAll('.ao-filter-pill');
+  var aoActiveFilter = 'all';
+
+  function aoGetTotal() {
+    var countEl = aoBlock && aoBlock.querySelector('.all-orders__count');
+    return countEl ? parseInt(countEl.getAttribute('data-total') || '0', 10) : 0;
+  }
+
+  function aoLoadedRowCount() {
+    return aoTable ? aoTable.querySelectorAll(':scope > .ao-order-row').length : 0;
+  }
+
+  function aoSyncCount() {
+    if (!aoToolbarCount) return;
+    var loaded = aoLoadedRowCount();
+    var total = aoGetTotal();
+    if (loaded === 0 || total === 0) { aoToolbarCount.textContent = ''; return; }
+    aoToolbarCount.textContent = 'Showing 1–' + loaded + ' of ' + total + ' orders';
+  }
+  aoSyncCount();
+
+  /* ===== Load More — fetch next page, append rows ===== */
+  function aoHandleLoadMore(e) {
+    e.preventDefault();
+    var btn = e.currentTarget;
+    if (btn.classList.contains('loading')) return;
+    var nextUrl = btn.getAttribute('data-next-url');
+    if (!nextUrl) return;
+    btn.classList.add('loading');
+    fetch(nextUrl, { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })
+      .then(function(res) { return res.text(); })
+      .then(function(html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var newTable = doc.querySelector('.ao-page-block .all-orders__table');
+        if (newTable && aoTable) {
+          var desktopRows = newTable.querySelectorAll(':scope > .ao-order-row');
+          var mobileRows = newTable.querySelectorAll(':scope > .ao-order-row-mobile');
+          desktopRows.forEach(function(row) { aoTable.appendChild(row); });
+          mobileRows.forEach(function(row) { aoTable.appendChild(row); });
+        }
+        var newBtn = doc.querySelector('.ao-load-more-btn');
+        var wrap = btn.closest('.ao-load-more-wrap');
+        if (newBtn && newBtn.getAttribute('data-next-url')) {
+          btn.setAttribute('data-next-url', newBtn.getAttribute('data-next-url'));
+          btn.classList.remove('loading');
+        } else if (wrap) {
+          wrap.remove();
+        }
+        aoApplyFiltersAndSearch();
+        aoSyncCount();
+      })
+      .catch(function() {
+        btn.classList.remove('loading');
+      });
+  }
+  /* Delegated so it survives re-renders */
+  aoWrap.addEventListener('click', function(e) {
+    var btn = e.target.closest('.ao-load-more-btn');
+    if (btn) aoHandleLoadMore({ preventDefault: function(){}, currentTarget: btn });
+  });
+
+  /* ===== Reorder — delegated so Load-More-appended rows work ===== */
+  if (typeof jQuery !== 'undefined') {
+    var $ = jQuery;
+
+    function aoBulkReorder(data, el) {
+      var items = [];
+      for (var i = 0; i < data.length; i++) {
+        if (data[i].check_inventory) {
+          data[i].quantity = Math.min(parseInt(data[i].inventory), parseInt(data[i].quantity));
+        }
+        items.push({ id: data[i].id, quantity: parseInt(data[i].quantity), properties: data[i].properties });
+      }
+      $.ajax({
+        url: '/cart/add.js', method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ items: items }),
+        complete: function() {
+          el.removeClass('loading');
+          openCartAfterReorder();
+        }
+      });
+    }
+
+    function openCartAfterReorder() {
+      var opened = false;
+      try {
+        if (typeof window.refreshCart === 'function') {
+          window.refreshCart();
+          opened = true;
+        }
+      } catch (e) {}
+      setTimeout(function() {
+        try {
+          var sidebar = document.querySelector('[data-js-site-cart-sidebar]');
+          if (sidebar && typeof sidebar.show === 'function') { sidebar.show(); return; }
+        } catch (e) {}
+        try {
+          var cartIcon = document.querySelector('[data-js-toggle-cart-sidebar], [data-cart-drawer-toggle], a[href="/cart"]');
+          if (cartIcon) { cartIcon.click(); return; }
+        } catch (e) {}
+        if (!opened) window.location.href = '/cart';
+      }, 300);
+    }
+    window.__aoOpenCartAfterReorder = openCartAfterReorder;
+
+    /* Main reorder — DELEGATED (was direct) so appended rows work */
+    $(aoWrap).on('click', '.all-orders__reorder-btn', function() {
+      var el = $(this);
+      if (el.hasClass('loading')) return;
+      var pWrap = el.closest('.all-orders__col--action, .all-orders__mobile-bottom');
+      var note = 'of order #' + el.attr('data-corder-id');
+      var ids = el.attr('data-variant-ids').split(',');
+      var lineids = el.attr('data-lineitem-ids').split(',');
+      var quantities = el.attr('data-variant-quantities').split(',');
+      var inventories = el.attr('data-variant-inventories').split(',');
+      var inv_policies = el.attr('data-variant-inventory-policies').split(',');
+      var inv_trackers = el.attr('data-variant-inventory-trackers').split(',');
+      ids.splice(-1, 1); quantities.splice(-1, 1); inventories.splice(-1, 1);
+      inv_policies.splice(-1, 1); inv_trackers.splice(-1, 1);
+      var data = [];
+      var propitems = pWrap.find('.ao-propitems');
+      for (var i = 0; i < ids.length; i++) {
+        var props = $.trim($(propitems[i]).val());
+        var _json = {};
+        if (props != '') { try { _json = JSON.parse(props); } catch(e) { _json = {}; } }
+        $.each(_json, function(k, v) {
+          if (typeof v === 'string' && v.indexOf('https%3A%2F%2F') > -1) {
+            _json[k] = decodeURIComponent(v);
+          }
+        });
+        _json['reorder'] = note + ' / ' + lineids[i];
+        data.push({ id: ids[i], quantity: quantities[i], inventory: inventories[i], properties: _json, check_inventory: (inv_policies[i] == 'deny' && inv_trackers[i] != '') });
+      }
+      el.addClass('loading');
+      aoBulkReorder(data, el);
+    });
+
+    /* Single line-item reorder (already delegated) */
+    $(aoWrap).on('click', '.ao-li-reorder-btn', function(e) {
+      e.stopPropagation();
+      var btn = $(this);
+      if (btn.hasClass('loading')) return;
+      var propText = $.trim(btn.closest('.ao-li-reorder').find('.ao-li-propdata').val());
+      var props = {};
+      if (propText !== '') { try { props = JSON.parse(propText); } catch(ex) { props = {}; } }
+      $.each(props, function(k, v) {
+        if (typeof v === 'string' && v.indexOf('https%3A%2F%2F') > -1) {
+          props[k] = decodeURIComponent(v);
+        }
+      });
+      props['reorder'] = 'of order #' + btn.attr('data-order-name') + ' / ' + btn.attr('data-lineitem-id');
+      var qty = parseInt(btn.attr('data-quantity'));
+      if (btn.attr('data-inventory-policy') === 'deny' && btn.attr('data-inventory-tracker') !== '') {
+        qty = Math.min(parseInt(btn.attr('data-inventory')), qty);
+      }
+      btn.addClass('loading');
+      $.ajax({
+        url: '/cart/add.js', method: 'POST',
+        data: { quantity: qty, id: btn.attr('data-variant-id'), properties: props },
+        complete: function() {
+          btn.removeClass('loading');
+          openCartAfterReorder();
+        }
+      });
+    });
+  }
+
+  /* ===== Accordion ===== */
+  function aoPortalToggle(orderId) {
+    aoWrap.querySelectorAll('.ao-order-row[data-order-id], .ao-order-row-mobile[data-order-id]').forEach(function(row) {
+      if (row.getAttribute('data-order-id') === orderId) {
+        row.classList.toggle('expanded');
+        var btn = row.querySelector('.ao-expand-btn');
+        if (btn) {
+          var isExp = row.classList.contains('expanded');
+          btn.innerHTML = isExp ? 'close <span class="ao-arrow">&uarr;</span>' : 'view all <span class="ao-arrow">&darr;</span>';
+        }
+      } else {
+        row.classList.remove('expanded');
+        var btn2 = row.querySelector('.ao-expand-btn');
+        if (btn2) btn2.innerHTML = 'view all <span class="ao-arrow">&darr;</span>';
+      }
+    });
+  }
+  window.__aoToggle = aoPortalToggle;
+
+  aoWrap.addEventListener('click', function(e) {
+    var thumb = e.target.closest('.ao-preview-thumb');
+    if (thumb) {
+      e.preventDefault();
+      e.stopPropagation();
+      var src = thumb.getAttribute('data-preview-src') || thumb.src;
+      if (src && window.openRdLightbox) window.openRdLightbox(src, thumb.alt || '');
+      return;
+    }
+    if (e.target.closest('.ao-view-details-btn, .ao-invoice-link, .all-orders__reorder-btn, .ao-li-reorder-btn, .ao-load-more-btn')) return;
+    var btn = e.target.closest('.ao-expand-btn[data-toggle-order]');
+    if (btn) {
+      e.stopPropagation();
+      aoPortalToggle(btn.getAttribute('data-toggle-order'));
+      return;
+    }
+  });
+
+  /* ===== Search + Filter — operate on ALL currently loaded rows ===== */
+  function aoApplyFiltersAndSearch() {
+    if (!aoBlock) return;
+    var searchTerm = aoSearchInput ? aoSearchInput.value : '';
+    var raw = searchTerm.trim().toLowerCase();
+    var isSearching = raw.length > 0;
+    var matchCount = 0;
+
+    aoBlock.querySelectorAll('.ao-order-row').forEach(function(row) {
+      var show = true;
+      if (aoActiveFilter !== 'all') {
+        var st = (row.getAttribute('data-status') || '').toLowerCase();
+        if (aoActiveFilter === 'art-review') { show = (st === 'art-review' || st === 'artwork-blocked'); }
+        else { show = (st === aoActiveFilter); }
+      }
+      if (show && isSearching) {
+        var blob = (row.getAttribute('data-search') || '');
+        show = blob.indexOf(raw) !== -1;
+      }
+      row.style.display = show ? '' : 'none';
+      if (show) matchCount++;
+    });
+
+    aoBlock.querySelectorAll('.ao-order-row-mobile').forEach(function(row) {
+      var show = true;
+      if (aoActiveFilter !== 'all') {
+        var st = (row.getAttribute('data-status') || '').toLowerCase();
+        if (aoActiveFilter === 'art-review') { show = (st === 'art-review' || st === 'artwork-blocked'); }
+        else { show = (st === aoActiveFilter); }
+      }
+      if (show && isSearching) {
+        var blob = (row.getAttribute('data-search') || '');
+        show = blob.indexOf(raw) !== -1;
+      }
+      row.style.display = show ? '' : 'none';
+    });
+
+    var hideExtras = isSearching || aoActiveFilter !== 'all';
+    if (aoToolbarCount) aoToolbarCount.style.display = hideExtras ? 'none' : '';
+
+    if (matchCount === 0 && (isSearching || aoActiveFilter !== 'all')) {
+      var msg = 'No orders found';
+      if (aoActiveFilter !== 'all') msg += ' for "' + aoActiveFilter.replace(/-/g, ' ') + '"';
+      if (isSearching) msg += ' matching your search';
+      aoNoResults.textContent = msg + '.';
+      aoNoResults.style.display = '';
+    } else {
+      aoNoResults.style.display = 'none';
+    }
+    if (aoClearBtn) aoClearBtn.style.display = searchTerm.length > 0 ? '' : 'none';
+  }
+
+  aoFilterPills.forEach(function(pill) {
+    pill.addEventListener('click', function() {
+      aoActiveFilter = this.getAttribute('data-filter');
+      aoFilterPills.forEach(function(p) { p.classList.remove('ao-filter-pill--active'); });
+      this.classList.add('ao-filter-pill--active');
+      aoApplyFiltersAndSearch();
+    });
+  });
+
+  if (aoSearchInput) {
+    aoSearchInput.addEventListener('input', function() { aoApplyFiltersAndSearch(); });
+  }
+  if (aoClearBtn) {
+    aoClearBtn.addEventListener('click', function() {
+      aoSearchInput.value = '';
+      aoApplyFiltersAndSearch();
+      aoSearchInput.focus();
+    });
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "My Orders Content",
+  "settings": []
+}
+{% endschema %}

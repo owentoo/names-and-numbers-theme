@@ -1,0 +1,505 @@
+{% doc %}
+  @prompt
+    Create HTML, CSS, and JavaScript code suitable for embedding in a Shopify store that replicates the following design:
+On the left side, there is bold text in large font that says:
+“The most trusted transfer for Hustlers.”
+The word “Hustlers” dynamically changes every second to another word from a predefined list (e.g., “Makers”, “Creators”, “Builders”, “Dreamers”), and each new word appears in a different color.
+A white rectangular button with black text “Shop Now” appears below the text.
+On the right side, there is a video or image of a person speaking in a workshop/garage-style background. This can be a placeholder for now.
+The layout should be responsive: stacked vertically on mobile and side-by-side on desktop.
+Match the modern, clean design feel of a tech/entrepreneurial brand. Use a sans-serif font and apply spacing similar to the screenshot.
+Include:
+HTML for the structure.
+CSS for layout and design.
+JavaScript (or inline script) for the word/color rotation.
+Optional: Add a fade-in or smooth transition for the word changes.
+, i need this with a full width video background 
+, right align the text and button within a site width that we can adjust but keep the bg full width 
+, make the text and button have a toggle for right or left aligned and a mad width within the container 
+
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .video-hero-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-height: 500px;
+    max-height: 800px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .video-hero__background-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+  }
+
+  .video-hero__overlay-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: {{ block.settings.overlay_color }};
+    opacity: {{ block.settings.overlay_opacity | divided_by: 100.0 }};
+    z-index: 2;
+  }
+
+  .video-hero__placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f4f4f4;
+    z-index: 1;
+  }
+
+  .video-hero__placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    opacity: 0.7;
+  }
+
+  .video-hero__container-{{ ai_gen_id }} {
+    position: relative;
+    z-index: 3;
+    width: 100%;
+    max-width: {{ block.settings.content_width }}px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    {% if block.settings.content_alignment == 'right' %}
+      justify-content: flex-end;
+    {% elsif block.settings.content_alignment == 'left' %}
+      justify-content: flex-start;
+    {% else %}
+      justify-content: center;
+    {% endif %}
+  }
+
+  .video-hero__content-{{ ai_gen_id }} {
+    {% if block.settings.content_alignment == 'right' %}
+      text-align: right;
+    {% elsif block.settings.content_alignment == 'left' %}
+      text-align: left;
+    {% else %}
+      text-align: center;
+    {% endif %}
+    max-width: {{ block.settings.text_width }}px;
+    padding: {{ block.settings.content_padding }}px 0;
+  }
+
+  .video-hero__heading-{{ ai_gen_id }} {
+    font-size: 36px;
+    line-height: 1.2;
+    font-weight: 700;
+    margin: 0 0 30px;
+    color: {{ block.settings.heading_color }};
+  }
+
+  @media screen and (min-width: 768px) {
+    .video-hero__heading-{{ ai_gen_id }} {
+      font-size: 56px;
+    }
+  }
+
+  .video-hero__dynamic-word-{{ ai_gen_id }} {
+    display: inline-block;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  .video-hero__button-{{ ai_gen_id }} {
+    display: inline-block;
+    background-color: {{ block.settings.button_background_color }};
+    color: {{ block.settings.button_text_color }};
+    padding: 16px 32px;
+    font-size: 18px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: {{ block.settings.button_border_radius }}px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+  }
+
+  .video-hero__button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_hover_color }};
+    transform: translateY(-2px);
+  }
+
+  @media screen and (max-width: 767px) {
+    .video-hero__container-{{ ai_gen_id }} {
+      justify-content: center;
+    }
+    
+    .video-hero__content-{{ ai_gen_id }} {
+      text-align: center;
+    }
+  }
+{% endstyle %}
+
+<dynamic-video-hero-{{ ai_gen_id }} 
+  class="video-hero-{{ ai_gen_id }}"
+  {{ block.shopify_attributes }}
+>
+  {% if block.settings.video_url != blank %}
+    <video 
+      class="video-hero__background-{{ ai_gen_id }}"
+      autoplay
+      loop
+      muted
+      playsinline
+    >
+      <source src="{{ block.settings.video_url }}" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  {% elsif block.settings.image %}
+    <img
+      src="{{ block.settings.image | image_url: width: 1920 }}"
+      alt="{{ block.settings.image.alt | escape }}"
+      loading="lazy"
+      class="video-hero__background-{{ ai_gen_id }}"
+      width="{{ block.settings.image.width }}"
+      height="{{ block.settings.image.height }}"
+    >
+  {% else %}
+    <div class="video-hero__placeholder-{{ ai_gen_id }}">
+      {{ 'image' | placeholder_svg_tag }}
+    </div>
+  {% endif %}
+  
+  <div class="video-hero__overlay-{{ ai_gen_id }}"></div>
+  
+  <div class="video-hero__container-{{ ai_gen_id }}">
+    <div class="video-hero__content-{{ ai_gen_id }}"><h2 class="video-hero__heading-{{ ai_gen_id }}">
+        {{ block.settings.heading_prefix }}
+        <span class="video-hero__dynamic-word-{{ ai_gen_id }}">{{ block.settings.word_1 }}</span>
+        {{ block.settings.heading_suffix }}
+      </h2><a href="{{ block.settings.button_link }}" class="video-hero__button-{{ ai_gen_id }}">
+        {{ block.settings.button_text }}
+      </a>
+    </div>
+  </div>
+</dynamic-video-hero-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class DynamicVideoHero extends HTMLElement {
+      constructor() {
+        super();
+        this.dynamicWordElement = this.querySelector('.video-hero__dynamic-word-{{ ai_gen_id }}');
+        this.currentIndex = 0;
+        this.words = [
+          { text: '{{ block.settings.word_1 }}', color: '{{ block.settings.color_1 }}' },
+          { text: '{{ block.settings.word_2 }}', color: '{{ block.settings.color_2 }}' },
+          { text: '{{ block.settings.word_3 }}', color: '{{ block.settings.color_3 }}' },
+          { text: '{{ block.settings.word_4 }}', color: '{{ block.settings.color_4 }}' },
+          { text: '{{ block.settings.word_5 }}', color: '{{ block.settings.color_5 }}' }
+        ];
+        
+        // Filter out any empty words
+        this.words = this.words.filter(word => word.text.trim() !== '');
+        
+        if (this.words.length > 0) {
+          // Set initial word and color
+          this.setWordAndColor(this.words[0]);}
+      }
+      
+      connectedCallback() {
+        if (this.words.length > 1) {
+          this.startRotation();
+        }
+      }
+      
+      disconnectedCallback() {
+        if (this.intervalId) {
+          clearInterval(this.intervalId);
+        }
+      }
+      
+      startRotation() {
+        this.intervalId = setInterval(() => {
+          this.rotateWord();
+        }, {{ block.settings.rotation_speed | times: 1000 }});
+      }
+      
+      rotateWord() {
+        // Fade out
+        this.dynamicWordElement.style.opacity = '0';
+        
+        setTimeout(() => {
+          // Update index
+          this.currentIndex = (this.currentIndex + 1) % this.words.length;
+          
+          // Set new word and color
+          this.setWordAndColor(this.words[this.currentIndex]);
+          
+          // Fade in
+          this.dynamicWordElement.style.opacity = '1';
+        }, 300); // Half the transition time for a smooth crossfade
+      }
+      
+      setWordAndColor(wordObj) {
+        this.dynamicWordElement.textContent = wordObj.text;
+        this.dynamicWordElement.style.color = wordObj.color;
+      }
+    }
+    
+    customElements.define('dynamic-video-hero-{{ ai_gen_id }}', DynamicVideoHero);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Video Hero Dynamic Text",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "heading_prefix",
+      "label": "Heading prefix",
+      "default": "The most trusted transfer for "
+    },
+    {
+      "type": "text",
+      "id": "heading_suffix",
+      "label": "Heading suffix",
+      "default": "."
+    },
+    {
+      "type": "header",
+      "content": "Dynamic Words"
+    },
+    {
+      "type": "text",
+      "id": "word_1",
+      "label": "Word 1",
+      "default": "Hustlers"
+    },
+    {
+      "type": "color",
+      "id": "color_1",
+      "label": "Color 1",
+      "default": "#FF5252"
+    },
+    {
+      "type": "text",
+      "id": "word_2",
+      "label": "Word 2",
+      "default": "Makers"
+    },
+    {
+      "type": "color",
+      "id": "color_2",
+      "label": "Color 2",
+      "default": "#2196F3"
+    },
+    {
+      "type": "text",
+      "id": "word_3",
+      "label": "Word 3",
+      "default": "Creators"
+    },
+    {
+      "type": "color",
+      "id": "color_3",
+      "label": "Color 3",
+      "default": "#4CAF50"
+    },
+    {
+      "type": "text",
+      "id": "word_4",
+      "label": "Word 4",
+      "default": "Builders"
+    },
+    {
+      "type": "color",
+      "id": "color_4",
+      "label": "Color 4",
+      "default": "#FFC107"
+    },
+    {
+      "type": "text",
+      "id": "word_5",
+      "label": "Word 5",
+      "default": "Dreamers"
+    },
+    {
+      "type": "color",
+      "id": "color_5",
+      "label": "Color 5",
+      "default": "#9C27B0"
+    },
+    {
+      "type": "range",
+      "id": "rotation_speed",
+      "min": 1,
+      "max": 5,
+      "step": 0.5,
+      "unit": "s",
+      "label": "Word rotation speed",
+      "default": 2
+    },
+    {
+      "type": "header",
+      "content": "Button"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "content_alignment",
+      "label": "Content alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "right"
+    },
+    {
+      "type": "range",
+      "id": "content_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Container width",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "text_width",
+      "min": 300,
+      "max": 800,
+      "step": 50,
+      "unit": "px",
+      "label": "Text content width",
+      "default": 500
+    },
+    {
+      "type": "range",
+      "id": "content_padding",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Content vertical padding",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "Background"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Background image",
+      "info": "Used if no video is provided"
+    },
+    {
+      "type": "url",
+      "id": "video_url",
+      "label": "Background video URL (MP4)",
+      "info": "If both image and video are set, video will take priority"
+    },
+    {
+      "type": "color",
+      "id": "overlay_color",
+      "label": "Overlay color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 90,
+      "step": 5,
+      "unit": "%",
+      "label": "Overlay opacity",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_background_color",
+      "label": "Button background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_color",
+      "label": "Button hover color",
+      "default": "#f5f5f5"
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Button border radius",
+      "default": 4
+    }
+  ],
+  "presets": [
+    {
+      "name": "Video Hero Dynamic Text"
+    }
+  ]
+}
+{% endschema %}

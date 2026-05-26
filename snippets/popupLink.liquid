@@ -1,0 +1,176 @@
+
+            {% if b.popupType != 'displayPreviousVersion' %}
+              <style>
+                .buyMoreSave {
+                  display: flex;
+                  flex-wrap: wrap;
+                  align-items: center;
+                  font-size: 13px;
+                  padding: 14px 0;
+                  border-top: 1px solid #b9b9b9;
+                  border-bottom: 1px solid #b9b9b9;
+                  gap: 12px;
+                  /* justify-content: space-between; */
+                  margin-bottom: 20px !important;
+                }
+                .buyMoreSave__title {
+                  font-size: {{ b.colFont_1 | append: 'px' }};
+                  color: {{ b.colColor_1 | default: '#000' }};
+                }
+                .buyMoreSave__title.openPriceCalculator,
+                .buyMoreSave__title.openTextBasedPopup {
+                  cursor: pointer;
+                }
+                fastest-deliver-placeholder {
+                  font-size: {{b.colFont_2 | append: 'px'}};
+                  font-weight: 400;
+                }
+                .buyMoreSave .delivery-block {
+                  line-height: 1;
+                  padding: 0;
+                  margin: 0;
+                  border: 0;
+                  border-radius: 0;
+                  background-color: #fff;
+                  text-align-last: left;
+                }
+                .buyMoreSave #delivery-block .del-sh-text::before {
+                  display: none;
+                }
+                .buyMoreSave__noMinimum {
+                  font-size: {{ b.colFont_3 | append: 'px' }};
+                  color: {{ b.colColor_3 | default: '#000' }};
+                }
+                .buyMoreSave__vLine {
+                  border-left: 1px solid lightgray;
+                }
+                @media (max-width: 1350px) {
+                  .buyMoreSave__noMinimum {
+                    width: 100%;
+                  }
+                  .buyMoreSave__vLine[line="2"] {
+                    display: none;
+                  }
+                }
+                @media (max-width: 1024px) {
+                  fastest-deliver-placeholder {
+                    width: 100%;
+                    display: block;
+                  }
+                  .buyMoreSave__vLine[line="1"] {
+                    display: none;
+                  }
+                }
+                @media (max-width: 768px) {
+                  fastest-deliver-placeholder {
+                    width: auto;
+                  }
+                  .buyMoreSave__vLine[line="1"] {
+                    display: inline-block;
+                  }
+                }
+                @media (max-width: 600px) {
+                  fastest-deliver-placeholder {
+                    width: 100%;
+                  }
+                  .buyMoreSave__vLine[line="1"] {
+                    display: none;
+                  }
+                }
+              </style>
+
+              <div class="buyMoreSave">
+                <div class="buyMoreSave__title {% if b.popupType == 'openCalculator' %}openPriceCalculator{% elsif b.popupType == 'textBasedPopup' %}openTextBasedPopup{% endif %}">
+                  {{ b.colText_1 }}
+                </div>
+                <div class="buyMoreSave__vLine" line="1">&nbsp;</div>
+                <fastest-deliver-placeholder>
+                  {{ b.colText_2 | replace: '[DATE]', '<date></date>' | replace: '[TIME]', '<time></time>' }}
+                  <div class="delivery-block" id="delivery-block" style="display: none;">
+                    <span class="textinfodel" style="display:none">Fastest Delivery <strong><date></date></strong> if ordered in <strong><time></time></strong></span>
+                  </div>
+                </fastest-deliver-placeholder>
+                <div class="buyMoreSave__vLine" line="2">&nbsp;</div>
+                <div class="buyMoreSave__noMinimum">
+                  {{ b.colText_3 }}
+                </div>
+              </div>
+              {% if b.colText_2 contains '[DATE]' or b.colText_2 contains '[TIME]' %}
+                <script>
+                  $( document )
+                  .ready(function () {
+                    setInterval(() => {
+                      {% render '__productCountDown' %}
+                    }, 2000);
+                  })
+                  .on(`click`, `.pricingTable, .openPriceCalculator`, function( e ) {
+                    try {
+                      e.stopImmediatePropagation();
+                      const isPopupElementAvailable = $( `.customTabelPopup__overlay.pricing-table` ).length;
+                      if ( isPopupElementAvailable > 0 ) {
+                        $( `.customTabelPopup__overlay.pricing-table` ).fadeIn();
+                        //$( `.product.container.container--large` ).css( `z-index`, `9999` );
+                        $( `body` ).css( `overflow`, `hidden` );
+                      }
+                    } catch ( err ) {
+                      console.log( `ERROR .pricingTable, .openPriceCalculator`, err.message );
+                    }
+                  })
+                  ;
+                </script>
+              {% endif %}
+
+              {% if b.popupType == 'openCalculator' %}
+                <script>
+                  $( document )
+                  .on(`click`, `.pricingTable, .openPriceCalculator`, function( e ) {
+                    try {
+                      e.stopImmediatePropagation();
+                      const isPopupElementAvailable = $( `.customTabelPopup__overlay.pricing-table` ).length;
+                      if ( isPopupElementAvailable > 0 ) {
+                        $( `.customTabelPopup__overlay.pricing-table` ).fadeIn();
+                        //$( `.product.container.container--large` ).css( `z-index`, `9999` );
+                        $( `body` ).css( `overflow`, `hidden` );
+                      }
+                    } catch ( err ) {
+                      console.log( `ERROR .pricingTable, .openPriceCalculator`, err.message );
+                    }
+                  })
+                  ;
+                </script>
+              {% elsif b.popupType == 'textBasedPopup' %}
+                {%- capture popupHTML -%}
+                  <popup-textbased class="open">
+                    <svg class="closePopup" width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+                    {% if b.popupTitle != blank %}
+                      <h3>{{ b.popupTitle }}</h3>
+                    {% endif %}
+
+                    <div class="templatesList">
+                      {{ b.popupContent }}
+                    </div>
+                  </popup-textbased>
+                {%- endcapture -%}
+                <script>
+                  $( document )
+                  .on(`click`, `.openTextBasedPopup`, function( e ) {
+                    try {
+                      e.stopImmediatePropagation();
+                      const popupHTML = `{{ popupHTML }}`;
+                      $( `body` ).append( popupHTML );
+                    } catch ( err ) {
+                      console.log( `ERROR .openTextBasedPopup`, err.message );
+                    }
+                  })
+                  .on(`click`, `popup-textbased .closePopup`, function( e ) {
+                    try {
+                      e.stopImmediatePropagation();
+                      $( this ).closest( `popup-textbased` ).remove();
+                    } catch ( err ) {
+                      console.log( `ERROR popup-textbased .closePopup`, err.message );
+                    }
+                  })
+                  ;
+                </script>
+              {% endif %}
+            {% endif %}

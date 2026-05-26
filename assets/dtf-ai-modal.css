@@ -1,0 +1,730 @@
+/* =========================================================
+   DTF AI Modal — styles
+   ---------------------------------------------------------
+   Modal shell + Ninja AI Generator hero/chat/history UI for
+   pages that don't use the by-size-tabs template (e.g. the
+   default /products/dtf-transfers DTF product page). The
+   click on the existing pink "Create a design with Ninja AI"
+   box opens this modal instead of the legacy
+   #generative-ai-dialog. The hero markup mirrors the AI tab
+   inside dtf-upload-tabs.liquid so the look matches v2.
+   ========================================================= */
+
+/* ---------------- Modal shell ---------------- */
+.dtf-ai-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.dtf-ai-modal[hidden] { display: none; }
+.dtf-ai-modal.is-open {
+  pointer-events: auto;
+  opacity: 1;
+}
+.dtf-ai-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  cursor: pointer;
+}
+.dtf-ai-modal__panel {
+  position: relative;
+  margin: auto;
+  background: #fff;
+  border-radius: 16px;
+  width: min(960px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(8px);
+  transition: transform 0.2s ease;
+}
+.dtf-ai-modal.is-open .dtf-ai-modal__panel {
+  transform: translateY(0);
+}
+.dtf-ai-modal__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Bump above the in-panel `.ai-chat-history-overlay` (z-index 5)
+     so expanding "Recently Generated" doesn't dim the close button. */
+  z-index: 100;
+  padding: 0;
+  transition: background 0.15s ease;
+}
+.dtf-ai-modal__close:hover { background: rgba(15, 23, 42, 0.14); }
+.dtf-ai-modal__close:focus-visible {
+  outline: 2px solid #019AFF;
+  outline-offset: 2px;
+}
+.dtf-ai-modal__inner {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* 15px horizontal padding so the prompts / input row / history grid have
+     a small breathing margin from the panel rounded corners while still
+     looking edge-to-edge. Centered content (hero title, subtitle) still
+     self-centers within the wider available width. */
+  padding: 36px 15px 28px;
+  display: flex;
+  flex-direction: column;
+  transition: padding-bottom 0.2s ease;
+}
+/* When the in-modal selection bar is visible, give the inner content extra
+   bottom padding so the bar (absolutely positioned at panel bottom: 16px)
+   floats over whitespace instead of covering the last row of tiles. */
+.dtf-ai-modal__inner--has-selection-bar { padding-bottom: 88px; }
+@media (max-width: 749px) {
+  .dtf-ai-modal__panel {
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+  .dtf-ai-modal__inner { padding: 56px 16px 20px; }
+  .dtf-ai-modal__close { top: 8px; right: 8px; }
+}
+
+body.dtf-ai-modal-open { overflow: hidden; }
+
+/* When the modal is open, hide the legacy <dialog> entirely.
+   We drive its <form> programmatically — it stays in the DOM so
+   generative-ai-image-modal.js handlers still fire — but we do
+   not want it visible behind/over our modal. */
+.dtf-ai-modal.is-open ~ #generative-ai-dialog,
+body.dtf-ai-modal-open #generative-ai-dialog {
+  display: none !important;
+}
+
+/* ---------------- AI host scope ---------------- */
+.dtf-ai-modal .dtfut__ai-host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+
+/* The native aiImageGenerator block renders the hidden start button,
+   the pink CTA box and the legacy dialog. We need them in the DOM
+   so the vendor jQuery handlers keep working, but we don't want
+   them visible inside the modal. */
+.dtf-ai-modal .generative-ai-area,
+.dtf-ai-modal #generativeAiStart {
+  display: none !important;
+}
+.dtf-ai-modal #generative-ai-dialog {
+  display: none !important;
+}
+
+/* ---------------- Hero (Ninja AI Generator) ---------------- */
+.dtf-ai-modal .dtfut__ai-hero {
+  /* No max-width: hero spans the full inner width so the input row, prompt
+     chips, chat bubbles and history grid all line up edge-to-edge with the
+     panel. Title/sub still self-center within the wider area. */
+  max-width: none;
+  margin: 0;
+  padding: 8px 0 4px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+.dtf-ai-modal .dtfut__ai-hero-title {
+  font-family: inherit;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  max-width: 450px;
+  margin: 0 auto 10px;
+}
+.dtf-ai-modal .dtfut__ai-hero-sub {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 22px;
+}
+.dtf-ai-modal .dtfut__ai-hero-prompts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 14px;
+  /* No max-width: chips fill the panel-inner width so they line up
+     with the input row's left/right edges below. */
+  max-width: none;
+  /* At-load spacing: 75px more breathing room than before (was 30px) so the
+     describe-your-design input feels less crowded against the preset chips.
+     Once the user starts chatting we collapse it back to 30px below so the
+     chat messages don't sit under a giant empty band. */
+  margin: 0 0 105px;
+  justify-items: stretch;
+}
+.dtf-ai-modal .dtfut__ai-hero:has(.dtfut__ai-chat:not(:empty)) .dtfut__ai-hero-prompts {
+  margin-bottom: 30px;
+}
+.dtf-ai-modal .dtfut__ai-hero-prompt {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 20px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  font: 500 13.5px/1.2 inherit;
+  color: #0f172a;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.dtf-ai-modal .dtfut__ai-hero-prompt:hover {
+  border-color: #019AFF;
+  box-shadow: 0 4px 12px rgba(1, 154, 255, 0.12);
+}
+.dtf-ai-modal .dtfut__ai-hero-prompt:active { transform: translateY(1px); }
+.dtf-ai-modal .dtfut__ai-hero-emoji { font-size: 16px; line-height: 1; }
+
+.dtf-ai-modal .dtfut__ai-hero-input-row {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  /* Edge-to-edge — no max-width cap. Inner has 0 horizontal padding now so
+     this naturally fills the modal panel width. */
+  margin: 0 auto;
+  padding: 5px;
+  border: 1px solid #d8dde5;
+  border-radius: 10px;
+  background: #eef1f4;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  flex: 0 0 auto;
+}
+.dtf-ai-modal .dtfut__ai-hero-input {
+  flex: 1 1 auto;
+  padding: 12px 14px;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  font: 400 13px/1.4 inherit;
+  background: transparent;
+  color: #0f172a;
+  min-width: 0;
+  resize: none;
+  overflow: hidden;
+  height: auto;
+  min-height: 48px;
+  max-height: 180px;
+  display: block;
+}
+.dtf-ai-modal .dtfut__ai-hero-input:focus,
+.dtf-ai-modal .dtfut__ai-hero-input:focus-visible,
+.dtf-ai-modal .dtfut__ai-hero-input:active {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.dtf-ai-modal .dtfut__ai-hero-input::placeholder { color: #64748b; }
+.dtf-ai-modal .dtfut__ai-hero-generate {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-left: 10px;
+  min-width: 128px;
+  padding: 13px 24px;
+  border: none;
+  border-radius: 10px;
+  font: 800 14px/1 inherit;
+  letter-spacing: 0.01em;
+  color: #fff !important;
+  background: linear-gradient(135deg, #ff1fae 0%, #b520f0 100%);
+  box-shadow: 0 4px 14px rgba(181, 32, 240, 0.32);
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms ease-out, box-shadow 200ms ease-out, filter 160ms ease-out, opacity 160ms ease-out;
+}
+.dtf-ai-modal .dtfut__ai-hero-generate > span,
+.dtf-ai-modal .dtfut__ai-hero-generate > svg {
+  color: #fff !important;
+  stroke: #fff !important;
+}
+.dtf-ai-modal .dtfut__ai-hero-generate:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(181, 32, 240, 0.42);
+  filter: brightness(1.04);
+}
+.dtf-ai-modal .dtfut__ai-hero-generate:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+  box-shadow: 0 3px 10px rgba(181, 32, 240, 0.32);
+  filter: brightness(0.98);
+}
+.dtf-ai-modal .dtfut__ai-hero-generate:focus-visible {
+  box-shadow: 0 4px 14px rgba(181, 32, 240, 0.32), 0 0 0 3px rgba(255, 31, 174, 0.35);
+}
+.dtf-ai-modal .dtfut__ai-hero-generate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: saturate(0.85);
+  box-shadow: 0 2px 8px rgba(181, 32, 240, 0.18);
+}
+
+/* ---------------- Saved AI history ---------------- */
+.dtf-ai-modal .dtfut__ai-history {
+  margin: 28px 0 0;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+  /* No max-width cap — history scroller spans the panel inner so its
+     left/right edges line up with the input row above. */
+  max-width: none;
+  width: 100%;
+}
+.dtf-ai-modal .dtfut__ai-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.dtf-ai-modal .dtfut__ai-history-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+.dtf-ai-modal .dtfut__ai-history-meta {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  letter-spacing: 0.01em;
+}
+.dtf-ai-modal .dtfut__ai-history-clear {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.dtf-ai-modal .dtfut__ai-history-clear:hover {
+  color: #019AFF;
+  background: rgba(1, 154, 255, 0.08);
+}
+/* Horizontal single-row scroller. Wrapper added by dtf-ai-history.js so the
+   grid can host left/right arrow overlays without changing the snippet. */
+.dtf-ai-modal .dtfut__ai-history-scroller {
+  position: relative;
+}
+.dtf-ai-modal .dtfut__ai-history-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  /* Padding gives selected-tile box-shadow room without getting clipped. */
+  padding: 6px 2px;
+  margin: -6px 0;
+  /* Hide native scrollbar (arrows + swipe handle navigation). */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.dtf-ai-modal .dtfut__ai-history-grid::-webkit-scrollbar { display: none; }
+/* Edge fade hints — soft gradient so users see there's more to scroll. */
+.dtf-ai-modal .dtfut__ai-history-scroller::before,
+.dtf-ai-modal .dtfut__ai-history-scroller::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 28px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.dtf-ai-modal .dtfut__ai-history-scroller::before {
+  left: 0;
+  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+}
+.dtf-ai-modal .dtfut__ai-history-scroller::after {
+  right: 0;
+  background: linear-gradient(to left, #fff, rgba(255, 255, 255, 0));
+}
+.dtf-ai-modal .dtfut__ai-history-scroller.is-scrolled-start::before { opacity: 1; }
+.dtf-ai-modal .dtfut__ai-history-scroller.is-scrolled-end::after { opacity: 1; }
+/* Arrow buttons — drawn on top of the gradients. */
+.dtf-ai-modal .dtfut__ai-history-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) scale(0.9);
+  width: 32px; height: 32px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18), 0 1px 3px rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  color: #1f2937;
+  padding: 0;
+}
+.dtf-ai-modal .dtfut__ai-history-arrow.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) scale(1);
+}
+.dtf-ai-modal .dtfut__ai-history-arrow:hover { background: #fff; }
+.dtf-ai-modal .dtfut__ai-history-arrow:active { transform: translateY(-50%) scale(0.94); }
+.dtf-ai-modal .dtfut__ai-history-arrow svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+.dtf-ai-modal .dtfut__ai-history-arrow--left { left: -4px; }
+.dtf-ai-modal .dtfut__ai-history-arrow--right { right: -4px; }
+
+.dtf-ai-modal .dtfut__ai-history-tile {
+  position: relative;
+  flex: 0 0 120px;
+  aspect-ratio: 1 / 1;
+  scroll-snap-align: start;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 0;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.dtf-ai-modal .dtfut__ai-history-tile:hover {
+  border-color: #019AFF;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(1, 154, 255, 0.18);
+}
+.dtf-ai-modal .dtfut__ai-history-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dtf-ai-modal .dtfut__ai-history-tile-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16px 8px 6px;
+  font-size: 11px;
+  color: #fff;
+  line-height: 1.3;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0));
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.dtf-ai-modal .dtfut__ai-history-tile-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.dtf-ai-modal .dtfut__ai-history-tile:hover .dtfut__ai-history-tile-remove,
+.dtf-ai-modal .dtfut__ai-history-tile-remove:focus-visible {
+  opacity: 1;
+}
+.dtf-ai-modal .dtfut__ai-history-tile-remove:hover { background: rgba(0, 0, 0, 0.85); }
+
+/* ---------------- Chat (user prompt + tip + image bubbles) ---------------- */
+.dtf-ai-modal .dtfut__ai-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  /* No horizontal padding — content goes edge-to-edge within the
+     panel inner so chat results / history line up with the input row. */
+  padding: 0 0 12px;
+}
+.dtf-ai-modal .dtfut__ai-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 18px 0 0;
+  text-align: left;
+}
+.dtf-ai-modal .dtfut__ai-chat:empty { display: none; }
+.dtf-ai-modal .dtfut__ai-chat-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+.dtf-ai-modal .dtfut__ai-chat-avatar {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  position: relative;
+  z-index: 2;
+}
+.dtf-ai-modal .dtfut__ai-chat-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.dtf-ai-modal .dtfut__ai-chat-bubble {
+  position: relative;
+  flex: 0 1 auto;
+  max-width: 75%;
+  width: fit-content;
+  background: #f3f4f6;
+  border-radius: 18px;
+  padding: 9px 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #0f172a;
+  text-align: left;
+  min-width: 0;
+}
+.dtf-ai-modal .dtfut__ai-chat-bubble::before,
+.dtf-ai-modal .dtfut__ai-chat-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  height: 16px;
+  pointer-events: none;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--tip .dtfut__ai-chat-bubble::before {
+  left: -6px;
+  width: 0;
+  border-left: 16px solid #eef0ff;
+  border-bottom-right-radius: 13px 11px;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--tip .dtfut__ai-chat-bubble::after {
+  left: -10px;
+  width: 10px;
+  background: #fff;
+  border-bottom-right-radius: 8px;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--user .dtfut__ai-chat-bubble::before {
+  right: -6px;
+  width: 0;
+  border-right: 16px solid #019AFF;
+  border-bottom-left-radius: 13px 11px;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--user .dtfut__ai-chat-bubble::after {
+  right: -10px;
+  width: 10px;
+  background: #fff;
+  border-bottom-left-radius: 8px;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--tip .dtfut__ai-chat-bubble {
+  background: #eef0ff;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--user .dtfut__ai-chat-bubble {
+  background: #019AFF;
+  color: #fff;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--user {
+  flex-direction: row-reverse;
+}
+.dtf-ai-modal .dtfut__ai-chat-avatar--user {
+  background: #fff;
+  border: 2px solid #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.dtf-ai-modal .dtfut__ai-chat-avatar--user svg { width: 24px; height: 24px; }
+/* Image-result messages span the full chat width — hide the bot avatar
+   so the 3-image grid lines up edge-to-edge with the input row below
+   instead of being pushed in by the avatar + gap. The "tip" bubble
+   right above already shows the avatar so the conversation context
+   stays clear. */
+.dtf-ai-modal .dtfut__ai-chat-msg--images {
+  align-items: stretch;
+  gap: 0;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--images > .dtfut__ai-chat-avatar {
+  display: none;
+}
+.dtf-ai-modal .dtfut__ai-chat-images-wrap {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+}
+.dtf-ai-modal .dtfut__ai-chat-tip-head {
+  margin: 0 0 2px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.dtf-ai-modal .dtfut__ai-chat-tip-head strong { font-weight: 700; }
+.dtf-ai-modal .dtfut__ai-chat-tip-sub {
+  margin: 0;
+  color: #374151;
+  line-height: 1.3;
+}
+
+/* Hide native loader/generating text — shimmer + chat convey state. */
+.dtf-ai-modal #generative-ai-generating { display: none !important; }
+.dtf-ai-modal #generative-ai-dialog-loader,
+.dtf-ai-modal #generative-ai-dialog-loader.show {
+  display: none !important;
+}
+
+/* Shimmer skeleton tiles while images generate */
+.dtf-ai-modal .dtfut__shimmer {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  border-radius: 12px;
+  background: linear-gradient(
+    100deg,
+    #e9ecf1 30%,
+    #f7f8fa 50%,
+    #e9ecf1 70%
+  );
+  background-size: 200% 100%;
+  animation: dtf-ai-modal-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes dtf-ai-modal-shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dtf-ai-modal .dtfut__shimmer {
+    animation: none;
+    background: #e9ecf1;
+  }
+}
+
+/* AI result figures — cloned from #generative-ai-images into chat */
+.dtf-ai-modal .dtfut__ai-chat-results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.dtf-ai-modal .dtfut__ai-chat-results > figure {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  margin: 0;
+}
+.dtf-ai-modal .dtfut__ai-chat-results > figure > img {
+  width: 100%;
+  border-radius: 8px;
+  display: block;
+}
+.dtf-ai-modal .dtfut__ai-chat-results > figure > figcaption {
+  color: transparent;
+  font-size: 0;
+  text-align: right;
+  margin-top: 8px;
+  cursor: pointer;
+}
+.dtf-ai-modal .dtfut__ai-chat-results > figure > figcaption::after {
+  content: "Use this design \2192";
+  color: #00a3f5;
+  font-size: 13.6px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.dtf-ai-modal .dtfut__ai-chat-results > figure:hover > figcaption::after {
+  text-decoration: underline;
+}
+
+/* Mobile tweaks */
+@media (max-width: 749px) {
+  .dtf-ai-modal .dtfut__ai-hero-title { font-size: 22px; }
+  .dtf-ai-modal .dtfut__ai-hero-sub { font-size: 13px; margin-bottom: 16px; }
+  .dtf-ai-modal .dtfut__ai-hero-prompts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 100%;
+    gap: 8px;
+  }
+  .dtf-ai-modal .dtfut__ai-hero-prompt {
+    padding: 8px 12px;
+    font-size: 12px;
+    gap: 6px;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .dtf-ai-modal .dtfut__ai-hero-emoji { font-size: 14px; }
+  .dtf-ai-modal .dtfut__ai-hero-prompt:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    max-width: 100%;
+  }
+  .dtf-ai-modal .dtfut__ai-hero-generate {
+    margin-left: 8px;
+    min-width: 110px;
+    padding: 13px 18px;
+    font-size: 14px;
+  }
+  .dtf-ai-modal .dtfut__ai-hero-input { padding: 12px 14px; font-size: 13px; }
+  .dtf-ai-modal .dtfut__ai-history { margin-top: 22px; padding-top: 18px; }
+  .dtf-ai-modal .dtfut__ai-history-title { font-size: 14px; }
+  .dtf-ai-modal .dtfut__ai-history-grid { gap: 8px; }
+  .dtf-ai-modal .dtfut__ai-history-tile { flex-basis: 96px; }
+  .dtf-ai-modal .dtfut__ai-history-tile-remove { opacity: 1; }
+  /* Touch users swipe — no need for arrow buttons. */
+  .dtf-ai-modal .dtfut__ai-history-arrow { display: none; }
+  .dtf-ai-modal .dtfut__ai-chat-bubble {
+    max-width: 85%;
+    padding: 7px 12px;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .dtf-ai-modal .dtfut__ai-chat-avatar { width: 22px; height: 22px; }
+  .dtf-ai-modal .dtfut__ai-chat-avatar--user svg { width: 14px; height: 14px; }
+  .dtf-ai-modal .dtfut__ai-chat-msg { gap: 8px; }
+}

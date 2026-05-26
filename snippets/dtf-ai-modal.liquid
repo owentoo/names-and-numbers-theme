@@ -1,0 +1,113 @@
+{%- comment -%}
+  dtf-ai-modal — Modal version of the new tabbed UI's "Create with AI" tab.
+
+  Rendered alongside the legacy aiImageGenerator pink box on pages that do
+  NOT use the by-size-tabs template (e.g. /products/dtf-transfers via
+  multiupload_vividpopular). Clicking the existing pink box opens this
+  modal instead of the legacy <dialog id="generative-ai-dialog">; the
+  legacy form is driven programmatically underneath so the generation +
+  upload flow stays unchanged.
+
+  This snippet does NOT render the legacy aiImageGenerator content — it
+  expects that block to already be rendered separately on the page (e.g.
+  by sections/bySizeNew.liquid). It only adds the modal shell + the new
+  hero UI + history grid + their assets.
+
+  Class names match dtf-upload-tabs.liquid (.dtfut__ai-hero,
+  .dtfut__ai-history, …) so dtf-ai-history.js works without changes.
+{%- endcomment -%}
+
+{{ 'ai-create.css' | asset_url | stylesheet_tag }}
+
+<div id="dtf-ai-modal" class="dtf-ai-modal" hidden role="dialog" aria-modal="true" aria-labelledby="dtf-ai-modal-title">
+  <div class="dtf-ai-modal__backdrop" data-dtf-ai-modal-close aria-hidden="true"></div>
+  <div class="dtf-ai-modal__panel" role="document">
+    <button type="button" class="dtf-ai-modal__close" data-dtf-ai-modal-close aria-label="Close">&times;</button>
+    <div class="dtf-ai-modal__inner">
+      {%- comment -%}
+        Mirrors the markup used on /pages/ai-image-creator (sections/ai-image-creator.liquid)
+        and the dtfut Tab 3 (snippets/dtf-upload-tabs.liquid). Driven by ai-chat-sandbox.js;
+        instanceKey "dtfut" routes "Use this design" clicks through the local
+        cart/manage upload pipeline that's already wired up on the product page.
+      {%- endcomment -%}
+      <div class="dtfut__ai-host" data-dtf-ai-modal-host>
+        <div class="ai-chat" data-ai-panel data-ai-instance="dtfut">
+          <div class="ai-chat-thread" data-ai-thread>
+            <div class="ai-chat-header">
+              <div class="ai-chat-brand">NINJA AI</div>
+              <h2 id="dtf-ai-modal-title" class="ai-chat-title">Create something in seconds.</h2>
+              <p class="ai-chat-subtitle">Describe what you want or tap an idea below to see it in action.</p>
+
+              <div class="ai-chat-pills" data-ai-pills>
+                <button type="button" class="ai-chat-pill"
+                        data-ai-pill-prompt="A modern logo of a bold dumbbell icon in bright electric blue, hot pink, and neon yellow with text that says &quot;Common Ground Athletics&quot; on a pure white background">
+                  <span class="ai-chat-pill-emoji">🏋️</span>
+                  <span>Colorful gym logo</span>
+                </button>
+                <button type="button" class="ai-chat-pill"
+                        data-ai-pill-prompt="A bold modern design of a large floral bouquet in vivid pink, coral, and sage with text that says &quot;Mama&quot; in chunky serif on a white background">
+                  <span class="ai-chat-pill-emoji">🌸</span>
+                  <span>Floral mama design</span>
+                </button>
+                <button type="button" class="ai-chat-pill"
+                        data-ai-pill-prompt="A vibrant party design of streamers and stars in hot pink, electric orange, neon green, and bright blue with text that says &quot;Let&#39;s Party&quot; in wavy groovy letters on a pure white background">
+                  <span class="ai-chat-pill-emoji">✨</span>
+                  <span>Groovy party design</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ai-chat-composer">
+            <div class="ai-pop-error" data-ai-error></div>
+            <div class="ai-chat-input-wrap">
+              <textarea data-ai-prompt rows="1"
+                        placeholder="Describe your design…"></textarea>
+              <div class="ai-chat-actions">
+                <button type="button" class="ai-chat-clear" data-ai-clear aria-label="Clear prompt" hidden>
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>
+                </button>
+                <button type="button" class="ai-chat-send is-empty"
+                        data-ai-generate aria-label="Generate" disabled>
+                  <svg class="ai-chat-send-icon" viewBox="0 0 20 20" fill="none"
+                       stroke="currentColor" stroke-width="2.4"
+                       stroke-linecap="round" stroke-linejoin="round"
+                       aria-hidden="true">
+                    <path d="M10 15V5M5 10l5-5 5 5"/>
+                  </svg>
+                  <span class="ai-chat-send-label">Generate</span>
+                  <span class="ai-pop-spin" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ai-chat-history is-collapsed" data-ai-history>
+            <div class="ai-chat-history-head">
+              <h3 class="ai-chat-history-title">Recently Generated</h3>
+              <button type="button" class="ai-chat-history-toggle"
+                      data-ai-history-toggle
+                      aria-expanded="false"
+                      aria-label="Show recently generated">
+                <span class="ai-chat-history-toggle-label" data-ai-history-toggle-label>Show</span>
+                <svg class="ai-chat-history-toggle-chev" viewBox="0 0 16 16" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 10l4-4 4 4"/>
+                </svg>
+              </button>
+            </div>
+            <div class="ai-chat-history-grid" data-ai-history-grid></div>
+            <div class="ai-chat-history-foot">
+              <button type="button" class="ai-chat-history-clear"
+                      data-ai-history-clear>Clear all</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ 'dtf-ai-modal.js' | asset_url | script_tag }}
+{{ 'ai-chat-sandbox.js' | asset_url | script_tag }}

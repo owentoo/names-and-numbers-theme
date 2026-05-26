@@ -1,0 +1,57 @@
+{%-liquid
+  layout none
+  capture pid
+    render '__getParam' paramStart: 'price='
+  endcapture 
+
+  assign pid = pid | times: 1
+  assign bySizeTotal = pid | times:100
+-%}
+{%-liquid  
+      assign isBySizeAvailable = false
+      assign isBlankAvailable = false
+      for item in cart.items
+        if item.product.type == 'custom transfers' or item.product.type == 'UV DTF' or item.product.type == 'UV DTF gang' or item.product.type == 'puff transfers' or item.product.tags contains 'supplies'
+          assign isBySizeAvailable = true
+          assign bySizeTotal = bySizeTotal | plus: item.final_line_price
+        endif
+        if item.product.tags contains 'Blanks'
+          assign isBlankAvailable = true
+          assign blanksTotal = blanksTotal | plus: item.final_line_price
+        endif
+      endfor
+      capture eligibilityBySize
+        assign a__ = settings.bySize_freeShipping_amount | times: 100
+        if a__ > bySizeTotal
+          assign awayFrom_bysize = a__ | minus: bySizeTotal
+          assign awayFrom_bysize = awayFrom_bysize | divided_by: 100.00 | round: 2
+          assign awayFrom_bysize_0 = awayFrom_bysize | split: '.' | first
+          assign awayFrom_bysize_1 = awayFrom_bysize | split: '.' | last
+          if awayFrom_bysize_1.size == 1
+              assign awayFrom_bysize_1 = awayFrom_bysize_1 | append: '0'
+          endif
+          assign awayFrom_bysize = awayFrom_bysize_0 | append: '.' | append: awayFrom_bysize_1 | prepend: '$'
+          echo settings.bySize_freeShipping_text | replace: '[AMOUNT]', awayFrom_bysize
+        else
+          echo 'Congrats! <strong>Free Shipping</strong> Unlocked on <strong>Transfers & Supplies</strong>'
+        endif
+      endcapture
+   
+    -%}
+                  <free-shipping-bysize class="sidebar-widget__contentItem"
+              free-shipping-amount="{{ settings.bySize_freeShipping_amount | times: 100 }}"
+              data-cart-total="{{ bySizeTotal }}"
+            >
+                                   {% assign percentage = pid | divided_by:settings.bySize_freeShipping_amount  %}
+                                   {% assign percentage = percentage | times: 100 %}
+              {%- assign bySizeToolTip = '<picture class="tooltip"><img src="//ninja-transfers-cdn.imgix.net/info_da70c6e6-1e86-41d3-9035-2bf57d01d406_medium.svg?auto=format,compress&amp;v=1678797665" class="infoIcon infoModal grt-infoicon"><span class="tooltiptext">' | append: settings.bySize_freeShipping_tooltipContent | append: '</span></picture>' -%}
+              <div class="freeShipping__title">
+               <div>
+                    <span class="freeShipping__content">{{ eligibilityBySize }}</span>
+                  </div>
+                  <span>{{ settings.bySize_freeShipping_title | replace: '[TOOLTIP]', bySizeToolTip }}</span>
+              </div> 
+              <span class="cart-notice__slider" style="overflow:hidden">
+                <span class="cart-notice__slider-bar" style="background-color: #70adf9; width: {{ percentage }}%;"></span> 
+              </span>
+            </free-shipping-bysize>

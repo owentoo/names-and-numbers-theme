@@ -1,0 +1,364 @@
+{%-liquid
+  assign b = block.settings
+-%}
+
+<link rel="stylesheet" href="{{ '__secondBlanksProduct.css' | asset_url }}">
+
+<div class="secondBlanksProduct__block">
+  {% if b.title != blank  %}
+    <h3 class="secondBlanksProduct__mainTitle">
+      {{ b.title }}
+    </h3>
+  {% endif %}
+
+  <div class="secondBlanksProduct__tabs">
+    {%- for i in (1..4) -%}
+      {%-liquid
+        assign title_Key = 'title__' | append: i
+        assign image_Key = 'image__' | append: i
+
+        assign title_Val = b[title_Key]
+        assign image_Val = b[image_Key]
+      -%}
+      <div class="secondBlanksProduct__tabItem{% if forloop.first %} active{% endif %}" tab-no="{{ forloop.index }}">
+        {% if title_Val != blank %}
+          <h4 class="secondBlanksProduct__tabTitle">{{ title_Val }}</h4>
+        {% endif %}
+        {% if image_Val != blank %}
+          <img src="{{ image_Val | image_url: width: 100 }}" alt="{{ title_Val | escape }}">
+        {% endif %}
+      </div>
+    {%- endfor -%}
+  </div>
+
+  <div class="secondBlanksProduct__mainWrapper">
+    {%- for i in (1..4) -%}
+      {%-liquid
+        assign prod_Key = 'prod__' | append: i
+        assign collectionLabel_Key = 'collectionLabel__' | append: i
+        assign collectionLink_Key = 'collectionLink__' | append: i
+        assign openLinkNewTab_Key = 'openLinkNewTab__' | append: i
+
+        assign prod_Val = b[prod_Key]
+        assign collectionLabel_Val = b[collectionLabel_Key]
+        assign collectionLink_Val = b[collectionLink_Key]
+        assign openLinkNewTab_Val = b[openLinkNewTab_Key]
+      -%}
+      <div class="secondBlanksProduct_wrap{% if forloop.first %} active{% endif %}" content-no="{{ forloop.index }}" pid="{{ prod_Val.id }}">
+        <div class="secondBlanksProduct">
+          {%- assign prod__1st = prod_Val -%}
+          {%- capture allVariants_1stProd -%}
+            {%- for variant in prod__1st.variants -%}
+              {
+                "vid": {{ variant.id | json }},
+                "vPrice": {{ variant.price | money | json }},
+                "vTitle": {{ variant.title | json }},
+                {%- if variant.option1 != blank -%}
+                  "op1": {{ variant.option1 | json }},
+                {%- endif -%}
+                {%- if variant.option2 != blank -%}
+                  "op2": {{ variant.option2 | json }},
+                {%- endif -%}
+                {%- if variant.option3 != blank -%}
+                  "op3": {{ variant.option3 | json }},
+                {%- endif -%}
+                "inventory": {{ variant.inventory_quantity | json }},
+                "colorCode": {{ variant.metafields.specs.shirt_prim_hex | json }},
+                "colorName": {{ variant.metafields.specs.shirt_color | json }},
+                {%- if variant.metafields.custom.image_urls != blank -%}
+                  {%- assign imgArr = variant.metafields.custom.image_urls | split: ',' -%}
+                  {%- capture vImages -%}
+                    {%- for img in imgArr -%}
+                      {{ img | json }}
+                      {%- unless forloop.last -%},{%- endunless -%}
+                    {%- endfor -%}
+                  {%- endcapture -%}
+                  {%- if vImages != blank -%}
+                    "images": [{{ vImages }}]
+                  {%- endif -%}
+                {%- endif -%}
+              }{%- unless forloop.last -%},{%- endunless -%}
+            {%- endfor -%}
+          {%- endcapture -%}
+          <script>
+            const allVariants_Prod__{{ forloop.index }} = [{{ allVariants_1stProd }}];
+          </script>
+          <div class="secondBlanksProduct_areasWrapper">
+            <div class="secondBlanksProduct__imgArea">
+              {%-liquid
+                assign getSelectedImg = prod__1st.selected_or_first_available_variant.metafields.custom.image_urls
+                assign getSelectedImg = getSelectedImg | split: ','
+              -%}
+              <img src="{{ getSelectedImg[0] }}" alt="{{ prod__1st.title }}" class="secondBlanksProduct__imgArea_img">
+              <div class="secondBlanksProduct__imgArea_imgList">
+                {% for item in getSelectedImg %}
+                  <img src="{{ item }}" class="secondBlanksProduct__imgArea_imgItem{% if forloop.first %} selected{% endif %}">
+                {% endfor %}
+              </div>
+            </div>
+            <div class="secondBlanksProduct__colorsBtnArea">
+              <div class="secondBlanksProduct__colorsBtnAreaWrapper">
+                <h4 class="secondBlanksProduct__imgArea_title">
+                  {{ prod__1st.title }}
+                </h4>
+                <div class="secondBlanksProduct__colorsArea_price">$2.48</div>
+                <div class="secondBlanksProduct__colorsBtnArea_selectedColor">
+                  <span>Selected Color:</span>
+                  <span class="secondBlanksProduct__colorsBtnArea_colorCode"></span>
+                  <span class="secondBlanksProduct__colorsBtnArea_colorName">White</span>
+                </div>
+
+                <div class="secondBlanksProduct__colorsBtnArea_colorsList">
+                  {%- for value in prod__1st.options_by_name['Color'].values %}
+                    {%-liquid
+                      assign getColorCode = ''
+                      assign isSelected = ''
+                      for variant in prod__1st.variants
+                        if variant.option1 == value
+                          assign getColorCode = '#' | append: variant.metafields.specs.shirt_prim_hex
+                          break
+                        endif
+                      endfor
+                    -%}
+                    {%- if getColorCode != blank -%}
+                      {%-liquid
+                        if prod__1st.selected_or_first_available_variant.option1 == value
+                          assign isSelected = ' selected'
+                        endif
+                      -%}
+                      <div class="secondBlanksProduct__colorsBtnArea_colorItem{{ isSelected }}" color-code="{{ getColorCode }}" style="background-color: {{ getColorCode }};" color-name="{{ value | capitalize }}" title="{{ value }}"></div>
+                    {%- endif -%}
+                  {%- endfor %}
+                </div>
+              </div>
+            </div>
+
+            <div class="secondBlanksProduct__colorsBtnArea__mobile">
+              <div class="secondBlanksProduct__colorsBtnArea_selectedColor">
+                <span>Selected Color:</span>
+                <span class="secondBlanksProduct__colorsBtnArea_colorCode"></span>
+                <span class="secondBlanksProduct__colorsBtnArea_colorName">White</span>
+              </div>
+
+              <div class="secondBlanksProduct__colorsBtnArea_colorsList">
+                {%- for value in prod__1st.options_by_name['Color'].values %}
+                  {%-liquid
+                    assign getColorCode = ''
+                    assign isSelected = ''
+                    for variant in prod__1st.variants
+                      if variant.option1 == value
+                        assign getColorCode = '#' | append: variant.metafields.specs.shirt_prim_hex
+                        break
+                      endif
+                    endfor
+                  -%}
+                  {%- if getColorCode != blank -%}
+                    {%-liquid
+                      if prod__1st.selected_or_first_available_variant.option1 == value
+                        assign isSelected = ' selected'
+                      endif
+                    -%}
+                    <div class="secondBlanksProduct__colorsBtnArea_colorItem{{ isSelected }}" color-code="{{ getColorCode }}" style="background-color: {{ getColorCode }};" color-name="{{ value | capitalize }}" title="{{ value }}"></div>
+                  {%- endif -%}
+                {%- endfor %}
+              </div>
+            </div>
+
+            <div class="secondBlanksProduct__chooseSize">
+              <div class="secondBlanksProduct__chooseSize_title">Choose Size</div>
+              <div class="secondBlanksProduct__chooseSize_List">
+                {%- for value in prod__1st.options_by_name['Size'].values %}
+                  {%-liquid
+                    assign getColorCode = ''
+                    assign isSelected = ''
+                  -%}
+                  <div class="secondBlanksProduct__chooseSize_item">
+                    <div class="secondBlanksProduct__chooseSize_name">{{ value }}</div>
+                    <input type="text" class="secondBlanksProduct__chooseSize_input">
+                    <div class="secondBlanksProduct__chooseSize_price">$2.48</div>
+                    <div class="secondBlanksProduct__chooseSize_inventory">999+</div>
+                    <div class="secondBlanksProduct__chooseSize_stockStatus">In Stock</div>
+                  </div>
+                {%- endfor %}
+              </div>
+            </div>
+
+            <div class="secondBlanksProduct__addToCartBtn  button button--solid button--product button--loader button--move">
+              <span class="button__text">ADD TO CART</span>
+              <span class="button__preloader"><svg class="button__preloader-element" viewBox="25 25 50 50"><circle cx="50" cy="50" r="20" fill="none" stroke-width="4"></circle></svg></span>
+            </div>
+          </div>
+        </div>
+
+        {% if collectionLabel_Val != blank and collectionLink_Val != blank %}
+          <a
+            href="{{ collectionLink_Val }}"
+            {% if openLinkNewTab_Val %}
+              target="_blank"
+            {% endif %}
+            class="secondBlanksProduct_collectionLink"
+          >
+            {{ collectionLabel_Val }}
+          </a>
+        {% endif %}
+      </div>
+    {%- endfor -%}
+  </div>
+</div>
+
+<script>
+  $(document)
+  .ready(function () {
+    getSelectedArr();
+  })
+  .on(`click`, `.secondBlanksProduct__colorsBtnArea_colorItem:not(.selected)`,async function( e ) {
+    try {
+      e.stopImmediatePropagation();
+      const activeTab = $( this ).closest( `.secondBlanksProduct_wrap` ).attr( `content-no` ) * 1;
+      const colorName = $( this ).attr( `color-name` );
+      $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__colorsBtnArea_colorItem` ).removeClass( `selected` );
+
+      $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__colorsBtnArea_colorItem[color-name="${ colorName }"]` ).addClass( `selected` );
+      await addDelay( 100 );
+      getSelectedArr();
+    } catch ( err ) {
+      console.log( `ERROR .secondBlanksProduct__colorsBtnArea_colorItem`, err.message );
+    }
+  })
+  .on(`click`, `.secondBlanksProduct__imgArea_imgItem:not(.selected)`, function( e ) {
+    try {
+      e.stopImmediatePropagation();
+      const activeTab = $( this ).closest( `.secondBlanksProduct_wrap` ).attr( `content-no` ) * 1;
+      const imgURL = $( this ).attr( `src` );
+      $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__imgArea_img` ).attr( `src`, imgURL );
+      $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__imgArea_imgItem` ).removeClass( `selected` );
+      $( this ).addClass( `selected` );
+    } catch ( err ) {
+      console.log( `ERROR .secondBlanksProduct__imgArea_imgItem:not(.selected)`, err.message );
+    }
+  })
+  .on(`click`, `.secondBlanksProduct__addToCartBtn:not(.working)`,async function( e ) {
+    try {
+      e.stopImmediatePropagation();
+      const activeTab = $( this ).closest( `.secondBlanksProduct_wrap` ).attr( `content-no` ) * 1;
+      let items = [];
+      $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__chooseSize_List .secondBlanksProduct__chooseSize_item` ).each(function( i ) {
+        const VID = $( this ).attr( `vid` ) * 1;
+        const qty = $( this ).find( `.secondBlanksProduct__chooseSize_input` ).val() * 1;
+        if ( typeof VID !== 'undefined' && VID && typeof qty !== 'undefined' && qty ) {
+          items.push({
+            id: VID,
+            quantity: qty
+          });
+        }
+      })
+
+      if ( items.length > 0 ) {
+        $( this ).addClass( `working` );
+        const getData = await fetch(window.Shopify.routes.root + 'cart/add.js', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ items }),
+        })
+        .then((response) => {
+          return response.json();
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+        });
+        refreshCart();
+        // updateCartItemCount();
+
+        $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__chooseSize_List .secondBlanksProduct__chooseSize_input` ).val( `` );
+        // toast( `title`, `Product Added to cart`);
+      } else {
+        $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__addToCartBtn` ).before( `<div class="secondBlanksProduct__addToCartBtn_err">Please enter at least 1 qty.</div>` );
+        await addDelay( 3000 );
+        $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__addToCartBtn_err` ).remove();
+      }
+      $( this ).removeClass( `working` );
+    } catch ( err ) {
+      console.log( `ERROR .secondBlanksProduct__addToCartBtn:not(.working)`, err.message );
+    }
+  })
+  .on(`input`, `.secondBlanksProduct__chooseSize_input`, function( e ) {
+    try {
+      e.stopImmediatePropagation();
+      let val = this.value.replace(/[^0-9]/g, '');
+      val = val.replace(/^0+/, '');
+      this.value = val;
+    } catch ( err ) {
+      console.log( `ERROR .secondBlanksProduct__chooseSize_input`, err.message );
+    }
+  })
+  .on(`click`, `.secondBlanksProduct__tabItem:not(.active)`, function( e ) {
+    try {
+      e.stopImmediatePropagation();
+      const clickedTabNo = $( this ).attr( `tab-no` ) * 1;
+      $( `.secondBlanksProduct__tabItem, .secondBlanksProduct_wrap` ).removeClass( `active` );
+      $( `.secondBlanksProduct__tabItem[tab-no="${ clickedTabNo }"], .secondBlanksProduct_wrap[content-no="${ clickedTabNo }"]` ).addClass( `active` );
+      getSelectedArr();
+    } catch ( err ) {
+      console.log( `ERROR .secondBlanksProduct__tabItem:not(.active)`, err.message );
+    }
+  })
+  ;
+
+  function getSelectedArr() {
+    try {
+      const activeTab = $( `.secondBlanksProduct_wrap.active` ).attr( `content-no` ) * 1;
+      const selectedColor = $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__colorsBtnArea_colorItem.selected` ).attr( `title` );
+      const selectedColorCode = $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__colorsBtnArea_colorItem.selected` ).attr( `color-code` );
+      const colorName = $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__colorsBtnArea_colorItem.selected` ).attr( `color-name` );
+      if ( typeof selectedColor !== 'undefined' && selectedColor && typeof selectedColorCode !== 'undefined' && selectedColorCode ) {
+        let selectedTabArr = allVariants_Prod__1;
+        if ( activeTab == 2 ) {
+          selectedTabArr = allVariants_Prod__2;
+        } else if ( activeTab == 3 ) {
+          selectedTabArr = allVariants_Prod__3;
+        } else if ( activeTab == 4 ) {
+          selectedTabArr = allVariants_Prod__4;
+        }
+        const selectedArr = findObjectByKey( selectedTabArr, `op1`, selectedColor, true );
+        $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__colorsBtnArea_colorCode` ).css( `background-color`, selectedColorCode );
+        $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__colorsBtnArea_colorName` ).text( colorName );
+        if ( typeof selectedArr !== 'undefined' && selectedArr ) {
+          console.clear();
+          console.log ( 'selectedArr', selectedArr );
+          let collectSizesData = '';
+          selectedArr.forEach(obj => {
+            if ( obj.inventory > 0 ) {
+              collectSizesData = `${ collectSizesData }
+                <div class="secondBlanksProduct__chooseSize_item" vid="${ obj.vid }">
+                  <div class="secondBlanksProduct__chooseSize_name">${ obj.op2 }</div>
+                  <input type="text" class="secondBlanksProduct__chooseSize_input">
+                  <div class="secondBlanksProduct__chooseSize_price">${ obj.vPrice }</div>
+                  <div class="secondBlanksProduct__chooseSize_inventory">${ obj.inventory > 999 ? `999+` : obj.inventory }</div>
+                  <div class="secondBlanksProduct__chooseSize_stockStatus">${ obj.inventory > 0 ? `In Stock` : `Out Stock` }</div>
+                </div>
+              `;
+            }
+          });
+          if ( collectSizesData != '' ) {
+            $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__chooseSize_List` ).html( collectSizesData );
+            $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__colorsArea_price` ).html( selectedArr[0].vPrice );
+            $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__imgArea_img` ).attr( `src`, `${ selectedArr[0].images[0] }` );
+            let collectThumbnails = ``;
+            selectedArr[0].images.forEach((image, i) => {
+              if ( i == 0 ) {
+                collectThumbnails += `<img src="${ image }" class="secondBlanksProduct__imgArea_imgItem selected">`;
+              } else {
+                collectThumbnails += `<img src="${ image }" class="secondBlanksProduct__imgArea_imgItem">`;
+              }
+            });
+            $( `.secondBlanksProduct_wrap[content-no="${ activeTab }"] .secondBlanksProduct__imgArea_imgList` ).html( `${ collectThumbnails }` );
+          }
+        }
+      }
+    } catch ( err ) {
+      console.log( `ERROR getSelectedArr()`, err.message );
+    }
+  }
+</script>

@@ -1,0 +1,148 @@
+<!-- Modal box for preview img -->
+<div class="customTabelPopup__overlay hide_overlay cart-preview w3_bg" style="display:none">
+  <div class="customTabelPopup w3_bg">
+    <span class="customTabelPopup__close">
+      <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path>
+        <path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path>
+      </svg>
+    </span>
+
+      {%- comment -%} Simple blue circle spinner — matches the zoom modal
+          loader in snippets/product-page-popups.liquid (.preview-zoom-spinner)
+          so cart-preview waits feel consistent with the product-page zoom
+          experience. {%- endcomment -%}
+      <div class="cart-preview__loader" aria-hidden="true">
+        <div class="cart-preview__spinner"></div>
+      </div>
+      <div class="img-container text-center w3_bg">
+        <img class="previewimg" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/spacer.gif?v=1740766267" alt="image">
+      </div>
+  </div>
+</div>
+
+<style>
+  /* Transparency checkerboard behind the preview image so customers can
+     tell which parts of their uploaded artwork are actually transparent
+     vs white. Uses the SAME canonical checker pattern defined in
+     assets/theme.css :root (--nt-checker-base / --nt-checker-image /
+     --nt-checker-size) that drives .nt-dg-thumb cards and other
+     transparent surfaces — darker grey, more visible than the previous
+     ad-hoc #e8e8e8 4px pattern (which read as solid white on most
+     monitors). Applied to .img-container (not the img itself) so the
+     checker shows in the negative space when the artwork doesn't fill
+     the scrollable area edge-to-edge. */
+  .cart-preview .img-container {
+    background: var(--nt-checker-base, #f2f2f2) var(--nt-checker-image) center center;
+    background-size: var(--nt-checker-size, 10px);
+  }
+  /* Tall gang-sheet artwork (10ft+) blew the modal off-screen and forced
+     a full-page scroll. Cap the popup at 90vh, fit the image to modal
+     width, and let the user scroll vertically inside .img-container when
+     the artwork is taller than the visible area — natural pixels are
+     preserved so a 10ft sheet remains legible end-to-end.
+
+     Selector specificity note: theme.css/theme-fast.liquid define
+     `.customTabelPopup { width:98%; max-width:600px; margin:60px auto;
+     padding:20px }` with NO max-height (mobile-only @media adds 90vh).
+     We bump to the same 3-class chain (`.customTabelPopup__overlay
+     .cart-preview .customTabelPopup`) used by the mobile override, plus
+     !important on max-height since it’s our load-bearing property and
+     other modals share the .customTabelPopup base style. */
+  .customTabelPopup__overlay.cart-preview .customTabelPopup {
+    max-height: 90vh !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .customTabelPopup__overlay.cart-preview .img-container {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    /* Belt-and-braces explicit cap — if flex height collapse fails for
+       any reason (older Safari, ancestor that breaks flex sizing) the
+       img-container still scrolls. Account for modal padding (20px x2)
+       plus the close-button row (~40px). */
+    max-height: calc(90vh - 80px) !important;
+    /* Use `auto` (not `scroll`) so the scrollbar only appears when the
+       artwork is actually taller than the visible area — short / square
+       designs that fit entirely get no extraneous rail. macOS overlay
+       scrollbars still fade in on scroll, but our explicit ::-webkit-
+       scrollbar styling below keeps the rail visible whenever overflow
+       is real. */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: auto !important;
+    scrollbar-color: #444 #e0e0e0 !important;
+  }
+  .customTabelPopup__overlay.cart-preview .img-container::-webkit-scrollbar {
+    width: 14px !important;
+    -webkit-appearance: none !important;
+  }
+  .customTabelPopup__overlay.cart-preview .img-container::-webkit-scrollbar-track {
+    background-color: #e0e0e0 !important;
+    border-radius: 7px;
+    border: 1px solid #d0d0d0;
+  }
+  .customTabelPopup__overlay.cart-preview .img-container::-webkit-scrollbar-thumb {
+    background-color: #555 !important;
+    border-radius: 7px;
+    border: 2px solid #e0e0e0;
+    background-clip: padding-box;
+    min-height: 40px;
+  }
+  .customTabelPopup__overlay.cart-preview .img-container::-webkit-scrollbar-thumb:hover {
+    background-color: #222 !important;
+  }
+  .customTabelPopup__overlay.cart-preview .previewimg {
+    display: block !important;
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 auto !important;
+  }
+  /* Loading spinner — shown while a freshly-clicked gang-sheet preview
+     is downloading. 10ft sheets can be multi-MB so the visible delay
+     is real. global.js toggles `.is-loading` on the .cart-preview
+     overlay around the src change; we keep the .previewimg in DOM so
+     scroll position / layout is preserved, but fade it out and place
+     a centred spinner over the modal area. */
+  .customTabelPopup__overlay.cart-preview .cart-preview__loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 120ms linear;
+  }
+  .customTabelPopup__overlay.cart-preview.is-loading .cart-preview__loader {
+    opacity: 1;
+    visibility: visible;
+  }
+  .customTabelPopup__overlay.cart-preview.is-loading .previewimg {
+    opacity: 0;
+    transition: opacity 120ms linear;
+  }
+  .customTabelPopup__overlay.cart-preview .previewimg {
+    transition: opacity 120ms linear;
+  }
+  /* Blue circle spinner — same treatment as the product-page zoom modal
+     (.preview-zoom-spinner in snippets/product-page-popups.liquid). 48x48
+     border-only circle, top edge blue, rotating continuously. Kept inline
+     here rather than rendering the popups snippet so cart-preview stays
+     self-contained. */
+  .customTabelPopup__overlay.cart-preview .cart-preview__spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #03a3f7;
+    border-radius: 50%;
+    animation: cart-preview-spin 0.8s linear infinite;
+  }
+  @keyframes cart-preview-spin {
+    to { transform: rotate(360deg); }
+  }
+</style>

@@ -1,0 +1,368 @@
+{%-liquid
+  assign ss = section.settings
+  assign sb = section.blocks
+-%}
+{{ 'textImg.css' | asset_url | stylesheet_tag }}
+
+{% if sb.size > 0 %}
+  <div class="container--large">
+    <div class="textImg">
+      <div class="textImg__wrap">
+        {%- assign collectStyles = '' -%}
+        {%- for block in sb -%}
+          {%- assign b = block.settings -%}
+          {%- case block.type -%}
+            {%- when 'content' -%}
+              <div class="textImg__item textBlock" bid="{{ block.id }}">
+                {% if b.title != blank %}
+                  <h3 class="textImg__itemTitle">{{ b.title }}</h3>
+                {% endif %}
+
+                {% if b.content != blank %}
+                  <p class="textImg__itemText">{{ b.content }}</p>
+                {% endif %}
+
+                {% if b.btnText != blank and b.btnLink != blank %}
+                  <a href="{{ b.btnLink }}" class="textImg__itemBtn newHomeBtn">
+                    <span>
+                      {{ b.btnText }}
+                    </span>
+                    <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.3333 5.5L20 12.5M20 12.5L13.3333 19.5M20 12.5L4 12.5" stroke="#171717" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                {% endif %}
+              </div>
+
+            {%- when 'img' -%}
+              {%- capture getImg -%}
+                {% if b.image != blank %}
+                  <img src="{{ b.image | image_url: width: 700 }}" class="textImg__itemImg">
+                {% endif %}
+              {%- endcapture -%}
+              <div class="textImg__item imgBlock" bid="{{ block.id }}">
+                {% if b.link != blank %}
+                  <a href="{{ b.link }}">
+                    {{ getImg }}
+                  </a>
+                {% else %}
+                  {{ getImg }}
+                {% endif %}
+              </div>
+          {%- endcase -%}
+
+          {%- capture collectStyles -%}
+            {{ collectStyles }}
+            .textImg__item[bid="{{ block.id }}"] {
+              background-color: {{ b.bgColor }};
+            }
+          {%- endcapture -%}
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+
+  {%- capture getStyles -%}
+    {{ collectStyles }}
+    #shopify-section-{{ section.id }} {
+      margin-top: {{ ss.secMarginTop_desktop | append: 'px' }};
+      margin-bottom: {{ ss.secMarginBottom_desktop | append: 'px' }};
+
+      padding-top: {{ ss.secPaddingTop_desktop | append: 'px' }};
+      padding-bottom: {{ ss.secPaddingBottom_desktop | append: 'px' }};
+    }
+    @media (max-width: 1024px) {
+      #shopify-section-{{ section.id }} {
+        margin-top: {{ ss.secMarginTop_tab | append: 'px' }};
+        margin-bottom: {{ ss.secMarginBottom_tab | append: 'px' }};
+
+        padding-top: {{ ss.secPaddingTop_tab | append: 'px' }};
+        padding-bottom: {{ ss.secPaddingBottom_tab | append: 'px' }};
+      }
+    }
+    @media (max-width: 600px) {
+      #shopify-section-{{ section.id }} {
+        margin-top: {{ ss.secMarginTop_mobile | append: 'px' }};
+        margin-bottom: {{ ss.secMarginBottom_mobile | append: 'px' }};
+
+        padding-top: {{ ss.secPaddingTop_mobile | append: 'px' }};
+        padding-bottom: {{ ss.secPaddingBottom_mobile | append: 'px' }};
+      }
+    }
+    {% if ss.contentPosition_desktop == 'leftTextRightImg' %}
+      #shopify-section-{{ section.id }} .textImg__item.textBlock {
+        order: 1;
+      }
+      #shopify-section-{{ section.id }} .textImg__item.imgBlock {
+        order: 2;
+      }
+    {% elsif ss.contentPosition_desktop == 'leftImgRightText' %}
+      #shopify-section-{{ section.id }} .textImg__item.textBlock {
+        order: 2;
+      }
+      #shopify-section-{{ section.id }} .textImg__item.imgBlock {
+        order: 1;
+      }
+    {% endif %}
+    @media (max-width: 600px) {
+      {% if ss.contentPosition_mobile == 'imgTopTextBottom' %}
+        #shopify-section-{{ section.id }} .textImg__item.textBlock {
+          order: 2;
+        }
+        #shopify-section-{{ section.id }} .textImg__item.imgBlock {
+          order: 1;
+        }
+      {% elsif ss.contentPosition_mobile == 'contentTopImgBottom' %}
+        #shopify-section-{{ section.id }} .textImg__item.textBlock {
+          order: 1;
+        }
+        #shopify-section-{{ section.id }} .textImg__item.imgBlock {
+          order: 2;
+        }
+      {% endif %}
+    }
+  {%- endcapture -%}
+  <style>
+    {{ getStyles }}
+  </style>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Text Image",
+  "class": "can-be-fullwidth merged-section supports-absolute-header",
+  "max_blocks": 2,
+  "settings": [
+    {
+      "type": "select",
+      "id": "contentPosition_desktop",
+      "label": "Content Position Desktop",
+      "options": [
+        {
+          "value": "leftTextRightImg",
+          "label": "Content Left and Right Image"
+        },
+        {
+          "value": "leftImgRightText",
+          "label": "Content Image and Right Text"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "contentPosition_mobile",
+      "label": "Content Position Mobile",
+      "options": [
+        {
+          "value": "imgTopTextBottom",
+          "label": "Image top and content below"
+        },
+        {
+          "value": "contentTopImgBottom",
+          "label": "Content top and Image below"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "Section Margins"
+    },
+    {
+      "type": "range",
+      "id": "secMarginTop_desktop",
+      "label": "Margin Top Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginTop_tab",
+      "label": "Margin Top Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginTop_mobile",
+      "label": "Margin Top Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginBottom_desktop",
+      "label": "Margin Bottom Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginBottom_tab",
+      "label": "Margin Bottom Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginBottom_mobile",
+      "label": "Margin Bottom Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Section Paddings"
+    },
+    {
+      "type": "range",
+      "id": "secPaddingTop_desktop",
+      "label": "Padding Top Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingTop_tab",
+      "label": "Padding Top Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingTop_mobile",
+      "label": "Padding Top Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingBottom_desktop",
+      "label": "Padding Bottom Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingBottom_tab",
+      "label": "Padding Bottom Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingBottom_mobile",
+      "label": "Padding Bottom Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    }
+  ],
+  "blocks": [
+    {
+      "type": "content",
+      "name": "Content",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Unmatched Quality"
+        },
+        {
+          "type": "inline_richtext",
+          "id": "content",
+          "label": "Content",
+          "default": "Master the art of pressing with our expert tips and techniques for flawless results. Achieve professional-quality transfers with ease and precision."
+        },
+        {
+          "type": "text",
+          "id": "btnText",
+          "label": "Button Text",
+          "default": "View Tutorial Videos"
+        },
+        {
+          "type": "url",
+          "id": "btnLink",
+          "label": "Button Link"
+        },
+        {
+          "type": "color",
+          "id": "bgColor",
+          "label": "Background Color",
+          "default": "#f6f7f9"
+        }
+      ]
+    },
+    {
+      "type": "img",
+      "name": "Img",
+      "limit": 1,
+      "settings": [
+        {
+          "id": "image",
+          "type": "image_picker",
+          "label": "Upload Image"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link"
+        },
+        {
+          "type": "color",
+          "id": "bgColor",
+          "label": "Background Color",
+          "default": "#f6f7f9"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Text Image",
+      "blocks": [
+        {
+          "type": "content"
+        },
+        {
+          "type": "img"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

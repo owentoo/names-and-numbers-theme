@@ -1,0 +1,261 @@
+<style>
+  .recentlyViewedProducts {
+    /* display: grid;
+    grid-template-columns: repeat(4, 1fr); */
+    gap: 15px;
+    direction: ltr;
+  }
+
+  .recent-product-item {
+    grid-column: span 1;
+  }
+
+  .recentlyViewed-title {
+    font-weight: var(--font-weight-headings-primary);
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  .recent-product-item__vendor,
+  .recent-productPrice,
+  .recent-productTitle,
+  .recentlyViewedProducts .estimatedDeliveryDateEarly{
+    padding: 0 7px;
+  }
+
+  .recent-product__img {
+    text-align: center;
+  }
+
+  .recent-product-item__vendor.product-item__vendor {
+    padding-top: 20px;
+  }
+
+  .recent-productPrice.product-price--original {
+    margin-bottom: 5px;
+  }
+
+  .recent-productTitle span {
+    line-height: 21px;
+    margin-bottom: 13px;
+  }
+
+  @media (max-width: 768px) {
+    /* .recentlyViewedProducts {
+      grid-template-columns: repeat(2, 1fr);
+    } */
+    .recent-product__img img {
+    width: 100%;
+    }
+  }
+</style>
+
+<div class="recentlyViewed-products" id="recentlyViewed-{{ section.id }}">
+  <div class="container container--vertical-space container--large">
+    <p class="recentlyViewed-title"></p>
+    <div class="recentlyViewedProducts grid grid--layout grid-4 grid-portable-3 grid-lap-2 grid-tiny-1">
+      <!-- Recently Viewed Products will appear here -->
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Recently View",
+  "settings": [],
+  "presets": [
+    {
+      "name": "Recently View"
+    }
+  ]
+}
+{% endschema %}
+
+<script>
+  // Function to format vendor names for logo URL
+  function formatVendorName(vendor) {
+    if (!vendor) return "unknown_vendor";
+    return vendor.toLowerCase().replace(/[\s+]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
+  }
+
+  // Function to check if an image exists
+  async function imageExists(url) {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      return response.ok;
+    } catch (error) {
+      console.error('Error checking image existence:', error);
+      return false;
+    }
+  }
+
+  // Function to set Recently Viewed Products
+  function setRecentlyViewedPdp() {
+    const currentProductId = "{{ product.id }}";
+    const currentProductTitle = "{{ product.title }}";
+    const currentProductImg = "{{ product.featured_image | img_url: '250x250'}}";
+    const currentProductPrice = "{{ product.price | money | remove_first: '' }}";
+    const currentProductUrl = "{{ product.url }}";
+    const currentProductVendor = "{{ product.vendor }}";
+    const currentShirtStyle = "{{ product.metafields.specs.shirt_style }}";
+
+    if (!currentProductTitle || !currentProductImg || !currentProductPrice || !currentProductUrl) {
+      console.error("One or more product properties are undefined.");
+      return;
+    }
+
+    const pdpData = {
+      productId: currentProductId,
+      productTitle: currentProductTitle,
+      productImg: currentProductImg,
+      productPrice: currentProductPrice,
+      productUrl: currentProductUrl,
+      productVendor: currentProductVendor,
+      currentShirtStyle: currentShirtStyle
+    };
+
+    const numberOfProduct = 5;
+    let productArr = JSON.parse(localStorage.getItem('recently_viewed')) || [];
+
+    if (!productArr.some(product => product.productUrl === pdpData.productUrl)) {
+      productArr.unshift(pdpData);
+
+      if (productArr.length > numberOfProduct) {
+        productArr = productArr.slice(0, numberOfProduct); // Slice to keep only the most recent 4 products
+      }
+
+      localStorage.setItem('recently_viewed', JSON.stringify(productArr));
+    }
+  }
+
+  // Function to get Recently Viewed Products
+  async function getRecentPdp() {
+    const pdpData = JSON.parse(localStorage.getItem('recently_viewed'));
+    const contentBlock = document.querySelector('.recentlyViewedProducts');
+    const titleBlock = document.querySelector('.recentlyViewed-title');
+
+    if (!contentBlock || !titleBlock) {
+      console.error('Content block or title block not found.');
+      return;
+    }
+
+    const currentProductUrl = "{{ product.url }}";
+
+    if (!pdpData || pdpData.length === 0) {
+      // No products in recent view list
+      titleBlock.textContent = "";
+      contentBlock.innerHTML = '';
+      return;
+    }
+
+    // Filter out the current product URL and limit the number of products displayed
+    const filteredProducts = pdpData.filter(item => item.productUrl !== currentProductUrl);
+    const maxProducts = window.innerWidth <= 768 ? 2 : 5;
+
+    // Ensure we show up to maxProducts, even if filteredProducts length is less
+    const recentViewHtml = await Promise.all(filteredProducts.slice(0, maxProducts).map(async item => {
+      const vendor = item.productVendor;
+      const formattedVendor = formatVendorName(vendor);
+      const vendorLogoUrl = `//ninjatransfers.com/cdn/shop/t/551/assets/${formattedVendor}.png`;
+
+      let vendorImageHtml = `<p>${vendor}</p>`;
+      if (await imageExists(vendorLogoUrl)) {
+        vendorImageHtml = `<span class="recent-viewed-vendor-logo"><img class="vendor-logos" src="${vendorLogoUrl}" alt="${vendor}"></span>`;
+      }
+
+      return `
+        <a href="${item.productUrl}" class="recent-product-item product-item">
+          <div class="recents-product-wrapper">
+            <div class="recent-product__img">
+              <img src="${item.productImg}" alt="${item.productTitle}" />
+            </div>
+            <div class="recent-product-item__vendor product-item__vendor">
+              <span>Starting at</span>
+              ${vendorImageHtml}
+            </div>
+            <p class="recent-productPrice product-price--original">${item.productPrice}</p>
+            <div id="yotpoProductReviews">
+              <div class="style-${item.currentShirtStyle}">
+                <div
+                  class="yotpo-widget-instance"
+                  data-yotpo-instance-id="447610"
+                  data-yotpo-product-id="${item.productId}"
+                  data-yotpo-cart-product-id=""
+                  data-yotpo-section-id="{{template.name}}"
+                ></div>
+              </div>
+            </div>
+            <div class="estimatedDeliveryDateEarly"><p>Earliest Delivery</p> 
+            <div class="estimatedDeliveryDate" style=""></div>
+            </div>
+            
+            <h3 class="c-product__title">
+              <p class="recent-productTitle product-item__title"><span>${item.productTitle}</span></p>
+            </h3>
+          </div>
+        </a>
+      `;
+    }));
+
+    contentBlock.innerHTML = recentViewHtml.join('');
+    titleBlock.textContent = filteredProducts.length > 0 ? "Recently Viewed" : "";
+    yotpoWidgetsContainer.initWidgets();
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    setRecentlyViewedPdp();
+    getRecentPdp();
+  });
+
+  document.addEventListener("DOMContentLoaded", function() {
+    function cleanUpDeliveryDates() {
+      let deliveryDateElements = document.querySelectorAll('.recent-product-item .estimatedDeliveryDate');
+
+      const monthAbbreviations = {
+        'January': 'Jan.',
+        'February': 'Feb.',
+        'March': 'Mar.',
+        'April': 'Apr.',
+        'May': 'May.',
+        'June': 'Jun.',
+        'July': 'Jul.',
+        'August': 'Aug.',
+        'September': 'Sep.',
+        'October': 'Oct.',
+        'November': 'Nov.',
+        'December': 'Dec.'
+      };
+
+      deliveryDateElements.forEach(function(element) {
+        let text = element.textContent.trim();
+        let prefix = 'Get it by';
+        if (text.startsWith(prefix)) {
+          let dateText = text.slice(prefix.length).trim();
+          
+          for (let [fullMonth, abbreviation] of Object.entries(monthAbbreviations)) {
+            let regex = new RegExp(fullMonth, 'g');
+            dateText = dateText.replace(regex, abbreviation);
+          }
+
+          element.textContent = dateText;
+        }
+      });
+    }
+
+    let observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' || mutation.type === 'characterData') {
+          cleanUpDeliveryDates();
+        }
+      });
+    });
+
+    let config = { childList: true, subtree: true, characterData: true };
+
+    observer.observe(document.body, config);
+    cleanUpDeliveryDates();
+
+    // Optional: Disconnect observer after a certain period if needed
+    // setTimeout(() => observer.disconnect(), 10000);
+  });
+</script>

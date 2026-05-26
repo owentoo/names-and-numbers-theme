@@ -1,0 +1,115 @@
+<div
+  class="grt-variant-options"
+  data-variant-options
+  data-variant-flow="parent_child"
+  data-option-count="0"
+  data-use-pdp-color-flow="1"
+  {% if pdp_product_handle != blank %}data-pdp-product-handle="{{ pdp_product_handle | strip | escape }}"{% endif %}
+  {% if pdp_selected_color_key != blank %}data-pdp-initial-color-key="{{ pdp_selected_color_key | escape }}"{% endif %}
+  {% if pdp_selected_color_name != blank %}data-pdp-initial-color-name="{{ pdp_selected_color_name | escape }}"{% endif %}
+  {% if pdp_selected_color_key != blank %}data-pdp-selected-color-key="{{ pdp_selected_color_key | escape }}"{% endif %}
+  {% if pdp_selected_color_name != blank %}data-selected-pdp-color="{{ pdp_selected_color_name | escape }}"{% endif %}
+>
+  <div class="grt-opt grt-opt--pdp-colors" data-pdp-color-group>
+    <div class="grt-product-modal__label grt-color-label-row">
+      Color:
+      {{- '' -}}
+      <!-- Desktop: static chip + name (hidden on mobile) -->
+      <span data-pdp-selected-color-label class="grt__pdp-selected-color-label grt-pdp-color-desktop-label">
+        <span data-pdp-selected-color-chip class="grt__pdp-selected-color-chip" aria-hidden="true"></span>
+        <span data-pdp-selected-color-text>
+          {%- if pdp_selected_color_name != blank -%}
+            {{- pdp_selected_color_name | downcase -}}
+          {%- else -%}
+            -
+          {%- endif -%}
+        </span>
+      </span>
+      <!-- Dropdown trigger -->
+      <button type="button" class="grt-mobile-cp-trigger" data-mobile-cp-trigger>
+        <span class="grt-mobile-cp-chip" data-mobile-cp-chip aria-hidden="true"></span>
+        <span class="grt-mobile-cp-name" data-mobile-cp-name>
+          {%- if pdp_selected_color_name != blank -%}
+            {{- pdp_selected_color_name | downcase -}}
+          {%- else -%}
+            select color
+          {%- endif -%}
+        </span>
+        <svg class="grt-mobile-cp-caret" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <!-- Color count badge -->
+      <span class="grt-color-count-badge" data-color-count-badge></span>
+      <!-- Dropdown list — inside label row so position:absolute is relative to this row -->
+      <div class="grt-mobile-cp-list" data-mobile-cp-list></div>
+    </div>
+    <div class="grt-opt__pills grt-opt__pills--pdp-colors" data-pdp-color-options>
+      {%- assign seen_color_keys = '|' -%}
+      {%- for product_option in p.options_with_values -%}
+        {%- for product_option_value in product_option.values -%}
+          {%- assign color_variant = product_option_value.variant -%}
+          {%- if color_variant == blank -%}
+            {%- continue -%}
+          {%- endif -%}
+          {%- assign inventory_qty = color_variant.inventory_quantity -%}
+          {%- if localization.country.iso_code == "CA" -%}
+            {%- assign inventory_qty = color_variant.metafields.custom.ss_ca_inventory | default: color_variant.inventory_quantity -%}
+          {%- endif -%}
+          {%- if inventory_qty > 0 -%}
+            {%- if color_variant.metafields.specs.shirt_color == blank -%}
+              {%- assign c_name = color_variant.option1 | strip -%}
+            {%- else -%}
+              {%- assign c_name = color_variant.metafields.specs.shirt_color | strip -%}
+            {%- endif -%}
+            {%- assign c_query = color_variant.option1 | strip -%}
+            {%- if c_query == blank -%}
+              {%- assign c_query = c_name -%}
+            {%- endif -%}
+            {%- assign c_key = c_name | downcase -%}
+            {%- if c_key != blank -%}
+              {%- assign c_token = '|' | append: c_key | append: '|' -%}
+              {%- unless seen_color_keys contains c_token -%}
+                {%- assign seen_color_keys = seen_color_keys | append: c_key | append: '|' -%}
+                {%- assign c_hex = color_variant.metafields.specs.shirt_prim_hex | strip -%}
+                {%- if c_hex == blank or c_hex == '0' -%}
+                  {%- assign c_hex = '000000' -%}
+                {%- endif -%}
+                {%- unless c_hex contains '#' -%}
+                  {%- assign c_hex = '#' | append: c_hex -%}
+                {%- endunless -%}
+                {%- assign c_sec_hex = color_variant.metafields.specs.shirt_sec_hex | strip -%}
+                {%- if c_sec_hex != blank and c_sec_hex != '0' and c_sec_hex.size == 5 -%}
+                  {%- assign c_sec_hex = c_sec_hex | append: '0' -%}
+                {%- endif -%}
+                {%- if c_sec_hex != blank and c_sec_hex != '0' -%}
+                  {%- unless c_sec_hex contains '#' -%}
+                    {%- assign c_sec_hex = '#' | append: c_sec_hex -%}
+                  {%- endunless -%}
+                {%- endif -%}
+                {%- assign is_selected_color = false -%}
+                {%- if c_key == pdp_selected_color_key -%}
+                  {%- assign is_selected_color = true -%}
+                {%- endif -%}
+                <button
+                  type="button"
+                  class="button grt-pdp-color-pill{% if is_selected_color %} is-active{% endif %}"
+                  data-pdp-color-key="{{ c_key | escape }}"
+                  data-pdp-color-name="{{ c_name | escape }}"
+                  data-pdp-color-query="{{ c_query | escape }}"
+                  data-pdp-color-option-value-id="{{ product_option_value.id }}"
+                  data-pdp-color-variant-id="{{ color_variant.id }}"
+                  data-pdp-color-hex="{{ c_hex | escape }}"
+                  title="{{ c_name | escape }}"
+                  aria-label="{{ c_name | escape }}"
+                  aria-pressed="{% if is_selected_color %}true{% else %}false{% endif %}"
+                  style="--grt-pdp-color-chip:{% if c_sec_hex != blank and c_sec_hex != '0' %}repeating-linear-gradient(90deg,{{ c_hex }},{{ c_hex }} 15px,{{ c_sec_hex }} 15px,{{ c_sec_hex }} 30px){% else %}{{ c_hex }}{% endif %};"
+                >
+                  <span class="grt-pdp-color-pill__chip" aria-hidden="true"></span>
+                </button>
+              {%- endunless -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,482 @@
+{%- assign map_address = section.settings.map_address -%}
+<style>
+  .section-{{ section.id }}-padding {
+    max-width: var(--max-width);
+    margin: var(--mt, 0) auto var(--mb, 0);
+    padding-top: var(--pt);
+    padding-bottom: var(--pb);
+    padding-left: var(--px, 1.5rem);
+    padding-right: var(--px, 1.5rem);
+  }
+
+  @media screen and (min-width: 750px) {
+    .section-{{ section.id }}-padding {
+      padding-left: var(--px-desktop, 5rem);
+      padding-right: var(--px-desktop, 5rem);
+      padding-top: var(--pt-desktop);
+      padding-bottom: var(--pb-desktop);
+    }
+  }
+</style>
+
+<div
+  style="background-color:{{ section.settings.background_color }};"
+>
+  <div
+    class="section-{{ section.id }}-padding"
+    style="
+      {%- if section.settings.full_width -%}
+        --max-width: 100%;
+      {%- else -%}
+        --max-width: {{ section.settings.section_width }}rem;
+      {%- endif -%}
+        --pt: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+        --pt-desktop: {{ section.settings.padding_top }}px;
+        --pb: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+        --pb-desktop: {{ section.settings.padding_bottom }}px;
+        --px: {{ section.settings.padding_x }}px;
+        --px-desktop: {{ section.settings.padding_x_desktop }}px;
+        --mt: {{ section.settings.margin_top }}px;
+        --mb: {{ section.settings.margin_bottom }}px;
+    "
+  >
+    <style>
+      .map-container-{{ section.id }} {
+        position: relative;
+        width: 100%;
+        height: 650px;
+        overflow: hidden;
+      }
+      @media screen and (min-width: 750px) {
+        .map-container-{{ section.id }} {
+          height: 500px;
+        }
+      }
+    </style>
+    <div class="map-container-{{ section.id }}">
+      {% comment %} BG: {% endcomment %}
+      <style>
+        .map-bg-{{ section.id }} {
+          width: 100%;
+          height: 100%;
+        }
+        .map-google-custom-shopify-svg-placeholder {
+          fill: rgb(153, 153, 153);
+          background-color: rgb(225, 225, 225);
+          display: block;
+          height: 100%;
+          max-height: 100%;
+          max-width: 100%;
+          width: 100%;
+          padding: 30px 0px;
+        }
+      </style>
+      <div class="map-bg-{{ section.id }}">
+        {%- if section.settings.google_map_api_key != blank -%}
+          <style>
+            .map-{{ section.id }} {
+              height: 100%;
+            }
+          </style>
+          <div class="map-{{ section.id }}">
+            <strong> Click SAVE to see the map </strong>
+          </div>
+          <!-- prettier-ignore -->
+          <script>(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})
+              ({key: "{{ section.settings.google_map_api_key }}", v: "weekly"});</script>
+          <script>
+            (() => {
+              let map;
+              let targetLocation;
+
+              function setMapCenter() {
+                if (map && targetLocation) {
+                  if (window.innerWidth < 750) {
+                    const lat = targetLocation.lat() + 0.005;
+                    const lng = targetLocation.lng();
+                    const newCenter = { lat, lng };
+                    map.setCenter(newCenter);
+                  } else {
+                    const lat = targetLocation.lat();
+                    const lng = targetLocation.lng() - 0.01;
+                    const newCenter = { lat, lng };
+                    map.setCenter(newCenter);
+                  }
+                }
+              }
+              window.addEventListener('resize', setMapCenter);
+
+              async function initMap() {
+                //@ts-ignore
+                const { Map } = await google.maps.importLibrary('maps');
+                const { PlacesService } = await google.maps.importLibrary('places');
+
+                const mapEl = document.querySelector('.map-{{ section.id }}');
+                map = new Map(mapEl, {
+                  center: { lat: -33.867, lng: 151.195 },
+                  zoom: 15,
+                });
+
+                const address = '{{ map_address }}';
+                const request = {
+                  query: address,
+                  fields: ['name', 'geometry'],
+                };
+
+                new PlacesService(map).findPlaceFromQuery(request, (results, status) => {
+                  if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+                    new google.maps.Marker({
+                      map,
+                      position: results[0].geometry.location,
+                    });
+                    targetLocation = results[0].geometry.location;
+
+                    setMapCenter();
+                  }
+                });
+              }
+
+              initMap();
+
+              // shopify section load:
+              if (window.Shopify && window.Shopify.designMode) {
+                document.addEventListener('shopify:section:load', function () {
+                  // unload map first:
+                  map = null;
+                  document.querySelector('.map-{{ section.id }}').innerHTML = '';
+                  setTimeout(() => {
+                    initMap();
+                  }, 100);
+                });
+              }
+            })();
+          </script>
+        {%- elsif section.settings.image != blank -%}
+          <img
+            src="{{ section.settings.image | img_url: 'master' }}"
+            srcset="
+              {{ section.settings.image | img_url: '400x' }} 400w,
+              {{ section.settings.image | img_url: '600x' }} 600w,
+              {{ section.settings.image | img_url: '800x' }} 800w,
+              {{ section.settings.image | img_url: '1200x' }} 1200w,
+              {{ section.settings.image | img_url: '1600x' }} 1600w,
+              {{ section.settings.image | img_url: 'master' }} 2000w
+            "
+            style="width: 100%; height: 100%; object-fit: cover;"
+            alt="{{ section.settings.image.alt }}"
+            {%- if section.settings.lazy_loading -%}
+              loading="lazy"
+            {%- endif -%}
+          >
+        {%- else -%}
+          {{ 'lifestyle-1' | placeholder_svg_tag: 'map-google-custom-shopify-svg-placeholder' }}
+        {%- endif -%}
+      </div>
+
+      <style>
+        .map-overlay-{{ section.id }} {
+          position: absolute;
+          top: 0;
+          left: 0;
+          padding: 30px;
+          margin: 30px;
+          background-color: white;
+          max-width: calc(100% - 60px);
+        }
+        @media screen and (min-width: 750px) {
+          .map-overlay-{{ section.id }} {
+            left: 30px;
+            margin-top: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30%;
+          }
+        }
+        .text-spacing-{{ section.id }} {
+          margin-bottom: 15px;
+        }
+        .rte-setting-{{ section.id }} > p {
+          margin: 0 0 15px 0;
+        }
+        .rte-setting-{{ section.id }} > p:last-child {
+          margin-bottom: 0;
+        }
+        .btn-{{ section.id }} {
+          background: #111111;
+          color: white;
+          font-weight: 700;
+          letter-spacing: 0.3em;
+          font-size: 12px;
+          line-height: 1.42;
+          padding: 8px 14px;
+          min-width: 90px;
+          text-transform: uppercase;
+        }
+      </style>
+      <div
+        class="map-overlay-{{ section.id }}"
+        style="
+          color: {{ section.settings.text_color }};
+          background: {{ section.settings.card_background_color }};
+        "
+      >
+        <h3
+          class="text-spacing-{{ section.id }}"
+          style="
+            margin-top: 0; color: {{ section.settings.text_color }};
+            font-size: {{ section.settings.heading_size }}px;
+          "
+        >
+          {{ section.settings.heading }}
+        </h3>
+        <div
+          class="rte-setting-{{ section.id }} text-spacing-{{ section.id }}"
+          style="font-size: {{ section.settings.address_size }}px;"
+        >
+          {{ section.settings.address }}
+        </div>
+        {%- if section.settings.show_button -%}
+          <a
+            href="https://maps.google.com?daddr={{ section.settings.map_address }}"
+            class="btn-{{ section.id }}"
+            style="
+              color: {{ section.settings.btn_text_color }};
+              background: {{ section.settings.btn_background_color }};
+              font-size: {{ section.settings.button_size }}px;
+            "
+            target="_blank"
+            rel="noopener"
+            aria-label="Our retail store"
+            >{{ section.settings.button_text }}</a
+          >
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "SS - Map",
+  "presets": [
+    {
+      "name": "SS - Map"
+    }
+  ],
+  "class": "section",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Our retail store"
+    },
+    {
+      "type": "richtext",
+      "id": "address",
+      "label": "Address and hours",
+      "default": "<p> Havnegade 12<br> Copenhagen, Denmark </p> <p>  Mon - Thur, 8:30am - 5:30pm <br>  Fri-Sat, 8:30am - 11:30pm<br> Sunday, 8:30am - 4:30pm  </p>"
+    },
+    {
+      "type": "text",
+      "id": "map_address",
+      "label": "Map address",
+      "default": "Havnegade 12, Copenhagen, Denmark",
+      "info": "Input correct format & Google maps will pin the exact location. (Link on image and map)"
+    },
+    {
+      "type": "text",
+      "id": "google_map_api_key",
+      "label": "Google Maps API key",
+      "info": "You'll need to [register a Google Maps API Key](https://help.shopify.com/manual/using-themes/troubleshooting/map-section-api-key) to display the map"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_button",
+      "label": "Show button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "Get directions"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "lazy_loading",
+      "label": "Lazy loading",
+      "info": "Lazy loading should be enabled when section images are below the fold.",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Font sizes"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 12,
+      "max": 60,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "address_size",
+      "min": 12,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "label": "Address",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "button_size",
+      "min": 10,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "label": "Button",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "label": "Section background",
+      "id": "background_color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "card_background_color",
+      "label": "Card background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "btn_text_color",
+      "label": "Button text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "btn_background_color",
+      "label": "Button background",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Section padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_x",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding horizontal",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_x_desktop",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding horizontal desktop",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Section margin"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Section width"
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Section full width",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "section_width",
+      "min": 80,
+      "max": 200,
+      "step": 5,
+      "unit": "rem",
+      "label": "Section width",
+      "default": 120
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+{% endstylesheet %}
+
+{% javascript %}
+{% endjavascript %}

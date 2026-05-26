@@ -1,0 +1,693 @@
+<!-- ── Dynamic styles (scoped to this section instance) ── -->
+<style>
+  /* Desktop default */
+ #shopify-section-{{ section.id }}  .hero-image-mobile {
+  display: none;
+}
+
+/* Mobile switch */
+@media (max-width: 768px) {
+   #shopify-section-{{ section.id }}  .hero-image-desktop {
+    display: none;
+  }
+   #shopify-section-{{ section.id }} .hero-image-mobile {
+    display: block;
+  }
+}
+  #shopify-section-{{ section.id }} {
+    background: {{ section.settings.bg_color }};
+    overflow-x: hidden;
+  }
+  #shopify-section-{{ section.id }} .hero h1 {
+    font-size: {{ section.settings.h1_size_desktop }}px;
+    line-height: 1.1;
+    color: {{ section.settings.heading_color }};
+  }
+  #shopify-section-{{ section.id }} .hero .subtitle {
+    font-size: {{ section.settings.subtitle_size_desktop }}px;
+    line-height: 1.6;
+    color: {{ section.settings.subtitle_color }};
+    opacity: {{ section.settings.subtitle_opacity | divided_by: 100.0 }};
+  }
+  #shopify-section-{{ section.id }} .hero {
+    min-height: {{ section.settings.section_max_height }}px;
+    max-height: {{ section.settings.section_max_height }}px;
+    padding-top: {{ section.settings.section_padding_top }}px;
+    padding-bottom: {{ section.settings.section_padding_bottom }}px;
+  }
+  #shopify-section-{{ section.id }} .hero-left {
+    padding-left: {{ section.settings.text_padding_left }}px;
+    padding-top: {{ section.settings.text_padding_top }}px;
+  }
+  #shopify-section-{{ section.id }} .hero-image {
+    max-width: {{ section.settings.image_max_width }}%;
+  }
+  #shopify-section-{{ section.id }} .badge strong {
+    color: {{ section.settings.badge_rating_color }};
+  }
+  #shopify-section-{{ section.id }} .badge .badge-review-text {
+    color: {{ section.settings.badge_text_color }};
+  }
+  @media (max-width: 768px) {
+    #shopify-section-{{ section.id }} .hero {
+      min-height: auto;
+      max-height: none;
+    }
+    #shopify-section-{{ section.id }} .hero h1 {
+      font-size: {{ section.settings.h1_size_mobile }}px;
+      line-height: 1.15;
+    }
+    #shopify-section-{{ section.id }} .hero .subtitle {
+      font-size: {{ section.settings.subtitle_size_mobile }}px;
+      line-height: 1.5;
+    }
+    #shopify-section-{{ section.id }} .hero-left {
+      padding-bottom: {{ section.settings.mobile_cta_image_gap }}px;
+    }
+  }
+</style>
+
+<!-- ── Hero markup ── -->
+<div class="hero">
+  <div class="hero-left">
+
+    {%- if section.settings.badge_visible -%}
+      <div class="badge">
+        <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+        <strong>{{ section.settings.badge_rating }}</strong> <span class="badge-review-text">{{ section.settings.badge_review_text }}</span>
+      </div>
+    {%- endif -%}
+
+    <h1>
+      {{ section.settings.heading_text }}<br>
+      <span class="count">{{ section.settings.customer_count }}</span>
+    </h1>
+
+    <p class="subtitle">{{ section.settings.subtitle_text }}</p>
+
+    <div class="buttons">
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'button' -%}
+          <a href="{{ block.settings.btn_url }}"
+             class="btn btn-{{ block.settings.btn_style }}{% if block.settings.mobile_only %} btn-mobile-only{% endif %}"
+             style="--btn-bg: {{ block.settings.btn_bg_color }}; --btn-text: {{ block.settings.btn_text_color }}; --btn-border: {{ block.settings.btn_border_color }};"
+             {{ block.shopify_attributes }}>
+            {{- block.settings.btn_text -}}
+            <svg class="btn-arrow" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10h10"/><path d="M11 6l4 4-4 4"/></svg>
+          </a>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+
+  </div>
+
+  <div class="hero-right">
+ {%- if section.settings.hero_image != blank or section.settings.hero_image_mobile != blank -%}
+
+    {%- if section.settings.hero_image != blank -%}
+      {%- assign hero_img_desktop = section.settings.hero_image | image_url: width: 1600 -%}
+      <img 
+        class="hero-image hero-image-desktop" 
+        src="{{ hero_img_desktop }}" 
+        alt="{{ section.settings.hero_image.alt | escape }}" 
+        loading="eager">
+    {%- endif -%}
+
+    {%- if section.settings.hero_image_mobile != blank -%}
+      {%- assign hero_img_mobile = section.settings.hero_image_mobile | image_url: width: 1000 -%}
+      <img 
+        class="hero-image hero-image-mobile" 
+        src="{{ hero_img_mobile }}" 
+        alt="{{ section.settings.hero_image_mobile.alt | escape }}" 
+        loading="eager">
+    {%- endif -%}
+    {%- else -%}
+      <div class="hero-image-placeholder">
+        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Upload Hero Image</span>
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+<!-- ── Static CSS ── -->
+{% stylesheet %}
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  /* Full-width section wrapper */
+  .hero-section-root {
+    overflow-x: hidden;
+  }
+
+  .hero {
+    display: flex;
+    gap: 40px;
+    position: relative;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-left: 40px;
+    font-family: 'Inter', sans-serif;
+    color: #fff;
+  }
+
+  .hero-left {
+    width: 45%;
+    max-width: 45%;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 0;
+    z-index: 2;
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+    font-size: 13px;
+    color: #9ca3af;
+    margin-bottom: 14px;
+    width: fit-content;
+  }
+
+  .badge .stars {
+    color: #fbbf24;
+    font-size: 15px;
+    letter-spacing: 2px;
+  }
+
+  .badge strong {
+    color: #fff;
+    font-weight: 700;
+  }
+
+  /* Heading */
+  .hero h1 {
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    letter-spacing: -1.5px;
+    white-space: normal;
+    word-wrap: break-word;
+  }
+
+  .hero h1 .count {
+    color: #fff;
+  }
+
+  /* Subtitle — match heading width */
+  .hero .subtitle {
+    color: #9ca3af;
+    line-height: 1.6;
+    margin-bottom: 28px;
+    max-width: 100%;
+  }
+
+  /* Buttons */
+  .hero .buttons {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .hero .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s;
+    cursor: pointer;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+  }
+
+  .hero .btn-primary {
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    box-shadow: none !important;
+  }
+
+  .hero .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: none !important;
+  }
+
+  .hero .btn-secondary {
+    background: color-mix(in srgb, var(--btn-bg) 12%, transparent);
+    color: var(--btn-text);
+    border: 1px solid color-mix(in srgb, var(--btn-border) 15%, transparent);
+  }
+
+  .hero .btn-secondary:hover {
+    background: color-mix(in srgb, var(--btn-bg) 20%, transparent);
+    transform: translateY(-2px);
+  }
+
+  .hero .btn-outline {
+    background: transparent;
+    color: var(--btn-text);
+    border: 2px solid color-mix(in srgb, var(--btn-border) 35%, transparent);
+  }
+
+  .hero .btn-outline:hover {
+    border-color: color-mix(in srgb, var(--btn-border) 70%, transparent);
+    transform: translateY(-2px);
+  }
+
+  .hero .btn-text {
+    background: transparent;
+    color: var(--btn-text);
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .hero .btn-text:hover {
+    opacity: 0.7;
+  }
+
+  .hero .btn-glass {
+    background: color-mix(in srgb, var(--btn-bg) 8%, transparent);
+    color: var(--btn-text);
+    border: 1px solid color-mix(in srgb, var(--btn-border) 10%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .hero .btn-glass:hover {
+    background: color-mix(in srgb, var(--btn-bg) 15%, transparent);
+    transform: translateY(-2px);
+  }
+
+  .hero .btn-arrow {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px;
+    min-height: 18px;
+    flex-shrink: 0;
+    transition: transform 0.3s;
+  }
+
+  .hero .btn:hover .btn-arrow {
+    transform: translateX(3px);
+  }
+
+  .hero .btn-mobile-only {
+    display: none;
+  }
+
+  /* Hero right — single image */
+  .hero-right {
+    flex: 0 0 55%;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-width: 0;
+    overflow: hidden;
+    align-self: stretch;
+  }
+
+  .hero-image {
+    width: 100%;
+    max-height: 100%;
+    display: block;
+    object-fit: contain;
+    object-position: bottom;
+    margin-top: auto;
+  }
+
+  .hero-image-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    background: #1a1a2e;
+    color: #4a4a6a;
+  }
+
+  .hero-image-placeholder span {
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    .hero .btn-mobile-only {
+      display: inline-flex;
+    }
+
+    .hero {
+      flex-direction: column;
+      gap: 0;
+      min-height: auto;
+      max-height: none;
+      padding: 0 20px;
+    }
+
+    .hero-left {
+      width: 100%;
+      max-width: 100%;
+      flex: none;
+      padding: 40px 0 30px;
+      order: 1;
+    }
+
+    .hero-right {
+      width: 100%;
+      max-width: 100%;
+      flex: none;
+      padding: 0;
+      order: 2;
+    }
+
+    .hero h1 {
+      white-space: normal;
+    }
+
+    .hero .buttons {
+      flex-direction: column;
+    }
+
+    .hero .btn {
+      justify-content: center;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "UGC Hero 2",
+  "tag": "section",
+  "class": "hero-section-root",
+  "max_blocks": 20,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Badge"
+    },
+    {
+      "type": "checkbox",
+      "id": "badge_visible",
+      "label": "Show star badge",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "badge_rating",
+      "label": "Rating number",
+      "default": "4.9"
+    },
+    {
+      "type": "text",
+      "id": "badge_review_text",
+      "label": "Review label",
+      "default": "Based on 35,000+ Reviews"
+    },
+    {
+      "type": "color",
+      "id": "badge_rating_color",
+      "label": "Rating number color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "badge_text_color",
+      "label": "Review text color",
+      "default": "#9ca3af"
+    },
+    {
+      "type": "header",
+      "content": "Heading"
+    },
+    {
+      "type": "text",
+      "id": "heading_text",
+      "label": "Heading text (before number)",
+      "default": "DTF Transfers Trusted by"
+    },
+    {
+      "type": "text",
+      "id": "customer_count",
+      "label": "Customer count",
+      "default": "225,000+"
+    },
+    {
+      "type": "header",
+      "content": "Subtitle"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle_text",
+      "label": "Subtitle",
+      "default": "Print ANY Design on ANY Product, Material or Color with 100+ Wash Durability. Make More For Less."
+    },
+    {
+      "type": "header",
+      "content": "Hero Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "hero_image",
+      "label": "Hero image"
+    },
+    {
+  "type": "image_picker",
+  "id": "hero_image_mobile",
+  "label": "Mobile hero image"
+},
+    {
+      "type": "range",
+      "id": "image_max_width",
+      "label": "Image max width",
+      "min": 40,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "section_max_height",
+      "label": "Desktop section height",
+      "min": 400,
+      "max": 900,
+      "step": 25,
+      "unit": "px",
+      "default": 600
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "label": "Section padding top",
+      "min": 0,
+      "max": 120,
+      "step": 5,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "label": "Section padding bottom",
+      "min": 0,
+      "max": 120,
+      "step": 5,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "text_padding_left",
+      "label": "Text indent from left",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "text_padding_top",
+      "label": "Text top padding (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 5,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "header",
+      "content": "Desktop text sizes"
+    },
+    {
+      "type": "range",
+      "id": "h1_size_desktop",
+      "label": "Heading size (desktop)",
+      "min": 28,
+      "max": 72,
+      "step": 2,
+      "unit": "px",
+      "default": 52
+    },
+    {
+      "type": "range",
+      "id": "subtitle_size_desktop",
+      "label": "Subtitle size (desktop)",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Mobile text sizes"
+    },
+    {
+      "type": "range",
+      "id": "h1_size_mobile",
+      "label": "Heading size (mobile)",
+      "min": 20,
+      "max": 52,
+      "step": 2,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "subtitle_size_mobile",
+      "label": "Subtitle size (mobile)",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "mobile_cta_image_gap",
+      "label": "Mobile: space between CTA & image",
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle color",
+      "default": "#9ca3af"
+    },
+    {
+      "type": "range",
+      "id": "subtitle_opacity",
+      "label": "Subtitle opacity",
+      "min": 10,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    }
+  ],
+  "blocks": [
+    {
+      "type": "button",
+      "name": "Button",
+      "settings": [
+        {
+          "type": "text",
+          "id": "btn_text",
+          "label": "Button label",
+          "default": "Shop Now"
+        },
+        {
+          "type": "url",
+          "id": "btn_url",
+          "label": "Button link"
+        },
+        {
+          "type": "select",
+          "id": "btn_style",
+          "label": "Style",
+          "default": "primary",
+          "options": [
+            { "value": "primary", "label": "Primary (filled)" },
+            { "value": "secondary", "label": "Secondary (ghost)" },
+            { "value": "outline", "label": "Outline (border only)" },
+            { "value": "text", "label": "Text (no background)" },
+            { "value": "glass", "label": "Glass (frosted blur)" }
+          ]
+        },
+        {
+          "type": "color",
+          "id": "btn_bg_color",
+          "label": "Background color",
+          "default": "#019AFF",
+          "info": "Used by Primary and Glass styles. Ignored by Outline and Text."
+        },
+        {
+          "type": "color",
+          "id": "btn_text_color",
+          "label": "Text color",
+          "default": "#ffffff"
+        },
+        {
+          "type": "color",
+          "id": "btn_border_color",
+          "label": "Border color",
+          "default": "#ffffff",
+          "info": "Used by Outline, Secondary, and Glass styles."
+        },
+        {
+          "type": "checkbox",
+          "id": "mobile_only",
+          "label": "Show only on mobile",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "UGC Hero 2",
+      "blocks": [
+        { "type": "button", "settings": { "btn_text": "Order Transfers by Size", "btn_style": "primary", "mobile_only": false } },
+        { "type": "button", "settings": { "btn_text": "Build a Gang Sheet", "btn_style": "secondary", "mobile_only": false } },
+        { "type": "button", "settings": { "btn_text": "Shop Blanks", "btn_style": "secondary", "mobile_only": true } }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,152 @@
+{%- comment -%}
+  Collapsible "Add a note for our designers" element.
+
+  Rendered inside .multiupload-rebuild-tools-inner (the toggle bar that
+  holds Remove Background / Upscale / Edit with AI). Replaces the old
+  "Add Free Design Notes (Optional)" checkbox/textarea that used to live
+  in .fileupload_notes_for_designer on the cart-bottom row.
+
+  Submits as properties[Design Notes] — same field name as before so the
+  cart, checkout, order detail, and any backend listeners are unchanged.
+
+  Used by: __multiuploadSnippets.liquid (3 instances) and the older
+  __multipleSnippets.liquid 'fileuploadOptions' content block (commented
+  out on most templates but kept-rendered for future re-use).
+
+  CSS + toggle JS are inlined here. The CSS is scoped under
+  .multiupload-rebuild-tools-inner so it only affects this element. The
+  JS uses a window-level guard so re-renders of the snippet bind their
+  click listener only once.
+{%- endcomment -%}
+<div class="nt-design-note" data-collapsed="true">
+  <button type="button" class="nt-design-note__header" aria-expanded="false">
+    <span class="nt-design-note__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+    </span>
+    <span class="nt-design-note__title">
+      <strong>Add a note for our designers</strong>
+      <span class="nt-design-note__sub"> &middot; Free, optional</span>
+    </span>
+    <span class="nt-design-note__chevron" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </span>
+  </button>
+  <div class="nt-design-note__body">
+    <textarea name="properties[Design Notes]" maxlength="300" placeholder="i.e. Keep the white inside of the text. Change the border of the logo to blue."></textarea>
+  </div>
+</div>
+{%- comment -%} CSS + JS only emitted once per page (guarded). {%- endcomment -%}
+{%- unless nt_design_note_assets_done -%}
+  {%- assign nt_design_note_assets_done = true -%}
+  <style>
+    /* Lives as a sibling AFTER .multiupload-rebuild-tools-inner (which
+       stays a single horizontal row with Remove BG | Upscale | Edit-with-AI).
+       Selector intentionally NOT scoped under .multiupload-rebuild-tools-inner
+       since the element is now outside that container. */
+    /* Parent grid + bottom separator. Defined inline here (not in
+       bySize.css) because some templates (spangle, puff, etc.) load
+       transferBySize.css INSTEAD of bySize.css, so external rules
+       wouldn't reach them. Inline `<style>` from this snippet is
+       guaranteed to render anywhere the snippet is rendered. */
+    .designerNote_and_preCut {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr);
+      align-items: stretch;
+      /* Only horizontal gap — never vertical. When the wrapper drops to
+         1 column on mobile (or when precut-wrapper is empty on puff /
+         glitter-puff), the empty/second grid row still inherits any
+         `row-gap`, which leaks ~20px of dead space below the design-
+         note inside the framed area. `gap: 0 20px` keeps the 20px
+         column-gap between design-note + precut on desktop while
+         collapsing row-gap to 0 when the second cell is empty or
+         wraps. */
+      gap: 0 20px;
+      /* DO NOT force `order` here. On spangle (and other layouts that
+         render `+ Add another size of this design` as a sibling
+         .add-more-block right after this wrapper) the legacy rule
+         `.fileupload_notes_for_designer { order: 1 }` (inlined by the
+         spangle content block in __multipleSnippets.liquid) is what
+         pushes design-note to render AFTER add-more-block visually.
+         That's the intended layout — add-more-block sits above the
+         framed design-note block, with the design-note's own
+         border-bottom acting as the section's lower divider and the
+         add-more-block's border-bottom acting as the upper divider. */
+      /* No border-top — the add-more-block above renders its own
+         border-bottom which serves as this section's top separator
+         (or, when add-more-block is absent, a parent element draws
+         one). Only the container's border-bottom + equal 16px padding
+         top/bottom frames the design-note row visually. */
+      padding: 16px 0 !important;
+      margin: 0 !important;
+      border-bottom: 1px solid #ddd !important;
+    }
+    .designerNote_and_preCut + .add-more-block {
+      border-top: 0 !important;
+      padding-top: 0 !important;
+      margin-top: 0 !important;
+    }
+    @media (max-width: 768px) {
+      .designerNote_and_preCut { grid-template-columns: 1fr; }
+    }
+
+    /* FIXED 56px height on both .nt-design-note + <precut> sibling.
+       Using !important to defeat ANY theme rule that's adding padding
+       or sizing. When expanded (data-collapsed="false"), height auto
+       so body can grow below. */
+    .nt-design-note {
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 14px !important;
+      border: 1px dashed #d0d0d0;
+      border-radius: 12px;
+      background: #fff;
+      box-sizing: border-box !important;
+      height: 48px !important;
+      display: flex !important;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .nt-design-note[data-collapsed="false"] {
+      height: auto !important;
+      padding: 10px 14px !important;
+      justify-content: flex-start;
+    }
+    /* Font-size 13px matches the <precut> sibling so both rows read
+       as the same UI weight. */
+    .nt-design-note__header { display: flex; align-items: center; width: 100%; background: transparent; border: 0; padding: 0; font-family: inherit; font-size: 13px; color: #111; cursor: pointer; gap: 10px; text-align: left; }
+    .nt-design-note__icon { width: 28px; height: 28px; display: grid; place-items: center; background: #f4f4f4; border-radius: 8px; flex-shrink: 0; color: #444; }
+    .nt-design-note__title { flex: 1; line-height: 1.2; min-width: 0; font-size: 13px; }
+    .nt-design-note__title strong { font-weight: 600; }
+    .nt-design-note__sub { color: #777; font-weight: 400; font-size: 13px; }
+    .nt-design-note__chevron { color: #666; flex-shrink: 0; display: inline-flex; }
+    .nt-design-note[data-collapsed="false"] .nt-design-note__chevron { transform: rotate(180deg); transition: transform 0.1s ease; }
+    /* Default state (collapsed): NO transition on max-height so closing
+       is instant. The transition is applied ONLY in the expanded state,
+       so opening animates smoothly but closing snaps shut. Chevron
+       follows the same asymmetric pattern. */
+    .nt-design-note__body { max-height: 0; overflow: hidden; }
+    .nt-design-note[data-collapsed="false"] .nt-design-note__body { max-height: 240px; transition: max-height 0.12s ease-out; }
+    .nt-design-note__body textarea { width: 100%; margin-top: 10px; padding: 10px 12px; border: 1px solid #d8d8d8; border-radius: 8px; resize: vertical; min-height: 70px; font-family: inherit; font-size: 14px; box-sizing: border-box; line-height: 1.4; }
+    .nt-design-note__body textarea:focus { outline: none; border-color: #42a9de; box-shadow: 0 0 0 3px rgba(66,169,222,0.15); }
+  </style>
+  <script>
+    (function () {
+      if (window.__ntDesignNoteBound) return;
+      window.__ntDesignNoteBound = true;
+      document.addEventListener('click', function (e) {
+        var hdr = e.target.closest('.nt-design-note__header');
+        if (!hdr) return;
+        var box = hdr.closest('.nt-design-note');
+        if (!box) return;
+        var collapsed = box.getAttribute('data-collapsed') !== 'false';
+        box.setAttribute('data-collapsed', collapsed ? 'false' : 'true');
+        hdr.setAttribute('aria-expanded', collapsed ? 'true' : 'false');
+      }, false);
+    })();
+  </script>
+{%- endunless -%}

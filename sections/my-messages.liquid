@@ -1,0 +1,276 @@
+{%- comment -%}
+  My Messages — overlays the real Atomato notification panel onto our mount.
+  No cloning. We inject shadow-DOM CSS that:
+    1. Overrides Atomato's CSS variables (position + theme)
+    2. Position variables are driven by --mp-msgs-top/--mp-msgs-left/--mp-msgs-width
+       which this script updates from the mount's bounding rect (document-absolute,
+       so the panel scrolls naturally with the page).
+  Cleanup runs when the mount element disappears (user navigated to another tab).
+{%- endcomment -%}
+
+<script>
+(function() {
+  /* If loaded standalone (not AJAX-injected into portal), redirect to portal with tab param */
+  if (!document.querySelector('.mp-ajax-content')) {
+    var url = '/pages/welcome?tab=my-messages';
+    var params = new URLSearchParams(window.location.search);
+    if (params.has('preview_theme_id')) url += '&preview_theme_id=' + params.get('preview_theme_id');
+    window.location.replace(url);
+  }
+})();
+</script>
+
+<div class="msgs-container">
+  <div class="msgs-header">
+    <h2 class="msgs-title">My Messages</h2>
+  </div>
+  <div id="msgs-mount" class="msgs-mount" data-msgs-mount></div>
+</div>
+
+<style>
+  .msgs-container { max-width: 900px; margin: 0 auto; padding: 24px 20px 40px; }
+  .msgs-header { margin-bottom: 20px; }
+  .msgs-title { font-size: 24px; font-weight: 700; color: #111; margin: 0; }
+
+  .msgs-mount {
+    position: relative;
+    min-height: 400px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: visible;
+  }
+
+  /* While on My Messages, fully hide the floating Atomato bell (we don't use it). */
+  body.mp-show-messages #site-header .atomato-bell-wrap,
+  body.mp-show-messages .nb-nav .atomato-bell-wrap,
+  body.mp-show-messages [data-notifeed-bell] {
+    display: none !important;
+  }
+
+  @media (max-width: 767px) {
+    .msgs-container { padding: 8px 10px 16px; }
+    .msgs-title { font-size: 18px; }
+    .msgs-header { margin-bottom: 10px; }
+    .msgs-mount { min-height: 200px; border-radius: 10px; }
+  }
+</style>
+
+<script>
+(function() {
+  var mount = document.getElementById('msgs-mount');
+  if (!mount) return;
+
+  document.body.classList.add('mp-show-messages');
+
+  var host = null;
+  var attempts = 0;
+  var wired = false;
+  var cleanupTimer = null;
+  var resizeObs = null;
+  var shadowObs = null;
+
+  /* ATOMATO TEAM: Impressions functionality START */
+  var impressionTriggered = false;
+
+  function runImpressionsOnce() {
+    if (impressionTriggered || !window.Atomato) return;
+    impressionTriggered = true;
+
+    Atomato.allFeeds.forEach((notifeed, i) => {
+      setTimeout(() => {
+        Atomato.atomatoInteraction({
+          id: notifeed.id,
+          campaignType: notifeed.campaignType,
+          type: 'impression',
+        });
+      }, i * 30);
+    });
+  }
+  /* ATOMATO TEAM: Impressions functionality END */
+
+  /* Shadow-DOM overrides: position, size, light-theme variables, no scroll/shadow. */
+  var SHADOW_CSS = [
+    '[data-atomato-notifeeds] {',
+    '  position: absolute !important;',
+    /* Fallback -10000px hides the panel when we leave the messages page
+       (vars unset → fallback used → offscreen). */
+    '  top: var(--mp-msgs-top, -10000px) !important;',
+    '  left: var(--mp-msgs-left, -10000px) !important;',
+    '  right: auto !important;',
+    '  bottom: auto !important;',
+    '  transform: none !important;',
+    '  width: var(--mp-msgs-width, 400px) !important;',
+    '  max-width: var(--mp-msgs-width, 400px) !important;',
+    '  min-width: 0 !important;',
+    '  height: auto !important;',
+    '  max-height: none !important;',
+    '  overflow: visible !important;',
+    '  box-shadow: none !important;',
+    '  border: none !important;',
+    '  border-radius: 12px !important;',
+    '  display: block !important;',
+    '  visibility: visible !important;',
+    '  opacity: 1 !important;',
+    '  pointer-events: auto !important;',
+    '  z-index: 1 !important;',
+    /* Light theme */
+    '  --noti-bg: #ffffff !important;',
+    '  --noti-title-color: #111827 !important;',
+    '  --noti-text-color: #4b5563 !important;',
+    '  --noti-btn-text-color: #ffffff !important;',
+    '  --noti-btn-bg-color: #019aff !important;',
+    '  --noti-border: #e5e7eb !important;',
+    '  --noti-radius: 12px !important;',
+    '  --notisell-card-color: #ffffff !important;',
+    '  --notisell-title-color: #111827 !important;',
+    '  --notisell-price-color: #111827 !important;',
+    '  --notisell-comp-color: #64748b !important;',
+    '  --notisell-btn-bg-color: #019aff !important;',
+    '  --notisell-btn-text-color: #ffffff !important;',
+    '}',
+    '[data-notifeed-inner], [data-notifeed-list-inner], [data-notifeed-list], [data-notifeed-item] {',
+    '  visibility: visible !important;',
+    '  opacity: 1 !important;',
+    '  pointer-events: auto !important;',
+    '}',
+    '[data-notifeed-inner] {',
+    '  position: static !important;',
+    '  top: auto !important; left: auto !important; right: auto !important; bottom: auto !important;',
+    '  transform: none !important;',
+    '  width: 100% !important; max-width: 100% !important; min-width: 0 !important;',
+    '  height: auto !important; max-height: none !important;',
+    '  overflow: visible !important; background: transparent !important;',
+    '  padding: 0 !important; margin: 0 !important;',
+    '}',
+    '[data-notifeed-list-inner] {',
+    '  position: static !important;',
+    '  width: 100% !important; max-width: 100% !important;',
+    '  height: auto !important; max-height: none !important; overflow: visible !important;',
+    '}',
+    '[data-notifeed-list] {',
+    '  width: 100% !important; max-width: 100% !important;',
+    '  display: block !important;',
+    '}',
+    '[data-notifeed-item] {',
+    '  width: 100% !important; max-width: 100% !important;',
+    '  box-sizing: border-box !important;',
+    '}',
+    '[data-atomato-overlay] { display: none !important; }',
+    /* Hover highlight — light blue */
+    '[data-notifeed-item]:hover { background-color: #eff6ff !important; }',
+    /* No link underline */
+    'a { text-decoration: none !important; }'
+  ].join('\n');
+
+  function injectShadowCSS(h) {
+    if (!h || !h.shadowRoot) return;
+    if (h.shadowRoot.querySelector('style[data-mp-msgs-override]')) return;
+    var s = document.createElement('style');
+    s.setAttribute('data-mp-msgs-override', '');
+    s.textContent = SHADOW_CSS;
+    h.shadowRoot.appendChild(s);
+  }
+
+  function clearPositionVars() {
+    var r = document.documentElement.style;
+    r.removeProperty('--mp-msgs-top');
+    r.removeProperty('--mp-msgs-left');
+    r.removeProperty('--mp-msgs-width');
+  }
+
+  function updatePosition() {
+    /* If the mount isn't in the layout (detached, display:none in an ancestor,
+       or zero-sized), clear vars so the panel falls back to offscreen. */
+    if (!mount.isConnected || !mount.offsetParent) { clearPositionVars(); return; }
+    var rect = mount.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) { clearPositionVars(); return; }
+    var top  = rect.top  + (window.pageYOffset || document.documentElement.scrollTop  || 0);
+    var left = rect.left + (window.pageXOffset || document.documentElement.scrollLeft || 0);
+    var root = document.documentElement.style;
+    root.setProperty('--mp-msgs-top',   top  + 'px');
+    root.setProperty('--mp-msgs-left',  left + 'px');
+    root.setProperty('--mp-msgs-width', rect.width + 'px');
+    /* Grow mount to match panel height so page layout extends correctly */
+    if (host && host.shadowRoot) {
+      var panel = host.shadowRoot.querySelector('[data-atomato-notifeeds]');
+      if (panel) {
+        var h = panel.getBoundingClientRect().height;
+        if (h > 0) mount.style.minHeight = h + 'px';
+      }
+    }
+  }
+
+  function wireUp() {
+    if (wired) return;
+    wired = true;
+
+    window.addEventListener('resize', updatePosition);
+
+    if (window.ResizeObserver) {
+      resizeObs = new ResizeObserver(updatePosition);
+      resizeObs.observe(mount);
+      if (host && host.shadowRoot) {
+        var panel = host.shadowRoot.querySelector('[data-atomato-notifeeds]');
+        if (panel) resizeObs.observe(panel);
+      }
+    }
+
+    /* Re-inject our style if Atomato ever rebuilds its shadow root. */
+    if (host && host.shadowRoot) {
+      shadowObs = new MutationObserver(function() {
+        injectShadowCSS(host);
+        updatePosition();
+      });
+      shadowObs.observe(host.shadowRoot, { childList: true, subtree: false });
+    }
+
+    /* Periodic reconcile — catches (a) mount hidden by portal tab switch
+       (display:none on an ancestor, ResizeObserver may not notice) and (b) mount
+       completely removed (user nav'd away via AJAX replacement). updatePosition
+       handles (a) by clearing vars; full teardown happens when the mount is gone. */
+    cleanupTimer = setInterval(function() {
+      if (document.getElementById('msgs-mount')) {
+        updatePosition();
+        return;
+      }
+      clearInterval(cleanupTimer);
+      cleanupTimer = null;
+      document.body.classList.remove('mp-show-messages');
+      clearPositionVars();
+      window.removeEventListener('resize', updatePosition);
+      if (resizeObs) { resizeObs.disconnect(); resizeObs = null; }
+      if (shadowObs) { shadowObs.disconnect(); shadowObs = null; }
+      wired = false;
+    }, 300);
+  }
+
+  var poll = setInterval(function() {
+    host = document.querySelector('[data-atomato-notifeeds-host]');
+    if (host && host.shadowRoot) {
+      var items = host.shadowRoot.querySelectorAll('[data-notifeed-item]');
+      if (items.length > 0) {
+        injectShadowCSS(host);
+        updatePosition();
+        wireUp();
+        clearInterval(poll);
+        /* ATOMATO TEAM: Impressions functionality START */
+        runImpressionsOnce();
+        /* ATOMATO TEAM: Impressions functionality END */
+        return;
+      }
+      /* No items yet — click bell to make Atomato populate. */
+      var bell = document.querySelector('[data-notifeed-bell]');
+      if (bell) { try { bell.click(); } catch(e) {} }
+    }
+    if (++attempts > 120) clearInterval(poll);
+  }, 100);
+})();
+</script>
+
+{% schema %}
+{
+  "name": "My Messages",
+  "settings": []
+}
+{% endschema %}

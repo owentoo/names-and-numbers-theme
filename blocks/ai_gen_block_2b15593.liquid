@@ -1,0 +1,1052 @@
+{% doc %}
+  @prompt
+    need a collection of link blocks up to 30 each with an image and text below, 2-3 per row. whole section needs horizontal padding and spacing options. Ned text size, weight, color, and alignment options. images need ration and radius options , space between and padding needs to be in increments of 2, Columns should be the same on desktop and mobile 1-3, need space between rows setting 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-link-collection-{{ ai_gen_id }} {
+    padding-left: {{ block.settings.horizontal_padding }}px;
+    padding-right: {{ block.settings.horizontal_padding }}px;
+  }
+
+  .ai-link-collection-grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    column-gap: {{ block.settings.spacing }}px;
+    row-gap: {{ block.settings.row_spacing }}px;
+  }
+
+  .ai-link-item-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+  }
+
+  .ai-link-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    padding-bottom: calc(100% / {{ block.settings.image_ratio }});
+    overflow: hidden;
+    border-radius: {{ block.settings.image_radius }}px;
+    background-color: #f4f4f4;
+  }
+
+  .ai-link-image-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-link-image-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-link-image-placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-link-text-{{ ai_gen_id }} {
+    margin-top: 12px;
+    font-size: {{ block.settings.text_size }}px;
+    font-weight: {{ block.settings.text_weight }};
+    color: {{ block.settings.text_color }};
+    text-align: {{ block.settings.text_alignment }};
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-link-collection-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+    }
+  }
+{% endstyle %}
+
+<div class="ai-link-collection-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-link-collection-grid-{{ ai_gen_id }}">
+    {% for i in (1..30) %}
+      {% liquid
+        assign link_enabled_key = 'link_' | append: i | append: '_enabled'
+        assign link_url_key = 'link_' | append: i | append: '_url'
+        assign link_image_key = 'link_' | append: i | append: '_image'
+        assign link_text_key = 'link_' | append: i | append: '_text'
+
+        assign link_enabled = block.settings[link_enabled_key]
+        assign link_url = block.settings[link_url_key]
+        assign link_image = block.settings[link_image_key]
+        assign link_text = block.settings[link_text_key]
+      %}
+
+      {% if link_enabled %}
+        <a
+          href="{{ link_url }}"
+          class="ai-link-item-{{ ai_gen_id }}"
+        >
+          <div class="ai-link-image-wrapper-{{ ai_gen_id }}">
+            {% if link_image %}
+              <img
+                src="{{ link_image | image_url: width: 800 }}"
+                alt="{{ link_image.alt | escape }}"
+                loading="lazy"
+                width="{{ link_image.width }}"
+                height="{{ link_image.height }}"
+                class="ai-link-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="ai-link-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          {% if link_text != blank %}
+            <div class="ai-link-text-{{ ai_gen_id }}">{{ link_text }}</div>
+          {% endif %}
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Link collection",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "label": "Columns on desktop",
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "columns_mobile",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "label": "Columns on mobile",
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "Horizontal padding",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Spacing between columns",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "row_spacing",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Spacing between rows",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Image"
+    },
+    {
+      "type": "range",
+      "id": "image_ratio",
+      "min": 0.5,
+      "max": 2,
+      "step": 0.1,
+      "label": "Image ratio",
+      "default": 1
+    },
+    {
+      "type": "range",
+      "id": "image_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Image border radius",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Text"
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "text_weight",
+      "label": "Text weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "500"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Link 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_1_enabled",
+      "label": "Enable link 1",
+      "default": true
+    },
+    {
+      "type": "url",
+      "id": "link_1_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_1_text",
+      "label": "Text",
+      "default": "Link 1"
+    },
+    {
+      "type": "header",
+      "content": "Link 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_2_enabled",
+      "label": "Enable link 2",
+      "default": true
+    },
+    {
+      "type": "url",
+      "id": "link_2_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_2_text",
+      "label": "Text",
+      "default": "Link 2"
+    },
+    {
+      "type": "header",
+      "content": "Link 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_3_enabled",
+      "label": "Enable link 3",
+      "default": true
+    },
+    {
+      "type": "url",
+      "id": "link_3_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_3_text",
+      "label": "Text",
+      "default": "Link 3"
+    },
+    {
+      "type": "header",
+      "content": "Link 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_4_enabled",
+      "label": "Enable link 4",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_4_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_4_text",
+      "label": "Text",
+      "default": "Link 4"
+    },
+    {
+      "type": "header",
+      "content": "Link 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_5_enabled",
+      "label": "Enable link 5",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_5_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_5_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_5_text",
+      "label": "Text",
+      "default": "Link 5"
+    },
+    {
+      "type": "header",
+      "content": "Link 6"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_6_enabled",
+      "label": "Enable link 6",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_6_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_6_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_6_text",
+      "label": "Text",
+      "default": "Link 6"
+    },
+    {
+      "type": "header",
+      "content": "Link 7"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_7_enabled",
+      "label": "Enable link 7",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_7_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_7_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_7_text",
+      "label": "Text",
+      "default": "Link 7"
+    },
+    {
+      "type": "header",
+      "content": "Link 8"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_8_enabled",
+      "label": "Enable link 8",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_8_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_8_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_8_text",
+      "label": "Text",
+      "default": "Link 8"
+    },
+    {
+      "type": "header",
+      "content": "Link 9"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_9_enabled",
+      "label": "Enable link 9",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_9_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_9_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_9_text",
+      "label": "Text",
+      "default": "Link 9"
+    },
+    {
+      "type": "header",
+      "content": "Link 10"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_10_enabled",
+      "label": "Enable link 10",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_10_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_10_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_10_text",
+      "label": "Text",
+      "default": "Link 10"
+    },
+    {
+      "type": "header",
+      "content": "Link 11"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_11_enabled",
+      "label": "Enable link 11",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_11_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_11_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_11_text",
+      "label": "Text",
+      "default": "Link 11"
+    },
+    {
+      "type": "header",
+      "content": "Link 12"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_12_enabled",
+      "label": "Enable link 12",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_12_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_12_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_12_text",
+      "label": "Text",
+      "default": "Link 12"
+    },
+    {
+      "type": "header",
+      "content": "Link 13"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_13_enabled",
+      "label": "Enable link 13",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_13_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_13_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_13_text",
+      "label": "Text",
+      "default": "Link 13"
+    },
+    {
+      "type": "header",
+      "content": "Link 14"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_14_enabled",
+      "label": "Enable link 14",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_14_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_14_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_14_text",
+      "label": "Text",
+      "default": "Link 14"
+    },
+    {
+      "type": "header",
+      "content": "Link 15"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_15_enabled",
+      "label": "Enable link 15",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_15_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_15_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_15_text",
+      "label": "Text",
+      "default": "Link 15"
+    },
+    {
+      "type": "header",
+      "content": "Link 16"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_16_enabled",
+      "label": "Enable link 16",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_16_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_16_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_16_text",
+      "label": "Text",
+      "default": "Link 16"
+    },
+    {
+      "type": "header",
+      "content": "Link 17"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_17_enabled",
+      "label": "Enable link 17",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_17_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_17_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_17_text",
+      "label": "Text",
+      "default": "Link 17"
+    },
+    {
+      "type": "header",
+      "content": "Link 18"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_18_enabled",
+      "label": "Enable link 18",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_18_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_18_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_18_text",
+      "label": "Text",
+      "default": "Link 18"
+    },
+    {
+      "type": "header",
+      "content": "Link 19"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_19_enabled",
+      "label": "Enable link 19",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_19_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_19_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_19_text",
+      "label": "Text",
+      "default": "Link 19"
+    },
+    {
+      "type": "header",
+      "content": "Link 20"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_20_enabled",
+      "label": "Enable link 20",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_20_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_20_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_20_text",
+      "label": "Text",
+      "default": "Link 20"
+    },
+    {
+      "type": "header",
+      "content": "Link 21"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_21_enabled",
+      "label": "Enable link 21",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_21_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_21_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_21_text",
+      "label": "Text",
+      "default": "Link 21"
+    },
+    {
+      "type": "header",
+      "content": "Link 22"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_22_enabled",
+      "label": "Enable link 22",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_22_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_22_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_22_text",
+      "label": "Text",
+      "default": "Link 22"
+    },
+    {
+      "type": "header",
+      "content": "Link 23"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_23_enabled",
+      "label": "Enable link 23",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_23_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_23_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_23_text",
+      "label": "Text",
+      "default": "Link 23"
+    },
+    {
+      "type": "header",
+      "content": "Link 24"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_24_enabled",
+      "label": "Enable link 24",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_24_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_24_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_24_text",
+      "label": "Text",
+      "default": "Link 24"
+    },
+    {
+      "type": "header",
+      "content": "Link 25"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_25_enabled",
+      "label": "Enable link 25",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_25_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_25_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_25_text",
+      "label": "Text",
+      "default": "Link 25"
+    },
+    {
+      "type": "header",
+      "content": "Link 26"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_26_enabled",
+      "label": "Enable link 26",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_26_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_26_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_26_text",
+      "label": "Text",
+      "default": "Link 26"
+    },
+    {
+      "type": "header",
+      "content": "Link 27"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_27_enabled",
+      "label": "Enable link 27",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_27_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_27_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_27_text",
+      "label": "Text",
+      "default": "Link 27"
+    },
+    {
+      "type": "header",
+      "content": "Link 28"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_28_enabled",
+      "label": "Enable link 28",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_28_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_28_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_28_text",
+      "label": "Text",
+      "default": "Link 28"
+    },
+    {
+      "type": "header",
+      "content": "Link 29"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_29_enabled",
+      "label": "Enable link 29",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_29_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_29_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_29_text",
+      "label": "Text",
+      "default": "Link 29"
+    },
+    {
+      "type": "header",
+      "content": "Link 30"
+    },
+    {
+      "type": "checkbox",
+      "id": "link_30_enabled",
+      "label": "Enable link 30",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "link_30_url",
+      "label": "URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "link_30_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "link_30_text",
+      "label": "Text",
+      "default": "Link 30"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Link collection"
+    }
+  ]
+}
+{% endschema %}

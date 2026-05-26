@@ -1,0 +1,117 @@
+{% layout none %}
+{%- assign page_url = content_for_header | split:'"pageurl":"' | last | split:'"' | first | split: request.host | last | replace:'\/','/' | replace:'%20',' ' | replace:'\u0026','&'  -%}
+{% assign param_handle = nil %}
+{% assign param_color = nil %}
+{% assign param_variant_id = nil %}
+
+{%- for i in (1..1) -%}
+  {%- unless page_url contains "?" -%}{% break %}{%- endunless -%}
+  {%- assign query_string = page_url | split:'?' | last -%}
+  {%- assign qry_parts= query_string | split:'&' -%}
+
+  {%- for part in qry_parts -%}
+    {%- assign key_and_value = part | split:'=' -%}
+    {%- if key_and_value.size > 1 -%}
+      {% if key_and_value[0] == 'variant' %}
+        {% assign param_arr = key_and_value[1] | split:'_' %}
+        {% assign param_color = param_arr[0] | upcase  %}
+        {% assign param_variant_id = param_arr[1] %}
+        {% assign param_handle = param_arr[2] %}
+      {% endif %}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor -%}
+
+{%
+  assign product = all_products[param_handle];
+%}
+
+{% assign style_category = 'style-' | append: product.metafields.specs.shirt_style %}
+{% assign style_collection = product.collections | where: "handle", style_category | first %}
+
+{% paginate style_collection.products by 1000 %}
+{% assign sortedColors = style_collection.products | sort: "url"  %}
+{% endpaginate %}
+
+{% assign defaultProduct = blank %}
+{% assign selectedProduct = blank %}
+{% for style_product in sortedColors %}
+  {% assign shirt_color = style_product.metafields.specs.shirt_color | upcase %}
+  {% if style_product.metafields.specs.shirt_color == product.metafields.specs.default_child_color %}
+      {% assign defaultProduct = style_product %}
+  {% endif %}
+  {% if param_color and shirt_color == param_color %}
+    {% assign selectedProduct = style_product %}
+  {% endif %}
+{% endfor %}
+
+{% if selectedProduct == blank %}
+  {% assign selectedProduct = defaultProduct %}
+{% endif %}
+
+{%- capture getSizes -%}
+  {% for variant in selectedProduct.variants %}
+    {% if variant.price == 0 or variant.sku contains "-T" %}
+        {% continue %}
+    {% endif %}
+    <div class="flex-item text-center">
+      <div class="variant-price-2" style="display:block;width:65px;">
+        <label class="font-size--down-2 line-height--up-1 large--line-height--down-1 large--font-size--down-1 padding-top--down-3 large--padding-top--down-1 padding-bottom--down-3 font-bold" style="font-weight: 700;">{{ variant.title }}</label>
+        {% if variant.inventory_quantity <= 0 %}
+          <div style="border-radius: 4px;display:block;border: 1px solid #e0e0e0;width:100%;color: #000000;padding-top:4px;padding-bottom:4px;background-color: #e1e1e1;height:55px;line-height:45px;">
+            <label>OUT</label>
+          </div>
+        {% else %}
+        <input class="text-center itemQuantity" type="number" min="0" data-id="{{ variant.id }}" data-price="{{ variant.price }}" data-tiers="{{ variant.metafields.custom.tier_pricing }}" data-tp="{{ variant.metafields.custom.tier_pricing | base64_encode }}" data-label="{{ variant.title }}" data-gtin="{{ variant.sku }}" data-max="{{ variant.inventory_quantity }}" placeholder="" value="" style="border-radius: 4px;display:block;padding-top: 1rem;padding-bottom: 1rem; border: 1px solid #e0e0e0;width:100%;margin-bottom:10px;">
+        <label class="font-size--down-2 line-height--up-1 large--line-height--down-1 large--font-size--down-1 padding-top--down-5 large--padding-top--down-0 font-bold">
+          <small data-variant-id="32449812529212" class="font-size--down-3 large--font-size--down-2 font-bold text-primary variant-price-2 padding-bottom--down-1 label-price;padding-top:10px;" style="color: #03406C;font-size:1.1em;font-weight:700;">{{ variant.price | money }}</small>
+        </label>
+        <div style="font-size:0.8em;">
+          {% if variant.inventory_quantity >= 999 %}
+          <div>999+</div>
+          {% else %}
+          <div>{{ variant.inventory_quantity }}</div>
+          {% endif %}
+          <div>In Stock</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+{%- endcapture -%}
+
+{%- capture sliderMain -%}
+  {% for media in selectedProduct.media %}
+    {
+      {%- assign slideImg = media.preview_image | image_url: width: 350 -%}
+      {%- assign slide = '<div class="swiper-slide"><img src="' | append: slideImg | append: '"></div>' -%}
+      "slide": {{ slide | json }}
+    }
+    {%- unless forloop.last -%}
+      ,
+    {%- endunless -%}
+  {% endfor %}
+{%- endcapture -%}
+
+{%- capture sliderThumb -%}
+  {% for media in selectedProduct.media %}
+    {
+      {%- assign slideImg = media.preview_image | image_url: width: 50 -%}
+      {%- assign slide = '<div class="swiper-slide"><img src="' | append: slideImg | append: '"></div>' -%}
+      "slide": {{ slide | json }}
+    }
+    {%- unless forloop.last -%}
+      ,
+    {%- endunless -%}
+  {% endfor %}
+{%- endcapture -%}
+
+
+{
+  "sizes": {{ getSizes | strip | json }},
+  "product_handle": {{ selectedProduct.handle | json }},
+  "pid": {{ selectedProduct.id | json }},
+  "mainImgs": [{{ sliderMain }}],
+  "thumbnails": [{{ sliderThumb }}]
+}
+

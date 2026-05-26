@@ -1,0 +1,1024 @@
+{%- if customer -%}
+
+<div id="all-orders-{{ section.id }}" class="all-orders-wrap">
+  <div class="all-orders__header">
+    <h1 class="all-orders__title">{{ section.settings.heading }}</h1>
+    <div class="all-orders__controls">
+      <label class="all-orders__per-page-label" for="ao-per-page-{{ section.id }}">Show:</label>
+      <select class="all-orders__per-page" id="ao-per-page-{{ section.id }}">
+        <option value="25">25 per page</option>
+        <option value="50">50 per page</option>
+        <option value="100">100 per page</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="ao-stats-filters">
+    <div class="ao-stats">
+      <div class="ao-stat-card">
+        <div class="ao-stat-label">TOTAL ORDERS</div>
+        <div class="ao-stat-value">{{ customer.orders_count }}</div>
+        <div class="ao-stat-sub" id="ao-stat-this-year"></div>
+      </div>
+      <div class="ao-stat-card">
+        <div class="ao-stat-label">LIFETIME SPEND</div>
+        <div class="ao-stat-value">{{ customer.total_spent | money_without_trailing_zeros }}</div>
+        <div class="ao-stat-sub">since {{ customer.created_at | date: "%b %Y" }}</div>
+      </div>
+    </div>
+    <div class="ao-filters" id="ao-filters">
+      <button type="button" class="ao-filter-pill ao-filter-pill--active" data-filter="all">All</button>
+      <button type="button" class="ao-filter-pill" data-filter="art-review">Art Review</button>
+      <button type="button" class="ao-filter-pill" data-filter="in-production">In Production</button>
+      <button type="button" class="ao-filter-pill" data-filter="fulfilled">Fulfilled</button>
+      <button type="button" class="ao-filter-pill" data-filter="cancelled">Cancelled</button>
+    </div>
+  </div>
+
+  <div class="all-orders__search">
+    <div class="all-orders__search-inner">
+      <svg class="all-orders__search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" class="all-orders__search-input" placeholder="Search by order # (e.g. NT-1899102 or 1899102)" autocomplete="off">
+      <button type="button" class="all-orders__search-clear" style="display:none" aria-label="Clear search">&times;</button>
+    </div>
+    <div class="all-orders__search-no-results" style="display:none">No orders found matching your search.</div>
+  </div>
+
+  {%- comment -%} === PAGINATE BY 25 === {%- endcomment -%}
+  <div class="ao-page-block" data-per-page="25">
+  {% paginate customer.orders by 25 %}
+    {%- if customer.orders.size > 0 -%}
+    <div class="all-orders__count">
+      Showing {{ paginate.current_offset | plus: 1 }}–{{ paginate.current_offset | plus: paginate.page_size | at_most: paginate.items }} of {{ paginate.items }} orders
+    </div>
+    <div class="all-orders__table">
+      <div class="all-orders__thead">
+        <span class="all-orders__col all-orders__col--item">ITEM</span>
+        <span class="all-orders__col all-orders__col--order">ORDER</span>
+        <span class="all-orders__col all-orders__col--status">STATUS</span>
+        <span class="all-orders__col all-orders__col--total">TOTAL</span>
+        <span class="all-orders__col all-orders__col--action"></span>
+      </div>
+      {%- for order in customer.orders -%}
+        {%- render 'all-orders-row', order: order -%}
+      {%- endfor -%}
+    </div>
+    {%- if paginate.pages > 1 -%}
+    <nav class="all-orders__pagination" aria-label="Order pagination">
+      <div class="all-orders__pagination-inner">
+        {%- if paginate.previous -%}
+          <a href="{{ paginate.previous.url }}" class="all-orders__page-btn all-orders__page-btn--prev">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Previous
+          </a>
+        {%- else -%}
+          <span class="all-orders__page-btn all-orders__page-btn--prev all-orders__page-btn--disabled">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Previous
+          </span>
+        {%- endif -%}
+        <span class="all-orders__page-info">Page {{ paginate.current_page }} of {{ paginate.pages }}</span>
+        {%- if paginate.next -%}
+          <a href="{{ paginate.next.url }}" class="all-orders__page-btn all-orders__page-btn--next">
+            Next
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        {%- else -%}
+          <span class="all-orders__page-btn all-orders__page-btn--next all-orders__page-btn--disabled">
+            Next
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        {%- endif -%}
+      </div>
+    </nav>
+    {%- endif -%}
+    {%- else -%}
+      <div class="all-orders__empty">
+        <p>You haven't placed any orders yet.</p>
+        <a href="/collections/all" class="all-orders__shop-btn">Start Shopping</a>
+      </div>
+    {%- endif -%}
+  {% endpaginate %}
+  </div>
+
+  {%- comment -%} === PAGINATE BY 50 === {%- endcomment -%}
+  <div class="ao-page-block" data-per-page="50" style="display:none">
+  {% paginate customer.orders by 50 %}
+    {%- if customer.orders.size > 0 -%}
+    <div class="all-orders__count">
+      Showing {{ paginate.current_offset | plus: 1 }}–{{ paginate.current_offset | plus: paginate.page_size | at_most: paginate.items }} of {{ paginate.items }} orders
+    </div>
+    <div class="all-orders__table">
+      <div class="all-orders__thead">
+        <span class="all-orders__col all-orders__col--item">ITEM</span>
+        <span class="all-orders__col all-orders__col--order">ORDER</span>
+        <span class="all-orders__col all-orders__col--status">STATUS</span>
+        <span class="all-orders__col all-orders__col--total">TOTAL</span>
+        <span class="all-orders__col all-orders__col--action"></span>
+      </div>
+      {%- for order in customer.orders -%}
+        {%- render 'all-orders-row', order: order -%}
+      {%- endfor -%}
+    </div>
+    {%- if paginate.pages > 1 -%}
+    <nav class="all-orders__pagination" aria-label="Order pagination">
+      <div class="all-orders__pagination-inner">
+        {%- if paginate.previous -%}
+          <a href="{{ paginate.previous.url }}" class="all-orders__page-btn all-orders__page-btn--prev">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Previous
+          </a>
+        {%- else -%}
+          <span class="all-orders__page-btn all-orders__page-btn--prev all-orders__page-btn--disabled">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Previous
+          </span>
+        {%- endif -%}
+        <span class="all-orders__page-info">Page {{ paginate.current_page }} of {{ paginate.pages }}</span>
+        {%- if paginate.next -%}
+          <a href="{{ paginate.next.url }}" class="all-orders__page-btn all-orders__page-btn--next">
+            Next
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        {%- else -%}
+          <span class="all-orders__page-btn all-orders__page-btn--next all-orders__page-btn--disabled">
+            Next
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        {%- endif -%}
+      </div>
+    </nav>
+    {%- endif -%}
+    {%- endif -%}
+  {% endpaginate %}
+  </div>
+
+  {%- comment -%} === PAGINATE BY 100 === {%- endcomment -%}
+  <div class="ao-page-block" data-per-page="100" style="display:none">
+  {% paginate customer.orders by 100 %}
+    {%- if customer.orders.size > 0 -%}
+    <div class="all-orders__count">
+      Showing {{ paginate.current_offset | plus: 1 }}–{{ paginate.current_offset | plus: paginate.page_size | at_most: paginate.items }} of {{ paginate.items }} orders
+    </div>
+    <div class="all-orders__table">
+      <div class="all-orders__thead">
+        <span class="all-orders__col all-orders__col--item">ITEM</span>
+        <span class="all-orders__col all-orders__col--order">ORDER</span>
+        <span class="all-orders__col all-orders__col--status">STATUS</span>
+        <span class="all-orders__col all-orders__col--total">TOTAL</span>
+        <span class="all-orders__col all-orders__col--action"></span>
+      </div>
+      {%- for order in customer.orders -%}
+        {%- render 'all-orders-row', order: order -%}
+      {%- endfor -%}
+    </div>
+    {%- if paginate.pages > 1 -%}
+    <nav class="all-orders__pagination" aria-label="Order pagination">
+      <div class="all-orders__pagination-inner">
+        {%- if paginate.previous -%}
+          <a href="{{ paginate.previous.url }}" class="all-orders__page-btn all-orders__page-btn--prev">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Previous
+          </a>
+        {%- else -%}
+          <span class="all-orders__page-btn all-orders__page-btn--prev all-orders__page-btn--disabled">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Previous
+          </span>
+        {%- endif -%}
+        <span class="all-orders__page-info">Page {{ paginate.current_page }} of {{ paginate.pages }}</span>
+        {%- if paginate.next -%}
+          <a href="{{ paginate.next.url }}" class="all-orders__page-btn all-orders__page-btn--next">
+            Next
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        {%- else -%}
+          <span class="all-orders__page-btn all-orders__page-btn--next all-orders__page-btn--disabled">
+            Next
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        {%- endif -%}
+      </div>
+    </nav>
+    {%- endif -%}
+    {%- endif -%}
+  {% endpaginate %}
+  </div>
+
+</div>
+
+{%- else -%}
+<div class="all-orders__login-prompt">
+  <h2>My Orders</h2>
+  <p>Please log in to view your order history.</p>
+  <a href="https://account.ninjatransfers.com/authentication/login?client_id=24939dcf-b3b7-430e-8f73-f3c86026caa2&locale=en-US&redirect_uri=%2Fauthentication%2Foauth%2Fauthorize%3Fclient_id%3D24939dcf-b3b7-430e-8f73-f3c86026caa2%26locale%3Den-US%26nonce%3D65d95114-a8af-4dc7-8167-6f1efa75a8b1%26redirect_uri%3Dhttps%253A%252F%252Faccount.ninjatransfers.com%252Fcallback%26response_type%3Dcode%26scope%3Dopenid%2Bemail%2Bcustomer-account-api%253Afull%26state%3DhWNAhF6KxTol1G9MOMPaW7gQ" class="all-orders__login-btn">Log In</a>
+</div>
+{%- endif -%}
+
+<style>
+  .all-orders-wrap {
+    max-width: {{ section.settings.max_width }}px;
+    margin: 0 auto;
+    padding: {{ section.settings.padding_top }}px 20px {{ section.settings.padding_bottom }}px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  .all-orders__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .all-orders__title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.3;
+  }
+  .all-orders__controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .all-orders__per-page-label {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  .all-orders__per-page {
+    padding: 6px 32px 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+    color: #111;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  .all-orders__per-page:hover {
+    border-color: #9ca3af;
+  }
+  .all-orders__per-page:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  }
+
+  .all-orders__count {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 16px;
+  }
+
+  .all-orders__table {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .all-orders__thead {
+    display: grid;
+    grid-template-columns: 60px 1fr 130px 80px auto; gap: 0 16px;
+    align-items: center;
+    padding: 12px 20px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .all-orders__row {
+    display: grid;
+    grid-template-columns: 60px 1fr 130px 80px auto; gap: 0 16px;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .all-orders__row:last-of-type { border-bottom: none; }
+  .all-orders__row-mobile { display: none; }
+
+  .all-orders__thumb {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .all-orders__thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .all-orders__thumb-placeholder { display: flex; align-items: center; justify-content: center; }
+
+  .all-orders__order-name a { font-size: 15px; font-weight: 700; color: #111; text-decoration: none; }
+  .all-orders__order-name a:hover { text-decoration: underline; }
+  .all-orders__order-name-row { display: flex; align-items: center; gap: 10px; }
+  .all-orders__order-name-link { font-size: 15px; font-weight: 700; color: #111; text-decoration: none; }
+  .all-orders__order-name-link:hover { text-decoration: underline; }
+  a.all-orders__order-name-link.ao-view-details-btn { display: inline !important; padding: 0 !important; border: none !important; border-radius: 0 !important; background: none !important; color: #111 !important; font-size: 15px !important; font-weight: 700 !important; white-space: normal !important; min-height: 0 !important; }
+  a.all-orders__order-name-link.ao-view-details-btn:hover { background: none !important; border-color: transparent !important; text-decoration: underline !important; }
+  .all-orders__order-date { font-size: 13px; color: #6b7280; margin-top: 2px; }
+  .all-orders__order-desc { font-size: 13px; color: #9ca3af; margin-top: 2px; }
+
+  .all-orders__badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; line-height: 1.4; }
+  .all-orders__badge--delivered { background: #ecfdf5; color: #166534; }
+  .all-orders__badge--shipped { background: #fefce8; color: #854d0e; }
+  .all-orders__badge--processing { background: #fef2f2; color: #991b1b; }
+
+  .all-orders__price { font-size: 16px; font-weight: 700; color: #111; }
+  .all-orders__col--status { text-align: center; }
+  .all-orders__col--total { text-align: right; }
+  .all-orders__col--action { text-align: right; }
+
+  .all-orders__reorder-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    background: #56a8f0;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    min-width: 90px;
+    border-radius: 8px;
+  }
+  .all-orders__reorder-btn:hover { background: #4898e0; }
+  .ao-view-details-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 8px 14px; border: 1px solid #d1d5db; border-radius: 8px;
+    background: #fff; color: #374151; font-size: 12px; font-weight: 500;
+    text-decoration: none; cursor: pointer; transition: background 0.15s, border-color 0.15s; white-space: nowrap;
+  }
+  .ao-view-details-btn:hover { background: #f9fafb; border-color: #9ca3af; }
+  .all-orders__reorder-btn.loading .ao-btn-text { display: none; }
+  .all-orders__reorder-btn.loading .ao-spinner-container { display: inline-flex; }
+  .ao-spinner-container { display: none; height: 18px; align-items: center; }
+  .ao-spinner { animation: ao-spin 0.6s linear infinite; height: 18px; width: 18px; }
+  @keyframes ao-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .all-orders__pagination { margin-top: 24px; }
+  .all-orders__pagination-inner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+  }
+  .all-orders__page-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    color: #111;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .all-orders__page-btn:hover { background: #f9fafb; border-color: #9ca3af; color: #111; text-decoration: none; }
+  .all-orders__page-btn--disabled { opacity: 0.4; pointer-events: none; cursor: default; }
+  .all-orders__page-info { font-size: 14px; color: #6b7280; font-weight: 500; white-space: nowrap; }
+
+  .all-orders__empty { text-align: center; padding: 48px 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }
+  .all-orders__empty p { font-size: 16px; color: #6b7280; margin: 0 0 16px; }
+  .all-orders__shop-btn { display: inline-block; padding: 10px 24px; background: #111; color: #fff; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500; }
+  .all-orders__shop-btn:hover { background: #333; color: #fff; }
+
+  .all-orders__login-prompt { text-align: center; padding: 80px 20px; max-width: 400px; margin: 0 auto; }
+  .all-orders__login-prompt h2 { font-size: 24px; font-weight: 700; margin: 0 0 12px; }
+  .all-orders__login-prompt p { font-size: 16px; color: #6b7280; margin: 0 0 24px; }
+  .all-orders__login-btn { display: inline-block; padding: 12px 32px; background: #111; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; }
+  .all-orders__login-btn:hover { background: #333; color: #fff; }
+
+  /* ===== Expandable order rows ===== */
+  .ao-order-row { border-bottom: 1px solid #e5e5e3; }
+  .ao-order-row:last-child { border-bottom: none; }
+  .ao-order-row .all-orders__row { border-bottom: none; }
+  .ao-order-row-mobile { display: none; }
+  .ao-has-items .all-orders__row { cursor: pointer; }
+  .ao-has-items .all-orders__row:hover { background: #fafaf9; }
+
+  /* Thumb stack with count badge */
+  .ao-thumb-stack { position: relative; width: 44px; height: 44px; }
+  .ao-thumb-stack img, .ao-thumb-stack .ao-thumb-placeholder {
+    width: 40px; height: 40px; border-radius: 8px; border: 1.5px solid #e5e5e3;
+    object-fit: cover; background: #f0f0ee;
+  }
+  .ao-thumb-count {
+    position: absolute; bottom: -2px; right: -6px;
+    background: #1a1a1a; color: #fff;
+    font-size: 10px; font-weight: 600;
+    border-radius: 20px; padding: 1px 5px;
+    white-space: nowrap; line-height: 16px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+  }
+
+  /* Status pill with dot */
+  .ao-status {
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 20px; white-space: nowrap;
+  }
+  .ao-status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .ao-badge--green { color: #16a34a; background: #f0fdf4; }
+  .ao-badge--green .ao-status-dot { background: #16a34a; }
+  .ao-badge--blue { color: #2563eb; background: #eff6ff; }
+  .ao-badge--blue .ao-status-dot { background: #2563eb; }
+  .ao-badge--red { color: #dc2626; background: #fef2f2; }
+  .ao-badge--red .ao-status-dot { background: #dc2626; }
+  .ao-badge--grey { color: #1f2937; background: #f3f4f6; }
+  .ao-badge--grey .ao-status-dot { background: #9ca3af; }
+  .all-orders__col--status { display: flex; flex-direction: column; align-items: center; gap: 6px; justify-self: center; }
+  .ao-tracking-wrap { font-size: 11px; line-height: 1.3; }
+  .ao-tracking-link { color: #3b82f6; text-decoration: none; word-break: break-all; }
+  .ao-tracking-link:hover { text-decoration: underline; }
+  .ao-tracking-callout { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 0; background: transparent; border-radius: 0; font-size: 12px; color: #1e40af; max-width: 100%; flex-wrap: wrap; }
+  .ao-tracking-callout svg { flex-shrink: 0; color: #3b82f6; }
+  .ao-tracking-callout__label { font-weight: 600; white-space: nowrap; }
+  .ao-tracking-callout__link { color: #2563eb; text-decoration: none; font-weight: 500; word-break: break-all; }
+  .ao-tracking-callout__link:hover { text-decoration: underline; }
+  .ao-status-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .ao-reprint-label { display: block; font-size: 12px; font-weight: 400; color: #16a34a !important; line-height: 1.3; text-align: center; }
+  .ao-blocked-msg { font-size: 11px; color: #dc2626; line-height: 1.4; text-align: center; display: block; margin-top: 4px; }
+  .ao-blocked-msg a { color: #dc2626; text-decoration: underline; }
+
+  /* Actions cell */
+  .ao-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+  /* Thumbnail strip */
+  .ao-thumb-strip {
+    display: flex; align-items: center; gap: 3px; margin-top: 4px;
+  }
+  .ao-strip-thumb {
+    width: 28px; height: 28px; border-radius: 4px; border: 1px solid #e5e5e3;
+    overflow: hidden; background: #f5f5f3; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0;
+  }
+  .ao-strip-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* Expand link (inline blue text) */
+  .all-orders__order-desc .ao-expand-btn {
+    display: inline; background: none; border: none; outline: none;
+    font-size: inherit; font-weight: 600; color: #2563eb !important;
+    padding: 0; margin: 0; cursor: pointer;
+    font-family: inherit; -webkit-appearance: none; appearance: none;
+  }
+  .all-orders__order-desc .ao-expand-btn:hover { color: #1d4ed8 !important; }
+  .ao-arrow { display: inline-block; }
+  .ao-order-row.expanded .ao-expand-btn { color: #1d4ed8; }
+  .ao-order-row-mobile.expanded .ao-expand-btn { color: #1d4ed8; }
+
+  /* Line items drawer */
+  .ao-line-items {
+    display: none; border-top: 1px dashed #e5e5e3;
+    background: #fafaf9; padding: 0 20px 4px 20px;
+    animation: aoSlideDown 0.2s ease;
+  }
+  .ao-order-row.expanded .ao-line-items,
+  .ao-order-row-mobile.expanded .ao-line-items { display: block; }
+  @keyframes aoSlideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Individual line item */
+  .ao-line-item {
+    display: grid; grid-template-columns: 40px 1fr auto auto;
+    align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid #ececea;
+  }
+  .ao-line-item:last-child { border-bottom: none; }
+  .ao-li-thumb {
+    width: 36px; height: 36px; border-radius: 6px; border: 1px solid #e5e5e3;
+    overflow: hidden; background: #eee; display: flex; align-items: center; justify-content: center;
+  }
+  .ao-li-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .ao-li-name { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+  .ao-li-sub { font-size: 11.5px; color: #aaa; margin-top: 1px; }
+  .ao-li-price { font-size: 13px; font-weight: 500; color: #555; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, monospace; }
+
+  .ao-li-reorder-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 4px 12px; border: 1px solid #56a8f0; border-radius: 6px;
+    background: #56a8f0; color: #fff; font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: inherit;
+    min-width: 70px; height: 28px;
+  }
+  .ao-li-reorder-btn:hover { background: #4898dc; color: #fff; border-color: #4898dc; }
+  .ao-li-reorder-btn.loading .ao-li-btn-text { display: none; }
+  .ao-li-reorder-btn.loading .ao-li-spinner-container { display: inline-flex; }
+  .ao-li-spinner-container { display: none; height: 14px; align-items: center; }
+  .ao-li-spinner-container .ao-spinner { height: 14px; width: 14px; }
+
+  /* Search bar */
+  .all-orders__search { margin-bottom: 16px; }
+  .all-orders__search-inner {
+    position: relative;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  .all-orders__search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    pointer-events: none;
+  }
+  .all-orders__search-input {
+    width: 100%;
+    padding: 10px 40px 10px 42px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    color: #111;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+  }
+  .all-orders__search-input::placeholder { color: #9ca3af; }
+  .all-orders__search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  .all-orders__search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: none;
+    font-size: 20px;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+  .all-orders__search-clear:hover { color: #374151; }
+  .all-orders__search-no-results {
+    text-align: center;
+    padding: 32px 16px;
+    color: #6b7280;
+    font-size: 15px;
+  }
+
+  /* Stats & Filters */
+  .ao-stats-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .ao-stats {
+    display: flex;
+    gap: 12px;
+  }
+  .ao-stat-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px 20px;
+    background: #fff;
+    min-width: 160px;
+  }
+  .ao-stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .ao-stat-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: #111;
+    line-height: 1.2;
+  }
+  .ao-stat-sub {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 2px;
+  }
+  .ao-filters {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding-top: 8px;
+  }
+  .ao-filter-pill {
+    padding: 6px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+    line-height: 1.4;
+  }
+  .ao-filter-pill:hover {
+    border-color: #d1d5db;
+    background: #f9fafb;
+  }
+  .ao-filter-pill--active {
+    background: #ef6c4a;
+    color: #fff;
+    border-color: #ef6c4a;
+  }
+  .ao-filter-pill--active:hover {
+    background: #e85d3a;
+    border-color: #e85d3a;
+  }
+  .ao-status-block {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+  }
+
+  @media (max-width: 767px) {
+    .all-orders-wrap { padding: 20px 16px 32px; }
+    .all-orders__title { font-size: 20px; }
+    .all-orders__header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .all-orders__count { font-size: 14px; }
+    .all-orders__per-page { font-size: 14px; min-height: 44px; }
+    .all-orders__thead, .all-orders__row { display: none; }
+    .ao-order-row { display: none; }
+    .ao-order-row-mobile { display: block; border-bottom: 1px solid #e5e5e3; }
+    .ao-order-row-mobile:last-child { border-bottom: none; }
+    .all-orders__row-mobile { display: block; padding: 16px; border-bottom: none; }
+    .all-orders__row-mobile:last-of-type { border-bottom: none; }
+    .all-orders__mobile-top { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .all-orders__mobile-top .all-orders__thumb { width: 56px; height: 56px; }
+    .ao-thumb-stack.ao-thumb-stack--sm { width: 44px; height: 44px; }
+    .ao-thumb-stack--sm img, .ao-thumb-stack--sm .ao-thumb-placeholder { width: 40px; height: 40px; }
+    .all-orders__mobile-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .all-orders__order-name-row { flex-wrap: wrap; }
+    .all-orders__order-name-link { font-size: 15px; }
+    .ao-thumb-strip { margin-top: 3px; }
+    .ao-strip-thumb { width: 24px; height: 24px; border-radius: 3px; }
+    .all-orders__order-date { font-size: 14px; }
+    .all-orders__order-desc { font-size: 14px; }
+    .all-orders__mobile-price { width: 100%; font-size: 16px; font-weight: 700; color: #111; text-align: right; margin-top: -4px; }
+    .all-orders__mobile-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-top: 12px; gap: 8px; }
+    .ao-order-row-mobile .ao-line-items { padding: 0 16px 4px 16px; }
+    .ao-status { font-size: 14px; padding: 4px 10px; }
+    .ao-blocked-msg { font-size: 12px; }
+    .ao-tracking-wrap { font-size: 14px; }
+    .all-orders__reorder-btn { min-height: 44px; padding: 10px 18px; font-size: 14px; }
+    .ao-view-details-btn { min-height: 44px; padding: 10px 14px; font-size: 14px; }
+    .ao-actions { gap: 8px; flex-wrap: wrap; }
+    .ao-line-item { grid-template-columns: 40px 1fr; gap: 8px 12px; }
+    .ao-li-price { grid-column: 2; font-size: 14px; margin-top: -4px; }
+    .ao-li-reorder { grid-column: 2; }
+    .ao-li-reorder-btn { min-height: 40px; font-size: 14px; padding: 6px 14px; }
+    .ao-li-name { font-size: 14px; }
+    .ao-li-sub { font-size: 13px; }
+    .all-orders__pagination-inner { gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .all-orders__page-btn { padding: 10px 16px; font-size: 14px; min-height: 44px; }
+    .all-orders__page-info { font-size: 14px; }
+    .all-orders-wrap img { max-width: 100%; height: auto; }
+    .ao-stats-filters { flex-direction: column; }
+    .ao-stats { width: 100%; }
+    .ao-stat-card { flex: 1; min-width: 0; padding: 12px 14px; }
+    .ao-stat-value { font-size: 20px; }
+    .ao-filters { width: 100%; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+    .ao-filter-pill { font-size: 12px; padding: 6px 12px; flex-shrink: 0; }
+    .ao-has-items .all-orders__row-mobile { cursor: pointer; }
+  }
+</style>
+
+<script>
+(function() {
+  var wrap = document.getElementById('all-orders-{{ section.id }}');
+  if (!wrap) return;
+
+  var select = document.getElementById('ao-per-page-{{ section.id }}');
+  var blocks = wrap.querySelectorAll('.ao-page-block');
+  var storageKey = 'ao_per_page';
+
+  function showBlock(val) {
+    blocks.forEach(function(b) {
+      b.style.display = b.getAttribute('data-per-page') === val ? '' : 'none';
+    });
+    if (select) select.value = val;
+    try { localStorage.setItem(storageKey, val); } catch(e) {}
+  }
+
+  /* Restore saved preference */
+  var saved = '25';
+  try { saved = localStorage.getItem(storageKey) || '25'; } catch(e) {}
+  if (['25','50','100'].indexOf(saved) === -1) saved = '25';
+  showBlock(saved);
+
+  if (select) {
+    select.addEventListener('change', function() {
+      showBlock(this.value);
+      if (typeof applyFiltersAndSearch === 'function') applyFiltersAndSearch();
+      /* Reset to page 1 when changing per-page */
+      var url = new URL(window.location.href);
+      if (url.searchParams.has('page')) {
+        url.searchParams.delete('page');
+        window.location.href = url.toString();
+      }
+    });
+  }
+
+  /* Reorder functionality */
+  if (typeof jQuery !== 'undefined') {
+    var $ = jQuery;
+    function aoReorder() {
+      var self = this;
+      this.pushQueue = function(i, data, el) {
+        if (data[i].check_inventory) {
+          data[i].quantity = Math.min(parseInt(data[i].inventory), parseInt(data[i].quantity));
+        }
+        $.ajax({
+          url: '/cart/add.js',
+          method: 'POST',
+          data: { quantity: data[i].quantity, id: data[i].id, properties: data[i].properties },
+          complete: function() {
+            if (i >= data.length - 1) {
+              el.removeClass('loading');
+              if (typeof window.refreshCart === 'function') { window.refreshCart(); }
+              else { window.location.href = '/cart'; }
+              return;
+            } else { self.pushQueue(i + 1, data, el); }
+          }
+        });
+      };
+      this.listen = function() {
+        var el = $(this);
+        var pWrap = el.closest('.all-orders__col--action, .all-orders__mobile-bottom');
+        var note = 'of order #' + el.attr('data-corder-id');
+        var ids = el.attr('data-variant-ids').split(',');
+        var lineids = el.attr('data-lineitem-ids').split(',');
+        var quantities = el.attr('data-variant-quantities').split(',');
+        var inventories = el.attr('data-variant-inventories').split(',');
+        var inv_policies = el.attr('data-variant-inventory-policies').split(',');
+        var inv_trackers = el.attr('data-variant-inventory-trackers').split(',');
+        ids.splice(-1, 1); quantities.splice(-1, 1); inventories.splice(-1, 1);
+        inv_policies.splice(-1, 1); inv_trackers.splice(-1, 1);
+        var data = [];
+        var propitems = pWrap.find('.ao-propitems');
+        for (var i = 0; i < ids.length; i++) {
+          var props = $.trim($(propitems[i]).val());
+          var _json = {};
+          if (props != '') { try { _json = JSON.parse(props); } catch(e) { _json = {}; } }
+          $.each(_json, function(k, v) {
+            if (v.indexOf('https%3A%2F%2F') > -1) { _json[k] = decodeURIComponent(v); }
+            else { _json[k] = v.replaceAll('+', ' '); }
+          });
+          _json['reorder'] = note + ' / ' + lineids[i];
+          data.push({ id: ids[i], quantity: quantities[i], inventory: inventories[i], properties: _json, check_inventory: (inv_policies[i] == 'deny' && inv_trackers[i] != '') });
+        }
+        el.addClass('loading');
+        self.pushQueue(0, data, el);
+      };
+      this.init = function() { $(wrap).find('.all-orders__reorder-btn').on('click', self.listen); };
+    }
+    $(function() { new aoReorder().init(); });
+  }
+
+  /* Single line-item reorder */
+  if (typeof jQuery !== 'undefined') {
+    jQuery(wrap).on('click', '.ao-li-reorder-btn', function(e) {
+      e.stopPropagation();
+      var btn = jQuery(this);
+      if (btn.hasClass('loading')) return;
+      var propText = jQuery.trim(btn.closest('.ao-li-reorder').find('.ao-li-propdata').val());
+      var props = {};
+      if (propText !== '') { try { props = JSON.parse(propText); } catch(ex) { props = {}; } }
+      jQuery.each(props, function(k, v) {
+        if (v.indexOf('https%3A%2F%2F') > -1) { props[k] = decodeURIComponent(v); }
+        else { props[k] = v.replaceAll('+', ' '); }
+      });
+      props['reorder'] = 'of order #' + btn.attr('data-order-name') + ' / ' + btn.attr('data-lineitem-id');
+      var qty = parseInt(btn.attr('data-quantity'));
+      if (btn.attr('data-inventory-policy') === 'deny' && btn.attr('data-inventory-tracker') !== '') {
+        qty = Math.min(parseInt(btn.attr('data-inventory')), qty);
+      }
+      btn.addClass('loading');
+      jQuery.ajax({
+        url: '/cart/add.js',
+        method: 'POST',
+        data: { quantity: qty, id: btn.attr('data-variant-id'), properties: props },
+        complete: function() {
+          btn.removeClass('loading');
+          if (typeof window.refreshCart === 'function') { window.refreshCart(); }
+          else { window.location.href = '/cart'; }
+        }
+      });
+    });
+  }
+
+  /* Accordion toggle for expandable order rows */
+  function aoToggle(orderId) {
+    var allRows = wrap.querySelectorAll('.ao-order-row[data-order-id], .ao-order-row-mobile[data-order-id]');
+    allRows.forEach(function(row) {
+      if (row.getAttribute('data-order-id') === orderId) {
+        row.classList.toggle('expanded');
+        var btn = row.querySelector('.ao-expand-btn');
+        if (btn) {
+          var isExp = row.classList.contains('expanded');
+          btn.innerHTML = isExp ? 'close <span class="ao-arrow">↑</span>' : 'view all <span class="ao-arrow">↓</span>';
+        }
+      } else {
+        row.classList.remove('expanded');
+        var btn2 = row.querySelector('.ao-expand-btn');
+        if (btn2) btn2.innerHTML = 'view all <span class="ao-arrow">↓</span>';
+      }
+    });
+  }
+
+  /* Event delegation for expand buttons and rows (works for desktop + mobile) */
+  wrap.addEventListener('click', function(e) {
+    var btn = e.target.closest('.ao-expand-btn[data-toggle-order]');
+    if (btn) {
+      e.stopPropagation();
+      aoToggle(btn.getAttribute('data-toggle-order'));
+      return;
+    }
+    var toggler = e.target.closest('[data-toggle-order]');
+    if (toggler && !toggler.classList.contains('ao-expand-btn')) {
+      aoToggle(toggler.getAttribute('data-toggle-order'));
+    }
+  });
+
+  /* ===== Search + Filter ===== */
+  var searchInput = wrap.querySelector('.all-orders__search-input');
+  var clearBtn = wrap.querySelector('.all-orders__search-clear');
+  var noResults = wrap.querySelector('.all-orders__search-no-results');
+  var filterPills = wrap.querySelectorAll('.ao-filter-pill');
+  var activeFilter = 'all';
+
+  function getActiveBlock() {
+    for (var i = 0; i < blocks.length; i++) {
+      if (blocks[i].style.display !== 'none') return blocks[i];
+    }
+    return null;
+  }
+
+  function applyFiltersAndSearch() {
+    var block = getActiveBlock();
+    if (!block) return;
+
+    var searchTerm = searchInput ? searchInput.value : '';
+    var raw = searchTerm.replace(/^#/, '').replace(/^nt-/i, '').trim().toLowerCase();
+    var isSearching = raw.length > 0;
+
+    var desktopRows = block.querySelectorAll('.ao-order-row');
+    var mobileRows = block.querySelectorAll('.ao-order-row-mobile');
+    var matchCount = 0;
+
+    desktopRows.forEach(function(row) {
+      var show = true;
+      if (activeFilter !== 'all') {
+        var st = (row.getAttribute('data-status') || '').toLowerCase();
+        if (activeFilter === 'art-review') { show = (st === 'art-review' || st === 'artwork-blocked'); }
+        else { show = (st === activeFilter); }
+      }
+      if (show && isSearching) {
+        var orderId = (row.getAttribute('data-order-id') || '').toLowerCase();
+        var search = (row.getAttribute('data-search') || '').toLowerCase();
+        show = orderId.indexOf(raw) !== -1 || search.indexOf(raw) !== -1;
+      }
+      row.style.display = show ? '' : 'none';
+      if (show) matchCount++;
+    });
+
+    mobileRows.forEach(function(row) {
+      var show = true;
+      if (activeFilter !== 'all') {
+        var st = (row.getAttribute('data-status') || '').toLowerCase();
+        if (activeFilter === 'art-review') { show = (st === 'art-review' || st === 'artwork-blocked'); }
+        else { show = (st === activeFilter); }
+      }
+      if (show && isSearching) {
+        var orderId = (row.getAttribute('data-order-id') || '').replace(/-m$/, '').toLowerCase();
+        var search = (row.getAttribute('data-search') || '').toLowerCase();
+        show = orderId.indexOf(raw) !== -1 || search.indexOf(raw) !== -1;
+      }
+      row.style.display = show ? '' : 'none';
+    });
+
+    var pagination = block.querySelector('.all-orders__pagination');
+    var count = block.querySelector('.all-orders__count');
+    var hideExtras = isSearching || activeFilter !== 'all';
+    if (pagination) pagination.style.display = hideExtras ? 'none' : '';
+    if (count) count.style.display = hideExtras ? 'none' : '';
+
+    if (matchCount === 0 && (isSearching || activeFilter !== 'all')) {
+      var msg = 'No orders found';
+      if (activeFilter !== 'all') msg += ' for "' + activeFilter.replace(/-/g, ' ') + '"';
+      if (isSearching) msg += ' matching your search';
+      noResults.textContent = msg + '.';
+      noResults.style.display = '';
+    } else {
+      noResults.style.display = 'none';
+    }
+
+    if (clearBtn) clearBtn.style.display = searchTerm.length > 0 ? '' : 'none';
+  }
+
+  /* Filter pills */
+  filterPills.forEach(function(pill) {
+    pill.addEventListener('click', function() {
+      activeFilter = this.getAttribute('data-filter');
+      filterPills.forEach(function(p) { p.classList.remove('ao-filter-pill--active'); });
+      this.classList.add('ao-filter-pill--active');
+      applyFiltersAndSearch();
+    });
+  });
+
+  /* Search input */
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      applyFiltersAndSearch();
+    });
+  }
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      searchInput.value = '';
+      applyFiltersAndSearch();
+      searchInput.focus();
+    });
+  }
+
+  /* Calculate orders this year for stat bubble */
+  var currentYear = new Date().getFullYear();
+  var thisYearCount = 0;
+  var block100 = wrap.querySelector('.ao-page-block[data-per-page="100"]');
+  if (block100) {
+    block100.querySelectorAll('.ao-order-row[data-created]').forEach(function(row) {
+      var ts = parseInt(row.getAttribute('data-created'));
+      if (ts && new Date(ts * 1000).getFullYear() === currentYear) thisYearCount++;
+    });
+  }
+  var subEl = wrap.querySelector('#ao-stat-this-year');
+  if (subEl && thisYearCount > 0) {
+    subEl.textContent = '+' + thisYearCount + ' this year';
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "All Orders",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "My Orders"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max width (px)",
+      "min": 800,
+      "max": 1400,
+      "step": 50,
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top (px)",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom (px)",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "default": 48
+    }
+  ]
+}
+{% endschema %}

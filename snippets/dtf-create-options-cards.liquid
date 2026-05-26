@@ -1,0 +1,124 @@
+{%- comment -%}
+  dtf-create-options-cards
+  ----------------------------------------------------------------
+  Replaces the legacy "pink AI box + grey Try-our-Studio CTA" stack
+  on /products/dtf-transfers (variant A — multiupload_vividpopular
+  and similar templates that don't use the by-size-tabs UI).
+
+  Renders a 50/50 grid of two action cards under the upload area:
+    1. Create with AI  → triggers the existing dtf-ai-modal flow
+       by clicking the hidden #generativeAiStart button (which
+       dtf-ai-modal.js intercepts to open the modal).
+    2. Design with Studio → triggers the existing v0-editor flow
+       by clicking .open-v0-editor (renders the studio overlay +
+       intro popup).
+
+  The legacy boxes still live in the DOM so their event handlers
+  and dialogs continue to work — they're just hidden via CSS.
+
+  Image URLs reference the shop's Shopify CDN. Swap the two
+  illustration URLs below for the final assets when ready (the
+  filenames in this snippet are placeholders that follow the same
+  CDN pattern the rest of this theme uses).
+{%- endcomment -%}
+
+{{ 'dtf-create-options-cards.css' | asset_url | stylesheet_tag }}
+
+<div class="dtf-create-options" role="group" aria-label="Choose how to start your design">
+  <div class="dtf-create-options__divider" aria-hidden="true">
+    <span class="dtf-create-options__divider-line"></span>
+    <span class="dtf-create-options__divider-text">or</span>
+    <span class="dtf-create-options__divider-line"></span>
+  </div>
+  <div class="dtf-create-options__grid">
+    <article class="dtf-create-card dtf-create-card--ai">
+      <div class="dtf-create-card__body">
+        <h3 class="dtf-create-card__heading">Create with AI</h3>
+        <p class="dtf-create-card__sub">Type a prompt - print-ready in seconds.</p>
+        <a href="javascript:void(0)" class="dtf-create-card__cta dtf-create-card__cta--ai" data-dtf-create-ai>
+          <span>Get Started</span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 11L11 3M5 3h6v6"/>
+          </svg>
+        </a>
+      </div>
+      <img class="dtf-create-card__illust dtf-create-card__illust--desktop" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/ai_desktop.png?v=1777405967" alt="" loading="lazy">
+      <img class="dtf-create-card__illust dtf-create-card__illust--mobile" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/ai_mobile.png?v=1777405967" alt="" loading="lazy">
+    </article>
+
+    <article class="dtf-create-card dtf-create-card--studio">
+      <div class="dtf-create-card__body">
+        <h3 class="dtf-create-card__heading">Design with Studio</h3>
+        <p class="dtf-create-card__sub">Add custom text to your upload.</p>
+        <a href="javascript:void(0)" class="dtf-create-card__cta dtf-create-card__cta--studio" data-dtf-create-studio>
+          <span>Get Started</span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 11L11 3M5 3h6v6"/>
+          </svg>
+        </a>
+      </div>
+      <img class="dtf-create-card__illust dtf-create-card__illust--desktop" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/ds_desktop.png?v=1777405967" alt="" loading="lazy">
+      <img class="dtf-create-card__illust dtf-create-card__illust--mobile" src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/ds_mobile.png?v=1777405967" alt="" loading="lazy">
+    </article>
+  </div>
+</div>
+
+<script>
+  (function () {
+    if (window.__dtfCreateCardsInit) return;
+    window.__dtfCreateCardsInit = true;
+
+    document.addEventListener('click', function (e) {
+      if (!e.target || !e.target.closest) return;
+
+      // Make the entire card clickable, not just the "Get Started" link.
+      // Match by card class first so clicks anywhere on the article
+      // trigger the same flow as the explicit CTA.
+      var aiCard = e.target.closest('.dtf-create-card--ai');
+      if (aiCard) {
+        e.preventDefault();
+        // Reuse the existing pink-box click flow — dtf-ai-modal.js's
+        // capture-phase listener on .generative-ai-area opens the
+        // upgraded modal; if the modal script isn't loaded the click
+        // falls through to generative-ai-image-modal.js, which opens
+        // the legacy <dialog>.
+        var area = document.querySelector('.generative-ai-area');
+        if (area) {
+          area.click();
+        } else {
+          var legacyStart = document.getElementById('generativeAiStart');
+          if (legacyStart) legacyStart.click();
+        }
+        return;
+      }
+
+      var studioCard = e.target.closest('.dtf-create-card--studio');
+      if (studioCard) {
+        e.preventDefault();
+        // .open-v0-editor's onclick shows BOTH the studio overlay and
+        // the "What would you like to create?" intro popup at once.
+        var openBtn = document.querySelector('.open-v0-editor');
+        if (openBtn) openBtn.click();
+        // Mobile: after the overlay opens, strip the `studio-embedded`
+        // class so v0-styles.css's `:not(.studio-embedded)` mobile
+        // fullscreen rules match. Without this strip the overlay
+        // renders as the desktop embedded popup (~90vw / 82vh
+        // centered card) on mobile, letting the product page show
+        // through behind it. Scoped to this click — runs only when
+        // the user actually opens Studio from this card. Does NOT
+        // run at page load, so dtf-transfers' regular mobile view
+        // is untouched.
+        var isMobile = window.matchMedia &&
+          window.matchMedia('(max-width: 749px)').matches;
+        if (isMobile) {
+          var overlay = document.querySelector('.customTabelPopup__overlay-editor');
+          if (overlay) {
+            overlay.classList.remove('studio-embedded');
+            overlay.classList.remove('studio-inline');
+          }
+        }
+        return;
+      }
+    });
+  })();
+</script>

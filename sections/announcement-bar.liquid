@@ -1,0 +1,2856 @@
+{%-liquid
+  assign ss = section.settings
+  assign sb = section.blocks
+
+  assign collectAllStyles = ''
+  assign collectAllScripts = ''
+
+  assign countdownArr = section.blocks | where: 'type', 'countdown'
+-%}
+<div style="display:none;" data-time="hari_time">
+  {%liquid
+    assign est_offset_hours = -5
+    assign current_time_utc = 'now' | date: '%s'
+    assign est_time = current_time_utc | plus: est_offset_hours | date: '%Y-%m-%d %H:%M:%S'
+    assign est_day = current_time_utc | plus: est_offset_hours | date: '%u'
+    assign est_Week = current_time_utc | plus: est_offset_hours | date: '%A'
+    assign est_Hour = current_time_utc | plus: est_offset_hours | date: '%H'
+
+    assign showMsg = false
+    assign estDay = est_day | plus: 0
+    assign estHour = est_Hour | plus: 0
+  %}
+
+  {%- if estDay == 4 and estHour > 14 -%}
+    {% assign showMsg = true %}
+  {%- endif -%}
+
+  {% if estDay > 4 and estDay < 6 and estHour < 15 %}
+    {%  assign showMsg = true %}
+  {% endif %}
+The current Eastern Standard Time (EST) is: {{ est_time }} | Hours:{{ est_Hour }} | day: {{ est_day }} | Week : {{ est_Week }} | IsVisible: {{ showMsg }}
+</div>
+{%- liquid
+
+  if section.settings.visibility == 'all'
+    assign show_on_homepage = true
+    assign show_on_pages = true
+  elsif section.settings.visibility == 'homepage'
+    assign show_on_homepage = true
+  elsif section.settings.visibility == 'no-homepage'
+    assign show_on_homepage = false
+    assign show_on_pages = true
+  elsif section.settings.visibility == 'product'
+    assign show_on_product = true
+  endif
+
+  if show_on_product == true and template contains 'product'
+    assign show = true
+  endif
+  if show_on_homepage == true and template == 'index'
+    assign show = true
+  endif
+  if show_on_pages == true and template != 'index'
+    assign show = true
+  endif
+
+-%}
+
+{%- if show -%}
+
+  {{ 'section-announcement-bar.css' | asset_url | stylesheet_tag }}
+
+  {%- if section.blocks.size > 1 -%}
+    <script src="{{ 'section-announcement-bar.js' | asset_url }}" defer></script>
+  {%- endif -%}
+
+  <announcement-bar id="announcement-{{ section.id }}" class="announcemen-wrapper noappmodule" style="display:block" data-js-inert>
+    <div class="container--large">
+      <div class="announcement-bar {% if section.settings.show_social_icons == false %}twocoloum{%  endif %}">
+
+        {%- if section.settings.show_social_icons -%}
+          <div class="announcement-bar__social-icons lap-hide">
+            {%- liquid
+              if section.settings.show_social_icons
+                render 'social-icons'
+              endif
+            -%}
+          </div>
+        {%- endif -%}
+
+{% assign tabSection = "Transfers" %}
+{%liquid
+  assign templateListBlanks = 'collection.blanks-collection,collection.test-collection,collection.blanks-home,collection.blanks-home-dev,collection.blanks-home-t-shirt' | split: ','
+  assign templateListCrafts = 'collection.crafts-main,collection.crafts-sub' | split: ','
+  if templateListBlanks contains template or product.metafields.specs.shirt_style or collection.metafields.custom.apparel_filters
+    assign tabSection = "Blanks"
+  elsif templateListCrafts contains template or product.tags contains "crafts" or page.metafields.custom.tabsection == "Crafts" or product.metafields.custom.tabsection == "Crafts" or collection.metafields.custom.tabsection == "Crafts"
+    assign tabSection = "Crafts"
+  endif
+%}
+        <div class="announcement-bar__content">
+          {%- assign storeBtn_arr = sb | where: 'type', 'sitesBtn' -%}
+          {% if storeBtn_arr.size > 0 %}
+            <div class="announcement-bar__sitebuttons">
+              {% for block in storeBtn_arr %}
+				{% assign b = block.settings %}
+                {%-liquid
+                  assign urlPath = shop.url | append: request.path
+                   
+                   if b.menu_2 != blank
+                    capture secondMenu
+                      render 'site-nav', linklist: b.menu_2, type: 'classic', shopify_attributes: block.shopify_attributes
+                    endcapture
+
+                    capture secondMenu_mobile
+                      render 'site-nav', linklist: b.menu_2, type: 'sidebar'
+                    endcapture
+                  endif
+                
+                   if b.metaobject_ref != blank
+                    capture secondMenu
+                      render 'metaobject-blank-menu', linklist: block.settings.metaobject_ref, type: 'classic', shopify_attributes: block.shopify_attributes
+                    endcapture
+                
+                    capture secondMenu_mobile
+                      render 'metaobject-blank-menu', linklist: block.settings.metaobject_ref, type: 'mobile', shopify_attributes: block.shopify_attributes
+                    endcapture
+				    if tabSection == "Crafts"
+                      capture secondMenu
+                        render 'site-nav', linklist: "crafts", type: 'classic', shopify_attributes: block.shopify_attributes
+                      endcapture
+
+                      capture secondMenu_mobile
+                        render 'site-nav', linklist: "crafts", type: 'sidebar'
+                      endcapture
+                    endif
+                  endif
+                
+                  if tabSection == "Blanks"
+                    assign activeClass_2 = ' active'
+                    assign msg = b.msg_2
+                    assign bottomBarColor = b.bottomLineColor_2
+                    assign showSearchIcon = b.showSearchIcon_mobile_2
+                    if b.uploadLogo_2
+                      assign newLogo = b.uploadLogo_2 | image_url: width: 300
+                    endif
+                    assign showSearchBar_desktop = true
+
+                    assign copyCountdownData = b.getMsgFromCountDown_2
+				  elsif tabSection == "Crafts"
+                    assign activeClass_5 = ' active'
+                    assign msg = b.msg_5
+                    assign bottomBarColor = b.bottomLineColor_5
+                    assign showSearchIcon = b.showSearchIcon_mobile_5
+                    if b.uploadLogo_5
+                      assign newLogo = b.uploadLogo_5 | image_url: width: 300
+                    endif
+                    assign showSearchBar_desktop = true
+
+                    assign copyCountdownData = b.getMsgFromCountDown_5
+
+                  elsif b.matchingType_1 == 'global' and tabSection == "Transfers"
+                    assign activeClass_1 = ' active'
+                    assign msg = b.msg_1
+                    assign bottomBarColor = b.bottomLineColor_1
+                    assign showSearchIcon = b.showSearchIcon_mobile_1
+                    if b.uploadLogo_1
+                      assign newLogo = b.uploadLogo_1 | image_url: width: 300
+                    endif
+
+                    assign copyCountdownData = b.getMsgFromCountDown_1
+
+                  elsif b.matchingType_3 == 'global' and b.url_3 contains shop.url
+                    assign activeClass_3 = ' active'
+                    assign msg = b.msg_3
+                    assign bottomBarColor = b.bottomLineColor_3
+                    assign showSearchIcon = b.showSearchIcon_mobile_3
+                    if b.uploadLogo_3
+                      assign newLogo = b.uploadLogo_3 | image_url: width: 300
+                    endif
+
+                    assign copyCountdownData = b.getMsgFromCountDown_3
+                  elsif b.matchingType_4 == 'global' and b.url_4 contains shop.url
+                    assign activeClass_4 = ' active'
+                    assign msg = b.msg_4
+                    assign bottomBarColor = b.bottomLineColor_4
+                    assign showSearchIcon = b.showSearchIcon_mobile_4
+                    if b.uploadLogo_4
+                      assign newLogo = b.uploadLogo_4 | image_url: width: 300
+                    endif
+
+                    assign copyCountdownData = b.getMsgFromCountDown_4
+                  elsif b.matchingType_5 == 'global' and b.url_5 contains shop.url
+                    assign activeClass_5 = ' active'
+                    assign msg = b.msg_5
+                    assign bottomBarColor = b.bottomLineColor_5
+                    assign showSearchIcon = b.showSearchIcon_mobile_5
+                    if b.uploadLogo_5
+                      assign newLogo = b.uploadLogo_5 | image_url: width: 300
+                    endif
+
+                    assign copyCountdownData = b.getMsgFromCountDown_5
+                  endif
+                -%}
+                {% if showSearchIcon %}
+                  <style>
+                    .area--search {
+                      display: block !important;
+                      /* showSearchIcon_mobile_1
+                      showPhoneIcon_mobile_1 */
+                    }
+                  </style>
+                {% endif %}
+
+                {% if newLogo != blank %}
+                  {%- capture collectAllScripts -%}
+                    {{ collectAllScripts }}
+                    <script>
+                      // document.querySelector( `.header__top #logo .logo-img img` ).setAttribute( `src`, `{{ newLogo }}` );
+                      $(document).ready(function () {
+                        $( `.header__top #logo .logo-img img` ).attr( `src`, `{{ newLogo }}` );
+                      });
+                    </script>
+                  {%- endcapture -%}
+                  <style>
+                    #site-header .logo img {
+                      height: 100%;
+                    }
+                  </style>
+                {% endif %}
+
+                {% if activeClass_2 == ' active' %}
+                  <style>
+                    @media (max-width: 600px) and (min-width: 550px) {
+                      .phoneIconText {
+                          left: 0px !important;
+                      }
+                    }
+                  </style>
+                {% endif %}
+
+                {% if secondMenu != blank %}{% endif %}
+                  <style>
+                    .blank-apparel_desktop li:first-child a {
+                      padding-left: 0 !important;
+                    }
+                    .blank-apparel_desktop .submenu li a {
+                      padding: .7rem 1.25rem !important;
+                    }
+                  </style>
+                  {%- capture collectAllScripts -%}
+                    {{ collectAllScripts }}
+                    <script>
+                      const secondMenu = `{{ secondMenu }}`;
+                      const secondMenu_mobile = `{{ secondMenu_mobile }}`;
+                      $(document).ready(function () {
+                        ElementAvailibility ( `#meteor-desktop-nav`, 'managePhone', 200 );
+                      });
+
+                      function managePhone() {
+                        try {
+                          $( `.site-nav.style--classic .site-nav-container nav` )
+                            .append( `<ul class="link-list blank-apparel_desktop">${ secondMenu }</ul>` );
+
+                          $( `mobile-navigation .site-nav-container nav` )
+                            .append( `<ul class="link-list blank-apparel_mobile">${ secondMenu_mobile }</ul>` );
+                        } catch ( err ) {
+                          console.log( `ERROR managePhone()`, err.message );
+                        }
+                      }
+                    </script>
+                  {%- endcapture -%}
+                
+
+                {% if b.imgInactive_1 != blank and b.imgActive_1 != blank and b.matchingType_1 != blank and b.url_1 != blank %}
+                  {% if b.url_1 == "https://ninjatransfers.com/" %}
+                    {% assign rooturl = routes.root_url %}
+                  {% else %}
+                    {% assign rooturl = b.url_1 %}
+                  {% endif %}
+                  
+                  <a href="{{ rooturl }}" class="announcement-bar__sitebuttonsLink{{ activeClass_1 }} {% if activeClass_1 == " active" %} _pageload {% endif %}" tab="1">
+                    <img src="{{ b.imgInactive_1 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_inactive">
+                    <img src="{{ b.imgActive_1 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_active">
+                  </a>
+                {% endif %}
+
+                {% if b.imgInactive_2 != blank and b.imgActive_2 != blank and b.matchingType_2 != blank and b.url_2 != blank %}
+                  <a href="{{ b.url_2 }}" class="announcement-bar__sitebuttonsLink{{ activeClass_2 }} {% if activeClass_2 == " active" %} _pageload {% endif %}" tab="2">
+                    <img src="{{ b.imgInactive_2 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_inactive">
+                    <img src="{{ b.imgActive_2 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_active">
+                  </a>
+                {% endif %}
+
+                {% if b.hide3rdTab == false %}
+                  {% if b.imgInactive_3 != blank and b.imgActive_3 != blank and b.matchingType_3 != blank and b.url_3 != blank %}
+                    <a href="{{ b.url_3 }}" class="announcement-bar__sitebuttonsLink{{ activeClass_3 }} {% if activeClass_3 == " active" %} _pageload {% endif %}" tab="3">
+                      <img src="{{ b.imgInactive_3 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_inactive">
+                      <img src="{{ b.imgActive_3 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_active">
+                    </a>
+                  {% endif %}
+                {% endif %}
+
+                {% if b.hide4thTab == false %}
+                  {% if b.imgInactive_4 != blank and b.imgActive_4 != blank and b.matchingType_4 != blank and b.url_4 != blank %}
+                    <a href="{{ b.url_4 }}" class="announcement-bar__sitebuttonsLink{{ activeClass_4 }} {% if activeClass_4 == " active" %} _pageload {% endif %}" tab="4">
+                      <img src="{{ b.imgInactive_4 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_inactive">
+                      <img src="{{ b.imgActive_4 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_active">
+                    </a>
+                  {% endif %}
+                {% endif %}
+
+                {% if b.hide5thTab == false %}
+                  {% if b.imgInactive_5 != blank and b.imgActive_5 != blank and b.matchingType_5 != blank and b.url_5 != blank %}
+                    <a href="{{ b.url_5 }}" class="announcement-bar__sitebuttonsLink{{ activeClass_5 }} {% if activeClass_5 == " active" %} _pageload {% endif %}" tab="5">
+                      <img src="{{ b.imgInactive_5 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_inactive">
+                      <img src="{{ b.imgActive_5 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_active">
+                    </a>
+                  {% endif %}
+                {% endif %}
+                
+				{% if b.hide6thTab == false %}
+                  {% if b.imgInactive_6 != blank and b.imgActive_6 != blank and b.matchingType_6 != blank and b.url_6 != blank %}
+                    <a href="{{ b.url_6 }}" class="announcement-bar__sitebuttonsLink{{ activeClass_6 }} {% if activeClass_6 == " active" %} _pageload {% endif %}" tab="6">
+                      <img src="{{ b.imgInactive_6 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_inactive">
+                      <img src="{{ b.imgActive_6 | image_url: height: 20 }}" class="announcement-bar__sitebuttonsImg_active">
+                    </a>
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <style>
+              @media (min-width: 767px) {
+                .announcement-bar.twocoloum {
+                    /*grid-template-columns: 87% 13%;*/
+                  grid-template-columns: 100%;
+                }
+              }
+              .announcement-bar__sitebuttons {
+                display: flex;
+                align-items: center;
+                gap: 0px;
+                margin-right: 10px;
+              }
+              .announcement-bar__sitebuttonsLink {
+                display: grid;
+                min-height: 42px;
+                padding: 3px 12px;
+                align-items: center;
+                position: relative;
+                border-right: 1px solid #8080809c;
+              }
+              .announcement-bar__sitebuttonsLink::after {
+                content: '';
+                position: absolute;
+                left: 0;
+                bottom: -6px;
+                width: 100%;
+                height: calc(100% + 7px);
+                background-color: transparent;
+                z-index: 0;
+                transition: 0.2s all ease-in-out;
+              }
+              .announcement-bar__sitebuttonsLink:nth-last-child(1) {
+                border-right-color: transparent;
+              }
+              .announcement-bar__sitebuttonsLink img {
+                position: relative;
+                z-index: 1;
+                /* image-rendering: pixelated; */
+                image-rendering: smooth;
+                height: 30px;
+              }
+              @media (max-width: 600px) {
+                announcement-bar .container--large {
+                  padding-left: 12px;
+                  padding-right: 12px;
+                }
+                .announcement-bar__sitebuttons {
+                  width: 100%;
+                  margin-right: 0;
+                }
+                .announcement-bar__sitebuttonsLink {
+                  width: calc(33.333333% - 0px);
+                }
+                .announcement-bar__sitebuttonsLink img {
+                  margin: auto;
+                }
+              }
+              @media (max-width: 512px) {
+                .announcement-bar__sitebuttonsLink img {
+                  image-rendering: pixelated;
+                  height: 28px;
+                }
+              }
+              @media (max-width: 460px) {
+                .announcement-bar__sitebuttonsLink {
+                  padding: 3px 6px;
+                }
+                .announcement-bar__sitebuttonsLink img {
+                  height: 21px;
+                }
+              }
+              .announcement-bar__sitebuttonsLink .announcement-bar__sitebuttonsImg_active {
+                display: none;
+              }
+              .announcement-bar__sitebuttonsLink.active {
+                /* background-color: #fff; */
+              }
+              .announcement-bar__sitebuttonsLink:hover::after {
+                background-color: #646464d1;
+              }
+              .announcement-bar__sitebuttonsLink.active .announcement-bar__sitebuttonsImg_inactive {
+                display: none;
+              }
+              .announcement-bar__sitebuttonsLink.active .announcement-bar__sitebuttonsImg_active {
+                display: block;
+              }
+              .announcement-bar__sitebuttonsLink.active::after {
+                content: '';
+                position: absolute;
+                left: 0;
+                bottom: -6px;
+                width: 100%;
+                height: calc(100% + 7px);
+                background-color: #fff;
+                z-index: 0;
+              }
+              @media (max-width: 500px) {
+                announcement-bar .container--large {
+                  padding-left: 0;
+                  padding-right: 0;
+                }
+              }
+            </style>
+          {% endif %} 
+          {% if msg != blank %}
+            {%-liquid
+              if countdownArr.size > 0
+                for item in countdownArr
+                  assign enable2ndMsg__ = item.settings.enable2ndMsg
+                  assign enable2ndMsgMob__ = item.settings.enable2ndMsg_mob
+                  assign secondMsgContent__ = item.settings.secondMsgContent
+                  assign secondMsgContent_mob__ = item.settings.secondMsgContent_mob                 
+                  assign msgSlideTimer__ = item.settings.msgSlideTimer
+                  assign thirdMsgContentDesk__ = item.settings.thirdMsgContent_desk 
+                  assign thirdMsgContent__ = item.settings.thirdMsgContent
+                  assign enable3rdMsgDesk__ = item.settings.enable3rdMsg_desk
+                  assign enable3rdMsg__ = item.settings.enable3rdMsg
+
+                  assign enable4thMsgDesk__ = item.settings.enable4thMsg
+                  assign forthImgDesk__ = item.settings.img_4
+                  assign forthContentDesk__ = item.settings.text_4
+                  assign forthLinkDesk__ = item.settings.link_4
+
+                  assign enable4thMsg__ = item.settings.enable4thMsg_mobile
+                  assign forthImg__ = item.settings.img_4_mobile
+                  assign forthContent__ = item.settings.text_4_mobile
+                  assign forthLink__ = item.settings.link_4_mobile
+                endfor
+              endif
+            -%}
+
+            {% if msg != blank or enable2ndMsg__ or enable2ndMsgMob__ and secondMsgContent__ != blank %}
+              <custom-annoucement-bar-wrapper>
+                <custom-annoucement-bar>
+                  <div class="contentMsg is-active">
+                    {% if copyCountdownData == false %} 
+                      {{ msg }}  
+                    {% endif %}
+                    <div class="element--hide-on-small __desk"> 
+                    </div>
+                    <div class="element--hide-on-desk __mob">
+                    </div> 
+                  </div>
+                  {% if enable2ndMsg__ or enable2ndMsgMob__ %}
+                  <div class="secondMsg">
+                    {% if enable2ndMsg__ %}
+                    <div class="element--hide-on-small">  
+                    {{ secondMsgContent__ }}
+                    </div>
+                    {% endif %}
+                    {%  if enable2ndMsgMob__ %}
+                    <div class="element--hide-on-desk">
+                      {{ secondMsgContent_mob__ | default: secondMsgContent__ }}
+                    </div>  
+                    {% endif %}
+                  </div>
+                {%  endif %}
+                  {% if enable3rdMsg__ or enable3rdMsgDesk__ %}
+                     <div class="thirdMsg">
+                      {% if enable3rdMsg__ %}
+                         <div class="element--hide-on-desk">
+                           {{ thirdMsgContent__ }}
+                         </div> 
+                        {% endif %}   
+                        {% if enable3rdMsgDesk__ %}
+                         <div class="element--hide-on-small">
+                           {{ thirdMsgContentDesk__ }}
+                         </div> 
+                        {% endif %}   
+                     </div> 
+                  {% endif %}
+                  {% if enable4thMsgDesk__ or enable4thMsg__ %}
+                    <div class="forthMsg">
+                      {% if enable4thMsg__  and forthImg__ %}
+                        <div class="element--hide-on-desk">
+                          {% if forthImg__ != blank %}
+                            <img src="{{ forthImg__ |  image_url: width: 30 }}">
+                          {% endif %}
+                          {{ forthContent__ }}
+                        </div>
+                      {% endif %}
+                      {% if enable4thMsgDesk__ and forthImgDesk__ %}
+                        <div class="element--hide-on-small">
+                          {% if forthImgDesk__ != blank %}
+                            <img src="{{ forthImgDesk__ |  image_url: width: 30 }}">
+                          {% endif %}
+                          {{ forthContentDesk__ }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                </custom-annoucement-bar>
+              </custom-annoucement-bar-wrapper>
+              {%- capture collectAllScripts -%}
+                {{ collectAllScripts }} 
+              {%- endcapture -%}
+            {% else %}
+              <div class="contentMsg">
+                {% if copyCountdownData == false %}
+                  {{ msg }}
+                {% endif %}
+              </div>
+            {% endif %}
+
+            {% if copyCountdownData %}
+              {%- capture collectAllScripts -%}
+                {{ collectAllScripts }}
+                <script>
+                  var isproductPage = 1000;
+                  function _coundown() {
+                    const getCountDownHTML = $( `.headerCountdown` ).html();
+                    let getCountDownHTML_mobile = '';
+                    const isCustomBar = $( `custom-annoucement-bar-wrapper` );
+                    if ( isCustomBar.length > 0 ) {
+                      getCountDownHTML_mobile = $( `.headerCountdown_mobile` ).html();
+                    } else {
+                      getCountDownHTML_mobile = $( `.headerCountdown_mobile` ).html();
+                    }
+                    // console.log("getCountDownHTML_mobile",getCountDownHTML,getCountDownHTML_mobile)
+                    const getCountDownProductNODE = $( `#delivery-block .textinfodel` ).html();
+                    $( `custom-annoucement-bar .contentMsg .__desk` ).html( getCountDownHTML );
+                    if ( isCustomBar.length > 0 ) {
+                      $( `custom-annoucement-bar .contentMsg .__mob` ).html( getCountDownHTML_mobile );
+                    } else {
+                      $( `custom-annoucement-bar .contentMsg .__mob` ).html( getCountDownHTML_mobile );
+                    }
+                    $( `#delivery-block`).show().find( `.del-sh-text` ).html( getCountDownProductNODE );
+                    $(".multiupload-popup-right .delivery_info").html(getCountDownProductNODE);
+                    $( `delivery-block .delivery-block .del-sh-text` ).html( getCountDownProductNODE );
+                    if ( $( `#delivery-block`) ) {
+                      isproductPage = 1000
+                    } else {
+                      isproductPage = 5000
+                    }
+                  }
+                  copyCountdownData_desktop = `.contentMsg`;
+                  copyCountdownData_mobile = `.contentMsg__mobile`;
+                  $(document).ready(function () {
+                    const isCustomBar = $( `custom-annoucement-bar-wrapper` );
+                    if ( isCustomBar.length > 0 ) {
+                      getCountDownHTML_mobile = isCustomBar.html();
+                      // console.log ( 'getCountDownHTML_mobile', getCountDownHTML_mobile );
+                      const isContentMsg__mobileAvailable = $( `.contentMsg__mobile` ).length;
+                      if ( isContentMsg__mobileAvailable == 0 ) {
+                        $( `main-header#site-header` )
+                          .after( `<div class="contentMsg__mobile">${ getCountDownHTML_mobile }</div>` );
+                      }
+                      // $( `.contentMsg__mobile` ).html( getCountDownHTML_mobile );
+                    }
+                    if ( typeof _coundown === 'function' ) {
+                      {% if template == 'cart' %}
+                        _coundown();
+                      {% else %}
+                        //_coundown();
+                        setInterval(() => {_coundown();},isproductPage);
+                      {% endif %}                      
+                    }
+                  });
+                </script>
+              {%- endcapture -%}
+            {% endif %}
+
+            <style>
+              .contentMsg {
+                width: 100%;
+                text-align: right;
+              }
+              .custom-annoucement-bar-spacer {
+                background-color: #000;
+                height: 29px;
+              }
+              @media (min-width: 1199px) {
+                  .custom-annoucement-bar-spacer  {
+                      display: none;
+                  }
+              }
+              .contentMsg__mobile ~ .custom-annoucement-bar-spacer {
+                display: none;
+              }
+              .announcement-bar__slider {
+                display: none;
+              }
+              custom-annoucement-bar-wrapper {
+                width: 100%; 
+              }
+              @media (max-width: 1198px) {
+                custom-annoucement-bar-wrapper {
+                  display: none;
+                }
+              }
+              custom-annoucement-bar-wrapper custom-annoucement-bar {
+                display: flex;
+                width: 100%;
+                flex-wrap: nowrap;
+                transition: 0.3s all ease-in-out;
+              }
+              
+              custom-annoucement-bar-wrapper custom-annoucement-bar .secondMsg a {
+                text-decoration: underline;
+              }
+              .contentMsg__mobile custom-annoucement-bar {
+                position: relative;
+                display: block;
+                padding: 10px;
+              }
+              @media (max-width: 768px) {
+                .contentMsg__mobile custom-annoucement-bar {
+                  padding: 14px 0;
+                  font-size: 12px;
+                }
+              }
+               
+              .contentMsg__mobile custom-annoucement-bar .secondMsg a {
+                color: #fff;
+                text-decoration: underline;
+              }
+               
+              /* Desktop bar */
+              custom-annoucement-bar-wrapper custom-annoucement-bar {
+                position: relative; /* ensure absolutely-positioned children anchor here */
+              }
+
+              /* All message blocks are stacked and hidden by default */
+              custom-annoucement-bar-wrapper custom-annoucement-bar .contentMsg,
+              custom-annoucement-bar-wrapper custom-annoucement-bar .secondMsg,
+              custom-annoucement-bar-wrapper custom-annoucement-bar .thirdMsg,
+              custom-annoucement-bar-wrapper custom-annoucement-bar .forthMsg {
+                min-width: 100%;
+                text-align: right;
+                transition: 0.6s opacity ease-in-out, 0.6s visibility ease-in-out;
+                position: absolute;
+                right: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                opacity: 0;
+                visibility: hidden;
+                display: block !important;
+              }
+
+              custom-annoucement-bar-wrapper custom-annoucement-bar .forthMsg .element--hide-on-small {
+                display: flex;
+                align-items: center;
+                justify-content: end;
+                gap: 6px;
+              }
+              custom-annoucement-bar-wrapper custom-annoucement-bar .forthMsg img {
+                max-width: 32px;
+              }
+
+              /* Show only the active one */
+              custom-annoucement-bar-wrapper custom-annoucement-bar .is-active {
+                opacity: 1;
+                visibility: visible;
+              }
+
+              /* Mobile bar */
+              .contentMsg__mobile custom-annoucement-bar {
+                position: relative;
+                display: block;
+                padding: 10px;
+              }
+
+              @media (max-width: 768px) {
+                .contentMsg__mobile custom-annoucement-bar {
+                  padding: 14px 0;
+                  font-size: 12px;
+                }
+              }
+
+              /* Stack + hide by default on mobile too */
+              .contentMsg__mobile custom-annoucement-bar .contentMsg,
+              .contentMsg__mobile custom-annoucement-bar .secondMsg,
+              .contentMsg__mobile custom-annoucement-bar .thirdMsg,
+              .contentMsg__mobile custom-annoucement-bar .forthMsg {
+                position: absolute;
+                top: 50%;
+                text-align: center;
+                width: 100%;
+                transform: translateY(-50%);
+                transition: 0.6s opacity ease-in-out, 0.6s visibility ease-in-out;
+                opacity: 0;
+                visibility: hidden;
+                display: block !important;
+              }
+
+              .contentMsg__mobile custom-annoucement-bar .forthMsg .element--hide-on-desk {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+              }
+              .contentMsg__mobile custom-annoucement-bar .forthMsg img {
+                max-width: 32px;
+              }
+
+              /* Show only the active one (mobile) */
+              .contentMsg__mobile custom-annoucement-bar .is-active {
+                opacity: 1;
+                visibility: visible;
+              }
+
+              /* keep your existing styles (colors, link underline, spacers, etc.) */
+              /* IMPORTANT: remove the old `.moveNext` visibility rules so they don't conflict */
+
+            </style>
+          {% endif %}
+
+          {% if bottomBarColor != blank %}
+            <style>
+              .announcement__thinBg {
+                background-color: {{ bottomBarColor }};
+              }
+            </style>
+          {% endif %}
+
+          {%- if section.blocks.size > 1 and countdownArr.size == 0 -%}
+            <span class="announcement-bar__content-nav announcement-bar__content-nav--left announcement-bar__content-nav--disabled">{%- render 'theme-symbols', icon: 'chevron' -%}</span>
+          {%- endif -%}
+
+          <div class="announcement-bar__slider" data-js-slider>
+            {% if countdownArr.size > 0 %}
+              {% for item in countdownArr %}
+                {%-liquid
+                  assign b = item.settings
+                -%}
+                {% render 'countdown', b: b %}
+                {% break %}
+              {% endfor %}
+            {% else %}
+              {%- for block in section.blocks -%}
+                {% if showMsg == true %}
+                  <span class="announcement {{ showMsg }}">Rush Orders Ship 1-2 Business Days - Saturday Delivery at Checkout (Until 3PM EST) - Free Ship Over $99</span>
+                {% else %}
+                  <span class="announcement" {{ block.shopify_attributes }}>
+                    {%- if block.settings.link != blank -%}
+                      <a href="{{ block.settings.link }}" {% if block.settings.target %} target="_blank" {% endif %}>
+                    {%- endif -%}
+                      {{ block.settings.text | escape }}
+                    {%- if block.settings.link != blank -%} </a> {%- endif -%}
+                  </span>
+                {% endif %}
+              {%- endfor -%}
+            {% endif %}
+          </div>
+
+          {%- if section.blocks.size > 1 and countdownArr.size == 0 -%}
+            <span class="announcement-bar__content-nav announcement-bar__content-nav--right">
+              {%- render 'theme-symbols', icon: 'chevron' -%}
+            </span>
+          {%- endif -%}
+
+        </div>
+        {% comment %}
+          <div class="announcement-bar__localization-form lap-hide" data="{{ section.settings.show_country_selector }}" data-d="{{ section.settings.show_locale_selector }}">
+            <!-- Login button -->
+              {% if shop.customer_accounts_enabled %}
+                <div class="localization-form__item header-login-block">
+                {% if customer %}
+                  <a href="{{ routes.account_url }}">
+                    <span>
+                      {%- render 'theme-symbols', icon: 'account' -%}
+                    </span>
+                    <span class="site-nav__label">{{ 'general.account_link.logged_in' | t }}</span>
+
+                  </a>
+                {% else %}
+                  <a href="{{ routes.account_login_url }}">
+                    <span>{%- render 'theme-symbols', icon: 'account' -%}</span>
+                    <span>{{ 'general.account_link.logged_out' | t }}</span>
+                  </a>
+                {% endif %}
+                </div>
+              {% endif %}
+            <!-- ./Login button -->
+            {%- render 'localization-form', show_country_selector: section.settings.show_country_selector, show_locale_selector: section.settings.show_locale_selector, location: 'ancmt' -%}
+          </div>
+        {% endcomment %}
+      </div>
+    </div>
+
+    {% if ss.thinLineUnderBar %}
+      <div class="announcement__thinBg">&nbsp;</div>
+      <style>
+        .announcement__thinBg {
+          height: 5px;
+          margin-bottom: -1px;
+        }
+        @media (max-width: 600px) {
+          .announcement__thinBg {
+            margin-bottom: -2px;
+          }
+        }
+      </style>
+    {% endif %}
+    {% if msg %}
+      {%- capture collectAllScripts -%}
+        {{ collectAllScripts }}
+        <script>
+          $(function() {
+            const isContentMsg__mobileAvailable = $( `.contentMsg__mobile` ).length;
+            if ( isContentMsg__mobileAvailable == 0 ) {
+              $( `main-header#site-header` )
+                .after( `<div class="contentMsg__mobile">{% if copyCountdownData == false %}{{ msg }}{% endif %}</div>` );
+            }
+          });
+        </script>
+      {%- endcapture -%}
+
+      <style>
+        .contentMsg__mobile {
+          text-align: center;
+          background-color: #000;
+          color: #fff;
+          padding: 6px;
+          letter-spacing: normal;
+          line-height: 120%;
+          display: none;
+        }
+        @media (max-width: 1180px) {
+          .contentMsg {
+            display: none;
+          }
+          .contentMsg__mobile {
+            display: block;
+          }
+        }
+      </style>
+    {% endif %}
+  </announcement-bar>
+
+  {% style %}
+    {%- if section.settings.bar_txtcolor != 'rgba(0,0,0,0)' -%}
+      #announcement-{{ section.id }} .announcement-bar, #announcement-{{ section.id }} a, #announcement-{{ section.id }} .localization-form__item-text {
+        color: {{ section.settings.bar_txtcolor }};
+      }
+      #announcement-{{ section.id }} svg *, #announcement-{{ section.id }} .localization-form__item-symbol * {
+        fill: {{ section.settings.bar_txtcolor }} !important;
+      }
+    {%- endif -%}
+    {%- if section.settings.bar_bgcolor != 'rgba(0,0,0,0)' -%}
+      #announcement-{{ section.id }},#announcement-{{ section.id }} .announcement-bar__content-nav {
+        background: {{ section.settings.bar_bgcolor }};
+        border-bottom: 1px solid #fff;
+      }
+    {%- endif -%}
+    {%- if section.settings.border_color != 'rgba(0,0,0,0)' -%}
+      #announcement-{{ section.id }} {
+        border-bottom: solid 1px {{ section.settings.border_color }};
+      }
+    {%- endif -%}
+  {% endstyle %}
+
+{%- endif -%}
+
+{% if storeBtn_arr.size > 0 %}
+  {% for block in storeBtn_arr %}
+    {%- assign b = block.settings -%}
+    {% if b.hoverData and b.hoverPage != blank %}
+      <div class="container--large_forhover" style="display: none;">
+        <div class="hoverData"></div>
+      </div>
+
+      {%- capture collectAllScripts -%}
+        {{ collectAllScripts }}
+        <script>
+          if (window.matchMedia('(hover: hover)').matches) {
+            $(document).ready(function () {
+              $.get("{{ b.hoverPage }}", function ( res ) {
+                $( `.container--large_forhover .hoverData` )
+                  .html( res );
+              });
+            });
+
+            $( `.announcement-bar__sitebuttonsLink:not(._pageload)[tab="2"], .container--large_forhover` ).hover(function(){
+              $( `.container--large_forhover` ).show();
+                $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='2']").addClass("active")
+              // $(this).css("background-color", "yellow");
+            }, function(){
+              // $(this).css("background-color", "pink");
+                $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='2']").removeClass("active")
+              $( `.container--large_forhover` ).hide();
+            });
+          }
+        </script>
+      {%- endcapture -%}
+
+      <style>
+        #shopify-section-{{ section.id }} {
+          position: relative;
+        }
+        .container--large_forhover {
+          margin: 0 auto;
+          width: 100%;
+          max-width: var(--theme-max-width);
+          padding-left: var(--gutter-container);
+          padding-right: var(--gutter-container);
+          position: absolute;
+          left: 50%;
+          top: calc(100% - 5px);
+          height: auto;
+          z-index: 9999;
+          transform: translateX(-50%);
+        }
+        .container--large_forhover .hoverData {
+          margin-left: 6.1rem;
+          background-color: #fff;
+          max-width: 1000px;
+          box-shadow: 5px 10px 18px rgba(0,0,0,0.4);
+        }
+        @media (max-width: 1023px) {
+          .container--large_forhover .hoverData {
+            display: none;
+          }
+        }
+      </style>
+    {% endif %}
+
+    <!-- Block 1 -->
+    {% if b.url_1 != blank %}
+      <div class="container--large_onetab" style="display: none;" t="1">
+        <div class="hoverData">
+          {% render 'transfers_nav',
+            heading: b.tab1_content_heading,
+            desc: b.tab1_content_text,
+            headline_size: b.tab1_headline_size,
+            headline_weight: b.tab1_headline_weight,
+            color: b.tab1_content_cta_color,
+            card_img_1: b.tab1_card_img_1,
+            card_url_1: b.tab1_card_url_1,
+            card_label_1: b.tab1_card_label_1,
+            card_sub_1: b.tab1_card_sub_1,
+            card_img_2: b.tab1_card_img_2,
+            card_url_2: b.tab1_card_url_2,
+            card_label_2: b.tab1_card_label_2,
+            card_sub_2: b.tab1_card_sub_2,
+            card_img_3: b.tab1_card_img_3,
+            card_url_3: b.tab1_card_url_3,
+            card_label_3: b.tab1_card_label_3,
+            card_sub_3: b.tab1_card_sub_3,
+            footer_bold: b.tab1_footer_bold,
+            footer_sub: b.tab1_footer_sub,
+            cta_text: b.tab1_footer_cta_text,
+            cta_url: b.tab1_footer_cta_url
+          %}
+        </div>
+      </div>
+
+      <style>
+        #shopify-section-{{ section.id }} {
+          position: relative;
+        }
+        .container--large_onetab {
+          margin: 0 auto;
+          width: 100%;
+          max-width: var(--theme-max-width);
+          padding-left: var(--gutter-container);
+          padding-right: var(--gutter-container);
+          position: absolute;
+          left: 50%;
+          top: calc(100% - 5px);
+          height: auto;
+          z-index: 9999;
+          transform: translateX(-50%);
+        }
+        .container--large_onetab .hoverData {
+          background-color: #fff;
+          max-width: min(724px, calc(100vw - 40px));
+          box-shadow: 0 8px 32px rgba(0,0,0,.10);
+          margin-left: 0;
+        }
+        @media (max-width: 1023px) {
+          .container--large_onetab .hoverData {
+            display: none;
+          }
+        }
+      </style>
+
+      {%- capture collectAllScripts -%}
+        {{ collectAllScripts }}
+        <script>
+          if (window.matchMedia('(hover: hover)').matches) {
+            $(document).ready(function () {
+              $( `.announcement-bar__sitebuttonsLink:not(._pageload)[tab="1"], .container--large_onetab` ).hover(function(){
+                $( `.container--large_onetab` ).show();
+                $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='1']").addClass("active")
+                // $(this).css("background-color", "yellow");
+              }, function(){
+                // $(this).css("background-color", "pink");
+                $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='1']").removeClass("active")
+                $( `.container--large_onetab` ).hide();
+              });
+            });
+          }
+        </script>
+      {%- endcapture -%}
+    {% endif %}
+    <!-- Block 1 -->
+
+
+    <!-- Block 5 -->
+    {% if b.url_5 != blank %}
+      {% assign counter = "five" %}
+      <div class="container--large_{{ counter }}tab" style="display: none;" t="5">
+        <div class="hoverData">
+          {% render 'patches_content', heading : b.tab5_content_heading, desc : b.tab5_content_text, img : b.tab5_content_image, url:b.url_5, cta:b.tab5_content_cta, color:b.tab5_content_cta_color, clsname : 'five'  %}
+        </div>
+      </div>
+
+      <style>
+        #shopify-section-{{ section.id }} {
+          position: relative;
+        }
+        .container--large_{{counter}}tab {
+          margin: 0 auto;
+          width: 100%;
+          max-width: var(--theme-max-width);
+          padding-left: var(--gutter-container);
+          padding-right: var(--gutter-container);
+          position: absolute;
+          left: 50%;
+          top: calc(100% - 5px);
+          height: auto;
+          z-index: 9999;
+          transform: translateX(-50%);
+        }
+        .container--large_{{counter}}tab .hoverData {
+          background-color: #fff;
+          max-width: 650px;
+          box-shadow: 5px 10px 18px rgba(0,0,0,0.4);
+          margin-left: 22.7rem;
+        }
+        @media (max-width: 1023px) {
+          .container--large_{{counter}}tab .hoverData {
+            display: none;
+          }
+        }
+      </style>
+
+      {%- capture collectAllScripts -%}
+        {{ collectAllScripts }}
+        <script>
+          $(document).ready(function () {
+            $( `.announcement-bar__sitebuttonsLink:not(._pageload)[tab="5"], .container--large_{{counter}}tab` ).hover(function(){
+              $( `.container--large_{{counter}}tab` ).show();
+              $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='5']").addClass("active")
+              // $(this).css("background-color", "yellow");
+            }, function(){
+              // $(this).css("background-color", "pink");
+              $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='5']").removeClass("active")
+              $( `.container--large_{{counter}}tab` ).hide();
+            });
+          });
+        </script>
+      {%- endcapture -%}
+    {% endif %}
+    <!-- Block 5 -->
+
+
+    <!-- Block 4 -->
+    {% if b.matchingType_4 == "filename" and b.url_4 != blank %}
+      <div class="container--large_fourtab" style="display: none;" t="4">
+        <div class="hoverData">
+          {% render 'patches_content', heading : b.tab4_content_heading, desc : b.tab4_content_text, img : b.tab4_content_image, url:b.url_4, cta:b.tab4_content_cta, color:b.tab4_content_cta_color, clsname : 'four'  %}
+          {% render 'tab_footer',
+            footer_bold: b.tab4_footer_bold,
+            footer_sub: b.tab4_footer_sub,
+            cta_text: b.tab4_footer_cta_text,
+            cta_url: b.tab4_footer_cta_url,
+            accent_color: b.tab4_content_cta_color
+          %}
+          <style>
+            .container--large_fourtab .fourtab-content h4 {
+              font-size: {{ b.tab4_headline_size | default: 19 }}px !important;
+              font-weight: {{ b.tab4_headline_weight | default: 700 }} !important;
+            }
+            .container--large_fourtab .patches-width {
+              background-image: url('{{ b.tab4_content_image | image_url: width: 400 }}') !important;
+            }
+          </style>
+        </div>
+      </div>
+
+      <style>
+        #shopify-section-{{ section.id }} {
+          position: relative;
+        }
+        .container--large_fourtab {
+          margin: 0 auto;
+          width: 100%;
+          max-width: var(--theme-max-width);
+          padding-left: var(--gutter-container);
+          padding-right: var(--gutter-container);
+          position: absolute;
+          left: 50%;
+          top: calc(100% - 5px);
+          height: auto;
+          z-index: 9999;
+          transform: translateX(-50%);
+        }
+        .container--large_fourtab .hoverData {
+          background-color: #fff;
+          max-width: 650px;
+          box-shadow: 5px 10px 18px rgba(0,0,0,0.4);
+          margin-left: 16.09rem;
+        }
+        @media (max-width: 1023px) {
+          .container--large_fourtab .hoverData {
+            display: none;
+          }
+        }
+      </style>
+
+      {%- capture collectAllScripts -%}
+        {{ collectAllScripts }}
+        <script>
+          if (window.matchMedia('(hover: hover)').matches) {
+            $(document).ready(function () {
+              $( `.announcement-bar__sitebuttonsLink:not(._pageload)[tab="4"], .container--large_fourtab` ).hover(function(){
+                $( `.container--large_fourtab` ).show();
+                $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='4']").addClass("active")
+                // $(this).css("background-color", "yellow");
+              }, function(){
+                // $(this).css("background-color", "pink");
+                $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='4']").removeClass("active")
+                $( `.container--large_fourtab` ).hide();
+              });
+            });
+          }
+        </script>
+      {%- endcapture -%}
+    {% endif %}
+    <!-- Block 4 -->
+
+    <!-- Block 3 -->
+    {% if b.matchingType_3 == "filename" and b.url_3 != blank %}
+      <div class="container--large_thirdtab" style="display: none;" t="3">
+        <div class="hoverData">
+          {% render 'patches_nav',
+            heading: b.tab3_content_heading,
+            desc: b.tab3_content_text,
+            url: b.url_3,
+            cta: b.tab3_content_cta,
+            color: b.tab3_content_cta_color,
+            card_img_1: b.tab3_card_img_1,
+            card_url_1: b.tab3_card_url_1,
+            card_label_1: b.tab3_card_label_1,
+            card_img_2: b.tab3_card_img_2,
+            card_url_2: b.tab3_card_url_2,
+            card_label_2: b.tab3_card_label_2,
+            card_img_3: b.tab3_card_img_3,
+            card_url_3: b.tab3_card_url_3,
+            card_label_3: b.tab3_card_label_3,
+            card_img_4: b.tab3_card_img_4,
+            card_url_4: b.tab3_card_url_4,
+            card_label_4: b.tab3_card_label_4,
+            card_img_5: b.tab3_card_img_5,
+            card_url_5: b.tab3_card_url_5,
+            card_label_5: b.tab3_card_label_5,
+            footer_bold: b.tab3_footer_bold,
+            footer_sub: b.tab3_footer_sub,
+            headline_size: b.tab3_headline_size
+          %}
+        </div>
+      </div>
+      <style>
+        #shopify-section-{{ section.id }} {
+          position: relative;
+        }
+        .container--large_thirdtab {
+          margin: 0 auto;
+          width: 100%;
+          max-width: var(--theme-max-width);
+          padding-left: var(--gutter-container);
+          padding-right: var(--gutter-container);
+          position: absolute;
+          left: 50%;
+          top: calc(100% - 5px);
+          height: auto;
+          z-index: 9999;
+          transform: translateX(-50%);
+        }
+        .container--large_thirdtab .hoverData {
+          background-color: #fff;
+          max-width: min(840px, calc(100vw - 40px));
+          box-shadow: 5px 10px 18px rgba(0,0,0,0.4);
+          margin-left: 10.96rem;
+        }
+        @media (max-width: 1023px) {
+          .container--large_thirdtab .hoverData {
+            display: none;
+          }
+        }
+      </style>
+
+      {%- capture collectAllScripts -%}
+        {{ collectAllScripts }}
+        <script>
+          if (window.matchMedia('(hover: hover)').matches) {
+            $(document).ready(function () {
+              $( `.announcement-bar__sitebuttonsLink:not(._pageload)[tab="3"], .container--large_thirdtab` ).hover(function(){
+                $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='3']").addClass("active")
+                $( `.container--large_thirdtab` ).show();
+                // $(this).css("background-color", "yellow");
+              }, function(){
+                $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='3']").removeClass("active")
+                // $(this).css("background-color", "pink");
+                $( `.container--large_thirdtab` ).hide();
+              });
+            });
+          }
+        </script>
+      {%- endcapture -%}
+    {% endif %}
+    <!-- Block 3 -->
+	<!-- Block 6 -->
+    {% if b.url_6 != blank %}
+      {% assign counter = "six" %}
+      <div class="container--large_{{ counter }}tab" style="display: none;" t="6">
+        <div class="hoverData">
+          {% render 'patches_content', heading : b.tab6_content_heading, desc : b.tab6_content_text, img : b.tab6_content_image, url:b.url_6, cta:b.tab6_content_cta, color:b.tab6_content_cta_color, clsname : 'six'  %}
+          {% render 'tab_footer',
+            footer_bold: b.tab6_footer_bold,
+            footer_sub: b.tab6_footer_sub,
+            cta_text: b.tab6_footer_cta_text,
+            cta_url: b.tab6_footer_cta_url,
+            accent_color: b.tab6_content_cta_color
+          %}
+          <style>
+            .container--large_sixtab .sixtab-content h4 {
+              font-size: {{ b.tab6_headline_size | default: 19 }}px !important;
+              font-weight: {{ b.tab6_headline_weight | default: 700 }} !important;
+            }
+            .container--large_sixtab .patches-width {
+              background-image: url('{{ b.tab6_content_image | image_url: width: 400 }}') !important;
+            }
+          </style>
+        </div>
+      </div>
+
+      <style>
+        #shopify-section-{{ section.id }} {
+          position: relative;
+        }
+        .container--large_{{counter}}tab {
+          margin: 0 auto;
+          width: 100%;
+          max-width: var(--theme-max-width);
+          padding-left: var(--gutter-container);
+          padding-right: var(--gutter-container);
+          position: absolute;
+          left: 50%;
+          top: calc(100% - 5px);
+          height: auto;
+          z-index: 9999;
+          transform: translateX(-50%);
+        }
+        .container--large_{{counter}}tab .hoverData {
+          background-color: #fff;
+          max-width: 650px;
+          box-shadow: 5px 10px 18px rgba(0,0,0,0.4);
+          margin-left: 27.4rem;
+        }
+        .container--large_sixtab .hoverData {
+          margin-left: 22.8rem;
+        }
+        {% comment %} @media (max-width: 1250px) {
+          .container--large_sixtab .hoverData {
+            margin-left: 31.3%;
+          }
+        } {% endcomment %}
+        @media (max-width: 1023px) {
+          .container--large_{{counter}}tab .hoverData {
+            display: none;
+          }
+        }
+      </style>
+
+      {%- capture collectAllScripts -%}
+        {{ collectAllScripts }}
+        <script>
+          if (window.matchMedia('(hover: hover)').matches) {
+            $(document).ready(function () {
+              $( `.announcement-bar__sitebuttonsLink:not(._pageload)[tab="6"], .container--large_{{counter}}tab` ).hover(function(){
+                $( `.container--large_{{counter}}tab` ).show();
+                $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='6']").addClass("active")
+                // $(this).css("background-color", "yellow");
+              }, function(){
+                // $(this).css("background-color", "pink");
+                $(".announcement-bar__sitebuttonsLink:not(._pageload)[tab='6']").removeClass("active")
+                $( `.container--large_{{counter}}tab` ).hide();
+              });
+            });
+          }
+        </script>
+      {%- endcapture -%}
+    {% endif %}
+    <!-- Block 6 -->
+  {% endfor %}
+{% endif %}
+
+<style>
+  @media(min-width:768px){
+    .localization-form__item.header-login-block{white-space:nowrap; margin-right:0;}
+  }
+</style>
+
+{% if collectAllStyles != blank %}
+  <style>{{ collectAllStyles | replace: '<style data-shopify>', '' | replace: '<style>', '' | replace: '</style>', '' }}</style>
+{% endif %}
+{% if collectAllScripts != blank %}
+  <script>{{ collectAllScripts | replace: '<script>', '' | replace: '</script>', '' }}</script>
+{% endif %}
+
+<style>
+  .container--large_onetab,
+  .container--large_thirdtab,
+  .container--large_fourtab,
+  .container--large_fivetab,
+  .container--large_sixtab {
+    max-width: 650px;
+    transform: unset;
+    padding: 0;
+  }
+  .container--large_forhover {
+    transform: unset;
+    padding: 0;
+    max-width: min(1000px, calc(100vw - 40px));
+  }
+  .container--large_onetab {
+    max-width: min(724px, calc(100vw - 40px));
+  }
+  .container--large_thirdtab {
+    max-width: min(840px, calc(100vw - 40px));
+  }
+  .container--large_thirdtab .hoverData,
+  .container--large_fourtab .hoverData,
+  .container--large_fivetab .hoverData,
+  .container--large_sixtab .hoverData,
+  .container--large_forhover .hoverData {
+    margin-left: 0;
+  }
+</style>
+<script>
+  $(function () {
+    var interval = {{ msgSlideTimer__ | times: 1000 }};
+    var isMobile = window.matchMedia('(max-width: 767px)').matches;
+
+    // Coerce Liquid outputs to real booleans (use | json in Liquid for safety)
+    var enable2ndMsg__      = {{ enable2ndMsg__      | json }};
+    var enable2ndMsgMob__   = {{ enable2ndMsgMob__   | json }};
+    var enable3rdMsg__      = {{ enable3rdMsg__      | json }};       // desktop only
+    var enable3rdMsgDesk__  = {{ enable3rdMsgDesk__  | json }};       // mobile only
+
+    var enable4thMsg__      = {{ enable4thMsg__      | json }};
+    var enable4thMsgDesk__  = {{ enable4thMsgDesk__  | json }};
+
+    $('custom-annoucement-bar').each(function () {
+      var $bar = $(this);
+
+      // Always include first message
+      var selectors = ['.contentMsg'];
+
+      if (isMobile) {
+        if (enable2ndMsgMob__)  selectors.push('.secondMsg');
+        if (enable3rdMsg__) selectors.push('.thirdMsg'); // per your mapping: Desk flag = mobile only
+        if (enable4thMsg__) selectors.push('.forthMsg');
+      } else {
+        if (enable2ndMsg__) selectors.push('.secondMsg');
+        if (enable3rdMsgDesk__) selectors.push('.thirdMsg');
+        if (enable4thMsgDesk__) selectors.push('.forthMsg');
+      }
+
+      var $msgs = $bar.children(selectors.join(', '));
+      if (!$msgs.length) return;
+
+      // Initialize
+      $msgs.removeClass('is-active').eq(0).addClass('is-active');
+
+      // If only one message, no rotation needed
+      if ($msgs.length < 2) return;
+
+      // Rotate
+      setInterval(function () {
+        var $active = $msgs.filter('.is-active');
+        var idx = $msgs.index($active);
+        var nextIdx = (idx + 1) % $msgs.length;
+
+        $active.removeClass('is-active');
+        $msgs.eq(nextIdx).addClass('is-active');
+      }, interval);
+    });
+  });
+</script>
+
+<script>
+  
+  $(document).ready(function () {
+    siteTabsResizer();
+  });
+  let siteTabResizeTimer;
+
+  $(window).on('resize', function () {
+    clearTimeout( siteTabResizeTimer );
+    siteTabResizeTimer = setTimeout(function () {
+      siteTabsResizer();
+    }, 300);
+  });
+
+  function siteTabsResizer() {
+    try {
+      if ( $( `.announcement-bar__sitebuttonsLink[tab="1"]` ).length > 0 ) {
+        const getTabLeft__1 = $( `.announcement-bar__sitebuttonsLink[tab="1"]` ).offset().left;
+        $( `.container--large_onetab` ).css( `left`, `calc(${ getTabLeft__1 }px` );
+      }
+
+      if ( $( `.announcement-bar__sitebuttonsLink[tab="2"]` ).length > 0 ) {
+        const getTabLeft__2 = $( `.announcement-bar__sitebuttonsLink[tab="2"]` ).offset().left;
+        $( `.container--large_forhover` ).css( `left`, `calc(${ getTabLeft__2 }px` );
+      }
+
+      if ( $( `.announcement-bar__sitebuttonsLink[tab="3"]` ).length > 0 ) {
+        const getTabLeft__3 = $( `.announcement-bar__sitebuttonsLink[tab="3"]` ).offset().left;
+        $( `.container--large_thirdtab` ).css( `left`, `calc(${ getTabLeft__3 }px` );
+      }
+
+      if ( $( `.announcement-bar__sitebuttonsLink[tab="4"]` ).length > 0 ) {
+        const getTabLeft__4 = $( `.announcement-bar__sitebuttonsLink[tab="4"]` ).offset().left;
+        $( `.container--large_fourtab` ).css( `left`, `calc(${ getTabLeft__4 }px` );
+      }
+
+      if ( $( `.announcement-bar__sitebuttonsLink[tab="5"]` ).length > 0 ) {
+        const getTabLeft__5 = $( `.announcement-bar__sitebuttonsLink[tab="5"]` ).offset().left;
+        $( `.container--large_fivetab` ).css( `left`, `calc(${ getTabLeft__5 }px` );
+      }
+
+      if ( $( `.announcement-bar__sitebuttonsLink[tab="6"]` ).length > 0 ) {
+        const getTabLeft__6 = $( `.announcement-bar__sitebuttonsLink[tab="6"]` ).offset().left;
+        $( `.container--large_sixtab` ).css( `left`, `calc(${ getTabLeft__6 }px` );
+      }
+    } catch ( err ) {
+      console.log( `ERROR siteTabsResizer()`, err.message );
+    }
+  }
+</script>
+
+{% schema %}
+  {
+    "name": "t:sections.announcement-bar.name",
+    "class": "mount-announcement-bar",
+    "settings": [
+      {
+        "type": "select",
+        "id": "visibility",
+        "label": "t:sections.refactor_words.announcement-bar.visibility.label",
+        "options": [
+          {
+            "value": "all",
+            "label": "t:sections.refactor_words.announcement-bar.visibility.option_1"
+          },
+          {
+            "value": "homepage",
+            "label": "t:sections.refactor_words.announcement-bar.visibility.option_2"
+          },
+          {
+            "value": "product",
+            "label": "t:sections.refactor_words.announcement-bar.visibility.option_4"
+          },
+          {
+            "value": "no-homepage",
+            "label": "t:sections.refactor_words.announcement-bar.visibility.option_3"
+          }
+        ],
+        "default": "all"
+      },
+      {
+        "type": "header",
+        "content": "t:sections.footer.settings.language_selector.content",
+        "info": "t:sections.footer.settings.language_selector.info"
+      },
+      {
+        "type": "checkbox",
+        "id": "show_locale_selector",
+        "label": "t:sections.footer.settings.language_selector_show.label",
+        "default": true
+      },
+      {
+        "type": "header",
+        "content": "t:sections.footer.settings.country_selector.content",
+        "info": "t:sections.footer.settings.country_selector.info"
+      },
+      {
+        "type": "checkbox",
+        "id": "show_country_selector",
+        "label": "t:sections.footer.settings.country_selector_show.label",
+        "default": true
+      },
+      {
+        "type": "header",
+        "content": "t:sections.local-extra-words.sections.announcement-bar.settings.social.header",
+        "info": "t:sections.local-extra-words.sections.announcement-bar.settings.social.info"
+      },
+      {
+        "type": "checkbox",
+        "id": "show_social_icons",
+        "label": "t:sections.local-extra-words.sections.announcement-bar.settings.social.label",
+        "default": true
+      },
+      {
+        "type": "header",
+        "content": "t:settings_schema.colors.name"
+      },
+      {
+        "type": "color",
+        "id": "bar_bgcolor",
+        "label": "t:sections.announcement-bar.settings.bar_bgcolor.label",
+        "default": "#111111"
+      },
+      {
+        "type": "color",
+        "id": "bar_txtcolor",
+        "label": "t:sections.announcement-bar.settings.bar_txtcolor.label",
+        "default": "#ffffff"
+      },
+      {
+        "type": "color",
+        "id": "border_color",
+        "label": "t:sections.local-extra-words.settings_schema.colors.settings.borders",
+        "default": "rgba(0,0,0,0)"
+      },
+      {
+        "type": "checkbox",
+        "id": "thinLineUnderBar",
+        "label": "Show Thin line under bar",
+        "default": false
+      }
+    ],
+    "blocks": [
+      {
+        "type": "content",
+        "name": "t:sections.local-extra-words.sections.announcement-bar.blocks.content.name",
+        "settings": [
+          {
+            "type": "text",
+            "id": "text",
+            "label": "t:sections.local-extra-words.sections.announcement-bar.blocks.content.settings.text",
+            "default": "Write an important announcement here"
+          },
+          {
+            "type": "url",
+            "id": "link",
+            "label": "t:sections.local-extra-words.sections.announcement-bar.blocks.content.settings.link"
+          },
+          {
+            "type": "checkbox",
+            "id": "target",
+            "label": "t:sections.local-extra-words.sections.announcement-bar.blocks.content.settings.target",
+            "default": false
+          }
+        ]
+      },
+      {
+        "type": "countdown",
+        "name": "Countdown",
+        "limit": 1,
+        "settings": [
+          {
+            "type": "header",
+            "content": "For Monday"
+          },
+          {
+            "type": "textarea",
+            "id": "contentMonday",
+            "label": "Content Monday",
+            "default": "Order in the next [TIMER] (hh:mm:ss) and choose Guaranteed <b>Wednesday</b> Delivery at checkout - Free Shipping on orders $99+",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "textarea",
+            "id": "contentMonday_mobile",
+            "label": "Content Monday for mobile",
+            "default": "Custom DTF Transfers w/ FREE Ship on Orders $99+ | Fastest Delivery <b>Wednesday</b> if ordered in <b>[TIMER]</b>",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "textarea",
+            "id": "contentMonday_product",
+            "label": "Content Monday for Product",
+            "default": "Need it fast? Rush Delivery Tomorrow, Nov. 28th if ordered in [TIMER]",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "header",
+            "content": "For Tuesday"
+          },
+          {
+            "type": "textarea",
+            "id": "contentTuesday",
+            "label": "Content Tuesday",
+            "default": "Order in the next [TIMER] (hh:mm:ss) and choose Guaranteed <b>Thursday</b> Delivery at checkout - Free Shipping on orders $99+",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "textarea",
+            "id": "contentTuesday_mobile",
+            "label": "Content Tuesday for mobile",
+            "default": "Custom DTF Transfers w/ FREE Ship on Orders $99+ | Fastest Delivery <b>Thursday</b> if ordered in <b>[TIMER]</b>",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "textarea",
+            "id": "contentTuesday_product",
+            "label": "Content Tuesday for Product",
+            "default": "Need it fast? Rush Delivery Tomorrow, Nov. 28th if ordered in [TIMER]",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "header",
+            "content": "For Wednesday"
+          },
+          {
+            "type": "textarea",
+            "id": "contentWednesday",
+            "label": "Content Wednesday",
+            "default": "Order in the next [TIMER] (hh:mm:ss) and choose Guaranteed <b>Friday</b> Delivery at checkout - Free Shipping on orders $99+",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "textarea",
+            "id": "contentWednesday_mobile",
+            "label": "Content Wednesday for mobile",
+            "default": "Custom DTF Transfers w/ FREE Ship on Orders $99+ | Fastest Delivery <b>Friday</b> if ordered in <b>[TIMER]</b>",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "textarea",
+            "id": "contentWednesday_product",
+            "label": "Content Monday for Product",
+            "default": "Need it fast? Rush Delivery Tomorrow, Nov. 28th if ordered in [TIMER]",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "header",
+            "content": "For Thursday"
+          },
+          {
+            "type": "textarea",
+            "id": "contentThursday",
+            "label": "Content Thursday",
+            "default": "Order in the next [TIMER] (hh:mm:ss) and choose <b>Saturday</b> Delivery at checkout - Free Shipping on orders $99+",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "textarea",
+            "id": "contentThursday_mobile",
+            "label": "Content Thursday for mobile",
+            "default": "Custom DTF Transfers w/ FREE Ship on Orders $99+ | <b>Saturday</b> Delivery Option if ordered in <b>[TIMER]</b>",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "textarea",
+            "id": "contentThursday_product",
+            "label": "Content Monday for Product",
+            "default": "Need it fast? Rush Delivery Tomorrow, Nov. 28th if ordered in [TIMER]",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "header",
+            "content": "For Friday"
+          },
+          {
+            "type": "textarea",
+            "id": "contentFriday",
+            "label": "Content Friday",
+            "default": "Order in the next [TIMER] (hh:mm:ss) and choose Guaranteed <b>Tuesday</b> Delivery at checkout - Free Shipping on orders $99+",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "textarea",
+            "id": "contentFriday_mobile",
+            "label": "Content Friday for mobile",
+            "default": "Custom DTF Transfers w/ FREE Ship on Orders $99+ | Fastest Delivery <b>Tuesday</b> if ordered in <b>[TIMER]</b>",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "textarea",
+            "id": "contentFriday_product",
+            "label": "Content Monday for Product",
+            "default": "Need it fast? Rush Delivery Tomorrow, Nov. 28th if ordered in [TIMER]",
+            "info": "dont remove [TIMER]"
+          },
+          {
+            "type": "range",
+            "id": "counterEndTimer",
+            "label": "Counter End Time",
+            "unit": "PM",
+            "min": 1,
+            "max": 4,
+            "step": 1,
+            "default": 3
+          },
+          {
+            "type": "header",
+            "content": "Secondary Announcement Bar Message"
+          },
+          {
+            "type": "checkbox",
+            "id": "enable2ndMsg",
+            "label": "Enable Desktop",
+            "default": false
+          },
+          {
+            "type": "checkbox",
+            "id": "enable2ndMsg_mob",
+            "label": "Enable Mobile",
+            "default": false
+          },
+          {
+            "type": "textarea",
+            "id": "secondMsgContent",
+            "label": "2nd Msg Content",
+            "default": "Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ad, debitis!"
+          },
+           {
+            "type": "textarea",
+            "id": "secondMsgContent_mob",
+            "label": "2nd Msg Content (Mobile)",
+            "default": "Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ad, debitis!"
+          },
+          {
+            "type": "header",
+            "content": "Third Announcement Bar Message"
+          },
+          {
+            "type": "checkbox",
+            "id": "enable3rdMsg_desk",
+            "label": "Enable Desktop",
+            "default": false
+          },
+          {
+            "type": "checkbox",
+            "id": "enable3rdMsg",
+            "label": "Enable Mobile",
+            "default": false
+          },
+          {
+            "type": "textarea",
+            "id": "thirdMsgContent_desk",
+            "label": "3rd Msg Content",
+            "default": "Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ad, debitis!"
+          }, 
+          {
+            "type": "textarea",
+            "id": "thirdMsgContent",
+            "label": "3rd Msg Content (Mobile)",
+            "default": "Lorem ipsum dolor sit, amet consectetur adipisicing elit. Ad, debitis!"
+          },
+          {
+            "type": "header",
+            "content": "Forth Slide"
+          },
+          {
+            "type": "checkbox",
+            "id": "enable4thMsg",
+            "label": "Enable 4th Msg",
+            "default": false
+          },
+          {
+            "type": "image_picker",
+            "id": "img_4",
+            "label": "Upload Image",
+            "visible_if": "{{ block.settings.enable4thMsg }}"
+          },
+          {
+            "type": "textarea",
+            "id": "text_4",
+            "label": "Content",
+            "visible_if": "{{ block.settings.enable4thMsg }}"
+          },
+          {
+            "type": "url",
+            "id": "link_4",
+            "label": "Link",
+            "visible_if": "{{ block.settings.enable4thMsg }}"
+          },
+          {
+            "type": "checkbox",
+            "id": "enable4thMsg_mobile",
+            "label": "Enable 4th Msg Mobile",
+            "default": false
+          },
+          {
+            "type": "image_picker",
+            "id": "img_4_mobile",
+            "label": "Upload Image Mobile",
+            "visible_if": "{{ block.settings.enable4thMsg_mobile }}"
+          },
+          {
+            "type": "textarea",
+            "id": "text_4_mobile",
+            "label": "Content",
+            "visible_if": "{{ block.settings.enable4thMsg_mobile }}"
+          },
+          {
+            "type": "url",
+            "id": "link_4_mobile",
+            "label": "Link",
+            "visible_if": "{{ block.settings.enable4thMsg_mobile }}"
+          }, 
+          {
+            "type": "range",
+            "id": "msgSlideTimer",
+            "label": "Slide Change Timer",
+            "unit": "sec",
+            "min": 2,
+            "max": 10,
+            "step": 1,
+            "default": 3
+          }
+        ]
+      },
+      {
+        "type": "sitesBtn",
+        "name": "Stores Buttons",
+        "limit": 1,
+        "settings": [
+          {
+            "type": "header",
+            "content": "First Button"
+          },
+          {
+            "type": "image_picker",
+            "id": "uploadLogo_1",
+            "label": "Upload Logo to overwrite"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgInactive_1",
+            "label": "Upload Inactive Image"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgActive_1",
+            "label": "Upload Active Image"
+          },
+          {
+            "type": "select",
+            "id": "matchingType_1",
+            "label": "Matching Type",
+            "default": "global",
+            "options": [
+              {
+                "value": "global",
+                "label": "Global"
+              },
+              {
+                "value": "link",
+                "label": "Link"
+              },
+              {
+                "value": "filename",
+                "label": "Content"
+              }
+            ],
+            "info": "Enter below domain url e.g https://ninjatransfers.com/ or complete link e.g https://ninjatransfers.com/pages/page-name"
+          },
+          {
+            "type": "url",
+            "id": "url_1",
+            "label": "Link"
+          },
+          {
+            "type": "text",
+            "id": "tab1_content_heading",
+            "label": "Enter Heading"
+          },
+          {
+            "type": "text",
+            "id": "tab1_content_text",
+            "label": "Enter paragraph content"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab1_content_image",
+            "label": "Upload content image"
+          },
+          {
+            "type": "text",
+            "id": "tab1_content_cta",
+            "label": "Enter button text"
+          },
+          {
+            "type": "color",
+            "id": "tab1_content_cta_color",
+            "label": "CTA color",
+            "default": "#29abe2"
+          },
+          {
+            "type": "header",
+            "content": "Transfers Product Cards"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab1_card_img_1",
+            "label": "Card 1 image"
+          },
+          {
+            "type": "url",
+            "id": "tab1_card_url_1",
+            "label": "Card 1 link"
+          },
+          {
+            "type": "text",
+            "id": "tab1_card_label_1",
+            "label": "Card 1 label",
+            "default": "DTF Transfers"
+          },
+          {
+            "type": "text",
+            "id": "tab1_card_sub_1",
+            "label": "Card 1 subtitle",
+            "default": "by Size"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab1_card_img_2",
+            "label": "Card 2 image"
+          },
+          {
+            "type": "url",
+            "id": "tab1_card_url_2",
+            "label": "Card 2 link"
+          },
+          {
+            "type": "text",
+            "id": "tab1_card_label_2",
+            "label": "Card 2 label",
+            "default": "Gang Sheet"
+          },
+          {
+            "type": "text",
+            "id": "tab1_card_sub_2",
+            "label": "Card 2 subtitle",
+            "default": "Builder"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab1_card_img_3",
+            "label": "Card 3 image"
+          },
+          {
+            "type": "url",
+            "id": "tab1_card_url_3",
+            "label": "Card 3 link"
+          },
+          {
+            "type": "text",
+            "id": "tab1_card_label_3",
+            "label": "Card 3 label",
+            "default": "Upload a"
+          },
+          {
+            "type": "text",
+            "id": "tab1_card_sub_3",
+            "label": "Card 3 subtitle",
+            "default": "Gang Sheet"
+          },
+          {
+            "type": "header",
+            "content": "Transfers Footer Bar"
+          },
+          {
+            "type": "text",
+            "id": "tab1_footer_bold",
+            "label": "Footer bold text",
+            "default": "FREE SHIPPING"
+          },
+          {
+            "type": "text",
+            "id": "tab1_footer_sub",
+            "label": "Footer sub text",
+            "default": "No Setup, Art Fees or Minimums"
+          },
+          {
+            "type": "text",
+            "id": "tab1_footer_cta_text",
+            "label": "Footer CTA text",
+            "default": "Shop Ninja Transfers →"
+          },
+          {
+            "type": "url",
+            "id": "tab1_footer_cta_url",
+            "label": "Footer CTA link"
+          },
+          {
+            "type": "header",
+            "content": "Transfers Headline Styling"
+          },
+          {
+            "type": "range",
+            "id": "tab1_headline_size",
+            "label": "Transfers headline font size",
+            "min": 14,
+            "max": 28,
+            "step": 1,
+            "default": 19,
+            "unit": "px"
+          },
+          {
+            "type": "range",
+            "id": "tab1_headline_weight",
+            "label": "Transfers headline font weight",
+            "min": 400,
+            "max": 800,
+            "step": 100,
+            "default": 700
+          },
+          {
+            "type": "checkbox",
+            "id": "getMsgFromCountDown_1",
+            "label": "Get Message from countdown",
+            "default": false,
+            "info": "If checkbox is selected then it will take message from countdown for desktop and mobile as well"
+          },
+          {
+            "type": "textarea",
+            "id": "msg_1",
+            "label": "Message",
+            "default": "Native - Message from CMS - Unique Message to Transfer"
+          },
+          {
+            "type": "color",
+            "id": "bottomLineColor_1",
+            "label": "Bottom Line color",
+            "default": "#0180c2"
+          },
+          {
+            "type": "checkbox",
+            "id": "showSearchIcon_mobile_1",
+            "label": "Show Search Icon for Mobile",
+            "default": true
+          },
+          {
+            "type": "checkbox",
+            "id": "showPhoneIcon_mobile_1",
+            "label": "Show Phone Icon for Mobile",
+            "default": true
+          },
+          {
+            "type": "header",
+            "content": "Second Button"
+          },
+          {
+            "type": "image_picker",
+            "id": "uploadLogo_2",
+            "label": "Upload Logo to overwrite"
+          },
+          {
+            "type": "link_list",
+            "id": "menu_2",
+            "label": "Select Menu"
+          },
+          {
+            "type": "metaobject",
+            "id": "metaobject_ref",
+            "label": "Select Metaobject",
+            "metaobject_type": "blanks_navigation"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgInactive_2",
+            "label": "Upload Inactive Image"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgActive_2",
+            "label": "Upload Active Image"
+          },
+          {
+            "type": "select",
+            "id": "matchingType_2",
+            "label": "Matching Type",
+            "default": "global",
+            "options": [
+              {
+                "value": "global",
+                "label": "Global"
+              },
+              {
+                "value": "link",
+                "label": "Link"
+              }
+            ],
+            "info": "Enter below domain url e.g https://ninjatransfers.com/ or complete link e.g https://ninjatransfers.com/pages/page-name"
+          },
+          {
+            "type": "url",
+            "id": "url_2",
+            "label": "Link"
+          },
+          {
+            "type": "checkbox",
+            "id": "getMsgFromCountDown_2",
+            "label": "Get Message from countdown",
+            "default": false,
+            "info": "If checkbox is selected then it will take message from countdown for desktop and mobile as well"
+          },
+          {
+            "type": "textarea",
+            "id": "msg_2",
+            "label": "Message",
+            "default": "Native - Message from CMS - Unique Message to Transfer"
+          },
+          {
+            "type": "color",
+            "id": "bottomLineColor_2",
+            "label": "Bottom Line color",
+            "default": "#fba500"
+          },
+          {
+            "type": "checkbox",
+            "id": "showSearchIcon_mobile_2",
+            "label": "Show Search Icon for Mobile",
+            "default": true
+          },
+          {
+            "type": "checkbox",
+            "id": "showPhoneIcon_mobile_2",
+            "label": "Show Phone Icon for Mobile",
+            "default": true
+          },
+          {
+            "type": "checkbox",
+            "id": "hoverData",
+            "label": "Hover Show data",
+            "default": true
+          },
+          {
+            "type": "url",
+            "id": "hoverPage",
+            "label": "Select Page for hover"
+          },
+          {
+            "type": "header",
+            "content": "Third Button"
+          },
+          {
+            "type": "checkbox",
+            "id": "hide3rdTab",
+            "label": "Hide 3rd Tab",
+            "default": true
+          },
+          {
+            "type": "image_picker",
+            "id": "uploadLogo_3",
+            "label": "Upload Logo to overwrite"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgInactive_3",
+            "label": "Upload Inactive Image"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgActive_3",
+            "label": "Upload Active Image"
+          },
+          {
+            "type": "select",
+            "id": "matchingType_3",
+            "label": "Matching Type",
+            "default": "global",
+            "options": [
+              {
+                "value": "global",
+                "label": "Global"
+              },
+              {
+                "value": "link",
+                "label": "Link"
+              },
+              {
+                "value": "filename",
+                "label": "Content"
+              }
+            ],
+            "info": "Enter below domain url e.g https://ninjatransfers.com/ or complete link e.g https://ninjatransfers.com/pages/page-name"
+          },
+          {
+            "type": "url",
+            "id": "url_3",
+            "label": "Link"
+          },
+          {
+            "type": "text",
+            "id": "tab3_content_heading",
+            "label": "Enter Heading"
+          },
+          {
+            "type": "text",
+            "id": "tab3_content_text",
+            "label": "Enter paragraph content"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab3_content_image",
+            "label": "Upload content image"
+          },
+          {
+            "type": "text",
+            "id": "tab3_content_cta",
+            "label": "Enter button text"
+          },
+          {
+            "type": "color",
+            "id": "tab3_content_cta_color",
+            "label": "CTA color",
+            "default": "#0ECF85"
+          },
+          {
+            "type": "range",
+            "id": "tab3_headline_size",
+            "label": "Patches headline font size",
+            "min": 14,
+            "max": 28,
+            "step": 1,
+            "default": 19,
+            "unit": "px"
+          },
+          {
+            "type": "header",
+            "content": "Patches Product Cards"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab3_card_img_1",
+            "label": "Card 1 Image"
+          },
+          {
+            "type": "url",
+            "id": "tab3_card_url_1",
+            "label": "Card 1 Link"
+          },
+          {
+            "type": "text",
+            "id": "tab3_card_label_1",
+            "label": "Card 1 Label",
+            "default": "Embroidered"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab3_card_img_2",
+            "label": "Card 2 Image"
+          },
+          {
+            "type": "url",
+            "id": "tab3_card_url_2",
+            "label": "Card 2 Link"
+          },
+          {
+            "type": "text",
+            "id": "tab3_card_label_2",
+            "label": "Card 2 Label",
+            "default": "Full Color"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab3_card_img_3",
+            "label": "Card 3 Image"
+          },
+          {
+            "type": "url",
+            "id": "tab3_card_url_3",
+            "label": "Card 3 Link"
+          },
+          {
+            "type": "text",
+            "id": "tab3_card_label_3",
+            "label": "Card 3 Label",
+            "default": "PVC Rubber"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab3_card_img_4",
+            "label": "Card 4 Image"
+          },
+          {
+            "type": "url",
+            "id": "tab3_card_url_4",
+            "label": "Card 4 Link"
+          },
+          {
+            "type": "text",
+            "id": "tab3_card_label_4",
+            "label": "Card 4 Label",
+            "default": "Leather"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab3_card_img_5",
+            "label": "Card 5 Image"
+          },
+          {
+            "type": "url",
+            "id": "tab3_card_url_5",
+            "label": "Card 5 Link"
+          },
+          {
+            "type": "text",
+            "id": "tab3_card_label_5",
+            "label": "Card 5 Label",
+            "default": "Chenille"
+          },
+          {
+            "type": "header",
+            "content": "Patches Footer Bar"
+          },
+          {
+            "type": "text",
+            "id": "tab3_footer_bold",
+            "label": "Footer bold text",
+            "default": "FREE SHIPPING"
+          },
+          {
+            "type": "text",
+            "id": "tab3_footer_sub",
+            "label": "Footer sub text",
+            "default": "on all patch orders · 10pc minimum"
+          },
+          {
+            "type": "checkbox",
+            "id": "getMsgFromCountDown_3",
+            "label": "Get Message from countdown",
+            "default": false,
+            "info": "If checkbox is selected then it will take message from countdown for desktop and mobile as well"
+          },
+          {
+            "type": "textarea",
+            "id": "msg_3",
+            "label": "Message",
+            "default": "Native - Message from CMS - Unique Message to Transfer"
+          },
+          {
+            "type": "color",
+            "id": "bottomLineColor_3",
+            "label": "Bottom Line color",
+            "default": "#02cc7e"
+          },
+          {
+            "type": "checkbox",
+            "id": "showSearchIcon_mobile_3",
+            "label": "Show Search Icon for Mobile",
+            "default": true
+          },
+          {
+            "type": "checkbox",
+            "id": "showPhoneIcon_mobile_3",
+            "label": "Show Phone Icon for Mobile",
+            "default": true
+          },
+          {
+            "type": "header",
+            "content": "Fourth Button"
+          },
+          {
+            "type": "checkbox",
+            "id": "hide4thTab",
+            "label": "Hide 4th Tab",
+            "default": true
+          },
+          {
+            "type": "image_picker",
+            "id": "uploadLogo_4",
+            "label": "Upload Logo to overwrite"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgInactive_4",
+            "label": "Upload Inactive Image"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgActive_4",
+            "label": "Upload Active Image"
+          },
+          {
+            "type": "select",
+            "id": "matchingType_4",
+            "label": "Matching Type",
+            "default": "global",
+            "options": [
+              {
+                "value": "global",
+                "label": "Global"
+              },
+              {
+                "value": "link",
+                "label": "Link"
+              },
+              {
+                "value": "filename",
+                "label": "Content"
+              }
+            ],
+            "info": "Enter below domain url e.g https://ninjatransfers.com/ or complete link e.g https://ninjatransfers.com/pages/page-name"
+          },
+          {
+            "type": "url",
+            "id": "url_4",
+            "label": "Link"
+          },
+          {
+            "type": "text",
+            "id": "tab4_content_heading",
+            "label": "Enter Heading"
+          },
+          {
+            "type": "text",
+            "id": "tab4_content_text",
+            "label": "Enter paragraph content"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab4_content_image",
+            "label": "Upload content image"
+          },
+          {
+            "type": "text",
+            "id": "tab4_content_cta",
+            "label": "Enter button text"
+          },
+          {
+            "type": "color",
+            "id": "tab4_content_cta_color",
+            "label": "CTA color",
+            "default": "#ff4229"
+          },
+          {
+            "type": "header",
+            "content": "Printhouse Footer Bar"
+          },
+          {
+            "type": "text",
+            "id": "tab4_footer_bold",
+            "label": "Footer bold text",
+            "default": "RUSH SHIPPING AVAILABLE"
+          },
+          {
+            "type": "text",
+            "id": "tab4_footer_sub",
+            "label": "Footer sub text",
+            "default": "as quick as 2 days"
+          },
+          {
+            "type": "text",
+            "id": "tab4_footer_cta_text",
+            "label": "Footer CTA text",
+            "default": "Start Your Custom Order →"
+          },
+          {
+            "type": "url",
+            "id": "tab4_footer_cta_url",
+            "label": "Footer CTA link"
+          },
+          {
+            "type": "header",
+            "content": "Printhouse Headline Styling"
+          },
+          {
+            "type": "range",
+            "id": "tab4_headline_size",
+            "label": "Printhouse headline font size",
+            "min": 14,
+            "max": 28,
+            "step": 1,
+            "default": 19,
+            "unit": "px"
+          },
+          {
+            "type": "range",
+            "id": "tab4_headline_weight",
+            "label": "Printhouse headline font weight",
+            "min": 400,
+            "max": 800,
+            "step": 100,
+            "default": 700
+          },
+          {
+            "type": "checkbox",
+            "id": "getMsgFromCountDown_4",
+            "label": "Get Message from countdown",
+            "default": false,
+            "info": "If checkbox is selected then it will take message from countdown for desktop and mobile as well"
+          },
+          {
+            "type": "textarea",
+            "id": "msg_4",
+            "label": "Message",
+            "default": "Native - Message from CMS - Unique Message to Transfer"
+          },
+          {
+            "type": "color",
+            "id": "bottomLineColor_4",
+            "label": "Bottom Line color",
+            "default": "#02cc7e"
+          },
+          {
+            "type": "checkbox",
+            "id": "showSearchIcon_mobile_4",
+            "label": "Show Search Icon for Mobile",
+            "default": true
+          },
+          {
+            "type": "checkbox",
+            "id": "showPhoneIcon_mobile_4",
+            "label": "Show Phone Icon for Mobile",
+            "default": true
+          },  
+          {
+            "type": "header",
+            "content": "Fifth Button"
+          },
+          {
+            "type": "checkbox",
+            "id": "hide5thTab",
+            "label": "Hide 5th Tab",
+            "default": true
+          },
+          {
+            "type": "image_picker",
+            "id": "uploadLogo_5",
+            "label": "Upload Logo to overwrite"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgInactive_5",
+            "label": "Upload Inactive Image"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgActive_5",
+            "label": "Upload Active Image"
+          },
+          {
+            "type": "select",
+            "id": "matchingType_5",
+            "label": "Matching Type",
+            "default": "global",
+            "options": [
+              {
+                "value": "global",
+                "label": "Global"
+              },
+              {
+                "value": "link",
+                "label": "Link"
+              },
+              {
+                "value": "filename",
+                "label": "Content"
+              }
+            ],
+            "info": "Enter below domain url e.g https://ninjatransfers.com/ or complete link e.g https://ninjatransfers.com/pages/page-name"
+          },
+          {
+            "type": "url",
+            "id": "url_5",
+            "label": "Link"
+          },
+          {
+            "type": "text",
+            "id": "tab5_content_heading",
+            "label": "Enter Heading"
+          },
+          {
+            "type": "text",
+            "id": "tab5_content_text",
+            "label": "Enter paragraph content"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab5_content_image",
+            "label": "Upload content image"
+          },
+          {
+            "type": "text",
+            "id": "tab5_content_cta",
+            "label": "Enter button text"
+          },
+          {
+            "type": "color",
+            "id": "tab5_content_cta_color",
+            "label": "CTA color",
+            "default": "#ff4229"
+          },
+          {
+            "type": "checkbox",
+            "id": "getMsgFromCountDown_5",
+            "label": "Get Message from countdown",
+            "default": false,
+            "info": "If checkbox is selected then it will take message from countdown for desktop and mobile as well"
+          },
+          {
+            "type": "textarea",
+            "id": "msg_5",
+            "label": "Message",
+            "default": "Native - Message from CMS - Unique Message to Transfer"
+          },
+          {
+            "type": "color",
+            "id": "bottomLineColor_5",
+            "label": "Bottom Line color",
+            "default": "#02cc7e"
+          },
+          {
+            "type": "checkbox",
+            "id": "showSearchIcon_mobile_5",
+            "label": "Show Search Icon for Mobile",
+            "default": true
+          },
+          {
+            "type": "checkbox",
+            "id": "showPhoneIcon_mobile_5",
+            "label": "Show Phone Icon for Mobile",
+            "default": true
+          },
+          {
+            "type": "header",
+            "content": "Sixth Button"
+          },
+          {
+            "type": "checkbox",
+            "id": "hide6thTab",
+            "label": "Hide 6th Tab",
+            "default": true
+          },
+          {
+            "type": "image_picker",
+            "id": "uploadLogo_6",
+            "label": "Upload Logo to overwrite"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgInactive_6",
+            "label": "Upload Inactive Image"
+          },
+          {
+            "type": "image_picker",
+            "id": "imgActive_6",
+            "label": "Upload Active Image"
+          },
+          {
+            "type": "select",
+            "id": "matchingType_6",
+            "label": "Matching Type",
+            "default": "global",
+            "options": [
+              {
+                "value": "global",
+                "label": "Global"
+              },
+              {
+                "value": "link",
+                "label": "Link"
+              },
+              {
+                "value": "filename",
+                "label": "Content"
+              }
+            ],
+            "info": "Enter below domain url e.g https://ninjatransfers.com/ or complete link e.g https://ninjatransfers.com/pages/page-name"
+          },
+          {
+            "type": "url",
+            "id": "url_6",
+            "label": "Link"
+          },
+          {
+            "type": "text",
+            "id": "tab6_content_heading",
+            "label": "Enter Heading"
+          },
+          {
+            "type": "text",
+            "id": "tab6_content_text",
+            "label": "Enter paragraph content"
+          },
+          {
+            "type": "image_picker",
+            "id": "tab6_content_image",
+            "label": "Upload content image"
+          },
+          {
+            "type": "text",
+            "id": "tab6_content_cta",
+            "label": "Enter button text"
+          },
+          {
+            "type": "color",
+            "id": "tab6_content_cta_color",
+            "label": "CTA color",
+            "default": "#ff4229"
+          },
+          {
+            "type": "header",
+            "content": "NinjaPOD Footer Bar"
+          },
+          {
+            "type": "text",
+            "id": "tab6_footer_bold",
+            "label": "Footer bold text",
+            "default": "100% FREE TO START"
+          },
+          {
+            "type": "text",
+            "id": "tab6_footer_sub",
+            "label": "Footer sub text",
+            "default": "2,500+ products · prints & ships to your customers"
+          },
+          {
+            "type": "text",
+            "id": "tab6_footer_cta_text",
+            "label": "Footer CTA text",
+            "default": "Learn More →"
+          },
+          {
+            "type": "url",
+            "id": "tab6_footer_cta_url",
+            "label": "Footer CTA link"
+          },
+          {
+            "type": "header",
+            "content": "NinjaPOD Headline Styling"
+          },
+          {
+            "type": "range",
+            "id": "tab6_headline_size",
+            "label": "POD headline font size",
+            "min": 14,
+            "max": 28,
+            "step": 1,
+            "default": 19,
+            "unit": "px"
+          },
+          {
+            "type": "range",
+            "id": "tab6_headline_weight",
+            "label": "POD headline font weight",
+            "min": 400,
+            "max": 800,
+            "step": 100,
+            "default": 700
+          },
+          {
+            "type": "checkbox",
+            "id": "getMsgFromCountDown_6",
+            "label": "Get Message from countdown",
+            "default": false,
+            "info": "If checkbox is selected then it will take message from countdown for desktop and mobile as well"
+          },
+          {
+            "type": "textarea",
+            "id": "msg_6",
+            "label": "Message",
+            "default": "Native - Message from CMS - Unique Message to Transfer"
+          },
+          {
+            "type": "color",
+            "id": "bottomLineColor_6",
+            "label": "Bottom Line color",
+            "default": "#02cc7e"
+          },
+          {
+            "type": "checkbox",
+            "id": "showSearchIcon_mobile_6",
+            "label": "Show Search Icon for Mobile",
+            "default": true
+          },
+          {
+            "type": "checkbox",
+            "id": "showPhoneIcon_mobile_6",
+            "label": "Show Phone Icon for Mobile",
+            "default": true
+          }
+        ]
+      }
+    ],
+    "presets": [
+      {
+        "name": "t:sections.announcement-bar.name",
+        "blocks": [
+          {
+            "type": "content"
+          }
+        ]
+      }
+    ],
+    "enabled_on": {
+      "groups": ["header", "footer"]
+    }
+  }
+{% endschema %}
+
+<style>
+  .site-nav.style--classic .site-nav-container nav ul.link-list:nth-child(1),#site-header.blankmode .transfer-logo-block,#site-header .logo-img,sidebar-drawer#site-menu-sidebar mobile-navigation .blank-apparel_mobile,sidebar-drawer#site-menu-sidebar.blankmode mobile-navigation [data-meteor-platform],#site-header .blank-apparel_desktop,#site-header.blankmode #meteor-desktop-nav{display:none !important;}
+  sidebar-drawer#site-menu-sidebar.blankmode mobile-navigation .blank-apparel_mobile,#site-header .transfer-logo-block,#site-header.blankmode .blank-logo-block,#site-header.blankmode .blank-apparel_desktop{display:block !important;}
+  #site-header.blankmode .header__bottom{padding-bottom:0;}
+  .delivery-info-block{display:flex;justify-content:flex-end;align-items:center;gap:16px;width:fit-content;text-align:left;justify-self:flex-end; margin-left: auto;}
+  .grt-msg-box{flex:1;display:flex;flex-direction:column;justify-content:center;}
+  .grt-time-box{display:flex;align-items:center;justify-content:flex-end;white-space:nowrap;font-weight:600;}
+  .grt-time-box time{display:flex;align-items:center;gap:0px;line-height:1;}
+  .countdown-part{display:flex;align-items:center;line-height:1;}
+  .countdown-number{display:inline-flex;align-items:center;}
+  .countdown-unit{display:inline-flex;align-items:center;}
+  /*.grt-countdonw-dot{display:inline-flex;align-items:center;font-size:20px;line-height:1;margin:0 2px;}*/
+  custom-annoucement-bar .d-none.grt-announce{display:inline-flex !important; margin-bottom:0;}
+  .buyMoreSave .d-none.grt-product{display:inline-flex !important;}
+  .first-line{font-size:15px;font-weight:700;line-height:1.2;}
+  .second-line{font-size:12px;line-height:1.2;}
+  @media(max-width:768px){
+    .grt-msg-box{text-align:left;}
+    .delivery-info-block{width:98%;margin:auto;gap:4px;}
+    .contentMsg__mobile custom-annoucement-bar .contentMsg{transform:none;position:static;}
+    .contentMsg__mobile custom-annoucement-bar{padding:2px 0;}
+    .first-line{font-size:11px;font-weight:700;line-height:1.2;}
+    .second-line{font-size:9px;line-height:16px;}
+  }
+  @media(max-width:1198px){
+    .contentMsg__mobile,
+    .custom-annoucement-bar-spacer,
+    .headerCountdown,
+    .headerCountdown_mobile{display:none !important;}
+  }
+</style>

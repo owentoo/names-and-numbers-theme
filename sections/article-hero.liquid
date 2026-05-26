@@ -1,0 +1,222 @@
+{%-liquid
+  assign ss = section.settings
+-%}
+<div id="articleHero-{{ section.id }}" class="articleHero {% if section.settings.is_fullwidth %} container--fullwidth {% else %} container--large {% endif %} {% unless section.settings.remove_margin %} container--vertical-space {% endunless %} remove-empty-space reduce-margin-if-first">
+  {% if ss.showBreadcrumb %}
+    <div class="articleHero__breadCrumb">
+      {%- assign catLinks = page.metafields.custom.categories_links.value -%}
+      {% if catLinks.label.value != blank and catLinks.link.value != blank %}
+        <a href="{{ catLinks.link.value }}">{{ catLinks.label.value }}</a>
+        {% if catLinks.sub_name.value != blank and catLinks.sub_name_link.value != blank %}
+        /
+        {% endif %}
+      {% endif %}
+      {% if catLinks.sub_name.value != blank and catLinks.sub_name_link.value != blank %}
+        <a href="{{ catLinks.sub_name_link.value }}">{{ catLinks.sub_name.value }}</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+ {% if ss.title != blank %}
+    <div class="articleHero__title">
+      {% if template.suffix == 'university-article' %}
+        <h1>{{ ss.title | escape }}</h1>
+        {% else %}
+        <h2>{{ ss.title | escape }}</h2>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if ss.author != blank %}
+    <div class="articleHero__author">
+      {% if ss.authorIcon != blank %}
+        <div class="articleHero__author__item">
+          <img src="{{ ss.authorIcon | image_url: width: 48 }}" alt="">
+        </div>
+      {% endif %}
+      <div class="articleHero__author__item">
+        {{ ss.author }}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if ss.coverImg != blank %}
+    <div class="articleHero__videoImg {% if ss.videoURL != blank %}videoIcon{% endif %}" status="img">
+      {% if ss.videoURL != blank %}
+        <span class="span_playicon"></span>
+        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" x="0px" y="0px" width="595.279px" height="841.891px" viewBox="0 0 595.279 841.891" enable-background="new 0 0 595.279 841.891" xml:space="preserve"><title/><path fill="none" d="M311.375,353.375l-38.555-26.911c-8.985-6.273-21.355-4.073-27.628,4.913  c-2.325,3.332-3.572,7.297-3.572,11.359v156.417c-0.001,10.959,8.883,19.843,19.841,19.844c4.063,0.001,8.028-1.246,11.359-3.571  l38.555-26.911l73.485-51.302c8.986-6.271,11.187-18.64,4.915-27.625c-1.336-1.915-3-3.579-4.915-4.915L311.375,353.375z"/><path fill="{{ ss.videoicon }}" d="M297.64,123.305C133.258,123.305,0,256.563,0,420.945c0,164.382,133.258,297.64,297.64,297.64  s297.64-133.258,297.64-297.64C595.097,256.639,461.947,123.488,297.64,123.305z M384.861,437.213l-73.485,51.302l-38.555,26.911  c-8.985,6.272-21.355,4.072-27.628-4.913c-2.325-3.332-3.572-7.297-3.572-11.359V342.737c-0.001-10.958,8.883-19.843,19.841-19.844  c4.063,0,8.028,1.247,11.359,3.572l38.555,26.911l73.485,51.297c8.986,6.271,11.187,18.639,4.915,27.625  C388.44,434.212,386.776,435.876,384.861,437.213z"/></svg>
+        
+      {% endif %}
+      <img src="{{ ss.coverImg | image_url: width: 1000 }}" alt="">
+      {%- assign videoID = ss.videoURL | split: 'watch?v=' | last -%}
+      {% if videoID != blank %}
+        <textarea class="hidden"><iframe width="100%" src="https://www.youtube.com/embed/{{ videoID }}?autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></textarea>
+        <youtube-video></youtube-video>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+<script>
+  $( document )
+  .on(`click`, `.articleHero__videoImg.videoIcon svg`, function( e ) {
+    try {
+      e.stopImmediatePropagation();
+      const getStatus = $( this ).closest( `.articleHero__videoImg.videoIcon` ).attr( `status` );
+      const iframeHTML = $( this ).closest( `.articleHero__videoImg.videoIcon` ).find( `textarea` ).val();
+      if ( getStatus == 'img' ) {
+        $( this ).closest( `.articleHero__videoImg.videoIcon` ).find( `img,.span_playicon` ).addClass( `hidden` );
+
+        $( this ).closest( `.articleHero__videoImg.videoIcon` ).find( `youtube-video` ).html( iframeHTML );
+        $( this ).addClass( `hidden` );
+      } else {
+        $( this ).closest( `.articleHero__videoImg.videoIcon` ).find( `img` ).removeClass( `hidden` );
+        $( this ).closest( `.articleHero__videoImg.videoIcon` ).find( `iframe` ).addClass( `hidden` );
+        $( this ).removeClass( `hidden` );
+      }
+    } catch ( err ) {
+      console.log( `ERROR .articleHero__videoImg.videoIcon svg`, err.message );
+    }
+  })
+  ;
+</script>
+{% schema %}
+{
+  "name": "Article Hero",
+  "class": "mount-css-slider mount-slideshow mount-video-background supports-absolute-header",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "showBreadcrumb",
+      "label": "Show Breadcrumb",
+      "default": true,
+      "info": "This data come from page Categories links metaobject"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title"
+    },
+    {
+      "type": "image_picker",
+      "id": "authorIcon",
+      "label": "Author Icon"
+    },
+    {
+      "type": "text",
+      "id": "author",
+      "label": "Author"
+    },
+    {
+      "type": "image_picker",
+      "id": "coverImg",
+      "label": "Cover Image"
+    },
+    {
+      "type": "url",
+      "id": "videoURL",
+      "label": "Video URL"
+    },
+    {
+      "type": "color",
+      "id": "videoicon",
+      "label": "Play icon color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "maxWidth",
+      "label": "Max Width",
+      "unit": "px",
+      "min": 500,
+      "max": 1400,
+      "step": 10,
+      "default": 1000
+    },
+    {
+      "type": "range",
+      "id": "marginTop",
+      "label": "Margin Top",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "marginBottom",
+      "label": "Margin Bottom",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 0,
+      "unit": "px"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Article Hero"
+    }
+  ],
+  "disabled_on": {
+    "groups": ["header"]
+  }
+}
+{% endschema %}
+
+<style>
+  #articleHero-{{ section.id }} {
+    max-width: {{ ss.maxWidth | append: 'px' }};
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: {{ ss.marginTop | append: 'px' }} !important;
+    margin-bottom: {{ ss.marginBottom | append: 'px' }};
+  }
+  #articleHero-{{ section.id }} .articleHero__breadCrumb {
+    margin-bottom: 20px;
+  }
+  #articleHero-{{ section.id }} .articleHero__author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  #articleHero-{{ section.id }} .articleHero__author img {
+    max-width: 36px;
+  }
+  #articleHero-{{ section.id }} .articleHero__videoImg {
+    margin-top: 24px;
+  }
+  #articleHero-{{ section.id }} .articleHero__videoImg.videoIcon {
+    position: relative;
+  }
+  #articleHero-{{ section.id }} .articleHero__videoImg.videoIcon iframe {
+    aspect-ratio: 6/4;
+  }
+  #articleHero-{{ section.id }} .articleHero__videoImg.videoIcon svg,
+  #articleHero-{{ section.id }} .articleHero__videoImg.videoIcon .span_playicon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    z-index: 1;
+    width: 122px;
+    height:142px;
+    /*opacity: .7;
+    max-height: 25%;*/
+    cursor: pointer;
+  }
+  #articleHero-{{ section.id }} .articleHero__videoImg.videoIcon .span_playicon{width:106px; height:106px;background:#fff; border-radius:50%;}
+  
+  #articleHero-{{ section.id }} .articleHero__videoImg img {
+    max-width: 100%;
+    border-radius: 6px;
+  }
+
+  .template-page-university-article .articleBody img {border-radius: 6px;}
+
+  @media(max-width:768px){
+    #articleHero-{{ section.id }} .articleHero__videoImg.videoIcon svg{width:62px; height:74px;}
+    #articleHero-{{ section.id }} .articleHero__videoImg.videoIcon .span_playicon{width:58px; height:58px;}
+  }
+</style>

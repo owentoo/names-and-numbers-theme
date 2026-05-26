@@ -1,0 +1,578 @@
+{% doc %}
+  @prompt
+    Create a full-screen hero section with the following features:
+
+Background:
+Use a full-width, full-height HTML5 video as the background (video.mp4, autoplay, loop, muted).
+
+The video should be dimmed with a dark overlay (black with ~40% opacity) to make the text readable.
+
+Navigation (optional top nav bar):
+Sticky navigation bar at the top with basic links and phone number on the right.
+
+You can use placeholder logos and menu items.
+
+Headline Content (center-left):
+Place a bold white headline with the text:
+
+pgsql
+Copy
+Edit
+The most trusted transfer for <span class="rotating-word">Hustlers</span>.
+The .rotating-word should rotate through an array of words (e.g., “Hustlers”, “Makers”, “Creators”, “Brands”) every 2 seconds using JavaScript.
+
+CTA Button:
+Place a white rectangular button beneath the text with rounded corners and a hover effect.
+
+Styling:
+Use flexbox or grid to center content vertically and align text left.
+
+Font should be large, bold, and sans-serif.
+
+Responsive design: ensure layout adjusts on mobile (stack nav links, scale text, etc.)
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .hero-section-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hero-video-container-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+  }
+
+  .hero-video-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;}
+
+  .hero-overlay-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, {{ block.settings.overlay_opacity }});
+    z-index: 0;
+  }
+
+  .hero-nav-{{ ai_gen_id }} {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    transition: background-color 0.3s ease;
+  }
+
+  .hero-nav-scrolled-{{ ai_gen_id }} {
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+
+  .hero-logo-{{ ai_gen_id }} {
+    font-size: 24px;
+    font-weight: 700;
+    color: {{ block.settings.text_color }};
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+  }
+
+  .hero-logo-image-{{ ai_gen_id }} {
+    max-height: 40px;
+    width: auto;
+  }
+
+  .hero-nav-links-{{ ai_gen_id }} {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+  }
+
+  .hero-nav-link-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.2s ease;
+  }
+
+  .hero-nav-link-{{ ai_gen_id }}:hover {
+    opacity: 0.8;
+  }
+
+  .hero-phone-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .hero-phone-icon-{{ ai_gen_id }} {
+    width: 16px;
+    height: 16px;}
+
+  .hero-content-{{ ai_gen_id }} {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 40px;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;}
+
+  .hero-content-inner-{{ ai_gen_id }} {
+    max-width: 700px;
+  }
+
+  .hero-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size }}px;
+    font-weight: 800;
+    color: {{ block.settings.text_color }};
+    margin-bottom: 30px;
+    line-height: 1.2;
+  }
+
+  .rotating-word-{{ ai_gen_id }} {
+    color: {{ block.settings.accent_color }};
+    position: relative;
+    display: inline-block;
+  }
+
+  .hero-cta-{{ ai_gen_id }} {
+    display: inline-block;
+    padding: 16px 32px;
+    background-color: {{ block.settings.button_color }};
+    color: {{ block.settings.button_text_color }};
+    font-weight: 600;
+    font-size: 18px;
+    border-radius: {{ block.settings.button_radius }}px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+  }
+
+  .hero-cta-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_hover_color }};
+    transform: translateY(-2px);
+  }
+
+  .hero-menu-toggle-{{ ai_gen_id }} {
+    display: none;
+    background: none;
+    border: none;
+    color: {{ block.settings.text_color }};
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 20;
+  }
+
+  @media (max-width: 768px) {
+    .hero-nav-{{ ai_gen_id }} {
+      padding: 15px 20px;
+    }
+
+    .hero-content-{{ ai_gen_id }} {
+      padding: 0 20px;
+    }
+
+    .hero-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size_mobile }}px;
+    }
+
+    .hero-menu-toggle-{{ ai_gen_id }} {
+      display: block;
+    }
+
+    .hero-nav-links-{{ ai_gen_id }} {
+      position: fixed;
+      top: 0;
+      right: -100%;
+      width: 80%;
+      max-width: 300px;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.95);
+      flex-direction: column;
+      justify-content: center;
+      padding: 50px 20px;
+      transition: right 0.3s ease;
+      gap: 20px;
+    }
+
+    .hero-nav-links-{{ ai_gen_id }}.active {
+      right: 0;
+    }
+
+    .hero-phone-{{ ai_gen_id }} {
+      margin-top: 20px;
+    }
+  }
+{% endstyle %}
+
+<div class="hero-section-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="hero-video-container-{{ ai_gen_id }}">
+    {% if block.settings.background_video != blank %}
+      <video class="hero-video-{{ ai_gen_id }}" autoplay loop muted playsinline>
+        <source src="{{ block.settings.background_video }}" type="video/mp4">
+      </video>
+    {% else %}
+      <div class="hero-video-{{ ai_gen_id }}">
+        {{ 'hero-apparel-1' | placeholder_svg_tag }}
+      </div>
+    {% endif %}</div>
+  
+  <div class="hero-overlay-{{ ai_gen_id }}"></div>
+  
+  {% if block.settings.show_navigation %}
+    <nav class="hero-nav-{{ ai_gen_id }}"><a href="/" class="hero-logo-{{ ai_gen_id }}">
+        {% if block.settings.logo != blank %}
+          <img 
+            src="{{ block.settings.logo | image_url: width: 200 }}" 
+            alt="{{ block.settings.logo.alt | escape }}"
+            width="{{ block.settings.logo.width }}"
+            height="{{ block.settings.logo.height }}"
+            loading="lazy"
+            class="hero-logo-image-{{ ai_gen_id }}"
+          >
+        {% else %}
+          {{ block.settings.site_name }}
+        {% endif %}
+      </a><button class="hero-menu-toggle-{{ ai_gen_id }}" aria-label="Toggle menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      
+      <div class="hero-nav-links-{{ ai_gen_id }}">
+        {% for i in (1..4) %}
+          {% assign link_title_key = 'nav_link_' | append: i | append: '_title' %}
+          {% assign link_url_key = 'nav_link_' | append: i | append: '_url' %}
+          
+          {% if block.settings[link_title_key] != blank %}
+            <a href="{{ block.settings[link_url_key] | default: '#' }}" class="hero-nav-link-{{ ai_gen_id }}">
+              {{ block.settings[link_title_key] }}
+            </a>
+          {% endif %}
+        {% endfor %}
+        
+        {% if block.settings.phone_number != blank %}
+          <a href="tel:{{ block.settings.phone_number | remove: ' ' | remove: '-' | remove: '(' | remove: ')' }}" class="hero-phone-{{ ai_gen_id }}">
+            <svg class="hero-phone-icon-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            {{ block.settings.phone_number }}
+          </a>
+        {% endif %}
+      </div>
+    </nav>
+  {% endif %}<div class="hero-content-{{ ai_gen_id }}">
+    <div class="hero-content-inner-{{ ai_gen_id }}">
+      <h1 class="hero-heading-{{ ai_gen_id }}">
+        {{ block.settings.heading_text }}<span class="rotating-word-{{ ai_gen_id }}">{{ block.settings.rotating_words | split: ',' | first }}</span>.
+      </h1>
+      
+      {% if block.settings.button_text != blank %}
+        <a href="{{ block.settings.button_url }}" class="hero-cta-{{ ai_gen_id }}">
+          {{ block.settings.button_text }}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    class HeroSection{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+        this.rotatingWords = [];
+        this.currentWordIndex = 0;
+        this.rotatingElement = this.querySelector('.rotating-word-{{ ai_gen_id }}');
+        this.navElement = this.querySelector('.hero-nav-{{ ai_gen_id }}');
+        this.menuToggle = this.querySelector('.hero-menu-toggle-{{ ai_gen_id }}');
+        this.navLinks = this.querySelector('.hero-nav-links-{{ ai_gen_id }}');}
+      
+      connectedCallback() {
+        // Parse rotating words
+        const wordsString = '{{ block.settings.rotating_words }}';
+        this.rotatingWords = wordsString.split(',').map(word => word.trim());
+        
+        if (this.rotatingWords.length > 1) {
+          this.startWordRotation();
+        }
+        
+        // Sticky nav handler
+        if (this.navElement) {
+          window.addEventListener('scroll', this.handleScroll.bind(this));
+        }
+        
+        // Mobile menu toggle
+        if (this.menuToggle) {
+          this.menuToggle.addEventListener('click', this.toggleMobileMenu.bind(this));
+        }
+      }
+      
+      disconnectedCallback() {
+        if (this.rotationInterval) {
+          clearInterval(this.rotationInterval);
+        }
+        
+        window.removeEventListener('scroll', this.handleScroll.bind(this));
+        
+        if (this.menuToggle) {
+          this.menuToggle.removeEventListener('click', this.toggleMobileMenu.bind(this));
+        }
+      }
+      
+      startWordRotation() {
+        this.rotationInterval = setInterval(() => {
+          this.currentWordIndex = (this.currentWordIndex + 1) % this.rotatingWords.length;
+          
+          if (this.rotatingElement) {
+            this.rotatingElement.style.opacity = '0';
+            
+            setTimeout(() => {
+              this.rotatingElement.textContent = this.rotatingWords[this.currentWordIndex];
+              this.rotatingElement.style.opacity = '1';
+            }, 200);
+          }
+        }, {{ block.settings.rotation_speed | times: 1000 }});
+      }
+      
+      handleScroll() {
+        if (window.scrollY > 50) {
+          this.navElement.classList.add('hero-nav-scrolled-{{ ai_gen_id }}');
+        } else {
+          this.navElement.classList.remove('hero-nav-scrolled-{{ ai_gen_id }}');
+        }
+      }
+      
+      toggleMobileMenu() {
+        this.navLinks.classList.toggle('active');
+      }
+    }
+    
+    customElements.define('hero-section-{{ ai_gen_id }}', HeroSection{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Video Hero Section",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Background Settings"
+    },
+    {
+      "type": "url",
+      "id": "background_video",
+      "label": "Background Video URL",
+      "info": "Enter the direct URL to your MP4 video file"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0.1,
+      "max": 0.9,
+      "step": 0.1,
+      "default": 0.4,
+      "label": "Overlay Opacity"
+    },
+    {
+      "type": "header",
+      "content": "Navigation"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_navigation",
+      "label": "Show Navigation",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Logo"
+    },
+    {
+      "type": "text",
+      "id": "site_name",
+      "label": "Site Name (if no logo)",
+      "default": "Your Brand"
+    },
+    {
+      "type": "text",
+      "id": "nav_link_1_title",
+      "label": "Menu Item 1",
+      "default": "Home"
+    },
+    {
+      "type": "url",
+      "id": "nav_link_1_url",
+      "label": "Menu Item 1 URL"
+    },
+    {
+      "type": "text",
+      "id": "nav_link_2_title",
+      "label": "Menu Item 2",
+      "default": "Shop"
+    },
+    {
+      "type": "url",
+      "id": "nav_link_2_url",
+      "label": "Menu Item 2 URL"
+    },
+    {
+      "type": "text",
+      "id": "nav_link_3_title",
+      "label": "Menu Item 3",
+      "default": "About"
+    },
+    {
+      "type": "url",
+      "id": "nav_link_3_url",
+      "label": "Menu Item 3 URL"
+    },
+    {
+      "type": "text",
+      "id": "nav_link_4_title",
+      "label": "Menu Item 4",
+      "default": "Contact"
+    },
+    {
+      "type": "url",
+      "id": "nav_link_4_url",
+      "label": "Menu Item 4 URL"
+    },
+    {
+      "type": "text",
+      "id": "phone_number",
+      "label": "Phone Number",
+      "default": "(123) 456-7890"
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "textarea",
+      "id": "heading_text",
+      "label": "Heading Text",
+      "default": "The most trusted transfer for"
+    },
+    {
+      "type": "text",
+      "id": "rotating_words",
+      "label": "Rotating Words (comma separated)",
+      "default": "Hustlers,Makers,Creators,Brands"
+    },
+    {
+      "type": "range",
+      "id": "rotation_speed",
+      "min": 1,
+      "max": 5,
+      "step": 0.5,
+      "default": 2,
+      "label": "Word Rotation Speed (seconds)"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button Text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "button_url",
+      "label": "Button URL"
+    },
+    {
+      "type": "header",
+      "content": "Styling"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent Color (Rotating Words)",
+      "default": "#FF6B6B"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button Color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button Text Color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_color",
+      "label": "Button Hover Color",
+      "default": "#F0F0F0"
+    },
+    {
+      "type": "range",
+      "id": "button_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "default": 8,
+      "label": "Button Border Radius"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 30,
+      "max": 80,
+      "step": 2,
+      "default": 60,
+      "label": "Heading Size (Desktop)"
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 24,
+      "max": 48,
+      "step": 2,
+      "default": 36,
+      "label": "Heading Size (Mobile)"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Video Hero Section"
+    }
+  ]
+}
+{% endschema %}

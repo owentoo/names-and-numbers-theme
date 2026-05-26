@@ -1,0 +1,44 @@
+{%- comment -%}
+  Optimizely A/B test wiring for the Gang Sheet Builder CTA.
+  --------------------------------------------------------
+  Experiment ID: 4933027399204864
+  Traffic allocation (set in Optimizely UI): 20%
+  Split: 50/50 control vs variant
+  Net effect:
+    - 80% of traffic: experiment never fires, default CSS keeps old CTA visible.
+    - 10% control: html[data-gsb-experiment="control"] set; old CTA stays visible.
+    - 10% variant: html[data-gsb-experiment="variant"] set; new CTA replaces old.
+
+  Variation naming convention in the Optimizely UI:
+    - Include "variant", "treatment", or "new" in the variation name => variant bucket
+    - Anything else => control bucket
+
+  Alternatively, set the attribute directly from each variation's custom code:
+    document.documentElement.dataset.gsbExperiment = 'variant';
+  The theme will honor whichever value is set.
+
+  Optimizely Web's anti-flicker loader (already embedded on the site) prevents
+  a flash of old content for bucketed users.
+{%- endcomment -%}
+<script>
+  (function () {
+    var EXPERIMENT_ID = '4933027399204864';
+    window.optimizely = window.optimizely || [];
+    window.optimizely.push({
+      type: 'addListener',
+      filter: { type: 'lifecycle', name: 'campaignDecided' },
+      handler: function (event) {
+        try {
+          var data = event && event.data;
+          if (!data) return;
+          var campaignId = data.campaign && String(data.campaign.id);
+          var experimentId = data.experiment && String(data.experiment.id);
+          if (campaignId !== EXPERIMENT_ID && experimentId !== EXPERIMENT_ID) return;
+          var variationName = ((data.variation && data.variation.name) || '').toLowerCase();
+          var bucket = /variant|treatment|new/.test(variationName) ? 'variant' : 'control';
+          document.documentElement.dataset.gsbExperiment = bucket;
+        } catch (err) { /* noop */ }
+      }
+    });
+  })();
+</script>

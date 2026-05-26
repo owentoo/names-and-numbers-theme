@@ -1,0 +1,887 @@
+{% doc %}
+  @prompt
+    need a collection of link blocks up to 30 each with an image and text below, 2-3 per row. whole section needs horizontal padding and spacing options 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-link-collection-{{ ai_gen_id }} {
+    padding: {{ block.settings.vertical_padding }}px {{ block.settings.horizontal_padding }}px;
+  }
+
+  .ai-link-collection-grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    gap: {{ block.settings.grid_gap }}px;
+    max-width: 100%;
+  }
+
+  .ai-link-item-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    transition: transform 0.3s ease;
+  }
+
+  .ai-link-item-{{ ai_gen_id }}:hover {
+    transform: translateY(-4px);
+  }
+
+  .ai-link-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    background-color: {{ block.settings.image_background_color }};
+  }
+
+  .ai-link-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: auto;
+    display: block;
+    aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    object-fit: cover;
+  }
+
+  .ai-link-image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: {{ block.settings.image_background_color }};
+  }
+
+  .ai-link-image-placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-link-text-{{ ai_gen_id }} {
+    margin-top: {{ block.settings.text_spacing }}px;
+    font-size: {{ block.settings.text_size }}px;
+    color: {{ block.settings.text_color }};
+    text-align: {{ block.settings.text_alignment }};
+    font-weight: {{ block.settings.text_weight }};
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-link-collection-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+    }
+  }
+{% endstyle %}
+
+<div class="ai-link-collection-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-link-collection-grid-{{ ai_gen_id }}">
+    {% for i in (1..30) %}
+      {% liquid
+        assign link_key = 'link_' | append: i
+        assign image_key = 'image_' | append: i
+        assign text_key = 'text_' | append: i
+        
+        assign link_url = block.settings[link_key]
+        assign link_image = block.settings[image_key]
+        assign link_text = block.settings[text_key]
+      %}
+
+      {% if link_url != blank or link_image != blank or link_text != blank %}
+        <a 
+          href="{{ link_url | default: '#' }}" 
+          class="ai-link-item-{{ ai_gen_id }}"
+        >
+          <div class="ai-link-image-wrapper-{{ ai_gen_id }}">
+            {% if link_image %}
+              <img
+                src="{{ link_image | image_url: width: 800 }}"
+                alt="{{ link_text | escape }}"
+                loading="lazy"
+                width="{{ link_image.width }}"
+                height="{{ link_image.height }}"
+                class="ai-link-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="ai-link-image-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          
+          {% if link_text != blank %}
+            <div class="ai-link-text-{{ ai_gen_id }}">
+              {{ link_text }}
+            </div>
+          {% endif %}
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Link collection",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "columns_desktop",
+      "label": "Columns on desktop",
+      "options": [
+        {
+          "value": "2",
+          "label": "2"
+        },
+        {
+          "value": "3",
+          "label": "3"
+        }
+      ],
+      "default": "3"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns on mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "min": 10,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Grid spacing",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Horizontal padding",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "vertical_padding",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Vertical padding",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "Image style"
+    },
+    {
+      "type": "select",
+      "id": "image_aspect_ratio",
+      "label": "Image aspect ratio",
+      "options": [
+        {
+          "value": "1",
+          "label": "Square (1:1)"
+        },
+        {
+          "value": "1.33333",
+          "label": "Landscape (4:3)"
+        },
+        {
+          "value": "0.75",
+          "label": "Portrait (3:4)"
+        },
+        {
+          "value": "1.77778",
+          "label": "Wide (16:9)"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "image_background_color",
+      "label": "Background color",
+      "default": "#f2f2f2"
+    },
+    {
+      "type": "header",
+      "content": "Text style"
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "text_weight",
+      "label": "Text weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "500"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "text_spacing",
+      "min": 5,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Spacing above text",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Link 1"
+    },
+    {
+      "type": "url",
+      "id": "link_1",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_1",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 2"
+    },
+    {
+      "type": "url",
+      "id": "link_2",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_2",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 3"
+    },
+    {
+      "type": "url",
+      "id": "link_3",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_3",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 4"
+    },
+    {
+      "type": "url",
+      "id": "link_4",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_4",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 5"
+    },
+    {
+      "type": "url",
+      "id": "link_5",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_5",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_5",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 6"
+    },
+    {
+      "type": "url",
+      "id": "link_6",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_6",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_6",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 7"
+    },
+    {
+      "type": "url",
+      "id": "link_7",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_7",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_7",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 8"
+    },
+    {
+      "type": "url",
+      "id": "link_8",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_8",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_8",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 9"
+    },
+    {
+      "type": "url",
+      "id": "link_9",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_9",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_9",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 10"
+    },
+    {
+      "type": "url",
+      "id": "link_10",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_10",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_10",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 11"
+    },
+    {
+      "type": "url",
+      "id": "link_11",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_11",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_11",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 12"
+    },
+    {
+      "type": "url",
+      "id": "link_12",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_12",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_12",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 13"
+    },
+    {
+      "type": "url",
+      "id": "link_13",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_13",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_13",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 14"
+    },
+    {
+      "type": "url",
+      "id": "link_14",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_14",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_14",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 15"
+    },
+    {
+      "type": "url",
+      "id": "link_15",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_15",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_15",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 16"
+    },
+    {
+      "type": "url",
+      "id": "link_16",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_16",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_16",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 17"
+    },
+    {
+      "type": "url",
+      "id": "link_17",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_17",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_17",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 18"
+    },
+    {
+      "type": "url",
+      "id": "link_18",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_18",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_18",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 19"
+    },
+    {
+      "type": "url",
+      "id": "link_19",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_19",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_19",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 20"
+    },
+    {
+      "type": "url",
+      "id": "link_20",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_20",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_20",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 21"
+    },
+    {
+      "type": "url",
+      "id": "link_21",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_21",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_21",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 22"
+    },
+    {
+      "type": "url",
+      "id": "link_22",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_22",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_22",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 23"
+    },
+    {
+      "type": "url",
+      "id": "link_23",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_23",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_23",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 24"
+    },
+    {
+      "type": "url",
+      "id": "link_24",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_24",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_24",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 25"
+    },
+    {
+      "type": "url",
+      "id": "link_25",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_25",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_25",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 26"
+    },
+    {
+      "type": "url",
+      "id": "link_26",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_26",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_26",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 27"
+    },
+    {
+      "type": "url",
+      "id": "link_27",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_27",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_27",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 28"
+    },
+    {
+      "type": "url",
+      "id": "link_28",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_28",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_28",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 29"
+    },
+    {
+      "type": "url",
+      "id": "link_29",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_29",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_29",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Link 30"
+    },
+    {
+      "type": "url",
+      "id": "link_30",
+      "label": "Link URL"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_30",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_30",
+      "label": "Text"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Link collection"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,151 @@
+{%-liquid
+  assign ss = section.settings
+  assign sb = section.blocks
+-%}
+{{ 'hp-global.css' | asset_url | stylesheet_tag }}
+{{ 'hp-core-products.css' | asset_url | stylesheet_tag }}
+
+<div class="container--large">
+  <div class="hpCoreProducts">
+    <div class="hpCoreProducts__header">
+      {% if ss.kicker != blank %}
+        <div class="hpCoreProducts__kicker">{{ ss.kicker }}</div>
+      {% endif %}
+      {% if ss.heading != blank %}
+        <h2 class="hpCoreProducts__heading">{{ ss.heading }}</h2>
+      {% endif %}
+      {% if ss.subtext != blank %}
+        <p class="hpCoreProducts__subtext">{{ ss.subtext }}</p>
+      {% endif %}
+    </div>
+
+    {% if sb.size > 0 %}
+      <div class="hpCoreProducts__grid">
+        {%- for block in sb -%}
+          {%- assign b = block.settings -%}
+          <a href="{{ b.link_url }}" class="hpCoreProducts__card" {{ block.shopify_attributes }}>
+            {% if b.badge_text != blank %}
+              <div class="hpCoreProducts__badge" style="background-color: {{ b.badge_color }};">
+                {{ b.badge_text }}
+              </div>
+            {% endif %}
+            {% if b.image != blank %}
+              <div class="hpCoreProducts__image">
+                <img
+                  src="{{ b.image | image_url: width: 600 }}"
+                  srcset="{{ b.image | image_url: width: 400 }} 400w, {{ b.image | image_url: width: 600 }} 600w"
+                  sizes="(max-width: 600px) 100vw, 33vw"
+                  alt="{{ b.title | escape }}"
+                  loading="lazy"
+                  width="{{ b.image.width }}"
+                  height="{{ b.image.height }}"
+                >
+              </div>
+            {% endif %}
+            <div class="hpCoreProducts__content">
+              <div class="hpCoreProducts__card-title">{{ b.title }}</div>
+              {% if b.description != blank %}
+                <div class="hpCoreProducts__card-desc">{{ b.description }}</div>
+              {% endif %}
+              {% if b.price_text != blank %}
+                <div class="hpCoreProducts__price">{{ b.price_text }}</div>
+              {% endif %}
+            </div>
+          </a>
+        {%- endfor -%}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{%- capture getStyles -%}
+  #shopify-section-{{ section.id }} {
+    background-color: {{ ss.bgColor }};
+    margin-top: {{ ss.secMarginTop_desktop | append: 'px' }};
+    margin-bottom: {{ ss.secMarginBottom_desktop | append: 'px' }};
+  }
+  #shopify-section-{{ section.id }} .hpCoreProducts {
+    padding-top: {{ ss.secPaddingTop_desktop | append: 'px' }};
+    padding-bottom: {{ ss.secPaddingBottom_desktop | append: 'px' }};
+  }
+  #shopify-section-{{ section.id }} .hpCoreProducts__kicker { color: {{ ss.kickerColor }}; }
+  #shopify-section-{{ section.id }} .hpCoreProducts__card { background-color: {{ ss.cardBgColor }}; }
+  @media (max-width: 1024px) {
+    #shopify-section-{{ section.id }} {
+      margin-top: {{ ss.secMarginTop_tab | append: 'px' }};
+      margin-bottom: {{ ss.secMarginBottom_tab | append: 'px' }};
+    }
+    #shopify-section-{{ section.id }} .hpCoreProducts {
+      padding-top: {{ ss.secPaddingTop_tab | append: 'px' }};
+      padding-bottom: {{ ss.secPaddingBottom_tab | append: 'px' }};
+    }
+  }
+  @media (max-width: 600px) {
+    #shopify-section-{{ section.id }} {
+      margin-top: {{ ss.secMarginTop_mobile | append: 'px' }};
+      margin-bottom: {{ ss.secMarginBottom_mobile | append: 'px' }};
+    }
+    #shopify-section-{{ section.id }} .hpCoreProducts {
+      padding-top: {{ ss.secPaddingTop_mobile | append: 'px' }};
+      padding-bottom: {{ ss.secPaddingBottom_mobile | append: 'px' }};
+    }
+  }
+{%- endcapture -%}
+<style>{{ getStyles }}</style>
+
+{% schema %}
+{
+  "name": "HP - Core Products",
+  "class": "hp-section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "CORE PRODUCTS" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Choose How You Want to Order" },
+    { "type": "textarea", "id": "subtext", "label": "Subtext", "default": "Whether you're a first-timer or a seasoned pro, we have the perfect workflow." },
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "bgColor", "label": "Background Color", "default": "#ffffff" },
+    { "type": "color", "id": "kickerColor", "label": "Kicker Color", "default": "#019AFF" },
+    { "type": "color", "id": "cardBgColor", "label": "Card Background Color", "default": "#f5f0eb" },
+    { "type": "header", "content": "Desktop Spacing" },
+    { "type": "range", "id": "secMarginTop_desktop", "label": "Margin Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secMarginBottom_desktop", "label": "Margin Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secPaddingTop_desktop", "label": "Padding Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 64 },
+    { "type": "range", "id": "secPaddingBottom_desktop", "label": "Padding Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 64 },
+    { "type": "header", "content": "Tablet Spacing" },
+    { "type": "range", "id": "secMarginTop_tab", "label": "Margin Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secMarginBottom_tab", "label": "Margin Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secPaddingTop_tab", "label": "Padding Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 48 },
+    { "type": "range", "id": "secPaddingBottom_tab", "label": "Padding Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 48 },
+    { "type": "header", "content": "Mobile Spacing" },
+    { "type": "range", "id": "secMarginTop_mobile", "label": "Margin Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secMarginBottom_mobile", "label": "Margin Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 0 },
+    { "type": "range", "id": "secPaddingTop_mobile", "label": "Padding Top", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 40 },
+    { "type": "range", "id": "secPaddingBottom_mobile", "label": "Padding Bottom", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 40 }
+  ],
+  "blocks": [
+    {
+      "type": "product_card",
+      "name": "Product Card",
+      "limit": 6,
+      "settings": [
+        { "type": "text", "id": "badge_text", "label": "Badge Text (e.g. MOST POPULAR)" },
+        { "type": "color", "id": "badge_color", "label": "Badge Color", "default": "#019AFF" },
+        { "type": "image_picker", "id": "image", "label": "Product Image" },
+        { "type": "text", "id": "title", "label": "Title", "default": "DTF Transfers by Size" },
+        { "type": "textarea", "id": "description", "label": "Description", "default": "Upload your design, pick a size, and we handle the rest." },
+        { "type": "text", "id": "price_text", "label": "Price Text", "default": "From $0.02/sq. in." },
+        { "type": "url", "id": "link_url", "label": "Link URL" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "HP - Core Products",
+      "blocks": [
+        { "type": "product_card", "settings": { "badge_text": "MOST POPULAR", "title": "DTF Transfers by Size", "description": "Upload your design, pick a size, and we handle the rest.", "price_text": "From $0.02/sq. in." } },
+        { "type": "product_card", "settings": { "badge_text": "ALL SKILL LEVELS", "title": "Build a Gang Sheet", "description": "Drag-and-drop builder — arrange multiple designs on one sheet to save money.", "price_text": "From $0.02/sq. in." } },
+        { "type": "product_card", "settings": { "badge_text": "FOR PROS", "title": "Upload a Gang Sheet", "description": "Upload your print-ready AI, PNG, or PDF gang sheet directly.", "price_text": "From $0.02/sq. in." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,414 @@
+{% doc %}
+  @prompt
+    Create a custom Shopify section named selling-points-inline-bar designed to replicate a horizontal bar with three distinct selling points, similar to the layout shown in the attached screenshot.
+
+Functional Requirements:
+Three separate text blocks, each fully customizable.
+
+Each block should allow:
+
+A clickable link (optional).
+
+Custom text content.
+
+Full typography control:
+
+Font size
+
+Font weight
+
+Text color
+
+Font family (optional)
+
+Option to open link in a new tab.
+
+Blocks should be visually separated by vertical pipes (|), but this separator should:
+
+Not be clickable
+
+Automatically appear between items (not after the last one)
+
+Layout & Styling:
+All text should be horizontally aligned on desktop, stacked on mobile.
+
+Include padding/margin options for top and bottom spacing.
+
+Optional settings for:
+
+Background color
+
+Text alignment (centered or left-aligned)
+
+Mobile text size overrides
+
+Clean, responsive design that works on all devices.
+
+Admin Experience:
+Use Shopify schema to define three blocks, each with:
+
+Text
+
+URL
+
+Font size selector
+
+Font weight selector
+
+Text color picker
+
+"Open link in new tab?" checkbox
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .selling-points-bar-{{ ai_gen_id }} {
+    display: flex;
+    justify-content: {{ block.settings.alignment }};
+    align-items: center;
+    padding: {{ block.settings.padding_top }}px {{ block.settings.padding_horizontal }}px {{ block.settings.padding_bottom }}px;
+    background-color: {{ block.settings.background_color }};
+  }
+
+  .selling-points-container-{{ ai_gen_id }} {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: {{ block.settings.alignment }};
+    align-items: center;
+    gap: {{ block.settings.gap }}px;
+  }
+
+  .selling-point-item-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+  }
+
+  .selling-point-text-{{ ai_gen_id }} {
+    font-size: {{ block.settings.font_size }}px;
+    font-weight: {{ block.settings.font_weight }};
+    color: {{ block.settings.text_color }};
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .selling-point-text-{{ ai_gen_id }}:hover {
+    opacity: 0.8;
+  }
+
+  .selling-point-separator-{{ ai_gen_id }} {
+    display: flex;
+    color: {{ block.settings.separator_color }};
+    font-size: {{ block.settings.font_size }}px;
+    font-weight: {{ block.settings.font_weight }};
+  }
+
+  @media screen and (max-width: 749px) {
+    .selling-points-container-{{ ai_gen_id }} {
+      flex-direction: {{ block.settings.mobile_layout }};
+      gap: {{ block.settings.mobile_gap }}px;
+    }
+
+    .selling-point-text-{{ ai_gen_id }} {
+      font-size: {{ block.settings.mobile_font_size }}px;
+    }
+
+    .selling-point-separator-{{ ai_gen_id }} {
+      font-size: {{ block.settings.mobile_font_size }}px;
+      {% if block.settings.mobile_layout == 'column' %}
+        display: none;
+      {% endif %}
+    }
+  }
+{% endstyle %}
+
+<div class="selling-points-bar-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="selling-points-container-{{ ai_gen_id }}">
+    {% if block.settings.point_1_text != blank %}
+      <div class="selling-point-item-{{ ai_gen_id }}">
+        {% if block.settings.point_1_url != blank %}
+          <a href="{{ block.settings.point_1_url }}" 
+             class="selling-point-text-{{ ai_gen_id }}"
+             {% if block.settings.point_1_new_tab %}target="_blank" rel="noopener"{% endif %}>
+            {{ block.settings.point_1_text }}
+          </a>
+        {% else %}
+          <span class="selling-point-text-{{ ai_gen_id }}">{{ block.settings.point_1_text }}</span>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if block.settings.point_1_text != blank and block.settings.point_2_text != blank %}
+      <div class="selling-point-separator-{{ ai_gen_id }}">|</div>
+    {% endif %}
+
+    {% if block.settings.point_2_text != blank %}
+      <div class="selling-point-item-{{ ai_gen_id }}">
+        {% if block.settings.point_2_url != blank %}
+          <a href="{{ block.settings.point_2_url }}" 
+             class="selling-point-text-{{ ai_gen_id }}"
+             {% if block.settings.point_2_new_tab %}target="_blank" rel="noopener"{% endif %}>
+            {{ block.settings.point_2_text }}
+          </a>
+        {% else %}
+          <span class="selling-point-text-{{ ai_gen_id }}">{{ block.settings.point_2_text }}</span>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if block.settings.point_2_text != blank and block.settings.point_3_text != blank %}
+      <div class="selling-point-separator-{{ ai_gen_id }}">|</div>
+    {% endif %}
+
+    {% if block.settings.point_3_text != blank %}
+      <div class="selling-point-item-{{ ai_gen_id }}">
+        {% if block.settings.point_3_url != blank %}
+          <a href="{{ block.settings.point_3_url }}" 
+             class="selling-point-text-{{ ai_gen_id }}"
+             {% if block.settings.point_3_new_tab %}target="_blank" rel="noopener"{% endif %}>
+            {{ block.settings.point_3_text }}
+          </a>
+        {% else %}
+          <span class="selling-point-text-{{ ai_gen_id }}">{{ block.settings.point_3_text }}</span>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Selling Points Bar",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Selling Point 1"
+    },
+    {
+      "type": "text",
+      "id": "point_1_text",
+      "label": "Text",
+      "default": "Free Shipping"
+    },
+    {
+      "type": "url",
+      "id": "point_1_url",
+      "label": "Link (optional)"
+    },
+    {
+      "type": "checkbox",
+      "id": "point_1_new_tab",
+      "label": "Open in new tab",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Selling Point 2"
+    },
+    {
+      "type": "text",
+      "id": "point_2_text",
+      "label": "Text",
+      "default": "30-Day Returns"
+    },
+    {
+      "type": "url",
+      "id": "point_2_url",
+      "label": "Link (optional)"
+    },
+    {
+      "type": "checkbox",
+      "id": "point_2_new_tab",
+      "label": "Open in new tab",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Selling Point 3"
+    },
+    {
+      "type": "text",
+      "id": "point_3_text",
+      "label": "Text",
+      "default": "Secure Checkout"
+    },
+    {
+      "type": "url",
+      "id": "point_3_url",
+      "label": "Link (optional)"
+    },
+    {
+      "type": "checkbox",
+      "id": "point_3_new_tab",
+      "label": "Open in new tab",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "font_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "separator_color",
+      "label": "Separator color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alignment",
+      "options": [
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "min": 5,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Gap between items",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Top padding",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Bottom padding",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "padding_horizontal",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Horizontal padding",
+      "default": 20
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#f4f4f4"
+    },
+    {
+      "type": "header",
+      "content": "Mobile Settings"
+    },
+    {
+      "type": "select",
+      "id": "mobile_layout",
+      "label": "Mobile layout",
+      "options": [
+        {
+          "value": "row",
+          "label": "Horizontal"
+        },
+        {
+          "value": "column",
+          "label": "Vertical"
+        }
+      ],
+      "default": "row"
+    },
+    {
+      "type": "range",
+      "id": "mobile_font_size",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Mobile font size",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "mobile_gap",
+      "min": 5,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "label": "Mobile gap between items",
+      "default": 15
+    }
+  ],
+  "presets": [
+    {
+      "name": "Selling Points Bar"
+    }
+  ]
+}
+{% endschema %}

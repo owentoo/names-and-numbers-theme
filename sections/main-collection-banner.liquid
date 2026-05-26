@@ -1,0 +1,322 @@
+{% assign urlParts = request.path | split: "/" %}
+{% assign urlPartsLastIndex = urlParts.size | minus: 1 %}
+{% assign targetCollectionName = urlParts[urlPartsLastIndex] %}
+{% assign targetCollection = collections[targetCollectionName] %}
+
+{% if targetCollection == blank %}
+  {% assign targetCollection = collection %}
+{% endif %}
+
+{% unless section.settings.show_collection_image and targetCollection.image %}
+  {%- render 'breadcrumb', container: 'large', vertical_space: 'vertical-space-xsmall', style: 'breadcrumb-main--margin' -%}
+{%- endunless -%}
+
+<style>
+  .value-prop {
+      margin: 10px 10px 20px 10px;
+      display: inline-block;
+      padding: 7px 15px;
+      font-weight: 700;
+      font-size: 18px;
+      background-color: #ffea85;
+      text-align: center;
+      border-radius: 5px;
+      color: #4e4b0f;
+  }
+  
+  .tooltip {
+  	position: relative;
+  	display: inline-block;
+  	cursor: pointer;
+  }
+  
+  .value-prop .tooltip .tooltiptext {
+  	visibility: hidden;
+  	width: 300px;
+  	background-color: #555;
+  	color: #fff;
+  	font-size:14px;
+  	font-weight:500;
+  	text-align: center;
+  	border-radius: 5px;
+  	padding: 5px;
+  	position: absolute;
+  	z-index: 1;
+  	bottom: 125%; /* Position above the tooltip */
+  	left: 50%;
+  	margin-left: -150px; /* Center the tooltip */
+  	opacity: 0;
+  	transition: opacity 0.3s; min-height:60px;
+  }
+  
+  .value-prop .tooltip .tooltiptext::after {
+  	content: "";
+  	position: absolute;
+  	top: 100%; /* Arrow at the bottom */
+  	left: 50%;
+  	margin-left: -5px;
+  	border-width: 5px;
+  	border-style: solid;
+  	border-color: #555 transparent transparent transparent;margin-top: 0;
+  }
+  
+  .tooltip:hover .tooltiptext {
+  	visibility: visible;
+  	opacity: 1;
+  }
+  
+  .info-circle {
+  	display: inline-block;
+  	width: 20px;
+  	height: 20px;
+  	border: 1px solid #000;
+  	border-radius: 50%;
+  	text-align: center;
+  	line-height: 18px;
+  	font-size: 12px;
+  	font-weight: bold;
+  	background-color: #fff;
+  }
+  .info-circle:hover {
+    background-color:#ddd;
+  }
+  
+  @media screen and (max-width: 767px) {
+    .value-prop {
+      margin: 5px 5px 10px 5px;
+      width:135px;
+      text-wrap:balance;
+      text-align: inherit;
+      font-size:14px;
+    }
+   
+   .collection-banner .container--vertical-space-small.container--large__without-margin {
+       padding-top: clamp(2.5rem, var(--container-vertical-space), 2.375rem);
+    }
+  }
+</style>
+{%liquid
+  assign templateList = 'collection.blanks-collection,collection.test-collection,collection.blanks-home,collection.blanks-home-dev,collection.blanks-home-t-shirt' | split: ','
+  assign isblankproduct = false
+  if templateList contains template
+    assign isblankproduct = true
+  endif
+%}
+<div class="collection-banner {{ section.settings.custom_class }}">
+<div class="container--outer__wrap">
+  <div class="
+    {% if section.settings.show_collection_image and targetCollection.image %}
+      container--fullwidth reduce-margin-if-first
+    {% else %}
+      container--large container--vertical-space-small container--large__without-margin
+    {% endif %}
+  ">
+    
+    {%- if section.settings.show_collection_image and targetCollection.image -%}
+    
+      <div id="element-main-collection-banner" class="card align-content align-content--horizontal-left align-content--vertical-bottom margin-bottom--large element--height-{{ section.settings.height }}">
+  
+        <div class="container--large container--vertical-space-small" style="z-index:9">
+          <div class="card__text gutter-bottom--large spacing--small remove-empty-space" style="margin:0">
+  
+            {%- render 'breadcrumb', container: 'element--show-when-section-is-first', vertical_space: 'vertical-space-xsmall', style: 'breadcrumb-main--margin' -%}
+  
+            <div class="container--vertical-space-small">
+              <div class="section-heading section-heading--left section-heading--two-rows">
+                <div class="section-heading__text remove-empty-space">
+                  <h1 class="heading-size--page-title">{{ targetCollection.title | escape }}
+                    {% if section.settings.show_wholesalemsg or isblankproduct %}
+                    <span style="font-weight:300;"> at </span> Wholesale Prices
+                    {% endif %}
+                  </h1>
+                  
+                  {% if section.settings.show_wholesalemsg or isblankproduct %}
+                  <!-- For blank -->
+                  <div class="value-props">
+                    <div class="value-prop">✓ Next day {% if template.suffix == "makerflo" %}<span>rush</span>{% endif %}  delivery</div>
+                    <div class="value-prop">✓ No minimums</div>
+                    {% unless template.suffix == "makerflo" %}<div class="value-prop">✓ 2,000+ products</div>{% endunless %}
+                    <div class="value-prop">✓ Competitive pricing <span class="tooltip"><span class="info-circle">i</span>
+                        <span class="tooltiptext">Get pricing that protects your profit margin. Our blank product pricing rivals direct wholesalers and is as low or lower than most secondary market suppliers.</span></span>
+                    </div>
+                  </div>
+                  <!-- ./For blank -->
+                  {% endif %}
+                  
+                  {%- if section.settings.show_collection_description and targetCollection.description != blank -%}
+                    <div class="collection-header__description rte">{{ targetCollection.description }}</div>
+                  {%- endif -%}
+                </div>
+              </div>
+            </div>
+  
+          </div>
+        </div>
+  
+        <div class="card__image card__image--background {% if section.settings.color_background_main != "rgba(0,0,0,0)" %} card__image--with-overlay {% endif %}" aria-hidden="true">
+          {%- render 'lazy-image', image: targetCollection.image, type: 'background', alt: targetCollection.title, sizes: 'sizes="100vw"', class: 'lazy-image--to-reveal', id: section.id, overlay: true -%} 
+        </div>
+  
+        {%- render 'custom-colors', id: 'main-collection-banner', text: section.settings.color_text_main, background: section.settings.color_background_main, hide_borders: true -%}
+  
+      </div>
+  
+    {%- else -%}
+      
+      <div class="section-heading section-heading--left section-heading--two-rows gutter-bottom--page">
+  
+        <div class="section-heading__text remove-empty-space">
+          <h1 class="heading-size--page-title">{{ targetCollection.title | escape }}
+            {% if section.settings.show_wholesalemsg or isblankproduct %}
+            <span style="font-weight:300;"> at </span> Wholesale Prices
+            {% endif %}
+          </h1>
+          
+          {% if section.settings.show_wholesalemsg or isblankproduct %}
+          <!-- For blank -->
+          <div class="value-props">
+            <div class="value-prop">✓ Next day {% if template.suffix == "makerflo" %}<span>rush</span>{% endif %}  delivery</div>
+            <div class="value-prop">✓ No minimums</div>
+            {% unless template.suffix == "makerflo" %}<div class="value-prop">✓ 2,000+ products</div>{% endunless %}
+            <div class="value-prop">✓ Competitive pricing <span class="tooltip"><span class="info-circle">i</span>
+                <span class="tooltiptext">Get pricing that protects your profit margin. Our blank product pricing rivals direct wholesalers and is as low or lower than most secondary market suppliers.</span></span>
+            </div>
+          </div>
+          <!-- ./For blank -->
+          {% endif %}
+          
+  
+          {%- if section.settings.show_collection_description and targetCollection.description != blank -%}
+            <div class="collection-header__description rte">{{ targetCollection.description }}</div>
+          {%- endif -%}
+  
+        </div>
+  
+      </div>
+  
+    {%- endif -%}
+  
+  </div>
+</div>
+</div>
+{% if template.suffix == blank or template.suffix == 'test-collection' or template contains 'blanks-home' or template contains 'makerflo' %}
+<!--
+  <script>
+addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        const pageTitle = document.getElementsByClassName('heading-size--page-title')[0];
+        const span = pageTitle.querySelector('span');
+        if (span) {
+            const nextText = span.nextSibling;
+            if (nextText && nextText.nodeType === Node.TEXT_NODE) {
+                pageTitle.removeChild(nextText);
+            }
+            pageTitle.removeChild(span);
+        }
+
+        const cleanText = (text) => {
+            return text
+                .replace(/\s+/g, ' ') 
+                .trim(); 
+        };
+
+        // Clean the innerHTML
+        pageTitle.innerHTML = cleanText(pageTitle.innerHTML);
+
+        // Ensure proper spacing by adding an explicit space
+        if (pageTitle.innerHTML.includes('Blank Apparel')) {
+            pageTitle.innerHTML = pageTitle.innerHTML.replace(
+                'Blank Apparel', 
+                'Blank Apparel <span style="font-weight:300;"> at </span> Wholesale Prices'
+            );
+        } else {
+            pageTitle.innerHTML += ` <span style="font-weight:300;"> at </span> Wholesale Prices`;
+        }
+
+        const valueProps = document.querySelector('.value-props');
+        if (valueProps) {
+            valueProps.remove();
+        }
+
+        pageTitle.insertAdjacentHTML('afterend', `
+              <div class="value-props">
+                <div class="value-prop">✓ Next day {% if template.suffix == "makerflo" %}<span>rush</span>{% endif %}  delivery</div>
+                <div class="value-prop">✓ No minimums</div>
+                {% unless template.suffix == "makerflo" %}<div class="value-prop">✓ 2,000+ products</div>{% endunless %}
+                <div class="value-prop">✓ Competitive pricing <span class="tooltip"><span class="info-circle">i</span>
+                    <span class="tooltiptext">Get pricing that protects your profit margin. Our blank product pricing rivals direct wholesalers and is as low or lower than most secondary market suppliers.</span></span>
+                </div>
+            </div>
+        `);
+    }, 100);
+});
+  </script>
+  -->
+{% endif %}
+{% schema %}
+{
+  "name": "t:sections.main-collection-banner.name",
+  "class": "main-collection-banner toggle-when-first container--remove-margin-after",
+  "settings": [
+    {
+      "type": "text",
+      "id": "custom_class",
+      "label": "Custom Class"
+    },
+    {
+      "id": "show_collection_description",
+      "type": "checkbox",
+      "default": false,
+      "label": "t:sections.main-collection-banner.settings.show_collection_description.label"
+    },
+    {
+      "id": "show_collection_image",
+      "type": "checkbox",
+      "default": false,
+      "label": "t:sections.main-collection-banner.settings.show_collection_image.label"
+    },
+    {
+      "id": "show_wholesalemsg",
+      "type": "checkbox",
+      "default": false,
+      "label": "Show wholesale text"
+    },
+    {
+      "type": "paragraph",
+      "content": "t:sections.main-collection-banner.settings.paragraph.content"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.bundle-extra-words.sections.main-targetCollection.settings.image_banner.header"
+    },
+    {
+      "type": "color",
+      "id": "color_background_main",
+      "label": "t:sections.local-extra-words.settings_schema.colors.settings.overlay",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "color",
+      "id": "color_text_main",
+      "label": "t:sections.split-extra-words.settings_schema.colors.settings.text",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "select",
+      "id": "height",
+      "label": "t:sections.bundle-extra-words.sections.main-targetCollection.settings.image_banner.height",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:sections.local-extra-words.sections.media-with-text-overlay.settings.option__1"
+        },
+        {
+          "value": "regular",
+          "label": "t:sections.local-extra-words.sections.media-with-text-overlay.settings.option__2"
+        }
+      ],
+      "default": "small"
+    }
+  ]
+}
+{% endschema %}

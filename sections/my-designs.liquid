@@ -1,0 +1,217 @@
+{%- comment -%}
+  My Designs — Design Library section.
+  Loaded via AJAX into the Members Portal right-hand panel.
+  Markup, styles, and JS live in snippets/my-designs-panel.liquid so
+  they can be reused inside the product-page "Choose a previously uploaded design"
+  picker modal.
+{%- endcomment -%}
+
+<script>
+(function() {
+  /* If loaded standalone (not AJAX-injected into portal), redirect to portal with tab param */
+  if (!document.querySelector('.mp-ajax-content')) {
+    var url = '/pages/welcome?tab=my-designs';
+    var params = new URLSearchParams(window.location.search);
+    if (params.has('preview_theme_id')) url += '&preview_theme_id=' + params.get('preview_theme_id');
+    window.location.replace(url);
+  }
+})();
+</script>
+
+<div class="md-standalone" data-cols="4">
+  {%- comment -%}
+    Per Row buttons — initially hidden; JS relocates them into the
+    .md-filters__row that my-designs-panel renders so they sit on the
+    same flex line as the search input (right-aligned).
+    Desktop options: 3 / 4 / 5 (default 5).
+    Mobile options: 2 / 3 / 4 (default 2).
+  {%- endcomment -%}
+  <div class="mds-cols-host" hidden>
+    <div class="mds-cols mds-cols--desktop" role="group" aria-label="Images per row">
+      <span class="mds-cols-label">Per row</span>
+      <button type="button" class="mds-cols-btn" data-mds-cols="3">3</button>
+      <button type="button" class="mds-cols-btn is-active" data-mds-cols="4">4</button>
+      <button type="button" class="mds-cols-btn" data-mds-cols="5">5</button>
+    </div>
+    <div class="mds-cols mds-cols--mobile" role="group" aria-label="Images per row">
+      <span class="mds-cols-label">Per row</span>
+      <button type="button" class="mds-cols-btn" data-mds-cols="1">1</button>
+      <button type="button" class="mds-cols-btn is-active" data-mds-cols="2">2</button>
+    </div>
+  </div>
+
+  {% render 'my-designs-panel' %}
+</div>
+
+<style>
+  /* ===== Standalone My Designs — Per Row picker =====
+     Scoped to .md-standalone so the picker-modal renders of
+     my-designs-panel are unaffected.
+
+     Layout goal:
+       Row 1 (existing): All Images / Purchases / Uploads / Archive |
+                         All Types / By Size / Gang Sheet
+       Row 2: Search bar (left) | Per Row 3/4/5 (right)
+  */
+
+  /* Per Row button group styling (mirrors the by-size-tabs picker look). */
+  .md-standalone .mds-cols {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    flex: 0 0 auto;
+  }
+  .md-standalone .mds-cols--mobile { display: none; }
+  @media (max-width: 749px) {
+    .md-standalone .mds-cols--desktop { display: none; }
+    .md-standalone .mds-cols--mobile { display: flex; }
+  }
+  .md-standalone .mds-cols-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-right: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .md-standalone .mds-cols-btn {
+    appearance: none;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #374151;
+    font: 600 12px/1 'DM Sans', system-ui, sans-serif;
+    width: 28px;
+    height: 26px;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.15s;
+  }
+  .md-standalone .mds-cols-btn:hover { border-color: #019AFF; color: #019AFF; }
+  .md-standalone .mds-cols-btn.is-active {
+    background: #019AFF;
+    border-color: #019AFF;
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(1,154,255,0.3);
+  }
+
+  /* When JS has placed the Per Row group inside .md-filters__row,
+     push it to the far right of that row (same row as the search input). */
+  .md-standalone .md-filters__row .mds-cols {
+    margin-left: auto;
+  }
+
+  /* Grid column overrides — driven by data-cols on the standalone wrapper. */
+  .md-standalone[data-cols="1"] .md-grid { grid-template-columns: 1fr; }
+  .md-standalone[data-cols="2"] .md-grid { grid-template-columns: repeat(2, 1fr); }
+  .md-standalone[data-cols="3"] .md-grid { grid-template-columns: repeat(3, 1fr); }
+  .md-standalone[data-cols="4"] .md-grid { grid-template-columns: repeat(4, 1fr); }
+  .md-standalone[data-cols="5"] .md-grid { grid-template-columns: repeat(5, 1fr); }
+
+  /* Dual upload card width per per-row count: at 3 per row the columns are
+     wide enough that 1 col fits the upload tiles; at 4 per row the cols
+     are narrower so we span 2. At 5-per-row the panel renders TWO single
+     upload cards (rather than one dual) so the tiles get the same outer
+     card chrome as the By Size / Gang Sheet filter views — see
+     getUploadCardsHtml() in snippets/my-designs-panel.liquid. */
+  .md-standalone[data-cols="3"] .md-upload-card--dual { grid-column: 1 / span 1; }
+  .md-standalone[data-cols="4"] .md-upload-card--dual { grid-column: 1 / span 2; }
+
+  /* Mobile: search bar is full-width; place Per Row on its own line directly below. */
+  @media (max-width: 749px) {
+    .md-standalone .md-filters__row .mds-cols {
+      margin-left: 0;
+      width: 100%;
+      justify-content: flex-end;
+    }
+    /* Tighten the gap between the Per Row picker and the first row of cards. */
+    .md-standalone .md-filters { margin-bottom: 20px; }
+    .md-standalone .md-selection-toolbar { margin: 0; min-height: 0; }
+  }
+</style>
+
+<script>
+  (function() {
+    function initMdsCols() {
+      var wrapper = document.querySelector('.md-standalone');
+      if (!wrapper || wrapper.__mdsInit) return;
+      wrapper.__mdsInit = true;
+
+      /* Choose the per-row group that matches the current viewport so we
+         only mount one. The CSS hides the unused one anyway, but moving
+         only the active group keeps the DOM tidy. */
+      var isMobile = window.matchMedia && window.matchMedia('(max-width: 749px)').matches;
+      var initialCols = isMobile ? '2' : '4';
+      wrapper.setAttribute('data-cols', initialCols);
+      syncActive(initialCols);
+
+      /* Move both Per Row groups into .md-filters__row (CSS toggles which
+         is visible). Wait for my-designs-panel to render the row if the
+         section is being AJAX-injected. */
+      function relocate() {
+        var host = wrapper.querySelector('.mds-cols-host');
+        var filtersRow = wrapper.querySelector('.md-filters__row');
+        if (!host || !filtersRow) return false;
+        var groups = host.querySelectorAll('.mds-cols');
+        groups.forEach(function(g) {
+          if (!filtersRow.contains(g)) filtersRow.appendChild(g);
+        });
+        host.parentNode && host.parentNode.removeChild(host);
+        return true;
+      }
+
+      if (!relocate()) {
+        var mo = new MutationObserver(function() {
+          if (relocate()) mo.disconnect();
+        });
+        mo.observe(wrapper, { childList: true, subtree: true });
+      }
+
+      /* Click handler — update data-cols + active button state. */
+      wrapper.addEventListener('click', function(e) {
+        var btn = e.target.closest('.mds-cols-btn');
+        if (!btn) return;
+        var cols = btn.getAttribute('data-mds-cols');
+        if (!cols) return;
+        /* Clear the cached row height before the column count changes.
+           The panel's ResizeObserver only fires when the dual upload card's
+           own size changes, but `height:100%` + a locked grid `min-height`
+           keep it pinned at the previous row height — so going N→smaller→N
+           leaves the var stale and every row inflated. Removing it lets the
+           layout reflow to natural sizing; the observer then re-measures. */
+        var grid = wrapper.querySelector('.md-grid');
+        if (grid) grid.style.removeProperty('--md-row-height');
+        wrapper.setAttribute('data-cols', cols);
+        syncActive(cols);
+        /* Tell the panel to re-render — the upload card markup differs by
+           cols (5-per-row uses two single cards instead of one dual). */
+        wrapper.dispatchEvent(new CustomEvent('mds:cols-change', { detail: { cols: cols } }));
+      });
+
+      function syncActive(cols) {
+        wrapper.querySelectorAll('.mds-cols-btn').forEach(function(b) {
+          b.classList.toggle('is-active', b.getAttribute('data-mds-cols') === cols);
+        });
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initMdsCols);
+    } else {
+      initMdsCols();
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "My Designs",
+  "settings": [],
+  "presets": [
+    {
+      "name": "My Designs"
+    }
+  ]
+}
+{% endschema %}

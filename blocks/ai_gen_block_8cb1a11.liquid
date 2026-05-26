@@ -1,0 +1,745 @@
+{% doc %}
+  @prompt
+    Build a MOBILE-ONLY Image Feature Section
+    
+    Layout:
+    
+    Title at the top
+    
+    Image below the title
+    
+    Small tag on top of the image (overlay)
+    
+    CTA button under the image
+    
+    Content Controls:
+    
+    Title text
+    
+    One image upload (with alt text)
+    
+    Tag text + background color + text color + position (top-left, top-right, bottom-left, bottom-right)
+    
+    CTA button (label + link)
+    
+    Optional icon inside tag (like a delivery truck)
+    
+    Design Controls:
+    
+    Mobile-only visibility toggle (hide on desktop by default)
+    
+    Section padding (top/bottom)
+    
+    Background color
+    
+    Title font size + color + alignment
+    
+    Image corner radius + shadow
+    
+    Tag corner radius + padding
+    
+    Button colors, corner radius, and full-width toggle
+    
+    Functionality:
+    
+    Fully editable content and design inside the editor
+    
+    Clean simple layout like product category promo cards
+    
+    Responsive and touch-friendly
+    
+    Lazy load image
+    
+    Options for adding section spacing above/below
+    
+    Default Example:
+    
+    Title: BLANK APPAREL
+    
+    Tag: Get it Tomorrow
+    
+    Button: Shop Blanks, need button to be fill or outline options that i can pick color for too. Image size should be controllable, landscape or full image, add a section where i can add the star reviews for the product, along with shipping time. Image tag will have price
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-mobile-feature-{{ ai_gen_id }} {
+    display: none;
+    background-color: {{ block.settings.background_color }};
+    padding-top: {{ block.settings.padding_top }}px;
+    padding-bottom: {{ block.settings.padding_bottom }}px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-mobile-feature-{{ ai_gen_id }} {
+      {% if block.settings.show_on_mobile %}
+        display: block;
+      {% endif %}
+    }
+  }
+
+  .ai-mobile-feature__container-{{ ai_gen_id }} {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .ai-mobile-feature__title-{{ ai_gen_id }} {
+    margin: 0 0 16px;
+    font-size: {{ block.settings.title_size }}px;
+    color: {{ block.settings.title_color }};
+    text-align: {{ block.settings.title_alignment }};
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .ai-mobile-feature__image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border-radius: {{ block.settings.image_radius }}px;
+    {% if block.settings.image_shadow %}
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    {% endif %}
+  }
+
+  {% if block.settings.image_aspect_ratio != 'natural' %}
+    .ai-mobile-feature__image-wrapper-{{ ai_gen_id }} {
+      {% if block.settings.image_aspect_ratio == 'landscape' %}
+        aspect-ratio: 16 / 9;
+      {% elsif block.settings.image_aspect_ratio == 'square' %}
+        aspect-ratio: 1 / 1;
+      {% elsif block.settings.image_aspect_ratio == 'portrait' %}
+        aspect-ratio: 3 / 4;
+      {% endif %}
+    }
+  {% endif %}
+
+  .ai-mobile-feature__image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    display: block;
+    {% if block.settings.image_aspect_ratio != 'natural' %}
+      object-fit: cover;
+    {% else %}
+      height: auto;
+    {% endif %}
+  }
+
+  .ai-mobile-feature__image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .ai-mobile-feature__image-placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-mobile-feature__empty-state-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .ai-mobile-feature__tag-{{ ai_gen_id }} {
+    position: absolute;
+    background-color: {{ block.settings.tag_bg_color }};
+    color: {{ block.settings.tag_text_color }};
+    padding: {{ block.settings.tag_padding }}px {{ block.settings.tag_padding | times: 1.5 }}px;
+    border-radius: {{ block.settings.tag_radius }}px;
+    font-size: 14px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 2;
+    {% case block.settings.tag_position %}
+      {% when 'top-left' %}
+        top: 12px;
+        left: 12px;
+      {% when 'top-right' %}
+        top: 12px;
+        right: 12px;
+      {% when 'bottom-left' %}
+        bottom: 12px;
+        left: 12px;
+      {% when 'bottom-right' %}
+        bottom: 12px;
+        right: 12px;
+    {% endcase %}
+  }
+
+  .ai-mobile-feature__product-info-{{ ai_gen_id }} {
+    margin-bottom: 16px;
+  }
+
+  .ai-mobile-feature__reviews-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .ai-mobile-feature__stars-{{ ai_gen_id }} {
+    display: flex;
+    gap: 2px;
+  }
+
+  .ai-mobile-feature__star-{{ ai_gen_id }} {
+    width: 16px;
+    height: 16px;
+    color: {{ block.settings.star_color }};
+  }
+
+  .ai-mobile-feature__star-empty-{{ ai_gen_id }} {
+    color: {{ block.settings.star_empty_color }};
+  }
+
+  .ai-mobile-feature__review-count-{{ ai_gen_id }} {
+    font-size: 14px;
+    color: {{ block.settings.review_text_color }};
+  }
+
+  .ai-mobile-feature__shipping-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: {{ block.settings.shipping_text_color }};
+  }
+
+  .ai-mobile-feature__shipping-icon-{{ ai_gen_id }} {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: {{ block.settings.shipping_icon_color }};
+  }
+
+  .ai-mobile-feature__button-{{ ai_gen_id }} {
+    display: block;
+    {% if block.settings.button_full_width %}
+      width: 100%;
+    {% else %}
+      width: auto;
+      margin: 0 auto;
+    {% endif %}
+    padding: 14px 28px;
+    text-align: center;
+    text-decoration: none;
+    border-radius: {{ block.settings.button_radius }}px;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    
+    {% if block.settings.button_style == 'fill' %}
+      background-color: {{ block.settings.button_bg_color }};
+      color: {{ block.settings.button_text_color }};
+      border: 2px solid {{ block.settings.button_bg_color }};
+    {% else %}
+      background-color: transparent;
+      color: {{ block.settings.button_outline_color }};
+      border: 2px solid {{ block.settings.button_outline_color }};
+    {% endif %}
+  }
+
+  .ai-mobile-feature__button-{{ ai_gen_id }}:active {
+    transform: scale(0.98);
+    {% if block.settings.button_style == 'fill' %}
+      background-color: {{ block.settings.button_hover_bg_color }};
+      color: {{ block.settings.button_hover_text_color }};
+      border-color: {{ block.settings.button_hover_bg_color }};
+    {% else %}
+      background-color: {{ block.settings.button_outline_hover_color }};
+      color: {{ block.settings.button_outline_hover_text_color }};
+      border-color: {{ block.settings.button_outline_hover_color }};
+    {% endif %}
+  }
+
+  @media (hover: hover) {
+    .ai-mobile-feature__button-{{ ai_gen_id }}:hover {
+      {% if block.settings.button_style == 'fill' %}
+        background-color: {{ block.settings.button_hover_bg_color }};
+        color: {{ block.settings.button_hover_text_color }};
+        border-color: {{ block.settings.button_hover_bg_color }};
+      {% else %}
+        background-color: {{ block.settings.button_outline_hover_color }};
+        color: {{ block.settings.button_outline_hover_text_color }};
+        border-color: {{ block.settings.button_outline_hover_color }};
+      {% endif %}
+    }
+  }
+{% endstyle %}
+
+<div class="ai-mobile-feature-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-mobile-feature__container-{{ ai_gen_id }}">
+    {% if block.settings.title != blank %}
+      <h2 class="ai-mobile-feature__title-{{ ai_gen_id }}">{{ block.settings.title }}</h2>
+    {% endif %}
+
+    <div class="ai-mobile-feature__image-wrapper-{{ ai_gen_id }}">
+      {% if block.settings.image %}
+        <img
+          src="{{ block.settings.image | image_url: width: 1200 }}"
+          alt="{{ block.settings.image_alt | escape }}"
+          width="{{ block.settings.image.width }}"
+          height="{{ block.settings.image.height }}"
+          loading="lazy"
+          class="ai-mobile-feature__image-{{ ai_gen_id }}"
+        >
+      {% else %}
+        <div class="ai-mobile-feature__image-placeholder-{{ ai_gen_id }}">
+          {{ 'image' | placeholder_svg_tag }}
+          <div class="ai-mobile-feature__empty-state-{{ ai_gen_id }}">
+            Add an image to get started
+          </div>
+        </div>
+      {% endif %}
+
+      {% if block.settings.price != blank %}
+        <div class="ai-mobile-feature__tag-{{ ai_gen_id }}">
+          {{ block.settings.price }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="ai-mobile-feature__product-info-{{ ai_gen_id }}">
+      {% if block.settings.show_reviews %}
+        <div class="ai-mobile-feature__reviews-{{ ai_gen_id }}">
+          <div class="ai-mobile-feature__stars-{{ ai_gen_id }}">
+            {% assign rating = block.settings.star_rating %}
+            {% for i in (1..5) %}
+              {% if i <= rating %}
+                <svg class="ai-mobile-feature__star-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              {% else %}
+                <svg class="ai-mobile-feature__star-{{ ai_gen_id }} ai-mobile-feature__star-empty-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              {% endif %}
+            {% endfor %}
+          </div>
+          {% if block.settings.review_count != blank %}
+            <span class="ai-mobile-feature__review-count-{{ ai_gen_id }}">({{ block.settings.review_count }})</span>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if block.settings.shipping_time != blank %}
+        <div class="ai-mobile-feature__shipping-{{ ai_gen_id }}">
+          <svg class="ai-mobile-feature__shipping-icon-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="3" width="15" height="13"></rect>
+            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+          </svg>
+          <span>{{ block.settings.shipping_time }}</span>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if block.settings.button_label != blank %}
+      <a
+        href="{{ block.settings.button_link }}"
+        class="ai-mobile-feature__button-{{ ai_gen_id }}"
+      >
+        {{ block.settings.button_label }}
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Mobile image feature",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Visibility"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_on_mobile",
+      "label": "Show on mobile",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Title"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 16,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Font size",
+      "default": 24
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Color",
+      "default": "#000000"
+    },
+    {
+      "type": "select",
+      "id": "title_alignment",
+      "label": "Alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "image_alt",
+      "label": "Image alt text"
+    },
+    {
+      "type": "select",
+      "id": "image_aspect_ratio",
+      "label": "Aspect ratio",
+      "options": [
+        {
+          "value": "natural",
+          "label": "Natural"
+        },
+        {
+          "value": "landscape",
+          "label": "Landscape (16:9)"
+        },
+        {
+          "value": "square",
+          "label": "Square (1:1)"
+        },
+        {
+          "value": "portrait",
+          "label": "Portrait (3:4)"
+        }
+      ],
+      "default": "landscape"
+    },
+    {
+      "type": "range",
+      "id": "image_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Corner radius",
+      "default": 14
+    },
+    {
+      "type": "checkbox",
+      "id": "image_shadow",
+      "label": "Show shadow",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Price tag"
+    },
+    {
+      "type": "text",
+      "id": "price",
+      "label": "Price",
+      "default": "$19.99"
+    },
+    {
+      "type": "select",
+      "id": "tag_position",
+      "label": "Position",
+      "options": [
+        {
+          "value": "top-left",
+          "label": "Top left"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        }
+      ],
+      "default": "top-left"
+    },
+    {
+      "type": "color",
+      "id": "tag_bg_color",
+      "label": "Background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "tag_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "tag_radius",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Corner radius",
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "tag_padding",
+      "min": 4,
+      "max": 16,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Reviews"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_reviews",
+      "label": "Show reviews",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "star_rating",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "label": "Star rating",
+      "default": 5
+    },
+    {
+      "type": "text",
+      "id": "review_count",
+      "label": "Review count",
+      "default": "1,234"
+    },
+    {
+      "type": "color",
+      "id": "star_color",
+      "label": "Star color",
+      "default": "#FFA500"
+    },
+    {
+      "type": "color",
+      "id": "star_empty_color",
+      "label": "Empty star color",
+      "default": "#E0E0E0"
+    },
+    {
+      "type": "color",
+      "id": "review_text_color",
+      "label": "Review count color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Shipping"
+    },
+    {
+      "type": "text",
+      "id": "shipping_time",
+      "label": "Shipping time",
+      "default": "Get it by Tomorrow"
+    },
+    {
+      "type": "color",
+      "id": "shipping_text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "shipping_icon_color",
+      "label": "Icon color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Button"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Label",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "Link"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "label": "Style",
+      "options": [
+        {
+          "value": "fill",
+          "label": "Fill"
+        },
+        {
+          "value": "outline",
+          "label": "Outline"
+        }
+      ],
+      "default": "fill"
+    },
+    {
+      "type": "paragraph",
+      "content": "Fill button colors"
+    },
+    {
+      "type": "color",
+      "id": "button_bg_color",
+      "label": "Background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_bg_color",
+      "label": "Hover background color",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_text_color",
+      "label": "Hover text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "paragraph",
+      "content": "Outline button colors"
+    },
+    {
+      "type": "color",
+      "id": "button_outline_color",
+      "label": "Border and text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_outline_hover_color",
+      "label": "Hover background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_outline_hover_text_color",
+      "label": "Hover text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "button_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Corner radius",
+      "default": 8
+    },
+    {
+      "type": "checkbox",
+      "id": "button_full_width",
+      "label": "Full width button",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Section spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Top padding",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Bottom padding",
+      "default": 24
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Mobile image feature"
+    }
+  ]
+}
+{% endschema %}

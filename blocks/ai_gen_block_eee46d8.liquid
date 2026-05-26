@@ -1,0 +1,769 @@
+{% doc %}
+  @prompt
+    create a section with a max width and the option to have three or four blocks each with an image with ratio options and a heading and para text below them, texts needs weight and size options for desktop and mobile. Images need radius options, section needs the option for a bg color or gradiant that isn;t effected by max width and the text needs right and left margins within the block, section needs solid color bg option and padding and margin options, section bg color not working, add an option to have a video play in each image block on rollover, move the play button icon to the bottom left and make it 50% the size and make it optional
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-image-text-section-{{ ai_gen_id }} {
+    {% if block.settings.background_type == 'color' %}
+      background-color: {{ block.settings.background_color }};
+    {% else %}
+      background: {{ block.settings.background_gradient }};
+    {% endif %}
+    padding: {{ block.settings.section_padding_top }}px 0 {{ block.settings.section_padding_bottom }}px;
+    margin: {{ block.settings.section_margin_top }}px 0 {{ block.settings.section_margin_bottom }}px;
+  }
+
+  .ai-image-text-container-{{ ai_gen_id }} {
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .ai-image-text-grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_count }}, 1fr);
+    gap: {{ block.settings.grid_gap }}px;
+  }
+
+  .ai-image-text-item-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ai-image-text-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    margin-bottom: {{ block.settings.image_text_spacing }}px;
+    overflow: hidden;
+    border-radius: {{ block.settings.image_radius }}px;
+  }
+
+  .ai-image-text-image-wrapper-{{ ai_gen_id }}::before {
+    content: "";
+    display: block;
+    padding-bottom: calc(100% / {{ block.settings.image_ratio }});
+  }
+
+  .ai-image-text-image-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: {% if block.settings.image_cover %}cover{% else %}contain{% endif %};
+    object-position: center;
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-image-text-video-wrapper-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+  }
+
+  .ai-image-text-video-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-image-text-item-{{ ai_gen_id }}:hover .ai-image-text-video-wrapper-{{ ai_gen_id }} {
+    opacity: 1;
+  }
+
+  .ai-image-text-item-{{ ai_gen_id }}:hover .ai-image-text-image-{{ ai_gen_id }} {
+    opacity: 0;
+  }
+
+  .ai-image-text-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f4f4f4;
+  }
+
+  .ai-image-text-placeholder-{{ ai_gen_id }} svg {
+    width: 80%;
+    height: 80%;
+  }
+
+  .ai-image-text-content-{{ ai_gen_id }} {
+    padding: 0 {{ block.settings.text_margin }}px;
+  }
+
+  .ai-image-text-heading-{{ ai_gen_id }} {
+    margin-top: 0;
+    margin-bottom: {{ block.settings.heading_para_spacing }}px;
+    font-size: {{ block.settings.heading_size }}px;
+    font-weight: {{ block.settings.heading_weight }};
+    line-height: 1.2;
+  }
+
+  .ai-image-text-paragraph-{{ ai_gen_id }} {
+    margin: 0;
+    font-size: {{ block.settings.paragraph_size }}px;
+    font-weight: {{ block.settings.paragraph_weight }};
+    line-height: 1.5;
+  }
+
+  .ai-image-text-play-icon-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 30px;
+    height: 30px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-image-text-play-icon-{{ ai_gen_id }} svg {
+    width: 12px;
+    height: 12px;
+    fill: white;
+  }
+
+  .ai-image-text-item-{{ ai_gen_id }}:hover .ai-image-text-play-icon-{{ ai_gen_id }} {
+    opacity: 0;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-image-text-section-{{ ai_gen_id }} {
+      padding: {{ block.settings.section_padding_top_mobile }}px 0 {{ block.settings.section_padding_bottom_mobile }}px;
+      margin: {{ block.settings.section_margin_top_mobile }}px 0 {{ block.settings.section_margin_bottom_mobile }}px;
+    }
+    
+    .ai-image-text-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+      gap: {{ block.settings.grid_gap_mobile }}px;
+    }
+
+    .ai-image-text-content-{{ ai_gen_id }} {
+      padding: 0 {{ block.settings.text_margin_mobile }}px;
+    }
+
+    .ai-image-text-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size_mobile }}px;
+    }
+
+    .ai-image-text-paragraph-{{ ai_gen_id }} {
+      font-size: {{ block.settings.paragraph_size_mobile }}px;
+    }
+    
+    .ai-image-text-play-icon-{{ ai_gen_id }} {
+      width: 20px;
+      height: 20px;
+    }
+    
+    .ai-image-text-play-icon-{{ ai_gen_id }} svg {
+      width: 8px;
+      height: 8px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-image-text-section-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-image-text-container-{{ ai_gen_id }}">
+    <div class="ai-image-text-grid-{{ ai_gen_id }}">
+      {% for i in (1..block.settings.columns_count) %}
+        {% liquid
+          assign image_key = 'image_' | append: i
+          assign video_key = 'video_' | append: i
+          assign heading_key = 'heading_' | append: i
+          assign paragraph_key = 'paragraph_' | append: i
+          assign show_play_key = 'show_play_icon_' | append: i
+          
+          assign image = block.settings[image_key]
+          assign video_url = block.settings[video_key]
+          assign heading = block.settings[heading_key]
+          assign paragraph = block.settings[paragraph_key]
+          assign show_play_icon = block.settings[show_play_key]
+        %}
+
+        <div class="ai-image-text-item-{{ ai_gen_id }}">
+          <div class="ai-image-text-image-wrapper-{{ ai_gen_id }}">
+            {% if image != blank %}
+              <img
+                src="{{ image | image_url: width: 800 }}"
+                alt="{{ image.alt | escape }}"
+                loading="lazy"
+                width="{{ image.width }}"
+                height="{{ image.height }}"
+                class="ai-image-text-image-{{ ai_gen_id }}"
+              >
+            {% else %}
+              <div class="ai-image-text-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+            
+            {% if video_url != blank %}
+              {% if show_play_icon %}
+                <div class="ai-image-text-play-icon-{{ ai_gen_id }}">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </div>
+              {% endif %}
+              
+              <div class="ai-image-text-video-wrapper-{{ ai_gen_id }}">
+                <video 
+                  class="ai-image-text-video-{{ ai_gen_id }}"
+                  muted
+                  loop
+                  playsinline
+                  data-autoplay="true"
+                >
+                  <source src="{{ video_url }}" type="video/mp4">
+                </video>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="ai-image-text-content-{{ ai_gen_id }}">
+            {% if heading != blank %}
+              <h3 class="ai-image-text-heading-{{ ai_gen_id }}">{{ heading }}</h3>
+            {% endif %}
+
+            {% if paragraph != blank %}
+              <p class="ai-image-text-paragraph-{{ ai_gen_id }}">{{ paragraph }}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const container = document.querySelector('.ai-image-text-section-{{ ai_gen_id }}');
+    if (!container) return;
+    
+    const items = container.querySelectorAll('.ai-image-text-item-{{ ai_gen_id }}');
+    
+    items.forEach(item => {
+      const video = item.querySelector('video');
+      if (!video) return;
+      
+      item.addEventListener('mouseenter', () => {
+        video.play();
+      });
+      
+      item.addEventListener('mouseleave', () => {
+        video.pause();
+        video.currentTime = 0;
+      });
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Image Text Blocks",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section Settings"
+    },
+    {
+      "type": "select",
+      "id": "background_type",
+      "label": "Background type",
+      "options": [
+        {
+          "value": "color",
+          "label": "Solid color"
+        },
+        {
+          "value": "gradient",
+          "label": "Gradient"
+        }
+      ],
+      "default": "color"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Background gradient",
+      "default": "linear-gradient(0deg, rgba(255, 255, 255, 1), rgba(240, 240, 240, 1))"
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Top padding (desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Bottom padding (desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top_mobile",
+      "min": 0,
+      "max": 80,
+      "step": 10,
+      "unit": "px",
+      "label": "Top padding (mobile)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom_mobile",
+      "min": 0,
+      "max": 80,
+      "step": 10,
+      "unit": "px",
+      "label": "Bottom padding (mobile)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Top margin (desktop)",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "section_margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Bottom margin (desktop)",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "section_margin_top_mobile",
+      "min": 0,
+      "max": 80,
+      "step": 10,
+      "unit": "px",
+      "label": "Top margin (mobile)",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "section_margin_bottom_mobile",
+      "min": 0,
+      "max": 80,
+      "step": 10,
+      "unit": "px",
+      "label": "Bottom margin (mobile)",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Maximum width",
+      "default": 1200
+    },
+    {
+      "type": "select",
+      "id": "columns_count",
+      "label": "Number of columns",
+      "options": [
+        {
+          "value": "3",
+          "label": "3 columns"
+        },
+        {
+          "value": "4",
+          "label": "4 columns"
+        }
+      ],
+      "default": "3"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns on mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "1 column"
+        },
+        {
+          "value": "2",
+          "label": "2 columns"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Space between columns (desktop)",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "grid_gap_mobile",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Space between columns (mobile)",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "image_text_spacing",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Space between image and text",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "heading_para_spacing",
+      "min": 5,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "label": "Space between heading and paragraph",
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "Image Settings"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Image aspect ratio",
+      "options": [
+        {
+          "value": "1",
+          "label": "1:1 (Square)"
+        },
+        {
+          "value": "1.33",
+          "label": "4:3 (Landscape)"
+        },
+        {
+          "value": "0.75",
+          "label": "3:4 (Portrait)"
+        },
+        {
+          "value": "1.78",
+          "label": "16:9 (Widescreen)"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "checkbox",
+      "id": "image_cover",
+      "label": "Cover image (crop if needed)",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "image_radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Image border radius",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Text Settings"
+    },
+    {
+      "type": "range",
+      "id": "text_margin",
+      "min": 0,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Text margin (desktop)",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "text_margin_mobile",
+      "min": 0,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "label": "Text margin (mobile)",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 16,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading size (desktop)",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 14,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading size (mobile)",
+      "default": 20
+    },
+    {
+      "type": "select",
+      "id": "heading_weight",
+      "label": "Heading font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Paragraph size (desktop)",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size_mobile",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Paragraph size (mobile)",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "paragraph_weight",
+      "label": "Paragraph font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "header",
+      "content": "Block 1 Content"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image 1"
+    },
+    {
+      "type": "url",
+      "id": "video_1",
+      "label": "Video URL 1",
+      "info": "MP4 format recommended. Video will play on hover."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_play_icon_1",
+      "label": "Show play icon",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "heading_1",
+      "label": "Heading 1",
+      "default": "Feature heading"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_1",
+      "label": "Paragraph 1",
+      "default": "Share information about your brand or product features."
+    },
+    {
+      "type": "header",
+      "content": "Block 2 Content"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image 2"
+    },
+    {
+      "type": "url",
+      "id": "video_2",
+      "label": "Video URL 2",
+      "info": "MP4 format recommended. Video will play on hover."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_play_icon_2",
+      "label": "Show play icon",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "heading_2",
+      "label": "Heading 2",
+      "default": "Feature heading"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_2",
+      "label": "Paragraph 2",
+      "default": "Share information about your brand or product features."
+    },
+    {
+      "type": "header",
+      "content": "Block 3 Content"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image 3"
+    },
+    {
+      "type": "url",
+      "id": "video_3",
+      "label": "Video URL 3",
+      "info": "MP4 format recommended. Video will play on hover."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_play_icon_3",
+      "label": "Show play icon",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "heading_3",
+      "label": "Heading 3",
+      "default": "Feature heading"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_3",
+      "label": "Paragraph 3",
+      "default": "Share information about your brand or product features."
+    },
+    {
+      "type": "header",
+      "content": "Block 4 Content"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image 4"
+    },
+    {
+      "type": "url",
+      "id": "video_4",
+      "label": "Video URL 4",
+      "info": "MP4 format recommended. Video will play on hover."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_play_icon_4",
+      "label": "Show play icon",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "heading_4",
+      "label": "Heading 4",
+      "default": "Feature heading"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_4",
+      "label": "Paragraph 4",
+      "default": "Share information about your brand or product features."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Image Text Blocks"
+    }
+  ]
+}
+{% endschema %}

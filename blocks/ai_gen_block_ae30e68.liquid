@@ -1,0 +1,949 @@
+{% doc %}
+  @prompt
+    Create a full-width section with:
+    
+    🧱 Content Elements:
+    An H2 heading (editable)
+    A paragraph text block (editable)
+    A 4-column grid layout:
+    The first grid cell should be a static image that spans 2 columns and 2 rows
+    The remaining 8 grid cells each contain:
+    An image (1:1 ratio)
+    A text label below the image
+    Each box should be individually editable
+    A button (with editable label and link)
+    🎨 Layout:
+    Desktop: 4 columns
+    Mobile: stack in a single column with the large static image on top
+    Use CSS grid for layout with named areas
+    Text content should be centered on mobile and left-aligned on desktop
+    Add top and bottom padding options
+    Add padding/margin controls for all sides
+    Add max-width setting for the container
+    ⚙️ Customization Settings:
+    Editable H2 text, font size, font weight (desktop & mobile)
+    Editable paragraph text, font size, font weight (desktop & mobile)
+    Upload field for static image (with desktop and mobile size controls)
+    Upload fields for each of the 8 grid images (with desktop and mobile size controls)
+    Editable text labels for each grid box
+    Button label, link, and alignment (centered by default)
+    Optional background color and spacing control (padding/margin per element), every grid item needs to be a link, i need alignment options for the heading and description, button and text links need roll over color option
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .grid-section-{{ ai_gen_id }} {
+    padding-top: {{ block.settings.padding_top }}px;
+    padding-bottom: {{ block.settings.padding_bottom }}px;
+    padding-left: {{ block.settings.padding_left }}px;
+    padding-right: {{ block.settings.padding_right }}px;
+    margin-top: {{ block.settings.margin_top }}px;
+    margin-bottom: {{ block.settings.margin_bottom }}px;
+    margin-left: {{ block.settings.margin_left }}px;
+    margin-right: {{ block.settings.margin_right }}px;
+    background-color: {{ block.settings.background_color }};
+  }
+
+  .grid-container-{{ ai_gen_id }} {
+    max-width: {{ block.settings.container_max_width }}px;
+    margin: 0 auto;
+  }
+
+  .grid-header-{{ ai_gen_id }} {
+    text-align: {{ block.settings.text_alignment_mobile }};
+    margin-bottom: {{ block.settings.header_spacing }}px;
+  }
+
+  @media screen and (min-width: 750px) {
+    .grid-header-{{ ai_gen_id }} {
+      text-align: {{ block.settings.text_alignment }};
+    }
+  }
+
+  .grid-title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size_mobile }}px;
+    font-weight: {{ block.settings.heading_weight }};
+    margin-bottom: {{ block.settings.title_spacing }}px;
+  }
+
+  .grid-description-{{ ai_gen_id }} {
+    font-size: {{ block.settings.paragraph_size_mobile }}px;
+    font-weight: {{ block.settings.paragraph_weight }};
+    margin-bottom: {{ block.settings.description_spacing }}px;
+  }
+
+  @media screen and (min-width: 750px) {
+    .grid-title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size }}px;
+    }
+
+    .grid-description-{{ ai_gen_id }} {
+      font-size: {{ block.settings.paragraph_size }}px;
+    }
+  }
+
+  .grid-layout-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: {{ block.settings.grid_gap }}px;margin-bottom: {{ block.settings.grid_spacing }}px;
+  }
+
+  .grid-main-image-{{ ai_gen_id }} {
+    width: 100%;
+    margin-bottom: {{ block.settings.grid_gap }}px;
+  }
+
+  .grid-main-image-{{ ai_gen_id }} img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .grid-items-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: {{ block.settings.grid_gap }}px;
+  }
+
+  .grid-item-link-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: {{ block.settings.link_text_color }};
+    transition: transform 0.3s ease, color 0.3s ease;
+  }
+
+  .grid-item-link-{{ ai_gen_id }}:hover {
+    transform: translateY(-2px);
+    color: {{ block.settings.link_hover_color }};
+  }
+
+  .grid-item-image-{{ ai_gen_id }} {
+    width: 100%;
+    aspect-ratio: 1/1;
+    margin-bottom: {{ block.settings.image_text_spacing }}px;
+  }
+
+  .grid-item-image-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .grid-item-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f4f4f4;
+  }
+
+  .grid-item-placeholder-{{ ai_gen_id }} svg {
+    width:100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .grid-item-label-{{ ai_gen_id }} {
+    font-size: {{ block.settings.label_size_mobile }}px;
+    font-weight: {{ block.settings.label_weight }};
+    text-align: center;
+  }
+
+  .grid-button-wrapper-{{ ai_gen_id }} {
+    margin-top: {{ block.settings.button_spacing }}px;text-align: {{ block.settings.button_alignment }};
+  }
+
+  .grid-button-{{ ai_gen_id }} {
+    display: inline-block;
+    padding: {{ block.settings.button_padding }}px {{ block.settings.button_padding | times: 2 }}px;
+    background-color: {{ block.settings.button_background_color }};
+    color: {{ block.settings.button_text_color }};
+    text-decoration: none;
+    border-radius: {{ block.settings.button_border_radius }}px;
+    font-weight: {{ block.settings.button_weight }};
+    font-size: {{ block.settings.button_size_mobile }}px;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  .grid-button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_hover_color }};
+    color: {{ block.settings.button_text_hover_color }};
+  }
+
+  @media screen and (min-width: 750px) {
+    .grid-layout-{{ ai_gen_id }} {
+      grid-template-columns: repeat(4, 1fr);grid-template-rows: repeat(3, auto);
+      grid-template-areas:
+        "main main item1 item2"
+        "main main item3 item4"
+        "item5 item6 item7 item8";
+    }
+
+    .grid-main-image-{{ ai_gen_id }} {
+      grid-area: main;
+      margin-bottom: 0;
+    }
+
+    .grid-items-{{ ai_gen_id }} {
+      display: contents;
+    }
+
+    .grid-item-link-{{ ai_gen_id }}:nth-child(1) {
+      grid-area: item1;
+    }
+
+    .grid-item-link-{{ ai_gen_id }}:nth-child(2) {
+      grid-area: item2;
+    }
+
+    .grid-item-link-{{ ai_gen_id }}:nth-child(3) {
+      grid-area: item3;
+    }
+
+    .grid-item-link-{{ ai_gen_id }}:nth-child(4) {
+      grid-area: item4;
+    }
+
+    .grid-item-link-{{ ai_gen_id }}:nth-child(5) {
+      grid-area: item5;
+    }
+
+    .grid-item-link-{{ ai_gen_id }}:nth-child(6) {
+      grid-area: item6;
+    }
+
+    .grid-item-link-{{ ai_gen_id }}:nth-child(7) {
+      grid-area: item7;
+    }
+
+    .grid-item-link-{{ ai_gen_id }}:nth-child(8) {
+      grid-area: item8;
+    }
+
+    .grid-item-label-{{ ai_gen_id }} {
+      font-size: {{ block.settings.label_size }}px;}
+
+    .grid-button-{{ ai_gen_id }} {
+      font-size: {{ block.settings.button_size }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="grid-section-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="grid-container-{{ ai_gen_id }}">
+    <div class="grid-header-{{ ai_gen_id }}">
+      <h2 class="grid-title-{{ ai_gen_id }}">{{ block.settings.heading }}</h2>
+      <div class="grid-description-{{ ai_gen_id }}">{{ block.settings.paragraph }}</div>
+    </div>
+
+    <div class="grid-layout-{{ ai_gen_id }}">
+      <div class="grid-main-image-{{ ai_gen_id }}">
+        {% if block.settings.main_image %}
+          <img
+            src="{{ block.settings.main_image | image_url: width: 1000}}"
+            alt="{{ block.settings.main_image.alt | escape }}"
+            loading="lazy"
+            width="{{ block.settings.main_image.width }}"
+            height="{{ block.settings.main_image.height }}"
+          >
+        {% else %}
+          <div class="grid-item-placeholder-{{ ai_gen_id }}">
+            {{'image' | placeholder_svg_tag }}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="grid-items-{{ ai_gen_id }}">
+        {% for i in (1..8) %}
+          {% assign image_key = 'image_' | append: i %}
+          {% assign label_key = 'label_' | append: i %}
+          {% assign link_key = 'link_' | append: i %}
+          <a href="{{ block.settings[link_key] }}" class="grid-item-link-{{ ai_gen_id }}">
+            <div class="grid-item-image-{{ ai_gen_id }}">
+              {% if block.settings[image_key] %}
+                <img
+                  src="{{ block.settings[image_key] | image_url: width: 500 }}"
+                  alt="{{ block.settings[image_key].alt | escape }}"
+                  loading="lazy"
+                  width="{{ block.settings[image_key].width }}"
+                  height="{{ block.settings[image_key].height }}"
+                >
+              {% else %}
+                <div class="grid-item-placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+            </div>
+            <div class="grid-item-label-{{ ai_gen_id }}">{{ block.settings[label_key] }}</div>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="grid-button-wrapper-{{ ai_gen_id }}">
+      <a href="{{ block.settings.button_link }}" class="grid-button-{{ ai_gen_id }}">
+        {{ block.settings.button_label }}
+      </a>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Grid Layout",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Featured Collection"
+    },
+    {
+      "type": "richtext",
+      "id": "paragraph",
+      "label": "Description",
+      "default": "<p>Showcase your products with this beautiful grid layout.</p>"
+    },
+    {
+      "type": "image_picker",
+      "id": "main_image",
+      "label": "Main image"
+    },
+    {
+      "type": "header",
+      "content": "Text Alignment"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment (desktop)",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment_mobile",
+      "label": "Text alignment (mobile)",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Grid Items"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image 1"
+    },
+    {
+      "type": "text",
+      "id": "label_1",
+      "label": "Label 1",
+      "default": "Item 1"
+    },
+    {
+      "type": "url",
+      "id": "link_1",
+      "label": "Link 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image 2"
+    },
+    {
+      "type": "text",
+      "id": "label_2",
+      "label": "Label 2",
+      "default": "Item 2"
+    },
+    {
+      "type": "url",
+      "id": "link_2",
+      "label": "Link 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image 3"
+    },
+    {
+      "type": "text",
+      "id": "label_3",
+      "label": "Label 3",
+      "default": "Item 3"
+    },
+    {
+      "type": "url",
+      "id": "link_3",
+      "label": "Link 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image 4"
+    },
+    {
+      "type": "text",
+      "id": "label_4",
+      "label": "Label 4",
+      "default": "Item 4"
+    },
+    {
+      "type": "url",
+      "id": "link_4",
+      "label": "Link 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_5",
+      "label": "Image 5"
+    },
+    {
+      "type": "text",
+      "id": "label_5",
+      "label": "Label 5",
+      "default": "Item 5"
+    },
+    {
+      "type": "url",
+      "id": "link_5",
+      "label": "Link 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_6",
+      "label": "Image 6"
+    },
+    {
+      "type": "text",
+      "id": "label_6",
+      "label": "Label 6",
+      "default": "Item 6"
+    },
+    {
+      "type": "url",
+      "id": "link_6",
+      "label": "Link 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_7",
+      "label": "Image 7"
+    },
+    {
+      "type": "text",
+      "id": "label_7",
+      "label": "Label 7",
+      "default": "Item 7"
+    },
+    {
+      "type": "url",
+      "id": "link_7",
+      "label": "Link 7"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_8",
+      "label": "Image 8"
+    },
+    {
+      "type": "text",
+      "id": "label_8",
+      "label": "Label 8",
+      "default": "Item 8"
+    },
+    {
+      "type": "url",
+      "id": "link_8",
+      "label": "Link 8"
+    },
+    {
+      "type": "header",
+      "content": "Button"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "select",
+      "id": "button_alignment",
+      "label": "Button alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 20,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (desktop)",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 16,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (mobile)",
+      "default": 28
+    },
+    {
+      "type": "select",
+      "id": "heading_weight",
+      "label": "Heading weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size",
+      "min": 14,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Paragraph size (desktop)",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size_mobile",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Paragraph size (mobile)",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "paragraph_weight",
+      "label": "Paragraph weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "range",
+      "id": "label_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Label size (desktop)",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "label_size_mobile",
+      "min": 10,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "label": "Label size (mobile)",
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "label_weight",
+      "label": "Label weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        }
+      ],
+      "default": "500"
+    },
+    {
+      "type": "range",
+      "id": "button_size",
+      "min": 14,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Button size (desktop)",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "button_size_mobile",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Button size (mobile)",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "button_weight",
+      "label": "Button weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "container_max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Container max width",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Grid gap",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "image_text_spacing",
+      "min": 5,
+      "max": 20,
+      "step": 5,
+      "unit": "px",
+      "label": "Image to text spacing",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "header_spacing",
+      "min": 20,
+      "max": 60,
+      "step": 10,
+      "unit": "px",
+      "label": "Header spacing",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "title_spacing",
+      "min": 10,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "label": "Title spacing",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "description_spacing",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Description spacing",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "grid_spacing",
+      "min": 20,
+      "max": 60,
+      "step": 10,
+      "unit": "px",
+      "label": "Grid spacing",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "button_spacing",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Button spacing",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "button_padding",
+      "min": 8,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Button padding",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Button border radius",
+      "default": 4
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding left",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding right",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Margin"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_left",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Margin left",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_right",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Margin right",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "link_text_color",
+      "label": "Link text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "link_hover_color",
+      "label": "Link hover color",
+      "default": "#000f9f"
+    },
+    {
+      "type": "color",
+      "id": "button_background_color",
+      "label": "Button background color",
+      "default": "#000f9f"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_color",
+      "label": "Button hover background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_text_hover_color",
+      "label": "Button text hover color",
+      "default": "#ffffff"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Grid Layout"
+    }
+  ]
+}
+{% endschema %}

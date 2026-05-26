@@ -1,0 +1,167 @@
+{% assign productblank = 0 %}
+{%- if cart.item_count > 0 -%}
+  {% 	for item in cart.items %}
+    {% if item.product.tags contains "Blanks" %}
+      {% assign productblank = 1 %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{% if productblank == 0 %}
+<style>
+  .card-wrapper{background:#F2F2F2; border-radius:4px; flex-shrink: 0; flex-grow: 0;}
+  .card-wrapper img {max-width: 100%; cursor: pointer; max-height:100%; margin:auto;}
+  .card-img-block{background:#F2F2F2; padding:4px; border-radius:4px; width:54px; height:54px; display: flex; align-items: center; justify-content: center;}
+  .section-image-Swiper{max-width:100%;}
+  
+  {% if producttype == "sidebar" %}
+    #cart-wrapping{background: #D9EEF8;}
+    .sidebar .block-bottom{position:sticky; bottom: 0; z-index: 10; background: #fff; box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;}
+    .section-image-Swiper{}
+    .section-image-Swiper .label-container h3{font-size: calc(13px / 16 * var(--base-body-primary-size) + 0px); font-weight:normal; margin:0; padding-bottom:8px;}
+    .sidebar .card-wrapper{width:53px;}
+  {% else %}
+    .section-image-Swiper .container{max-width:100%; width:100%; margin: auto;}
+    .grt-cart-layout{padding:var(--gutter-regular)}
+    .section-image-Swiper .label-container h3{font-size:calc(13px / 16 * var(--base-body-primary-size) + 0px); font-weight:normal; margin:0; padding-bottom:8px;}
+  {% endif %}
+  
+  .section-image-Swiper #ctrl-block{display: flex; flex-flow: row; flex-shrink: 0; flex-grow: 0; gap: 8px; margin-left: auto;}
+  .arrow{width:32px; height:32px; border-radius:50%; display:block; background-color: rgba(0, 0, 0, 0.1); font-size: 29px; line-height: 32px;}
+  
+  
+  
+  .section-image-Swiper .card-wrapper {display: flex; flex-direction: column; align-items: center;}
+  .section-image-Swiper .swiper-text {font-size: 17px; font-weight: 600; text-decoration: none; color: black;}
+  .section-image-Swiper .button {border: none; cursor: pointer;}
+  .section-image-Swiper .card-slider-main {display: flex; margin-top: 10px; gap: 9px; flex-flow: row ;}
+  .section-image-Swiper .card-slider-main::-webkit-scrollbar, .card-slider::-webkit-scrollbar {width: 0; height: 0;}
+  .section-image-Swiper .label-container {display: flex; align-items: center;}
+  .section-image-Swiper .label-container button:disabled {background-color: whitesmoke; cursor: not-allowed; border: none;}
+  .section-image-Swiper .card-wrapper {transition: transform 0.3s ease-in-out; background: transparent; justify-content: space-between; gap: 8px; scroll-snap-align: center;
+    animation: scroll-images 10s linear infinite;}
+  .blk-heading{font-size:calc(13px / 16 * var(--base-body-primary-size) + 0px); text-align:center;}
+  .blk-text{font-size:calc(10px / 16 * var(--base-body-primary-size) + 0px);}
+  .card-wrapper.posrel .posoverlay{position:absolute; left:0; right:0; top:0; bottom:0;}
+  .viewall-arrow-icon{font-size:40px; color:blue;}
+  @keyframes scroll-images {
+    0% {transform: translateX(0);}
+    100% {transform: translateX(-calc(100% + 10px));}
+  }
+
+  .sidebar .section-image-Swiper .card-wrapper.webblock{display:none}
+  .sidebar .section-image-Swiper .container{max-width:100%; width:auto;}
+  .sidebar .section-image-Swiper .card-slider-main{gap:8px;}
+  
+  @media(max-width:768px){
+    .section-image-Swiper .card-wrapper.webblock{display:none}
+    .section-image-Swiper .container{max-width:100%;}
+    .section-image-Swiper .card-slider-main{gap:8px;}
+    .sidebar .card-img-block,.card-img-block{height:46px;width:46px;}
+    {% if producttype == "sidebar" %}
+      .section-image-Swiper{display:none !important;}
+    {% else %}
+    {% endif %}
+    
+  }
+</style>
+{% assign viewall = 0 %}
+<div class="section-image-Swiper {% if producttype == "sidebar" %}cart-wrapping--sidebar {% else %} grt-cart-layout{% endif %}">
+  <div class="container">
+    <div class="main-slider">
+      <div class="label-container">
+        <h3 class="{% if producttype == "sidebar" %}sm-size-font{% endif %}"><strong>Need Blanks?</strong> <span>We deliver next day for free at the lowest price</span></h3>
+        <div id="ctrl-block" style="display:none;">
+          <button class="arrow arrow-left">&#8249;</button>
+          <button class="arrow arrow-right">&#8250;</button>
+        </div>
+      </div>
+      <div class="card-slider-main">
+        
+        {% for cartupsell in shop.metaobjects.cart_suggest_object.values %}
+          {% for cart_suggester in cartupsell.suggestion_lists.value %}
+            {% if forloop.index < 8 %}
+            <div class="card-wrapper posrel {% if forloop.index > 5 %}webblock{% endif %}" data="{{ forloop.index }}">
+                <a href="{{ cart_suggester.link_url }}" class="posoverlay"></a>
+                <div class="card-img-block"><img height="" width="" src="{{ cart_suggester.image | image_url  }}" /></div>
+                <div>
+                  <div class="blk-heading">{{- cart_suggester.link_name -}}</div>
+                  <div class="blk-text">{{- cart_suggester.price -}}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if forloop.index >= 7 and viewall == 0 %}
+              {% assign viewall = 1 %}
+            {% endif %}
+          {% endfor %}
+          {% if viewall == 1 %}
+            <div class="card-wrapper posrel viewall" data="{{ forloop.index }}">
+                <a href="{{ cartupsell.view_all_link }}" class="posoverlay"></a>
+                <div class="card-img-block">
+                  <img src="{{ cartupsell.view_all_icon | image_url  }}" loading="lazy" alt="arrow" height="83px" width="83" />
+                </div>
+                <div class="blk-heading">{{ cartupsell.view_all_text }}</div>
+            </div>
+          {% endif %}
+        {% endfor %}
+        
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const container = document.querySelector('.card-slider-main');
+    const leftButton = document.querySelector('.arrow-left');
+    const rightButton = document.querySelector('.arrow-right');
+
+    function updateButtonState() {
+      leftButton.disabled = container.scrollLeft <= 0;
+      rightButton.disabled = container.scrollLeft + container.offsetWidth >= container.scrollWidth;
+    }
+
+    leftButton?.addEventListener('click', function () {
+      container.scrollBy({
+        left: -container.offsetWidth / 2,
+        behavior: 'smooth',
+      });
+    });
+
+    rightButton?.addEventListener('click', function () {
+      container.scrollBy({
+        left: container.offsetWidth / 2,
+        behavior: 'smooth',
+      });
+    });
+
+    container?.addEventListener('scroll', updateButtonState);
+    updateButtonState();
+/*
+    function autoSlide() {
+      if (container.scrollLeft + container.offsetWidth >= container.scrollWidth) {
+        container.scrollTo({
+          left: 0,
+          behavior: 'smooth',
+        });
+      } else {
+        container.scrollBy({
+          left: container.offsetWidth / 2,
+          behavior: 'smooth',
+        });
+      }
+    }
+
+    // Start auto-slide every slider_delay seconds
+    let autoSlideInterval = setInterval(autoSlide, {{ section.settings.slider_delay | times: 1000 }});
+
+    // Pause auto-slide on mouse hover and resume on mouse leave
+    container.addEventListener('mouseenter', function () {
+      clearInterval(autoSlideInterval);
+    });
+
+    container.addEventListener('mouseleave', function () {
+      autoSlideInterval = setInterval(autoSlide, {{ section.settings.slider_delay | times: 1000}});
+    });
+*/
+  });
+</script>
+{% endif %}

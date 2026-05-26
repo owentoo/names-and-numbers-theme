@@ -1,0 +1,1549 @@
+{% doc %}
+  @prompt
+    Prompt:
+    
+    Create a responsive product card grid section. Each card must be fully clickable and repeatable, with full desktop and mobile control.
+    
+    Card Content (repeatable):
+    
+    Title
+    
+    Subtext (e.g. “As low as”) – toggle show/hide
+    
+    Description – toggle show/hide + separate toggle to hide on mobile
+    
+    Button text + button link (entire card uses same link) – toggle show/hide
+    
+    Image upload
+    
+    Optional badge
+    
+    Layout Controls:
+    
+    Columns: set desktop and mobile columns separately
+    
+    Card gap control
+    
+    Section width: full, wide, or custom
+    
+    Section padding: separate desktop and mobile
+    
+    Equal-height cards toggle
+    
+    Card Design:
+    
+    Background color
+    
+    Border + radius
+    
+    Shadow
+    
+    Hover effect
+    
+    Card padding (desktop/mobile)
+    
+    Typography:
+    
+    Font size, weight, and color for title, subtext, description
+    
+    Separate mobile font settings
+    
+    Spacing between text elements
+    
+    Button Style:
+    
+    Text color, background color, border
+    
+    Padding
+    
+    Width: auto, fixed, or full
+    
+    Alignment
+    
+    Hover styles
+    
+    Separate mobile settings
+    
+    Image Controls:
+    
+    Position: top or left
+    
+    Aspect ratio + maintain ratio toggle
+    
+    Object fit
+    
+    Width/height
+    
+    Radius
+    
+    Mobile option: swap or hide image
+    
+    Visibility:
+    
+    Show/hide: subtext, description, button
+    
+    Hide description on mobile toggle
+    
+    Per-card visibility by device (desktop/tablet/mobile)
+    
+    Advanced:
+    
+    Custom CSS class fields for section and cards
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-card-grid-{{ ai_gen_id }} {
+    width: 100%;
+    padding: {{ block.settings.section_padding_desktop }}px 0;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-card-grid-{{ ai_gen_id }} {
+      padding: {{ block.settings.section_padding_mobile }}px 0;
+    }
+  }
+
+  .ai-card-grid-container-{{ ai_gen_id }} {
+    {% if block.settings.section_width == 'full' %}
+      max-width: 100%;
+      padding: 0;
+    {% elsif block.settings.section_width == 'wide' %}
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 0 20px;
+    {% else %}
+      max-width: {{ block.settings.section_custom_width }}px;
+      margin: 0 auto;
+      padding: 0 20px;
+    {% endif %}
+  }
+
+  .ai-card-grid-wrapper-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    gap: {{ block.settings.card_gap }}px;
+    {% if block.settings.equal_height %}
+      align-items: stretch;
+    {% endif %}
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-card-grid-wrapper-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+    }
+  }
+
+  .ai-card-item-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    background-color: {{ block.settings.card_bg_color }};
+    border: {{ block.settings.card_border_width }}px solid {{ block.settings.card_border_color }};
+    border-radius: {{ block.settings.card_border_radius }}px;
+    {% if block.settings.card_shadow %}
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    {% endif %}
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    {% if block.settings.equal_height %}
+      height: 100%;
+    {% endif %}
+  }
+
+  .ai-card-item-{{ ai_gen_id }}:hover {
+    {% if block.settings.card_hover_effect == 'lift' %}
+      transform: translateY(-8px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    {% elsif block.settings.card_hover_effect == 'scale' %}
+      transform: scale(1.03);
+    {% elsif block.settings.card_hover_effect == 'shadow' %}
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    {% endif %}
+  }
+
+  .ai-card-content-wrapper-{{ ai_gen_id }} {
+    display: flex;
+    {% if block.settings.image_position == 'left' %}
+      flex-direction: row;
+    {% else %}
+      flex-direction: column;
+    {% endif %}
+    flex-grow: 1;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-card-content-wrapper-{{ ai_gen_id }} {
+      {% if block.settings.image_mobile_swap %}
+        flex-direction: column-reverse;
+      {% elsif block.settings.image_position == 'left' %}
+        flex-direction: column;
+      {% endif %}
+    }
+  }
+
+  .ai-card-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    {% if block.settings.image_position == 'left' %}
+      width: {{ block.settings.image_width }}%;
+      flex-shrink: 0;
+    {% else %}
+      width: 100%;
+    {% endif %}
+    {% if block.settings.maintain_aspect_ratio %}
+      aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    {% else %}
+      height: {{ block.settings.image_height }}px;
+    {% endif %}
+    overflow: hidden;
+    border-radius: {{ block.settings.image_border_radius }}px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-card-image-wrapper-{{ ai_gen_id }} {
+      {% if block.settings.image_mobile_hide %}
+        display: none;
+      {% endif %}
+      {% if block.settings.image_position == 'left' %}
+        width: 100%;
+      {% endif %}
+    }
+  }
+
+  .ai-card-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: {{ block.settings.image_object_fit }};
+  }
+
+  .ai-card-image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-card-image-placeholder-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    max-width: 200px;
+    max-height: 200px;
+  }
+
+  .ai-card-badge-{{ ai_gen_id }} {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background-color: {{ block.settings.card_bg_color }};
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 1;
+  }
+
+  .ai-card-text-content-{{ ai_gen_id }} {
+    padding: {{ block.settings.card_padding_desktop }}px;
+    display: flex;
+    flex-direction: column;
+    gap: {{ block.settings.text_spacing }}px;
+    flex-grow: 1;
+    {% if block.settings.image_position == 'left' %}
+      width: calc(100% - {{ block.settings.image_width }}%);
+    {% endif %}
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-card-text-content-{{ ai_gen_id }} {
+      padding: {{ block.settings.card_padding_mobile }}px;
+      {% if block.settings.image_position == 'left' %}
+        width: 100%;
+      {% endif %}
+    }
+  }
+
+  .ai-card-title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.title_font_size }}px;
+    font-weight: {{ block.settings.title_font_weight }};
+    color: {{ block.settings.title_color }};
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-card-title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.title_font_size_mobile }}px;
+    }
+  }
+
+  .ai-card-subtext-{{ ai_gen_id }} {
+    font-size: {{ block.settings.subtext_font_size }}px;
+    font-weight: {{ block.settings.subtext_font_weight }};
+    color: {{ block.settings.subtext_color }};
+    margin: 0;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-card-subtext-{{ ai_gen_id }} {
+      font-size: {{ block.settings.subtext_font_size_mobile }}px;
+    }
+  }
+
+  .ai-card-description-{{ ai_gen_id }} {
+    font-size: {{ block.settings.description_font_size }}px;
+    font-weight: {{ block.settings.description_font_weight }};
+    color: {{ block.settings.description_color }};
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-card-description-{{ ai_gen_id }} {
+      font-size: {{ block.settings.description_font_size_mobile }}px;
+      {% if block.settings.description_hide_mobile %}
+        display: none;
+      {% endif %}
+    }
+  }
+
+  .ai-card-button-{{ ai_gen_id }} {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: {{ block.settings.button_padding }}px {{ block.settings.button_padding | times: 2 }}px;
+    background-color: {{ block.settings.button_bg_color }};
+    color: {{ block.settings.button_text_color }};
+    border: {{ block.settings.button_border_width }}px solid {{ block.settings.button_border_color }};
+    border-radius: {{ block.settings.button_border_radius }}px;
+    font-size: {{ block.settings.button_font_size }}px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    margin-top: auto;
+    {% if block.settings.button_width == 'full' %}
+      width: 100%;
+    {% elsif block.settings.button_width == 'fixed' %}
+      width: {{ block.settings.button_fixed_width }}px;
+    {% else %}
+      width: auto;
+    {% endif %}
+    {% if block.settings.button_alignment == 'left' %}
+      align-self: flex-start;
+    {% elsif block.settings.button_alignment == 'center' %}
+      align-self: center;
+    {% elsif block.settings.button_alignment == 'right' %}
+      align-self: flex-end;
+    {% endif %}
+  }
+
+  .ai-card-button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_bg_color_hover }};
+    color: {{ block.settings.button_text_color_hover }};
+    border-color: {{ block.settings.button_border_color_hover }};
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-card-button-{{ ai_gen_id }} {
+      font-size: {{ block.settings.button_font_size_mobile }}px;
+      padding: {{ block.settings.button_padding_mobile }}px {{ block.settings.button_padding_mobile | times: 2 }}px;
+    }
+  }
+
+  .ai-card-hide-desktop-{{ ai_gen_id }} {
+    display: none !important;
+  }
+
+  @media screen and (max-width: 989px) {
+    .ai-card-hide-tablet-{{ ai_gen_id }} {
+      display: none !important;
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-card-hide-mobile-{{ ai_gen_id }} {
+      display: none !important;
+    }
+  }
+
+  @media screen and (min-width: 750px) and (max-width: 989px) {
+    .ai-card-show-tablet-only-{{ ai_gen_id }} {
+      display: flex !important;
+    }
+  }
+
+  @media screen and (min-width: 990px) {
+    .ai-card-show-desktop-only-{{ ai_gen_id }} {
+      display: flex !important;
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-card-show-mobile-only-{{ ai_gen_id }} {
+      display: flex !important;
+    }
+  }
+{% endstyle %}
+
+<product-card-grid-{{ ai_gen_id }} class="ai-card-grid-{{ ai_gen_id }} {{ block.settings.section_custom_class }}" {{ block.shopify_attributes }}>
+  <div class="ai-card-grid-container-{{ ai_gen_id }}">
+    <div class="ai-card-grid-wrapper-{{ ai_gen_id }}">
+      {% assign card_1_title = block.settings.card_1_title %}
+      {% assign card_1_subtext = block.settings.card_1_subtext %}
+      {% assign card_1_description = block.settings.card_1_description %}
+      {% assign card_1_button_text = block.settings.card_1_button_text %}
+      {% assign card_1_link = block.settings.card_1_link %}
+      {% assign card_1_image = block.settings.card_1_image %}
+      {% assign card_1_badge = block.settings.card_1_badge %}
+      {% assign card_1_show_badge = block.settings.card_1_show_badge %}
+      {% assign card_1_show_subtext = block.settings.card_1_show_subtext %}
+      {% assign card_1_show_description = block.settings.card_1_show_description %}
+      {% assign card_1_show_button = block.settings.card_1_show_button %}
+      {% assign card_1_hide_desktop = block.settings.card_1_hide_desktop %}
+      {% assign card_1_hide_tablet = block.settings.card_1_hide_tablet %}
+      {% assign card_1_hide_mobile = block.settings.card_1_hide_mobile %}
+      {% assign card_1_custom_class = block.settings.card_1_custom_class %}
+
+      {% if card_1_title != blank or card_1_image %}
+        <a
+          href="{% if card_1_link != blank %}{{ card_1_link }}{% else %}#{% endif %}"
+          class="ai-card-item-{{ ai_gen_id }} {{ card_1_custom_class }}
+            {% if card_1_hide_desktop %}ai-card-hide-desktop-{{ ai_gen_id }}{% endif %}
+            {% if card_1_hide_tablet %}ai-card-hide-tablet-{{ ai_gen_id }}{% endif %}
+            {% if card_1_hide_mobile %}ai-card-hide-mobile-{{ ai_gen_id }}{% endif %}"
+        >
+          <div class="ai-card-content-wrapper-{{ ai_gen_id }}">
+            <div class="ai-card-image-wrapper-{{ ai_gen_id }}">
+              {% if card_1_image %}
+                <img
+                  src="{{ card_1_image | image_url: width: 800 }}"
+                  alt="{{ card_1_image.alt | escape }}"
+                  loading="lazy"
+                  width="{{ card_1_image.width }}"
+                  height="{{ card_1_image.height }}"
+                  class="ai-card-image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <div class="ai-card-image-placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if card_1_show_badge and card_1_badge != blank %}
+                <div class="ai-card-badge-{{ ai_gen_id }}">
+                  {{ card_1_badge }}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="ai-card-text-content-{{ ai_gen_id }}">
+              {% if card_1_title != blank %}
+                <h3 class="ai-card-title-{{ ai_gen_id }}">{{ card_1_title }}</h3>
+              {% endif %}
+
+              {% if card_1_show_subtext and card_1_subtext != blank %}
+                <p class="ai-card-subtext-{{ ai_gen_id }}">{{ card_1_subtext }}</p>
+              {% endif %}
+
+              {% if card_1_show_description and card_1_description != blank %}
+                <div class="ai-card-description-{{ ai_gen_id }}">
+                  {{ card_1_description }}
+                </div>
+              {% endif %}
+
+              {% if card_1_show_button and card_1_button_text != blank %}
+                <span class="ai-card-button-{{ ai_gen_id }}">
+                  {{ card_1_button_text }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      {% endif %}
+
+      {% assign card_2_title = block.settings.card_2_title %}
+      {% assign card_2_subtext = block.settings.card_2_subtext %}
+      {% assign card_2_description = block.settings.card_2_description %}
+      {% assign card_2_button_text = block.settings.card_2_button_text %}
+      {% assign card_2_link = block.settings.card_2_link %}
+      {% assign card_2_image = block.settings.card_2_image %}
+      {% assign card_2_badge = block.settings.card_2_badge %}
+      {% assign card_2_show_badge = block.settings.card_2_show_badge %}
+      {% assign card_2_show_subtext = block.settings.card_2_show_subtext %}
+      {% assign card_2_show_description = block.settings.card_2_show_description %}
+      {% assign card_2_show_button = block.settings.card_2_show_button %}
+      {% assign card_2_hide_desktop = block.settings.card_2_hide_desktop %}
+      {% assign card_2_hide_tablet = block.settings.card_2_hide_tablet %}
+      {% assign card_2_hide_mobile = block.settings.card_2_hide_mobile %}
+      {% assign card_2_custom_class = block.settings.card_2_custom_class %}
+
+      {% if card_2_title != blank or card_2_image %}
+        <a
+          href="{% if card_2_link != blank %}{{ card_2_link }}{% else %}#{% endif %}"
+          class="ai-card-item-{{ ai_gen_id }} {{ card_2_custom_class }}
+            {% if card_2_hide_desktop %}ai-card-hide-desktop-{{ ai_gen_id }}{% endif %}
+            {% if card_2_hide_tablet %}ai-card-hide-tablet-{{ ai_gen_id }}{% endif %}
+            {% if card_2_hide_mobile %}ai-card-hide-mobile-{{ ai_gen_id }}{% endif %}"
+        >
+          <div class="ai-card-content-wrapper-{{ ai_gen_id }}">
+            <div class="ai-card-image-wrapper-{{ ai_gen_id }}">
+              {% if card_2_image %}
+                <img
+                  src="{{ card_2_image | image_url: width: 800 }}"
+                  alt="{{ card_2_image.alt | escape }}"
+                  loading="lazy"
+                  width="{{ card_2_image.width }}"
+                  height="{{ card_2_image.height }}"
+                  class="ai-card-image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <div class="ai-card-image-placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if card_2_show_badge and card_2_badge != blank %}
+                <div class="ai-card-badge-{{ ai_gen_id }}">
+                  {{ card_2_badge }}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="ai-card-text-content-{{ ai_gen_id }}">
+              {% if card_2_title != blank %}
+                <h3 class="ai-card-title-{{ ai_gen_id }}">{{ card_2_title }}</h3>
+              {% endif %}
+
+              {% if card_2_show_subtext and card_2_subtext != blank %}
+                <p class="ai-card-subtext-{{ ai_gen_id }}">{{ card_2_subtext }}</p>
+              {% endif %}
+
+              {% if card_2_show_description and card_2_description != blank %}
+                <div class="ai-card-description-{{ ai_gen_id }}">
+                  {{ card_2_description }}
+                </div>
+              {% endif %}
+
+              {% if card_2_show_button and card_2_button_text != blank %}
+                <span class="ai-card-button-{{ ai_gen_id }}">
+                  {{ card_2_button_text }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      {% endif %}
+
+      {% assign card_3_title = block.settings.card_3_title %}
+      {% assign card_3_subtext = block.settings.card_3_subtext %}
+      {% assign card_3_description = block.settings.card_3_description %}
+      {% assign card_3_button_text = block.settings.card_3_button_text %}
+      {% assign card_3_link = block.settings.card_3_link %}
+      {% assign card_3_image = block.settings.card_3_image %}
+      {% assign card_3_badge = block.settings.card_3_badge %}
+      {% assign card_3_show_badge = block.settings.card_3_show_badge %}
+      {% assign card_3_show_subtext = block.settings.card_3_show_subtext %}
+      {% assign card_3_show_description = block.settings.card_3_show_description %}
+      {% assign card_3_show_button = block.settings.card_3_show_button %}
+      {% assign card_3_hide_desktop = block.settings.card_3_hide_desktop %}
+      {% assign card_3_hide_tablet = block.settings.card_3_hide_tablet %}
+      {% assign card_3_hide_mobile = block.settings.card_3_hide_mobile %}
+      {% assign card_3_custom_class = block.settings.card_3_custom_class %}
+
+      {% if card_3_title != blank or card_3_image %}
+        <a
+          href="{% if card_3_link != blank %}{{ card_3_link }}{% else %}#{% endif %}"
+          class="ai-card-item-{{ ai_gen_id }} {{ card_3_custom_class }}
+            {% if card_3_hide_desktop %}ai-card-hide-desktop-{{ ai_gen_id }}{% endif %}
+            {% if card_3_hide_tablet %}ai-card-hide-tablet-{{ ai_gen_id }}{% endif %}
+            {% if card_3_hide_mobile %}ai-card-hide-mobile-{{ ai_gen_id }}{% endif %}"
+        >
+          <div class="ai-card-content-wrapper-{{ ai_gen_id }}">
+            <div class="ai-card-image-wrapper-{{ ai_gen_id }}">
+              {% if card_3_image %}
+                <img
+                  src="{{ card_3_image | image_url: width: 800 }}"
+                  alt="{{ card_3_image.alt | escape }}"
+                  loading="lazy"
+                  width="{{ card_3_image.width }}"
+                  height="{{ card_3_image.height }}"
+                  class="ai-card-image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <div class="ai-card-image-placeholder-{{ ai_gen_id }}">
+                  {{ 'image' | placeholder_svg_tag }}
+                </div>
+              {% endif %}
+
+              {% if card_3_show_badge and card_3_badge != blank %}
+                <div class="ai-card-badge-{{ ai_gen_id }}">
+                  {{ card_3_badge }}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="ai-card-text-content-{{ ai_gen_id }}">
+              {% if card_3_title != blank %}
+                <h3 class="ai-card-title-{{ ai_gen_id }}">{{ card_3_title }}</h3>
+              {% endif %}
+
+              {% if card_3_show_subtext and card_3_subtext != blank %}
+                <p class="ai-card-subtext-{{ ai_gen_id }}">{{ card_3_subtext }}</p>
+              {% endif %}
+
+              {% if card_3_show_description and card_3_description != blank %}
+                <div class="ai-card-description-{{ ai_gen_id }}">
+                  {{ card_3_description }}
+                </div>
+              {% endif %}
+
+              {% if card_3_show_button and card_3_button_text != blank %}
+                <span class="ai-card-button-{{ ai_gen_id }}">
+                  {{ card_3_button_text }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</product-card-grid-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class ProductCardGrid{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.init();
+      }
+
+      init() {
+      }
+    }
+
+    customElements.define('product-card-grid-{{ ai_gen_id }}', ProductCardGrid{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Product card grid",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "label": "Columns desktop",
+      "default": 3
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "card_gap",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Gap",
+      "default": 24
+    },
+    {
+      "type": "checkbox",
+      "id": "equal_height",
+      "label": "Equal height cards",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Section width"
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Width",
+      "options": [
+        {
+          "value": "full",
+          "label": "Full width"
+        },
+        {
+          "value": "wide",
+          "label": "Wide"
+        },
+        {
+          "value": "custom",
+          "label": "Custom"
+        }
+      ],
+      "default": "wide"
+    },
+    {
+      "type": "range",
+      "id": "section_custom_width",
+      "min": 800,
+      "max": 2000,
+      "step": 50,
+      "unit": "px",
+      "label": "Custom width",
+      "default": 1200
+    },
+    {
+      "type": "header",
+      "content": "Section padding"
+    },
+    {
+      "type": "range",
+      "id": "section_padding_desktop",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "Desktop",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_mobile",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Mobile",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "Card design"
+    },
+    {
+      "type": "color",
+      "id": "card_bg_color",
+      "label": "Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_border_width",
+      "min": 0,
+      "max": 5,
+      "step": 1,
+      "unit": "px",
+      "label": "Border width",
+      "default": 1
+    },
+    {
+      "type": "color",
+      "id": "card_border_color",
+      "label": "Border color",
+      "default": "#e0e0e0"
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    },
+    {
+      "type": "checkbox",
+      "id": "card_shadow",
+      "label": "Shadow",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "card_hover_effect",
+      "label": "Hover effect",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "lift",
+          "label": "Lift"
+        },
+        {
+          "value": "scale",
+          "label": "Scale"
+        },
+        {
+          "value": "shadow",
+          "label": "Shadow"
+        }
+      ],
+      "default": "lift"
+    },
+    {
+      "type": "range",
+      "id": "card_padding_desktop",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding desktop",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "card_padding_mobile",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding mobile",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Image"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "Position",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "left",
+          "label": "Left"
+        }
+      ],
+      "default": "top"
+    },
+    {
+      "type": "checkbox",
+      "id": "maintain_aspect_ratio",
+      "label": "Maintain aspect ratio",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "image_aspect_ratio",
+      "label": "Aspect ratio",
+      "options": [
+        {
+          "value": "1/1",
+          "label": "Square"
+        },
+        {
+          "value": "4/3",
+          "label": "Landscape"
+        },
+        {
+          "value": "16/9",
+          "label": "Wide"
+        },
+        {
+          "value": "3/4",
+          "label": "Portrait"
+        }
+      ],
+      "default": "4/3"
+    },
+    {
+      "type": "range",
+      "id": "image_height",
+      "min": 100,
+      "max": 600,
+      "step": 20,
+      "unit": "px",
+      "label": "Fixed height",
+      "default": 300
+    },
+    {
+      "type": "range",
+      "id": "image_width",
+      "min": 20,
+      "max": 60,
+      "step": 5,
+      "unit": "%",
+      "label": "Width when left",
+      "default": 40
+    },
+    {
+      "type": "select",
+      "id": "image_object_fit",
+      "label": "Object fit",
+      "options": [
+        {
+          "value": "cover",
+          "label": "Cover"
+        },
+        {
+          "value": "contain",
+          "label": "Contain"
+        },
+        {
+          "value": "fill",
+          "label": "Fill"
+        }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 0
+    },
+    {
+      "type": "checkbox",
+      "id": "image_mobile_swap",
+      "label": "Swap position mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "image_mobile_hide",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "text_spacing",
+      "min": 4,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Spacing",
+      "default": 12
+    },
+    {
+      "type": "paragraph",
+      "content": "Title"
+    },
+    {
+      "type": "range",
+      "id": "title_font_size",
+      "min": 14,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Size desktop",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "title_font_size_mobile",
+      "min": 12,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Size mobile",
+      "default": 20
+    },
+    {
+      "type": "select",
+      "id": "title_font_weight",
+      "label": "Weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Color",
+      "default": "#000000"
+    },
+    {
+      "type": "paragraph",
+      "content": "Subtext"
+    },
+    {
+      "type": "range",
+      "id": "subtext_font_size",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Size desktop",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "subtext_font_size_mobile",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Size mobile",
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "subtext_font_weight",
+      "label": "Weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "color",
+      "id": "subtext_color",
+      "label": "Color",
+      "default": "#666666"
+    },
+    {
+      "type": "paragraph",
+      "content": "Description"
+    },
+    {
+      "type": "range",
+      "id": "description_font_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Size desktop",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "description_font_size_mobile",
+      "min": 12,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "label": "Size mobile",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "description_font_weight",
+      "label": "Weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "color",
+      "id": "description_color",
+      "label": "Color",
+      "default": "#333333"
+    },
+    {
+      "type": "checkbox",
+      "id": "description_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Button"
+    },
+    {
+      "type": "color",
+      "id": "button_bg_color",
+      "label": "Background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "button_border_width",
+      "min": 0,
+      "max": 4,
+      "step": 1,
+      "unit": "px",
+      "label": "Border width",
+      "default": 0
+    },
+    {
+      "type": "color",
+      "id": "button_border_color",
+      "label": "Border",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "button_padding",
+      "min": 8,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding desktop",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "button_padding_mobile",
+      "min": 6,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding mobile",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "button_font_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Size desktop",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "button_font_size_mobile",
+      "min": 12,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "label": "Size mobile",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "button_width",
+      "label": "Width",
+      "options": [
+        {
+          "value": "auto",
+          "label": "Auto"
+        },
+        {
+          "value": "fixed",
+          "label": "Fixed"
+        },
+        {
+          "value": "full",
+          "label": "Full"
+        }
+      ],
+      "default": "auto"
+    },
+    {
+      "type": "range",
+      "id": "button_fixed_width",
+      "min": 100,
+      "max": 400,
+      "step": 20,
+      "unit": "px",
+      "label": "Fixed width",
+      "default": 200
+    },
+    {
+      "type": "select",
+      "id": "button_alignment",
+      "label": "Alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "paragraph",
+      "content": "Hover"
+    },
+    {
+      "type": "color",
+      "id": "button_bg_color_hover",
+      "label": "Background",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color_hover",
+      "label": "Text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_border_color_hover",
+      "label": "Border",
+      "default": "#333333"
+    },
+    {
+      "type": "header",
+      "content": "Advanced"
+    },
+    {
+      "type": "text",
+      "id": "section_custom_class",
+      "label": "Section CSS class"
+    },
+    {
+      "type": "header",
+      "content": "Card 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_1_title",
+      "label": "Title",
+      "default": "Product card 1"
+    },
+    {
+      "type": "text",
+      "id": "card_1_subtext",
+      "label": "Subtext",
+      "default": "As low as $9.99"
+    },
+    {
+      "type": "richtext",
+      "id": "card_1_description",
+      "label": "Description",
+      "default": "<p>Compelling description for your product.</p>"
+    },
+    {
+      "type": "text",
+      "id": "card_1_button_text",
+      "label": "Button text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_1_link",
+      "label": "Link"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_show_badge",
+      "label": "Show badge",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_1_badge",
+      "label": "Badge text"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_show_subtext",
+      "label": "Show subtext",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_show_description",
+      "label": "Show description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_show_button",
+      "label": "Show button",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_hide_tablet",
+      "label": "Hide on tablet",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_1_custom_class",
+      "label": "CSS class"
+    },
+    {
+      "type": "header",
+      "content": "Card 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_2_title",
+      "label": "Title",
+      "default": "Product card 2"
+    },
+    {
+      "type": "text",
+      "id": "card_2_subtext",
+      "label": "Subtext",
+      "default": "As low as $9.99"
+    },
+    {
+      "type": "richtext",
+      "id": "card_2_description",
+      "label": "Description",
+      "default": "<p>Compelling description for your product.</p>"
+    },
+    {
+      "type": "text",
+      "id": "card_2_button_text",
+      "label": "Button text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_2_link",
+      "label": "Link"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_show_badge",
+      "label": "Show badge",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_2_badge",
+      "label": "Badge text"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_show_subtext",
+      "label": "Show subtext",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_show_description",
+      "label": "Show description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_show_button",
+      "label": "Show button",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_hide_tablet",
+      "label": "Hide on tablet",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_2_custom_class",
+      "label": "CSS class"
+    },
+    {
+      "type": "header",
+      "content": "Card 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_3_title",
+      "label": "Title",
+      "default": "Product card 3"
+    },
+    {
+      "type": "text",
+      "id": "card_3_subtext",
+      "label": "Subtext",
+      "default": "As low as $9.99"
+    },
+    {
+      "type": "richtext",
+      "id": "card_3_description",
+      "label": "Description",
+      "default": "<p>Compelling description for your product.</p>"
+    },
+    {
+      "type": "text",
+      "id": "card_3_button_text",
+      "label": "Button text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_3_link",
+      "label": "Link"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_show_badge",
+      "label": "Show badge",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_3_badge",
+      "label": "Badge text"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_show_subtext",
+      "label": "Show subtext",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_show_description",
+      "label": "Show description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_show_button",
+      "label": "Show button",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_hide_tablet",
+      "label": "Hide on tablet",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "card_3_custom_class",
+      "label": "CSS class"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product card grid"
+    }
+  ]
+}
+{% endschema %}

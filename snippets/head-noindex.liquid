@@ -1,0 +1,28 @@
+{% assign noIndex = false %}
+
+{% if product.metafields.specs.default_child_color %}
+  {% assign page_url = content_for_header | split:'"pageurl":"' | last | split:'"' | first | split: request.host | last | replace:'\/','/' | replace:'%20',' ' | replace:'\u0026','&'  %}
+  {% assign param_color = nil %}      
+  {%- for i in (1..1) -%}
+    {%- unless page_url contains "?" -%}{% break %}{%- endunless -%}
+    {%- assign query_string = page_url | split:'?' | last -%}
+    {%- assign qry_parts= query_string | split:'&' -%}      
+    {%- for part in qry_parts -%}
+      {%- assign key_and_value = part | split:'=' -%}
+      {%- if key_and_value.size > 1 -%}
+        {% if key_and_value[0] == 'view' or key_and_value[0] == 'variant' %}
+          {% assign param_color = key_and_value[1] | upcase  %}
+        {% endif %}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endfor -%}
+  {% if param_color %}
+  {% assign noIndex = true %}
+  {% endif %}
+{% elsif product.metafields.specs.shirt_color %}
+  {% assign noIndex = true %}
+{% endif %}
+
+{% if noIndex %}
+<meta name="robots" content="noindex">
+{% endif %}

@@ -1,0 +1,253 @@
+{%- assign s = section.settings -%}
+
+<style>
+  #bbg-{{ section.id }} *,
+  #bbg-{{ section.id }} *::before,
+  #bbg-{{ section.id }} *::after { box-sizing: border-box; }
+
+  #bbg-{{ section.id }} {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 56px 0;
+    background: {{ s.background_color }};
+  }
+
+  #bbg-{{ section.id }} .bbg-inner {
+    max-width: {{ s.content_width }}px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* Header */
+  #bbg-{{ section.id }} .bbg-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    margin-bottom: 28px;
+  }
+  #bbg-{{ section.id }} .bbg-view-all::before {
+    content: "|";
+    margin: 0 10px;
+    color: #ccc;
+    font-weight: 400;
+  }
+  #bbg-{{ section.id }} .bbg-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #0f0f1a;
+    margin: 0;
+  }
+  #bbg-{{ section.id }} .bbg-view-all {
+    font-size: {{ s.cta_font_size }}px;
+    font-weight: 600;
+    color: {{ s.cta_color }};
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: gap 0.2s ease, opacity 0.15s ease;
+    white-space: nowrap;
+  }
+  #bbg-{{ section.id }} .bbg-view-all:hover { gap: 8px; opacity: 0.8; }
+  #bbg-{{ section.id }} .bbg-subtitle {
+    font-size: 14px;
+    color: #888;
+    margin: 0 0 24px;
+  }
+
+  /* Grid */
+  #bbg-{{ section.id }} .bbg-grid {
+    display: grid;
+    grid-template-columns: repeat({{ s.desktop_columns }}, 1fr);
+    gap: 12px;
+  }
+
+  /* Card */
+  #bbg-{{ section.id }} .bbg-card {
+    display: block;
+    background: #fff;
+    border: 1px solid #efefef;
+    border-radius: 14px;
+    aspect-ratio: 3 / 2;
+    text-decoration: none;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    overflow: hidden;
+  }
+  #bbg-{{ section.id }} .bbg-card:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+    border-color: #e0e0e0;
+  }
+  #bbg-{{ section.id }} .bbg-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  #bbg-{{ section.id }} .bbg-card-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 16px;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    #bbg-{{ section.id }} .bbg-grid { grid-template-columns: repeat({{ s.desktop_columns | minus: 1 | at_least: 2 }}, 1fr); }
+  }
+  @media (max-width: 768px) {
+    #bbg-{{ section.id }} { padding: 40px 0; }
+    #bbg-{{ section.id }} .bbg-inner { padding: 0 20px; }
+    #bbg-{{ section.id }} .bbg-title { font-size: 22px; }
+    #bbg-{{ section.id }} .bbg-grid { grid-template-columns: repeat({{ s.mobile_columns }}, 1fr); gap: 8px; }
+  }
+</style>
+
+<div id="bbg-{{ section.id }}">
+  <div class="bbg-inner">
+
+    <div class="bbg-header">
+      {%- if s.section_title != blank -%}
+        <h2 class="bbg-title">{{ s.section_title }}</h2>
+      {%- endif -%}
+      {%- if s.view_all_url != blank and s.view_all_text != blank -%}
+        <a href="{{ s.view_all_url }}" class="bbg-view-all">{{ s.view_all_text }} <span>&#8594;</span></a>
+      {%- endif -%}
+    </div>
+
+    {%- if s.subtitle != blank -%}
+      <p class="bbg-subtitle">{{ s.subtitle }}</p>
+    {%- endif -%}
+
+    {%- if section.blocks.size > 0 -%}
+      <div class="bbg-grid">
+        {%- for block in section.blocks -%}
+          {%- assign b = block.settings -%}
+          <a href="{{ b.url }}" class="bbg-card" {{ block.shopify_attributes }}>
+            {%- if b.logo != blank -%}
+              {{ b.logo | image_url: width: 600 | image_tag: loading: 'lazy', alt: b.name }}
+            {%- elsif b.name != blank -%}
+              <div class="bbg-card-fallback">
+                <span style="font-size:14px;font-weight:700;color:#0f0f1a;text-align:center;">{{ b.name }}</span>
+              </div>
+            {%- endif -%}
+          </a>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Brands Grid",
+  "settings": [
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "content_width",
+      "label": "Content width (px)",
+      "min": 900,
+      "max": 1600,
+      "step": 20,
+      "default": 1280,
+      "unit": "px"
+    },
+    {
+      "type": "color",
+      "id": "cta_color",
+      "label": "View All link color",
+      "default": "#42a9de"
+    },
+    {
+      "type": "range",
+      "id": "desktop_columns",
+      "label": "Columns (desktop)",
+      "min": 3,
+      "max": 6,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "type": "range",
+      "id": "mobile_columns",
+      "label": "Columns (mobile)",
+      "min": 2,
+      "max": 4,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "text",
+      "id": "section_title",
+      "label": "Section title",
+      "default": "Popular Brands"
+    },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Shop top brands that you know and love"
+    },
+    {
+      "type": "url",
+      "id": "view_all_url",
+      "label": "View All link URL"
+    },
+    {
+      "type": "text",
+      "id": "view_all_text",
+      "label": "View All link text",
+      "default": "View All Brands"
+    },
+    {
+      "type": "range",
+      "id": "cta_font_size",
+      "label": "CTA text size (px)",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "default": 13,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "brand_card",
+      "name": "Brand",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "logo",
+          "label": "Brand logo"
+        },
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Brand name",
+          "info": "Shown as text fallback if no logo is uploaded."
+        },
+        {
+          "type": "url",
+          "id": "url",
+          "label": "Link URL"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Brands Grid"
+    }
+  ]
+}
+{% endschema %}

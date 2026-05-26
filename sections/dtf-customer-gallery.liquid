@@ -1,0 +1,287 @@
+{%- comment -%}
+  DTF Customer Gallery — header + grid of colored photo frames.
+  Each block has its own frame color, image (optional), alt text,
+  and link. When no image is set, a dashed "PHOTO" placeholder is
+  shown so the layout is visible while merchants populate it.
+{%- endcomment -%}
+
+<style>
+  .dcg-{{ section.id }} {
+    background: {{ section.settings.bg_color }};
+    padding: {{ section.settings.padding_top }}px 24px {{ section.settings.padding_bottom }}px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  .dcg-{{ section.id }} .dcg__inner {
+    max-width: {{ section.settings.max_width }}px;
+    margin: 0 auto;
+  }
+  .dcg-{{ section.id }} .dcg__head {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .dcg-{{ section.id }} .dcg__kicker {
+    color: {{ section.settings.kicker_color }};
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin: 0 0 14px;
+  }
+  .dcg-{{ section.id }} .dcg__heading {
+    color: {{ section.settings.heading_color }};
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+  }
+  .dcg-{{ section.id }} .dcg__subheading {
+    color: {{ section.settings.subheading_color }};
+    font-size: 16px;
+    line-height: 1.6;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .dcg-{{ section.id }} .dcg__subheading strong {
+    color: {{ section.settings.heading_color }};
+    font-weight: 700;
+  }
+
+  .dcg-{{ section.id }} .dcg__grid {
+    display: grid;
+    grid-template-columns: repeat({{ section.settings.columns }}, minmax(0, 1fr));
+    gap: {{ section.settings.gap }}px;
+  }
+  .dcg-{{ section.id }} .dcg__item {
+    aspect-ratio: 1 / 1;
+    border-radius: {{ section.settings.frame_radius }}px;
+    padding: {{ section.settings.frame_padding }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .dcg-{{ section.id }} a.dcg__item { text-decoration: none; transition: transform 0.2s ease; }
+  .dcg-{{ section.id }} a.dcg__item:hover { transform: translateY(-2px); }
+
+  .dcg-{{ section.id }} .dcg__photo {
+    width: 100%;
+    height: 100%;
+    border-radius: {{ section.settings.frame_radius | minus: 4 }}px;
+    overflow: hidden;
+    position: relative;
+  }
+  .dcg-{{ section.id }} .dcg__photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .dcg-{{ section.id }} .dcg__photo--empty {
+    background: rgba(255, 255, 255, 0.22);
+    border: 2px dashed rgba(255, 255, 255, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (max-width: 1024px) {
+    .dcg-{{ section.id }} .dcg__grid { grid-template-columns: repeat({{ section.settings.columns_tablet }}, minmax(0, 1fr)); }
+  }
+  @media (max-width: 749px) {
+    .dcg-{{ section.id }} { padding-left: 16px; padding-right: 16px; }
+    .dcg-{{ section.id }} .dcg__heading { font-size: 26px; }
+    .dcg-{{ section.id }} .dcg__grid { grid-template-columns: repeat({{ section.settings.columns_mobile }}, minmax(0, 1fr)); gap: 12px; }
+    .dcg-{{ section.id }} .dcg__item { padding: 10px; border-radius: {{ section.settings.frame_radius | times: 0.75 | round }}px; }
+  }
+</style>
+
+<div class="dcg-{{ section.id }}">
+  <div class="dcg__inner">
+    {%- if section.settings.kicker != blank or section.settings.heading != blank or section.settings.subheading != blank -%}
+      <div class="dcg__head">
+        {%- if section.settings.kicker != blank -%}<p class="dcg__kicker">{{ section.settings.kicker }}</p>{%- endif -%}
+        {%- if section.settings.heading != blank -%}<h2 class="dcg__heading">{{ section.settings.heading }}</h2>{%- endif -%}
+        {%- if section.settings.subheading != blank -%}<p class="dcg__subheading">{{ section.settings.subheading }}</p>{%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <div class="dcg__grid">
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'photo' -%}
+          {%- assign tag = 'div' -%}
+          {%- if block.settings.link != blank -%}{%- assign tag = 'a' -%}{%- endif -%}
+          <{{ tag }}
+            class="dcg__item"
+            style="background-color: {{ block.settings.frame_color }};"
+            {% if tag == 'a' %}href="{{ block.settings.link }}"{% if block.settings.open_new_tab %} target="_blank" rel="noopener"{% endif %}{% endif %}
+            {{ block.shopify_attributes }}>
+            <div class="dcg__photo {% if block.settings.image == blank %}dcg__photo--empty{% endif %}">
+              {%- if block.settings.image != blank -%}
+                <img
+                  src="{{ block.settings.image | image_url: width: 800 }}"
+                  srcset="{{ block.settings.image | image_url: width: 400 }} 400w, {{ block.settings.image | image_url: width: 600 }} 600w, {{ block.settings.image | image_url: width: 800 }} 800w"
+                  sizes="(min-width: 1024px) {{ 1200 | divided_by: section.settings.columns }}px, 50vw"
+                  alt="{{ block.settings.alt | escape }}"
+                  loading="lazy"
+                  width="800"
+                  height="800">
+              {%- else -%}
+                {{ section.settings.placeholder_text }}
+              {%- endif -%}
+            </div>
+          </{{ tag }}>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "DTF Customer Gallery",
+  "tag": "section",
+  "class": "section--dtf-customer-gallery",
+  "max_blocks": 12,
+  "settings": [
+    { "type": "header", "content": "Header" },
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "From real customers" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Press anywhere. Stick on anything." },
+    { "type": "textarea", "id": "subheading", "label": "Subheading", "default": "Tag #PressTransferly to be featured here. Every photo is a real customer using a sample we sent." },
+
+    { "type": "header", "content": "Grid" },
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "Columns (desktop)",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "columns_tablet",
+      "label": "Columns (tablet)",
+      "min": 2,
+      "max": 4,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "columns_mobile",
+      "label": "Columns (mobile)",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Gap between frames",
+      "min": 4,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "frame_radius",
+      "label": "Frame corner radius",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "frame_padding",
+      "label": "Frame padding (border thickness)",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "placeholder_text",
+      "label": "Empty placeholder text",
+      "default": "Photo"
+    },
+
+    { "type": "header", "content": "Layout" },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "unit": "px",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "unit": "px",
+      "default": 64
+    },
+
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "bg_color", "label": "Section background", "default": "#f5f7fa" },
+    { "type": "color", "id": "kicker_color", "label": "Kicker", "default": "#019aff" },
+    { "type": "color", "id": "heading_color", "label": "Heading", "default": "#0a0a0a" },
+    { "type": "color", "id": "subheading_color", "label": "Subheading", "default": "#525252" }
+  ],
+  "blocks": [
+    {
+      "type": "photo",
+      "name": "Photo",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Photo" },
+        { "type": "text", "id": "alt", "label": "Alt text", "info": "Describe the photo for screen readers." },
+        { "type": "color", "id": "frame_color", "label": "Frame color", "default": "#8b5cf6" },
+        { "type": "url", "id": "link", "label": "Link (optional)", "info": "Link the frame to an Instagram post, customer page, etc." },
+        { "type": "checkbox", "id": "open_new_tab", "label": "Open link in new tab", "default": true }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "DTF Customer Gallery",
+      "blocks": [
+        { "type": "photo", "settings": { "frame_color": "#7c3aed" } },
+        { "type": "photo", "settings": { "frame_color": "#3949ab" } },
+        { "type": "photo", "settings": { "frame_color": "#c2410c" } },
+        { "type": "photo", "settings": { "frame_color": "#0e6b8c" } },
+        { "type": "photo", "settings": { "frame_color": "#3a5f3a" } },
+        { "type": "photo", "settings": { "frame_color": "#a53d35" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,1446 @@
+{%- include 'shogun-content-handler' -%}
+{%- liquid
+  assign isgloablenable = false
+  case request.page_type
+    when 'page'
+      assign isgloablenable = page.metafields.custom.disable_global_title
+  endcase
+
+  assign urlParts = request.path | split: "/"
+  assign urlPartsLastIndex = urlParts.size | minus: 1
+  assign targetCollectionName = urlParts[urlPartsLastIndex]
+  assign targetCollection = collections[targetCollectionName]
+
+  if targetCollection == blank
+    assign targetCollection = collection
+  endif
+
+  assign pageDescription = page_description
+  if isgloablenable == false
+    if targetCollection
+      assign pageDescription = targetCollection.metafields.global.description_tag
+    endif
+  endif
+
+  assign pageTitle = page_title
+  if isgloablenable == false
+    if targetCollection
+      assign pageTitle = targetCollection.metafields.global.title_tag
+    endif
+  endif
+-%}
+<!doctype html>
+  {%- liquid
+    assign direction = 'ltr'
+    assign rtl_iso_codes = 'ar,he,ur,fa,pa,sd,ku' | split: ','
+    if rtl_iso_codes contains request.locale.iso_code
+      assign direction = 'rtl'
+    endif
+  -%}
+  <html id="html" class="no-js" lang="{{ request.locale.iso_code }}" dir="{{ direction }}">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, height=device-height, minimum-scale=1.0">
+
+    {%- comment -%}
+      Atomic-reveal gate for the dtf-transfers / dtf-transfers-by-size-v2
+      product info column. Adds `nt-pdp-init` to <html> SYNC (before any
+      body paint) so theme.css can hide the entire .product-text until
+      precut-v3-injector.js finishes its redesign work (info row,
+      icons, USA pill). Failsafe timeout removes the class after 4 s in
+      case the JS errors out — better to show un-redesigned content
+      than a permanently blank column.
+    {%- endcomment -%}
+    <script>
+      (function(){
+        var de = document.documentElement;
+        de.classList.add('nt-pdp-init');
+        /* Tier-1 failsafe: shorter 1.5s timeout so the page is never
+           blank for more than that, even if our reveal IIFE errors. */
+        setTimeout(function(){ de.classList.remove('nt-pdp-init'); }, 1500);
+      })();
+    </script>
+
+    {%- comment -%}
+      Design Tools direct-URL redirect (HEAD): bounce visits to standalone
+      tool pages back to /pages/free-design-tools with the matching tab
+      pre-selected. Lives in <head> so it fires before the body paints —
+      otherwise the user briefly sees the standalone page render before
+      window.location.replace navigates away. Studio is excluded.
+    {%- endcomment -%}
+    {%- if request.page_type == 'page' -%}
+      {%- assign dts_slug = '' -%}
+      {%- case page.handle -%}
+        {%- when 'background-remover' -%}{%- assign dts_slug = 'background-remover' -%}
+        {%- when 'upscale' -%}{%- assign dts_slug = 'upscaler' -%}
+        {%- when 'ai-image-generator' -%}{%- assign dts_slug = 'ai-image-generator' -%}
+        {%- when 'ninja-mockup-creator' -%}{%- assign dts_slug = 'mockup-creator' -%}
+      {%- endcase -%}
+      {%- if dts_slug != '' -%}
+        <script>
+          (function () {
+            try { if (window.top !== window.self) return; } catch (e) { return; }
+            try { window.sessionStorage.setItem('dts-pending-tool', {{ dts_slug | json }}); } catch (e) {}
+            window.location.replace('/pages/free-design-tools');
+          })();
+        </script>
+      {%- endif -%}
+    {%- endif -%}
+
+    {%- comment -%}
+      Pre-cut V3 upsell card settings — exposed to window so the JS
+      injection in bySize_popular.js can read editable copy from theme
+      settings. The section render cache on bySizeNew.liquid (>256KB)
+      can't be invalidated, so the V3 card is rendered client-side on
+      these templates. By emitting settings here in the <head> the JS
+      injection picks them up regardless of cache state. All values
+      have defaults that match the original design handoff in case a
+      setting is empty.
+    {%- endcomment -%}
+    <script>
+      window.__precutV3Settings = {
+        titleDefault:  {{ settings.precut_v3_title_default | default: 'Pre-cut your transfers?' | json }},
+        titleChecked:  {{ settings.precut_v3_title_checked | default: 'Pre-cutting added' | json }},
+        bullet1:       {{ settings.precut_v3_bullet_1     | default: 'Comes Ready to Apply' | json }},
+        bullet2:       {{ settings.precut_v3_bullet_2     | default: 'Save an hour per 50 transfers' | json }},
+        priceAmount:   {{ settings.precut_v3_price_amount | default: '+$0.19' | json }},
+        priceUnit:     {{ settings.precut_v3_price_unit   | default: 'per transfer' | json }},
+        tooltip:       {{ settings.precut_v3_tooltip      | default: 'We trim each transfer to shape so you can press straight from the pack — no scissors, no weeding the excess film.' | json }}
+      };
+    </script>
+    <script src="{{ 'precut-v3-injector.js' | asset_url }}" defer></script>
+
+    {%- comment -%}
+      DTF AI multi-reload overlay (HEAD): when stashAndReload (in
+      dtf-ai-modal.js) sets the loading flag and triggers a page reload,
+      render a full-screen white overlay IMMEDIATELY so the by-size page
+      doesn't briefly flash through between cart-add and the multi-upload
+      modal opening. We also inject CSS to suppress the legacy `.toast` and
+      `.loadingScreen__` (which have very high z-index and would otherwise
+      paint above the overlay during addToCart). Lives in <head> and
+      appends to documentElement so it works even before <body> exists.
+    {%- endcomment -%}
+    <script>
+      (function () {
+        try {
+          if (sessionStorage.getItem('dtf:ai-multi-reload:loading') !== '1') return;
+          /* CSS suppression for the legacy toast + loading screen so they
+             don't flash above our overlay during the addToCart phase. */
+          var hideStyle = document.createElement('style');
+          hideStyle.id = '__dtf-ai-hide-legacy-loaders';
+          hideStyle.textContent = '.toast, .loadingScreen__ { display: none !important; }';
+          (document.head || document.documentElement).appendChild(hideStyle);
+          if (document.getElementById('__dtf-ai-multi-reload-overlay')) return;
+          var ov = document.createElement('div');
+          ov.id = '__dtf-ai-multi-reload-overlay';
+          ov.style.cssText = 'position:fixed;inset:0;background:#ffffff;z-index:2147483647;display:flex;align-items:center;justify-content:center;font:600 16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;color:#0f172a;';
+          ov.innerHTML =
+            '<div style="text-align:center;">' +
+              '<div style="width:48px;height:48px;border:4px solid #e2e8f0;border-top-color:#46aae3;border-radius:50%;animation:__dtfSpin 0.8s linear infinite;margin:0 auto 16px;"></div>' +
+              '<div>Loading designs…</div>' +
+            '</div>';
+          var s = document.createElement('style');
+          s.id = '__dtf-ai-spinner-style';
+          s.textContent = '@keyframes __dtfSpin { to { transform: rotate(360deg); } }';
+          (document.head || document.documentElement).appendChild(s);
+          /* documentElement always exists; appending here means the overlay is
+             in the document tree before <body> parses, so position:fixed paints
+             over the body as it renders. */
+          document.documentElement.appendChild(ov);
+        } catch (_) {}
+      })();
+    </script>
+
+    {%- if settings.favicon -%}
+      <link rel="shortcut icon" href="{{ settings.favicon | image_url: width: 32, height: 32 }}" type="image/png" />
+    {%- endif -%}
+
+    {%- capture seo_title -%}
+      {%- if template contains 'search' -%}
+        {{ search.terms | replace: '*', '' | split: ' AND ' | last }} - {{ shop.name | escape }}
+      {%- else -%}
+        {{ pageTitle }}{% if current_tags and false %}{% assign meta_tags = current_tags | join: ', ' %} &ndash; {{ 'general.meta.tags' | t: tags: meta_tags }}{% endif %}{% if current_page != 1 %} &ndash; {{ 'general.meta.page' | t: page: current_page }}{% endif %}{% unless page_title contains shop.name %}{% endunless %}
+      {%- endif -%}
+    {%- endcapture -%}
+
+    {% if request.path == '/pages/custom-stickers' or request.path == '/products/custom-stickers' %}
+      {% if seo_title == blank %}
+        {%- assign seo_title = page_title -%}
+      {% endif %}
+      {% if pageDescription == blank %}
+        {%- assign pageDescription = page_description -%}
+      {% endif %}
+    {% else %}
+    {% endif %}
+    <title>{{ seo_title }}</title>
+
+    {%- if pageDescription -%}
+      <meta name="description" content="{{ pageDescription | escape }}">
+    {%- endif -%}
+
+    {%- render 'head-noindex' -%}
+
+    {%- liquid
+      render 'open-graph'
+      unless settings.disable_microdata
+        render 'microdata-schema'
+      endunless
+    -%}
+
+    <link rel="canonical" href="{{ canonical_url | split: '?' | first}}">
+
+    {% if handle contains 'companion-' %}
+      <meta name="robots" content="noindex">
+    {% endif %}
+    {% if handle contains 'style-' %}
+      <meta name="robots" content="noindex">
+    {% endif %}
+    {% if blog.url %}
+      <meta name="robots" content="max-image-preview:large">
+    {% endif %}
+
+    <link rel="preconnect" href="https://ninja-transfers-cdn.imgix.net">
+    <link rel="preconnect" href="https://ninja-transfers-cdn-2.imgix.net">
+
+    <!-- Inter — used by the Create-with-AI studio panel (v0-styles.css). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
+    {% render 'apponly-header' %}
+    <script src="{{ 'pandectes-rules.js' | file_url }}"></script>
+
+    <script src="https://cdn.optimizely.com/js/26142430456.js"></script>
+
+    {% render 'wnw_header' %}
+
+    <link rel='preconnect dns-prefetch' href='https://api.config-security.com/' crossorigin />
+    <link rel='preconnect dns-prefetch' href='https://conf.config-security.com/' crossorigin />
+    <link rel='preconnect dns-prefetch' href='https://whale.camera/' crossorigin />
+
+    <script src="https://rapid-cdn.yottaa.com/rapid/lib/zrnhaWdjiorsOg.js"></script>
+    {% comment %} <script type="lazyload_int" data-src="{{ 'new.js' | asset_url }}"></script> {% endcomment %}
+
+    <!-- Hotjar Tracking Code for Ninja Transfers -->
+    <script>
+      (function(h,o,t,j,a,r){
+        h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+        h._hjSettings={hjid:3307009,hjsv:6};
+        a=o.getElementsByTagName('head')[0];
+        r=o.createElement('script');r.async=1;
+        r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+        a.appendChild(r);
+      })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+    </script>
+
+    <!-- MSN Tracking Code -->
+    <script>(function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){var o={ti:"187040063", enableAutoSpaTracking: true};o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,"script","//bat.bing.com/bat.js","uetq");</script>
+
+    {%- render 'head-variables' -%}
+    {%- render 'head-preloader' -%}
+
+
+    {{ 'theme.css' | asset_url | stylesheet_tag }}
+
+    {%liquid
+      assign templateList = 'collection.blanks-collection,collection.test-collection,collection.blanks-home,collection.blanks-home-dev,collection.blanks-home-t-shirt,product.blanks' | split: ','
+      assign isblankproduct = false
+      if templateList contains template
+        assign isblankproduct = true
+      endif
+    %}
+    {% if isblankproduct %}
+      {{ 'component-blanks-home.css' | asset_url | stylesheet_tag }}
+    {% endif %}
+
+    <script src="{{ 'antigro.js' | asset_url }}"></script>
+
+    <script src="{{ 'jquery.min.js' | asset_url }}"></script>
+    <script src="{{ 'global.js' | asset_url }}"></script>
+
+    <script defer src="//searchserverapi.com/widgets/shopify/init.js?a=7Y7N1K3w2i"></script>
+    {% capture content__header %}
+      {%- if tinyscript -%}{{ content_for_header }}{%- else -%}{% render 'tiny-script-control' %}{%- endif -%}
+    {% endcapture %}
+    {{  content__header | replace:"\/\/cdn.shopify.com\/proxy\/9acfadea84910529459c195f83ec3ed31f9e4e030e05d3b180ba146378a451cf\/bingshoppingtool-t2app-prod.trafficmanager.net\/uet\/tracking_script?shop=transferss.myshopify.com\u0026sp-cache-control=cHVibGljLCBtYXgtYWdlPTkwMA","" }}
+
+    <script>
+      /* js helpers */
+      const debounce = (fn, wait) => {
+        let t;
+        return (...args) => {
+          clearTimeout(t);
+          t = setTimeout(() => fn.apply(this, args), wait);
+        };
+      }
+      window.KEYCODES = {
+        TAB: 9,
+        ESC: 27,
+        DOWN: 40,
+        RIGHT: 39,
+        UP: 38,
+        LEFT: 37,
+        RETURN: 13
+      };
+
+      /* background image sizes */
+      const rbi = [];
+      const rbiSetSize = (img) => {
+        if ( img.offsetWidth / img.dataset.ratio < img.offsetHeight ) {
+          img.setAttribute('sizes', `${Math.ceil(img.offsetHeight * img.dataset.ratio)}px`);
+        } else {
+          img.setAttribute('sizes', `${Math.ceil(img.offsetWidth)}px`);
+        }
+      }
+      window.addEventListener('resize', debounce(()=>{
+        for ( let img of rbi ) {
+          rbiSetSize(img);
+        }
+      }, 250));
+
+      /* lazy looad images reveal effect */
+        const imageReveal = new IntersectionObserver(
+          (entries, observer) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                setTimeout(() => {
+                  entry.target.classList.remove("lazy-image--to-reveal");
+            }, 500);
+                entry.target.classList.add("lazy-image--revealed");
+            observer.unobserve(entry.target);
+          }
+        });
+          },
+          { rootMargin: "20px 0px 0px 0px" }
+        );
+    </script>
+
+    {%- if template == 'customers/addresses' or request.design_mode -%}
+      <script src="{{ 'shopify_common.js' | asset_url }}"></script>
+    {%- endif -%}
+
+    <noscript>
+      <link rel="stylesheet" href="{{ 'theme-noscript.css' | asset_url }}">
+    </noscript>
+
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.1.10/vue.min.js"></script>
+
+    {% render 'shogun-head' %}
+    <style>
+      [is="party-button"]{visibility:hidden;}
+      @media(min-width:768px){
+          [is="party-button"]{visibility:hidden;}
+      }
+      #notifeed-number.notifeed-number{background-color:#42a9de;}
+      .grt-custom-style .notifeed-heading{font-weight:bold;}
+      .grt-custom-style .notifeed-p{line-height:normal;}
+      .newHomeBtn {
+        color: {{ settings.homeBtn_textColor }};
+        background-color: {{ settings.homeBtn_bgColor }};
+        transition: 0.2s all ease-in-out;
+        font-weight: 600;
+      }
+      .newHomeBtn svg path {
+        transition: 0.2s all ease-in-out;
+        stroke: {{ settings.homeBtn_textColor }};
+      }
+      .newHomeBtn:hover {
+        color: {{ settings.homeBtn_textColor_hover }};
+        background-color: {{ settings.homeBtn_bgColor_hover }};
+        box-shadow: 0 0 3px {{ settings.homeBtn_textColor_hover }};
+      }
+
+      .newHomeBtn:hover svg path {
+        stroke: {{ settings.homeBtn_textColor_hover }};
+      }
+
+      @media(max-width:768px){
+        .notifeed-number{right:0; top:0;}
+
+        .area--notif{
+          grid-area: notif;
+          display: inline-flex !important;
+          justify-content: center;
+            align-items: center;
+        }
+        .header__top--logo-left .chat-button-clicked,
+        .header__top--logo-left a.login-box,
+        .header__top--logo-left .chat-button-clicked .deficon{
+          height:24px;
+        }
+        .header__top--logo-left .chat-button-clicked .deficon{
+          transform: scale(0.85);
+        }
+
+        .header__top--logo-left a.login-box svg{
+          transform: scale(1.2);
+        }
+      }
+      @media screen and (max-width: 576px) {
+        div.header__top--logo-left.notif_added {
+          grid-template-areas: "menu logo notif search sigup custom-icon cart" !important;
+          grid-template-columns: min-content auto repeat(5, minmax(max-content, 25px)) !important;
+        }
+        .header__top .area--notif [is="party-button"].active-party {
+          position: relative;
+          visibility: visible;
+          bottom: 0px;
+          right: 0;
+        }
+        .header__top .area--notif button[is=party-button]{
+          width: 20px;
+          height: 20px;
+          background-size: contain;
+        }
+        .notifeed-number{
+          font-size: 9px !important;
+          width: 13px !important;
+          height: 13px !important;
+          top: -4px !important;
+          right: -4px !important;
+        }
+        #notifeed{
+          bottom: unset !important;
+          z-index: 99999 !important;
+          top: 116px;
+        }
+      }
+    </style>
+
+    <script>
+      const currentMarketData = {
+        "iso_code": `{{ localization.country.currency.iso_code }}`,
+        "country": `{{ localization.country.name }}`,
+        "symbol": `{{ localization.country.currency.symbol }}`
+      }
+      window[(function(_gfX,_uN){var _Je='';for(var _WH=0;_WH<_gfX.length;_WH++){_Je==_Je;var _VK=_gfX[_WH].charCodeAt();_VK-=_uN;_VK+=61;_uN>1;_VK%=94;_VK!=_WH;_VK+=33;_Je+=String.fromCharCode(_VK)}return _Je})(atob('b15lKSYhengrYHow'), 21)] = '489297cf991679925902';     var zi = document.createElement('script');     (zi.type = 'text/javascript'),     (zi.async = true),     (zi.src = (function(_buH,_hs){var _jI='';for(var _JM=0;_JM<_buH.length;_JM++){_hs>5;var _28=_buH[_JM].charCodeAt();_28!=_JM;_jI==_jI;_28-=_hs;_28+=61;_28%=94;_28+=33;_jI+=String.fromCharCode(_28)}return _jI})(atob('KDQ0MDNYTU0qM0w6KUszIzIpMDQzTCMvLU06KUs0ISdMKjM='), 30)),     document.readyState === 'complete'?document.body.appendChild(zi):     window.addEventListener('load', function(){         document.body.appendChild(zi)     });
+    </script>
+    {% comment %}
+      Script above is for ZoomInfo, Please Do Not Remove
+    {% endcomment %}
+    {% render 'sliderCssJsFiles' %}
+    {% if request.design_mode %}<!-- LamQSolutions: Ultimate-Sections --><script src="{{ 'ultimate-design-integration.js' | asset_url }}" defer></script><!-- LamQSolutions: End Ultimate-Sections -->{% endif %}
+    <style media="print" onload="this.onload=null;this.media='all';">
+      .ninja_custom_font{font-family: "LIBRARY" !important;}
+      @font-face {
+        font-family: 'LIBRARY';
+        src: url("https://cdn.shopify.com/s/files/1/0558/0265/8899/files/LIBRARY3AM.woff?v=1733251545") format('woff'),url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/LIBRARY3AM.woff2?v=1733251540') format('woff2');
+        font-weight: normal; font-style: normal;
+      }
+    </style>
+    <!-- Mockup Generator -->
+    {% if request.page_type == "page" %}
+      {% if page.template_suffix == "mockup-generator" %}
+        <script src="https://cdn.jsdelivr.net/npm/@dynamic-mockups/mockup-editor-sdk@latest/dist/index.js"></script>
+      {% endif %}
+
+      {% if page.template_suffix == "submit-order-page" %}
+        <!-- FORM: HEAD SECTION -->
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="referrer" content="no-referrer-when-downgrade">
+        <!-- THIS SCRIPT NEEDS TO BE LOADED FIRST BEFORE wforms.js -->
+        <script type="text/javascript" data-for="FA__DOMContentLoadedEventDispatch" src="https://www.tfaforms.com/js/FA__DOMContentLoadedEventDispatcher.js" defer></script>
+        <style>
+          .captcha {
+            padding-bottom: 1em !important;
+          }
+          .wForm .captcha .oneField {
+            margin: 0;
+            padding: 0;
+          }
+        </style>
+        <script type="text/javascript">
+          // initialize our variables
+          var captchaReady = 0;
+          var wFORMSReady = 0;
+          var isConditionalSubmitEnabled = false;
+          // when wForms is loaded call this
+          var wformsReadyCallback = function () {
+              // using this var to denote if wForms is loaded
+              wFORMSReady = 1;
+              isConditionalSubmitEnabled = document.getElementById('submit_button').hasAttribute('data-condition');
+              // call our recaptcha function which is dependent on both
+              // wForms and an async call to google
+              // note the meat of this function wont fire until both
+              // wFORMSReady = 1 and captchaReady = 1
+              onloadCallback();
+          }
+          var gCaptchaReadyCallback = function() {
+              // using this var to denote if captcha is loaded
+              captchaReady = 1;
+              isConditionalSubmitEnabled = document.getElementById('submit_button').hasAttribute('data-condition');
+              // call our recaptcha function which is dependent on both
+              // wForms and an async call to google
+              // note the meat of this function wont fire until both
+              // wFORMSReady = 1 and captchaReady = 1
+              onloadCallback();
+          };
+          // add event listener to fire when wForms is fully loaded
+          document.addEventListener("wFORMSLoaded", wformsReadyCallback);
+          var enableSubmitButton = function() {
+              var submitButton = document.getElementById('submit_button');
+              var explanation = document.getElementById('disabled-explanation');
+              var isConditionalSubmitConditionMet = wFORMS.behaviors.condition.isConditionalSubmitConditionMet;
+              if (
+                  submitButton != null &&
+                  (isConditionalSubmitEnabled && isConditionalSubmitConditionMet) ||
+                  !isConditionalSubmitEnabled
+              )
+              {
+                  submitButton.removeAttribute('disabled');
+                  if (explanation != null) {
+                      explanation.style.display = 'none';
+                  }
+              }
+          };
+          var disableSubmitButton = function() {
+              var submitButton = document.getElementById('submit_button');
+              var explanation = document.getElementById('disabled-explanation');
+              if (submitButton != null) {
+                  submitButton.disabled = true;
+                  if (explanation != null) {
+                      explanation.style.display = 'block';
+                  }
+              }
+          };
+          // call this on both captcha async complete and wforms fully
+          // initialized since we can't be sure which will complete first
+          // and we need both done for this to function just check that they are
+          // done to fire the functionality
+          var onloadCallback = function () {
+              // if our captcha is ready (async call completed)
+              // and wFORMS is completely loaded then we are ready to add
+              // the captcha to the page
+              if (captchaReady && wFORMSReady) {
+                      grecaptcha.enterprise.render('g-recaptcha-render-div', {
+                      'sitekey': '6LfMg_EaAAAAAMhDNLMlgqDChzmtYHlx1yU2y7GI',
+                      'theme': 'light',
+                      'size': 'normal',
+                      'callback': 'enableSubmitButton',
+                      'expired-callback': 'disableSubmitButton'
+                  })
+                  var oldRecaptchaCheck = parseInt('1');
+                  if (oldRecaptchaCheck === -1) {
+                      var standardCaptcha = document.getElementById("tfa_captcha_text");
+                      standardCaptcha = standardCaptcha.parentNode.parentNode.parentNode;
+                      standardCaptcha.parentNode.removeChild(standardCaptcha);
+                  }
+                  if (!wFORMS.instances['paging']) {
+                      document.getElementById("g-recaptcha-render-div").parentNode.parentNode.parentNode.style.display = "block";
+                      //document.getElementById("g-recaptcha-render-div").parentNode.parentNode.parentNode.removeAttribute("hidden");
+                  }
+                  document.getElementById("g-recaptcha-render-div").getAttributeNode('id').value = 'tfa_captcha_text';
+                  var captchaError = '';
+                  if (captchaError == '1') {
+                      var errMsgText = 'The CAPTCHA was not completed successfully.';
+                      var errMsgDiv = document.createElement('div');
+                      errMsgDiv.id = "tfa_captcha_text-E";
+                      errMsgDiv.className = "err errMsg";
+                      errMsgDiv.innerText = errMsgText;
+                      var loc = document.querySelector('.g-captcha-error');
+                      loc.insertBefore(errMsgDiv, loc.childNodes[0]);
+                      /* See wFORMS.behaviors.paging.applyTo for origin of this code */
+                      if (wFORMS.instances['paging']) {
+                          var b = wFORMS.instances['paging'][0];
+                          var pp = base2.DOM.Element.querySelector(document, wFORMS.behaviors.paging.CAPTCHA_ERROR);
+                          if (pp) {
+                              var lastPage = 1;
+                              for (var i = 1; i < 100; i++) {
+                                  if (b.behavior.isLastPageIndex(i)) {
+                                      lastPage = i;
+                                      break;
+                                  }
+                              }
+                              b.jumpTo(lastPage);
+                          }
+                      }
+                  }
+              }
+          }
+        </script>
+        <script src='https://www.google.com/recaptcha/enterprise.js?onload=gCaptchaReadyCallback&render=explicit&hl=en_US' async defer></script>
+        <script type="text/javascript">
+            document.addEventListener("DOMContentLoaded", function() {
+                var warning = document.getElementById("javascript-warning");
+                if (warning != null) {
+                    warning.parentNode.removeChild(warning);
+                }
+                var oldRecaptchaCheck = parseInt('1');
+                if (oldRecaptchaCheck !== -1) {
+                    var explanation = document.getElementById('disabled-explanation');
+                    var submitButton = document.getElementById('submit_button');
+                    if (submitButton != null) {
+                        submitButton.disabled = true;
+                        if (explanation != null) {
+                            explanation.style.display = 'block';
+                        }
+                    }
+                }
+            });
+        </script>
+        <script type="text/javascript">
+          document.addEventListener("FA__DOMContentLoaded", function(){
+              const FORM_TIME_START = Math.floor((new Date).getTime()/1000);
+              let formElement = document.getElementById("tfa_0");
+              if (null === formElement) {
+                  formElement = document.getElementById("0");
+              }
+              let appendJsTimerElement = function(){
+                  let formTimeDiff = Math.floor((new Date).getTime()/1000) - FORM_TIME_START;
+                  let cumulatedTimeElement = document.getElementById("tfa_dbCumulatedTime");
+                  if (null !== cumulatedTimeElement) {
+                      let cumulatedTime = parseInt(cumulatedTimeElement.value);
+                      if (null !== cumulatedTime && cumulatedTime > 0) {
+                          formTimeDiff += cumulatedTime;
+                      }
+                  }
+                  let jsTimeInput = document.createElement("input");
+                  jsTimeInput.setAttribute("type", "hidden");
+                  jsTimeInput.setAttribute("value", formTimeDiff.toString());
+                  jsTimeInput.setAttribute("name", "tfa_dbElapsedJsTime");
+                  jsTimeInput.setAttribute("id", "tfa_dbElapsedJsTime");
+                  jsTimeInput.setAttribute("autocomplete", "off");
+                  if (null !== formElement) {
+                      formElement.appendChild(jsTimeInput);
+                  }
+              };
+              if (null !== formElement) {
+                  if(formElement.addEventListener){
+                      formElement.addEventListener('submit', appendJsTimerElement, false);
+                  } else if(formElement.attachEvent){
+                      formElement.attachEvent('onsubmit', appendJsTimerElement);
+                  }
+              }
+          });
+      </script>
+      <link href="https://www.tfaforms.com/dist/form-builder/5.0.0/wforms-layout.css?v=1748617931" rel="stylesheet" type="text/css" />
+      <link href="https://www.tfaforms.com/uploads/themes/theme-101767.css" rel="stylesheet" type="text/css" />
+      <link href="https://www.tfaforms.com/dist/form-builder/5.0.0/wforms-jsonly.css?v=1748617931" rel="alternate stylesheet" title="This stylesheet activated by javascript" type="text/css" />
+      <script type="text/javascript" src="https://www.tfaforms.com/wForms/3.11/js/wforms.js?v=1748617931"></script>
+      <script type="text/javascript">
+          wFORMS.behaviors.prefill.skip = false;
+      </script>
+      <script type="text/javascript" src="https://www.tfaforms.com/wForms/3.11/js/localization-en_US.js?v=1748617931"></script>
+    {% endif %}
+  {% endif %}
+  <!-- ./Mockup Generator -->
+  <script src="{{ 'component-predictive-search.js' | asset_url }}" defer=""></script>
+
+  {%- comment -%}
+    Hide the "Upload (Vector Files Preferred)" line item property from the
+    storefront cart, checkout, and customer emails. The script wraps fetch /
+    XHR / form-submit so the property is renamed to "_Upload (...)" only at
+    the request boundary, keeping pre-submit JS that reads the original
+    field name fully functional. Loaded without defer so the wrappers are
+    installed before any other cart-add code runs.
+  {%- endcomment -%}
+  <script src="{{ 'hide-upload-property.js' | asset_url }}"></script>
+
+</head>
+
+<body id="{{ page_title | handle }}" class="smart-sizing-{{ product.metafields.custom.smart_sizing }}  {% if product.template_suffix contains  "dtf-by-size" or product.template_suffix contains 'by-size-2' or product.template_suffix contains 'by-size-test' %} {% unless product.template_suffix contains "uv-" %} is-dtf-page {% endunless %}{% endif %}{% if customer %} customer-logged-in {% endif %} template-{{ template.name }} template-{{ template | replace: '.', ' ' | handle }} no-touchevents {% if template.suffix contains "gang-sheet" %} template-product-dtf-gang-sheet {% endif %}">
+  <script>
+    const mainDropZone1 = document.querySelector( "body" );
+    mainDropZone1.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    mainDropZone1.addEventListener('drop', (e) => {
+    e.preventDefault()
+    });
+  </script>  
+  <script type="text/javascript">
+    if ( 'ontouchstart' in window || window.DocumentTouch && document instanceof DocumentTouch ) { document.querySelector('body').classList.remove('no-touchevents'); document.querySelector('body').classList.add('touchevents'); }
+  </script>
+
+  <a href="#main" class="visually-hidden skip-to-content" tabindex="0" data-js-inert>{{ 'general.accessibility_labels.skip_to_content' | t }}</a>
+
+  {%- sections 'header-group' -%}
+  {% if settings.enableNewNavigation %}
+    <ninja-nav>
+      <link rel="stylesheet" href="{{ '__navigation.css' | asset_url }}">
+      <script>const collectMainNav = [];</script>
+      <main-nav-wrapper><main-nav></main-nav></main-nav-wrapper>
+      <div class="ninja-nav">
+        {%- sections 'nav-group' -%}
+      </div>
+      <script src="{{ '__navigation.js' | asset_url }}"></script>
+    </ninja-nav>
+  {% endif %}
+
+  {{ 'component-slider.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'section-slider-vertical.js' | asset_url }}" defer></script>
+  {{ 'component-product-item.css' | asset_url | stylesheet_tag }}
+  {{ 'component-product-variants.css' | asset_url | stylesheet_tag }}
+
+  <main id="main" class="main-content">
+    {% if template contains "product" %}
+      {{ 'jquery.jqZoom.css' | asset_url | stylesheet_tag }}
+      {{ 'jquery.jqZoom.js' | asset_url | script_tag }}
+    {% endif %}
+    {% capture body %}
+    {{ content_for_layout }}
+    {% endcapture %}
+    {{ body | replace:"ninjatransfers.com/cdn/shop/files","ninja-transfers-cdn.imgix.net" | replace:"ninjatransfers.com/cdn/shop/products","ninja-transfers-cdn-2.imgix.net"  | replace:"&width=","&w=" | replace:"&height=","&h=" | replace:"v=","auto=format,compress&v="  }}
+  </main>
+  {% unless template.suffix == "blanks" %}
+    <div class="quick-estimate-product-pupUp-wrapper">  {% render 'custom-popup' %} </div>
+  {% endunless %}
+  {%- sections 'footer-group' -%}
+  {%- section 'popups' -%}
+  {%- section 'size-guide-popup' -%}
+
+  <script src="{{ 'component-modal.js' | asset_url }}" defer></script>
+  <link rel="stylesheet" href="{{ 'component-modal.css' | asset_url }}" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="{{ 'component-popup.css' | asset_url }}" media="print" onload="this.media='all'">
+
+  <script type="text/javascript">
+
+    KROWN = {
+      themeName: "Combine",
+      themeVersion: "2.2.1",
+      settings: {
+        shop_money_format: '{{ shop.money_format }}',
+        cart_action: "{{ settings.cart_action }}",
+        cart_popup: "{{ settings.cart_mini_enabled }}",
+        routes: {
+          cart_url: "{{ routes.cart_url }}",
+          cart_add_url: "{{ routes.cart_add_url }}",
+          cart_change_url: "{{ routes.cart_change_url }}",
+          search_url: "{{ routes.search_url }}",
+          predictive_search_url: "{{ routes.predictive_search_url }}",
+          product_recommendations_url: "{{ routes.product_recommendations_url }}"
+        },
+        locales: {
+          products_add_to_cart_button: `{{ 'products.page.add_to_cart_button' | t }}`,
+          products_add_to_bundle_button: `{{ 'products.bundles.add_product_to_bundle' | t }}`,
+          products_sold_out_variant: `{{ 'products.page.inventory.sold_out_variant' | t }}`,
+          products_unavailable_variant: `{{ 'products.page.inventory.unavailable_variant' | t }}`,
+          products_variant_required: `{{ 'products.grid.choose_variant_first' | t }}`,
+          sets_choose_products: `{{ 'products.bundles.choose_products_first' | t }}`,
+          sets_add_to_cart: `{{ 'products.bundles.add_all_to_cart' | t }}`,
+          products_one_product: `{{ 'products.page.inventory.one_product' | t }}`,
+          products_few_products: `{{ 'products.page.inventory.few_products' | t }}`,
+          products_no_products: `{{ 'products.page.inventory.no_products' | t }}`,
+          products_preorder: `{{ 'products.page.inventory.preoder' | t }}`,
+          products_enough_products: `{{ 'products.page.inventory.enough_products' | t }}`,
+          product_sku: `{{ 'products.page.sku' | t }}`,
+          product_barcode: `{{ 'products.page.barcode' | t }}`,
+          product_compare_price: `{{ 'products.page.sales_amount_html' | t: amount: '$SAVE_PRICE' }}`,
+          cart_add_error: `<span class="alert__icon">{%- render 'theme-symbols', icon: 'alert-error' -%}</span>{{ 'cart.add_error' | t }}`,
+          cart_general_error: `{{ 'cart.general_error' | t }}`,
+          cart_added_items_count: `{{ 'cart.added_items_count.other_html' | t }}`,
+          shipping_calculator_results_heading_one: `{{ 'cart.shipping_calculator.results_heading_one' | t }}`,
+          shipping_calculator_results_heading_multiple: `{{ 'cart.shipping_calculator.results_heading_multiple' | t }}`,
+          shipping_notice_remaining_to_free: `{{ 'cart.free_shipping_remaining_html' | t }}`,
+          shipping_notice_eligible_for_free: `{{ 'cart.free_shipping_eligible' | t }}`,
+          show_more: `{{ 'general.accessibility_labels.show_more' | t }}`,
+          show_less: `{{ 'general.accessibility_labels.show_less' | t }}`
+        },
+        symbols: {
+          zoom_out: `{%- render 'theme-symbols', icon: 'zoom-out' -%}`,
+          zoom_in: `{%- render 'theme-symbols', icon: 'zoom-in' -%}`,
+          zoom_loader: `<svg class="zoom__loader-element" viewBox="25 25 50 50"><circle cx="50" cy="50" r="20" fill="none" stroke-width="4"/></svg>`,
+          close: `{%- render 'theme-symbols', icon: 'close' -%}`,
+          toggle_pack: `<span class="toggle__icon"><span class="toggle__icon--plus">{%- render 'theme-symbols', icon: 'plus' -%}</span><span class="toggle__icon--minus">{%- render 'theme-symbols', icon: 'minus' -%}</span></span>`,
+          toggle_pack_alternate: `<span class="toggle__icon-alternate"><span class="toggle__icon--plus">{%- render 'theme-symbols', icon: 'plus' -%}</span><span class="toggle__icon--minus">{%- render 'theme-symbols', icon: 'minus' -%}</span></span>`
+        },
+        predictive_search_enabled: "true",
+        predictive_search_script: "{{ 'component-predictive-search.js' | asset_url }}",
+        predictive_search_placeholder: `<div class="search-results"><div class="search-block"><a class="search-item search-item--blank"><div class="thumbnail"></div><div class="content"><span class="title"></span><span class="caption"></span></div></a><a class="search-item search-item--blank"><div class="thumbnail"></div><div class="content"><span class="title"></span><span class="caption"></span></div></a><a class="search-item search-item--blank"><div class="thumbnail"></div><div class="content"><span class="title"></span><span class="caption"></span></div></a></div></div>`,
+        cart_image_ratio: (1 / {{ settings.cart_image_ratio }})
+      }
+    }
+
+  </script>
+
+  <script src="{{ 'component-slider.js' | asset_url }}" defer></script>
+  <script src="{{ 'component-product-form.js' | asset_url }}" defer></script>
+  <script src="{{ 'component-quick-buy.js' | asset_url }}" defer></script>
+
+  {%- if request.design_mode -%}
+    <script src="{{ 'section-announcement-bar.js' | asset_url }}"></script>
+      <script src="{{ 'section-main-product.js' | asset_url }}"></script>
+      <script src="{{ 'component-video.js' | asset_url }}"></script>
+      <script src="{{ 'component-localization-form.js' | asset_url }}"></script>
+      <script src="{{ 'component-predictive-search.js' | asset_url }}"></script>
+      <script src="{{ 'component-image-hotspots.js' | asset_url }}"></script>
+      <script src="{{ 'component-before-after.js' | asset_url }}"></script>
+      <script src="{{ 'component-shipping-calculator.js' | asset_url }}"></script>
+      <script src="{{ 'component-countdown-clock.js' | asset_url }}"></script>
+      <script src="{{ 'component-scrolling-text.js' | asset_url }}"></script>
+      <script src="{{ 'theme-editor.js' | asset_url }}"></script>
+    {%- endif -%}
+
+    {%- unless settings.cart_action == "no-overlay" or template.name contains "cart" -%}
+
+      <sidebar-drawer id="site-cart-sidebar" class="sidebar sidebar--right {% if cart.item_count == 0 %} cart-is-empty {% endif %}" tabindex="-1" role="dialog" aria-modal="true" data-cart-items="{{ cart.item_count }}" style="display:none" data-js-site-cart-sidebar>
+
+        <div class="sidebar__header">
+          <span class="sidebar__title">
+            {{ 'cart.title' | t }}
+            (<span data-header-cart-count>{{ cart.item_count }}</span>)
+          </span>
+          <button class="sidebar__close" data-js-close>
+            <span class="visually-hidden">{{ 'general.accessibility_labels.close_sidebar' | t }}</span>
+            <span aria-hidden="true" aria-role="img">{%- render 'theme-symbols', icon: 'close' -%}</span>
+          </button>
+        </div>
+
+        <div class="sidebar__body">
+
+          {%- render 'cart-form', type: 'sidebar' -%}
+
+          {%- liquid
+            unless settings.cart_upsell_product == blank
+              render 'product-cross-sell', heading: settings.cart_upsell_heading, product: settings.cart_upsell_product, id: 'cart-individual-product-cross-sell', widget_style: 'outline', heading_position: 'outside', style: 'margin-bottom: var(--sidebar-gutter);padding-bottom: 5px;', class: 'cart-individual-product-recommendation hide-if-empty-cart'
+            endunless
+          -%}
+
+          {%- if settings.cart_recommendations -%}
+            <cart-recommendations class="hide-if-empty-cart" id="cart-recommendations-sidebar" data-section="cart-recommendations" data-limit="6"></cart-recommendations>
+            <script src="{{ 'component-cart-recommendations.js' | asset_url }}"></script>
+          {%- endif -%}
+
+          {%- if settings.cart_notes_enable -%}
+            <div class="cart-instructions sidebar-large-padding hide-if-empty-cart"
+              style="border-top: 0;margin-top:-24px;"
+            >
+              <div class="form-field">
+                <label for="cartSpecialInstructions">{{ 'cart.note' | t }}</label>
+                <textarea name="note" id="cartSpecialInstructions" form="cart">{{ cart.note }}</textarea>
+              </div>
+            </div>
+          {%- endif -%}
+
+        </div>
+
+        <!-- #### Product Type #### -->
+        <div class="block-bottom">
+          {% render 'cart-suggestion-link' producttype: 'sidebar' %}
+          {% comment %}
+            {%- render 'cart-gift-wrapping', class: 'cart-wrapping--sidebar', hideQuickBuy: true -%}
+          {% endcomment %}
+
+          <div class="sidebar__footer hide-if-empty-cart" style="background-color:var(--color-background-main-alternate)">
+            {%- render 'cart-subtotal', type: 'sidebar' -%}
+          </div>
+        </div>
+        <!-- #### ./Product Type #### -->
+
+      </sidebar-drawer>
+
+      <script>
+        new MutationObserver((mutations, observer) => {
+          if ( document.getElementById('cart').classList.contains('cart--empty') ) {
+            document.getElementById('site-cart-sidebar').classList.add('cart-is-empty');
+          } else {
+            document.getElementById('site-cart-sidebar').classList.remove('cart-is-empty');
+          }
+        }).observe(document.querySelector('.cart-form'), {
+          attributes: false, childList: true, subtree: true
+        })
+      </script>
+
+    {%- endunless -%}
+
+    <sidebar-drawer id="site-search-sidebar" class="sidebar sidebar--left" tabindex="-1" role="dialog" aria-modal="true" style="display:none">
+      <div class="sidebar__header">
+        <span class="sidebar__title">
+          {{ 'search.drawer.title' | t }}
+        </span>
+        <button class="sidebar__close" data-js-close>
+          <span class="visually-hidden">{{ 'general.accessibility_labels.close_sidebar' | t }}</span>
+          <span aria-hidden="true" aria-role="img">{%- render 'theme-symbols', icon: 'close' -%}</span>
+        </button>
+      </div>
+      <div class="sidebar__body">
+
+        <search-form class="sidebar-large-padding">
+          <form action="{{ routes.search_url }}" method="get" class="input-group search-bar ajax subtitle" role="search" autocomplete="off">
+            <label for="search-form-sidebar" class="visually-hidden">{{ 'search.drawer.title' | t }}</label>
+            <input id="search-form-sidebar" class="ninja-search-bar" type="search" name="q" value="{{ search.terms | escape }}" placeholder="{{ 'search.drawer.placeholder' | t }}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-js-search-input>
+          </form>
+          <div class="top">
+            <div id="search-results" class="search-results predictive-search" data-js-search-results></div>
+          </div>
+        </search-form>
+
+      </div>
+    </sidebar-drawer>
+
+    <link rel="stylesheet" href="{{ 'component-cart.css' | asset_url }}" media="print" onload="this.media='all'">
+
+     <script src="{{ 'component-quantity-selector.js' | asset_url }}" defer></script>
+    {%- if settings.cart_action == "overlay" or template.name contains "cart" -%}
+      <script src="{{ 'component-cart.js' | asset_url }}"></script>
+    {%- endif -%}
+
+    <link rel="stylesheet" href="{{ 'component-sidebar.css' | asset_url }}" media="print" onload="this.media='all';">
+     <script src="{{ 'section-header.js' | asset_url }}" defer></script>
+
+    {%- if template contains 'product' -%}
+      <script>
+        if ( document.getElementById('shopify-product-reviews') ) {
+          var element = document.createElement("link");
+          element.setAttribute("rel", "stylesheet");
+          element.setAttribute("type", "text/css");
+          element.setAttribute("href", "{{ 'component-shopify-reviews.css' | asset_url }}");
+          document.body.appendChild(element);
+        }
+      </script>
+
+      {%- comment -%}
+        Yotpo customer-media gallery carousel polyfill removed —
+        their click events are intercepted in a way the theme can't
+        reliably bypass. Issue tracked for direct Yotpo support.
+      {%- endcomment -%}
+    {%- endif -%}
+
+    <div class="site-overlay" style="display:none"></div>
+
+    <link rel="stylesheet" href="{{ 'section-main-product.css' | asset_url }}" media="print" onload="this.media='all';">
+
+    {%- if settings.show_gotop -%}
+      <span id="go-top" class="main-go-top"
+        onclick="window.scrollTo({ top: 0, behavior: 'smooth' })"
+      >
+        <span class="visually-hidden">{{ 'general.accessibility_labels.go_to_top' | t }}</span>
+        <span class="main-go-top__icon" aria-hidden="true">{%- render 'theme-symbols', icon: 'chevron' -%}</span>
+        <span class="main-go-top__text">{{ 'general.accessibility_labels.top' | t }}</span>
+      </span>
+      <script>
+        window.addEventListener('scroll', ()=>{
+          if ( window.scrollY > 500 ) {
+            document.getElementById('go-top').classList.add('show');
+          } else {
+            document.getElementById('go-top').classList.remove('show');
+          }
+        }, {passive: true});
+      </script>
+    {%- endif -%}
+
+    <!-- PF EDT START -->
+    <script>
+      {%- if content_for_header contains 'shopify-product-customizer' -%}
+        {%- if product -%}
+          {%- if product.first_available_variant -%}
+            var pfProductId = {{ product.metafields.printful.is_synced | json }};
+            var pfEdt = {{ shop.metafields.printful.is_edt_enabled | json }};
+            var pfEdtTextColor = {{ shop.metafields.printful.edt_text_color | json }};
+            var pfEdtBackgroundColor = {{ shop.metafields.printful.edt_background_color | json }};
+            var pfEdtBorderColor = {{ shop.metafields.printful.edt_border_color | json }};
+            var pfEdtUseDefaultStyling = {{ shop.metafields.printful.edt_default_style | json }};
+            var pfEdtTextAlignment = {{ shop.metafields.printful.edt_text_alignment | json }};
+            var pfEdtFlags = {
+              US: "{{ 'US.svg' | asset_url }}",CA: "{{ 'CA.svg' | asset_url }}",ES: "{{ 'ES.svg' | asset_url }}",LV: "{{ 'LV.svg' | asset_url }}",GB: "{{ 'GB.svg' | asset_url }}",DE: "{{ 'DE.svg' | asset_url }}",FR: "{{ 'FR.svg' | asset_url }}",AU: "{{ 'AU.svg' | asset_url }}",JP: "{{ 'JP.svg' | asset_url }}",NZ: "{{ 'NZ.svg' | asset_url }}",IT: "{{ 'IT.svg' | asset_url }}",BR: "{{ 'BR.svg' | asset_url }}",KR: "{{ 'KR.svg' | asset_url }}",NL: "{{ 'NL.svg' | asset_url }}",GB: "{{ 'GB.svg' | asset_url }}",US: "{{ 'US.svg' | asset_url }}",
+            };
+          {%- else -%}
+            var pfEdt = 0;
+          {%- endif -%}
+        {%- endif -%}
+      {%- endif -%}
+    </script>
+    <!-- PF EDT END -->
+    <style>
+      .product-quantity.error {
+        position: relative;
+      }
+      .product-quantity.error::after {
+        position: absolute;
+        content: attr(error);
+        left: 10px;
+        top: -25px;
+        width: 100%;
+        height: auto;
+        color: #d00;
+        white-space: nowrap;
+      }
+      sidebar-drawer  .cart-item__actions .product-quantity.error::after {
+        font-size: 12px;
+        left: 70px;
+      }
+    </style>
+    <!-- PF EDT END -->
+    <script>
+      function decrimentalQty( this_ ) {
+        try {
+          const qty = $( `.customQtyFile__qty` ).val() * 1;
+          const min = ($( `.customQtyFile__qty` ).attr( `min` ) * 1) + 1;
+          console.log("hi",qty,min);
+          if ( typeof qty !== 'undefined' && qty && typeof min !== 'undefined' && min ) {
+            if ( qty < min ) {
+              $( `.product-quantity` ).addClass( `error` );
+              $( '.product-quantity [name="quantity"],.customQtyFile__qty' ).val( min );
+
+              setTimeout(() => {
+                $( `.product-quantity` ).removeClass( `error` );
+              }, 1000);
+            }
+          }
+        } catch ( err ) {
+          console.log( `ERROR decrimentalQty`, err.message );
+        }
+      }
+
+      function decrimentalQtyCart( this_ ) {
+        try {
+          const qtyCart = $( this_ ).parent().find( `[name="updates[]"]` ).val() * 1;
+          const minCart = Number($( this_ ).parent().find( `[name="updates[]"]` ).attr( `min` ) * 1);
+
+          if ( typeof qtyCart !== 'undefined' && qtyCart && typeof minCart !== 'undefined' && minCart ) {
+            console.log ( 'qtyCart', qtyCart );
+            if ( qtyCart <= minCart ) {
+              $( this_ ).closest( `.product-quantity` ).addClass( `error` );
+              $( this_ ).parent().find( `[name="updates[]"]` ).val(minCart);
+              setTimeout(() => {
+              $( this_ ).closest( `.product-quantity` ).removeClass( `error` );
+            }, 1000);
+            }
+          }
+        } catch ( err ) {
+          console.log( `ERROR decrimentalQty`, err.message );
+        }
+      }
+
+      function checkQtyValidation( this_ ) {
+        var timeout = 800;
+        if($( this_ ).hasClass(`_cart__quantity`)){
+          timeout = 150;
+        }
+        try {
+          setTimeout(() => {
+            let qtyCart = $( this_ ).val() * 1;
+            let minCart = $( this_ ).attr( `min` ) * 1;
+            console.log(qtyCart,minCart);
+
+            if ( qtyCart < minCart ) {
+              $( this_ ).closest( `.product-quantity` ).addClass( `error` );
+              $( this_ ).css( `color`, `#d00` );
+
+              qtyCart = $( this_ ).val() * 1;
+              $( this_ ).val( minCart );
+              $( this_ ).prop("value", minCart );
+              $('product-form input[name="quantity"]').val(minCart);
+              $( this_ ).closest( `.product-quantity` ).find( `.qty-button.qty-minus` ).click();
+            } else {
+              $( this_ ).css( `color`, `#000` );
+            }
+          }, timeout);
+          setTimeout(() => {
+            $( this_ ).closest( `.product-quantity` ).removeClass( `error` );
+            $( this_ ).css( `color`, `#000` );
+          }, 1000);
+
+        } catch ( err ) {
+          console.log( `ERROR checkQtyValidation`, err.message );
+        }
+      }
+    </script>
+   
+    {%  if product %}
+      <script>
+        window.addEventListener('load', function() {
+          var _learnq = window._learnq || [];
+          function addedToCart() {
+            fetch(`${window.location.origin}/cart.js`)
+            .then(res => res.clone().json().then(data => {
+              var cart = {
+                total_price: data.total_price/100,
+                $value: data.total_price/100,
+                total_discount: data.total_discount,
+                original_total_price: data.original_total_price/100,
+                items: data.items
+              }
+              if (item !== 'undefined') {
+                cart = Object.assign(cart, item)
+              }
+              if (klAjax) {
+                _learnq.push(['track', 'Added to Cart', cart]);
+                klAjax = false;
+              }
+            }))
+          };
+          (function (ns, fetch) {
+            ns.fetch = function() {
+              const response = fetch.apply(this, arguments);
+              response.then(res => {
+                if (`${window.location.origin}/cart/add.js`
+                  .includes(res.url)) {
+                    addedToCart()
+                }
+              });
+              return response
+            }
+          }(window, window.fetch));
+          var klAjax = true;
+          var atcButtons = document.querySelectorAll("form[action*='/cart/add'] button[type='submit']");
+          for (var i = 0; i < atcButtons.length; i++) {
+            atcButtons[i].addEventListener("click", function() {
+              if (klAjax) {
+                _learnq.push(['track', 'Added to Cart', item]);
+                klAjax = false;
+              }
+            })
+          }
+        });
+      </script>
+    {%  endif %}
+    {% render 'upsell-in-cart' %}
+    {% render 'wnw_footer' %}
+    
+    {% if isblankproduct %}
+      {{ 'component-blanks-home.js' | asset_url | script_tag }}
+    {% endif %}
+      {%  unless page.id == 105050734675 %}
+        {% render "login-popup-modal" %}
+  {% endunless %} 
+ {% if template contains "product" %}
+        {% if product.metafields.custom.multiupload_ui   %}
+          {% render "product-page-popups-multiupload" %} 
+       {% else %}  
+          {% render "product-page-popups" %}
+        {% endif %} 
+        {%  if product.template_suffix == "uv-dtf-by-size" %}
+           
+        {% endif %}  
+      <script>
+        const PRODUCT_ID = "{{ product.id }}"
+      </script>
+
+       {%  if product.metafields.custom.multiupload_ui and product.metafields.custom.smart_sizing %}
+          <script>
+            loaderGif = `{{ 'loader.gif' | asset_url }}`;
+         </script>
+         <script defer src="{{ 'bySize_popular.js' | asset_url }}"></script>
+      {% elsif product.metafields.custom.multiupload_ui %}
+         <script>
+            loaderGif = `{{ 'loader.gif' | asset_url }}`;
+         </script>
+         {% if product.template_suffix contains "rebuild" %}
+           <script defer src="{{ 'bySize.js' | asset_url }}"></script>
+         {% else %}
+           <script defer src="{{ 'pdp_transferBySize-multiupload.js' | asset_url }}"></script>
+         {% endif %}
+      {% else %}
+        {% if product.template_suffix == 'uv-dtf-by-size' %}
+          <script>
+            loaderGif = `{{ 'loader.gif' | asset_url }}`;
+          </script>
+          <script defer src="{{ 'bySize.js' | asset_url }}"></script>
+        {% else %}
+          {% if product.template_suffix == "puff-transfers" %}
+            {% comment %}
+            <script src="{{ 'pdp_transferBySize_puff.js' | asset_url }}"></script>
+            {% endcomment %}
+            <script defer src="{{ 'pdp_transferBySize.js' | asset_url }}"></script>
+          {% elsif product.template_suffix == "precut-dtf" %}
+            <script defer src="{{ 'pdp_transferBySize-precut.js' | asset_url }}"></script>
+          {% else %}
+            <script defer src="{{ 'pdp_transferBySize.js' | asset_url }}"></script>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      {%- comment -%}
+        A/B test gate: bg-removal multi-model UI loads ONLY on the
+        by-size-bg-options template. by-size-tabs (control) and every
+        other template get zero bg-removal code on the page.
+      {%- endcomment -%}
+      {% if product.template_suffix == 'by-size-bg-options' %}
+        <script defer src="{{ 'bg-removal-multi.js' | asset_url }}"></script>
+      {% endif %}
+    {% endif %}
+    {% if template contains "product" %}
+      {% unless product.template_suffix contains "blanks" or product.template_suffix == "gift-card" or product.template_suffix == "samples" or product.template_suffix == "supplies" or product.template_suffix == "heat-press-product" or product.template_suffix == "ninja-heat-press" or product.template_suffix == "consumables" or product.template_suffix == "ink" or product.template_suffix == "powder" or product.template_suffix == "makerflo" %}
+        {% render 'v0-editor' %}
+      {% endunless %}
+    {% endif %}
+    {%-liquid
+      assign allowToShowUpsell = true
+      if template contains "blanks"
+        assign allowToShowUpsell = false
+      endif  
+    -%}
+    
+    {% if settings.enableUpsellCart and allowToShowUpsell %}
+      {% render "__upsellPopup", isvisible:allowToShowUpsell %}
+      {% render 'cart-upsell' %}
+    {% endif %}
+    
+    
+     <script src="{{ 'facets_gtag.js' | asset_url }}" defer></script>
+    {%- if settings.cartFreeShippingBySize or settings.cartFreeShippingBlanks -%}
+      
+        <script>
+          reCalculateFreeShippingModule();
+          $(document).ready(function() {
+            const cartFormObserver = $('sidebar-drawer cart-form#AjaxCartForm')[0];
+            const cartFormObserver_config = { attributes: true, childList: true, subtree: true, characterData: true };
+            const callback = function(mutationsList, observer) {
+              mutationsList.forEach(mutation => {
+                if (mutation.type === 'childList') {
+                  console.log('A child node has been added or removed.');
+                  reCalculateFreeShippingModule();
+                }
+              });
+            };
+            const observer = new MutationObserver(callback);
+            observer.observe(cartFormObserver, cartFormObserver_config);
+          });
+  
+          async function reCalculateFreeShippingModule() {
+            try {
+              for (let i = 1; i <= 5; i++) {
+                await addDelay( 1000 );
+                reCalculateFreeShippingModule__recall();
+              }
+            } catch ( err ) {
+              console.log( `ERROR reCalculateFreeShippingModule`, err.message );
+            }
+          }
+  
+          function reCalculateFreeShippingModule__recall() {
+            try {
+              const freeShippingBysize = $( `free-shipping-bysize` );
+              const freeShippingBlanks = $( `free-shipping-blanks` );
+              if ( freeShippingBysize.length > 0 ) {
+                const mainAmount = freeShippingBysize.attr( `free-shipping-amount` ) * 1;
+                const completedAmount = freeShippingBysize.attr( `data-cart-total` ) * 1;
+                const percentage = ( completedAmount / mainAmount ) * 100;
+                if ( percentage <= 100 ) {
+                  freeShippingBysize.find( `.cart-notice__slider-bar` ).css( `width`, `${ percentage }%` );
+                } else {
+                  freeShippingBysize.find( `.cart-notice__slider-bar` ).css( `width`, `100%` );
+                }
+              }
+              if ( freeShippingBlanks.length > 0 ) {
+                const mainAmount = freeShippingBlanks.attr( `free-shipping-amount` ) * 1;
+                const completedAmount = freeShippingBlanks.attr( `data-cart-total` ) * 1;
+                const percentage = ( completedAmount / mainAmount ) * 100;
+                if ( percentage <= 100 ) {
+                  freeShippingBlanks.find( `.cart-notice__slider-bar` ).css( `width`, `${ percentage }%` );
+                } else {
+                  freeShippingBlanks.find( `.cart-notice__slider-bar` ).css( `width`, `100%` );
+                }
+              }
+            } catch ( err ) {
+              console.log( `ERROR `, err.message );
+            }
+          }
+        </script>
+
+    {%- endif -%}
+    <script>
+    document.querySelector(".getDirectionWrapperInner").addEventListener("click", () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`;
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.address) {
+                            const address = data.address;
+                            const postalCode = address.postcode || address.zip;
+                            if (postalCode) {
+                              $(".deliveryEstimateZip").val(postalCode);
+                              estimateDeliveryDate();
+                            } else {
+                              console.log("Postal Code not found.");
+                            }
+                        } else {
+                          console.log("Address not found.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error fetching address:", error);
+                    });
+            },
+            (error) => {
+                if (error.code === error.PERMISSION_DENIED) {
+                } else {
+                    console.log("An error occurred while retrieving location.");
+                }
+            }
+        );
+    } else {
+        console.log("Geolocation is not supported by this browser.");
+    }
+});
+</script>
+    {% if template contains "product" %}
+      <script>
+        $('body').on("keyup click change",'[name="properties[Design Notes]"]', function (){
+          $(this).val($(this).val().replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, ''));
+        });
+      </script>
+    {% endif %}
+
+    {% comment %}
+      {% if cart.item_count > 0 %}
+        {% render 'cart-preview.liquid' %}
+      {% endif %}
+    {% endcomment %}
+    {% render 'cart-preview' %}
+
+    <!-- Mockup Generator -->
+    {% if request.page_type == "page" %}
+      {% if page.template_suffix == "mockup-generator" %}
+        <script>
+          document.addEventListener("DOMContentLoaded", function () {
+            DynamicMockups.initDynamicMockupsIframe({
+            iframeId: "dm-iframe",
+            data: { "x-website-key": "zrn5erdbcgAt" },
+            mode: "download",
+            });
+          });
+        </script>
+      {% endif %}
+    {% endif %}
+    <!-- ./Mockup Generator -->
+    {% render 'precut-func' %}
+
+    <style>
+
+      @media(max-width:768px){
+        .notifeed-number{right:0; top:0;}
+      }
+
+      .site-nav.style--classic li.nlast [is=party-button].active-party{position:relative; visibility:visible; bottom:-3px; right:0;}
+      .site-nav.style--classic li.nlast [is=party-button].active-party{width:25px; height:25px; background-size:84%;}
+      .site-nav.style--classic li.nlast [is=party-button].active-party .notifeed-number{right:-5px; top:-7px; background-color:#42a9de;}
+    </style>
+    <script>
+      $(document).ready(function () {
+
+        if($(window).width() < 768){
+          let apployAppTimer = setInterval(function () {
+            const $apployApp = $('.apploy-app-install-banner');
+            if ($apployApp.length) {
+              clearInterval(apployAppTimer); // Stop checking once found
+              $apployApp.addClass("install-banner-top");
+              $apployApp.find(".apploy-app-install-banner-logo").wrap("<div class='logowrapper'>");
+              $('.apploy-app-install-banner').remove();
+              $("body").prepend($apployApp);
+              console.log($apployApp," $apployApp")
+            }
+          },300);
+        }
+
+
+        var __appbanner = getCook("appbanner");
+        let apployCookieTimer = setInterval(function () {
+            const $apployCookApp = $('.apploy-app-install-banner');
+            if ($apployCookApp.length) {
+              clearInterval(apployCookieTimer); // Stop checking once found
+              var __close = '<button class="apploy-app-custom-close" aria-label="Close banner">✕</button>'
+              $apployCookApp.append(__close)
+
+              if(__appbanner != ""){
+                $(".apploy-app-install-banner").addClass("disable-app-banner-block");
+              }
+            }
+        })
+
+        $(document).on("click",".apploy-app-install-banner .apploy-app-custom-close",function(e){
+          console.log("close button hit")
+          $(this).parents(".apploy-app-install-banner").addClass("disable-app-banner-block");
+          setCookie("appbanner", 1, 30);
+        })
+
+      });
+    </script>
+    <style>
+      .apploy-app-install-banner.install-banner-top {position: static; margin: 4px auto;}
+      .apploy-app-install-banner.install-banner-top .logowrapper{width:50px; height:50px;}
+      .apploy-app-install-banner.install-banner-top .logowrapper img{height:auto; width:auto;}
+      .apploy-app-install-banner-close,.disable-app-banner-block{display:none !important}
+      .apploy-app-custom-close{position: absolute; top: -5px; right: -5px; width: 1.5rem; height: 1.5rem; border: none; background: #b4b3b3; color: #000; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 10px; border-radius: 50%; transition: background-color 0.2s;}
+      sidebar-drawer .sidebar__title{display: inline-flex; align-items: center;}
+      sidebar-drawer div .share_cart_wrap{margin:0; display: inline-flex}
+      sidebar-drawer div .share_cart_header{margin: 0 !important; display: inline-flex !important; font-size: 10px;}
+      sidebar-drawer div button.share_cart_btn,sidebar-drawer div button.share_cart_btn:focus{padding: 0 !important; font-size: 12px !important; padding-left: 5px !important;}
+      sidebar-drawer .id_span_svgicon rect{display:none;}
+      /*sidebar-drawer.sidebar svg *:not(.nocolor){fill:transparent;}*/
+      sidebar-drawer div button.share_cart_btn span{padding-left:4px;}
+      sidebar-drawer cart-form .share_cart_wrap{display:none !important}
+
+      .missing_size_error{
+        position: fixed;
+        top: 150px;
+        right: 30px;
+        border-radius: 8px;
+        background: rgb(220 53 69);
+        padding: 10px 35px 10px 15px;
+        box-shadow: 0 6px 20px -5px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transform: translateX(calc(100% + 30px));
+        transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.35);
+        z-index: 99999999999999;
+        color:#fff;
+        max-width:300px;
+        font-size:14px;
+      }
+      .missing_size_error._active {
+        transform: translateX(0%);
+      }
+    </style>
+    <div class="missing_size_error">
+      IMPORTANT: We were not able to detect the size of one of your images. Please check your cart to see whats missing and upload that image again 
+    </div>
+    {% comment %}AccessiBe script for accessibility — DISABLED for dev on New Cart V3, re-enable before merge {% endcomment %}
+    {% comment %}<script> (function(){ var s = document.createElement('script'); var h = document.querySelector('head') || document.body; s.src = 'https://acsbapp.com/apps/app/dist/js/app.js'; s.async = true; s.onload = function(){ acsbJS.init(); }; h.appendChild(s); })(); </script>{% endcomment %}
+
+    {% render 'validate-blank' %}
+    {% if cart.items.size %}
+      {% render 'bysize-popup' %}
+    {% endif %}
+    <script>
+      window.addEventListener('DOMContentLoaded', function(){
+        const script = document.createElement('script');
+        script.src = "https://cdn.shopify.com/extensions/7b5bdc31-5018-4beb-bd8b-d26571687a7e/pandectes-gdpr-175/assets/pandectes-core.js";
+        script.defer = true;
+        document.body.appendChild(script);
+      });
+    </script>
+    
+    {% assign sticky_upload_product_types = 'custom transfers,custom transfers gang,uv dtf,uv dtf gang,spangles,stickers,truck stickers,large stickers,magnets,keychains,gang sheet upload,dtf gang sheet upload,uv gang sheet upload,puff transfers' | split: ',' %}
+    {% assign sticky_upload_product_type = product.type | downcase %}
+    {% if sticky_upload_product_types contains sticky_upload_product_type %}
+      {% render "sticky-upload-btn" %}
+    {% endif %}
+    <script>
+      $(function () {
+
+        function getHeaderH(){
+          return $('.shopify-section-header').outerHeight() || 0;
+        }
+
+        function getY($el){
+          return $el[0].getBoundingClientRect().top + window.pageYOffset;
+        }
+
+        function scrollToYotpo(){
+          var $target = $('#yotpo-app');
+          if(!$target.length) return;
+          // Pass 1: go near target quickly (triggers lazy-render without needing exact)
+          var firstY = getY($target) - getHeaderH() - 120; // a bit above
+          $('html, body').stop(true).animate({ scrollTop: Math.max(0, firstY) }, 350);
+          // Pass 2: after layout changes settle, go exact
+          setTimeout(function(){
+            var finalY = getY($target) - getHeaderH();
+            $('html, body').stop(true).animate({ scrollTop: Math.max(0, finalY) }, 500);
+          }, 450);
+        }
+        $(document).on("click", ".yotpo-reviews-star-ratings-widget button", function(e){
+          e.preventDefault();
+          scrollToYotpo();
+        });
+      });
+    </script>
+
+  <script src="{{ 'blanks-price-patcher.js' | asset_url }}" defer></script>
+  </body>
+</html>

@@ -1,0 +1,115 @@
+{%- comment -%}
+  upload-aware-hide
+
+  Visibility lifecycle for a banner/promo on a product page that needs to
+  hide once the user starts uploading a file (or already has one). Also
+  handles initial DOM placement, since promos rendered as top-level
+  sections need to be moved inside the upload area to look correct.
+
+  Required:
+    selector — CSS selector of the element to manage (e.g. '.v12-promo')
+
+  Optional:
+    place_after  — selector to insert the element AFTER, if present and visible
+    place_before — selector to insert the element BEFORE, used as a fallback
+                   when place_after isn't matched
+    placed_class — class added once placement succeeds; pair with a
+                   "display:none until this class is set" CSS rule on the
+                   target to avoid a flash before the move
+{%- endcomment -%}
+
+{%- assign uah_selector = selector | default: '' -%}
+{%- assign uah_place_after = place_after | default: '' -%}
+{%- assign uah_place_before = place_before | default: '' -%}
+{%- assign uah_placed_class = placed_class | default: '' -%}
+
+{%- if uah_selector != '' -%}
+<script>
+(function(){
+  var SELECTOR     = {{ uah_selector | json }};
+  var PLACE_AFTER  = {{ uah_place_after | json }};
+  var PLACE_BEFORE = {{ uah_place_before | json }};
+  var PLACED_CLASS = {{ uah_placed_class | json }};
+
+  function squashUploadMargins(){
+    ['.upload-area','master-upload','upload-controls','.file-upload-overlay-1'].forEach(function(s){
+      var el = document.querySelector(s);
+      if (el){ el.style.marginBottom = '0px'; el.style.paddingBottom = '0px'; }
+    });
+  }
+
+  function place(){
+    try {
+      var p = document.querySelector(SELECTOR);
+      if (!p) return;
+      if (p.__uahMoved){ squashUploadMargins(); return; }
+
+      /* place_after requires visibility — the primary anchor (e.g. the
+         upload tabs UI) is sometimes in DOM but not yet rendered during
+         async hydration, and we don't want to land the promo inside a
+         hidden ancestor. place_before is a fallback that should always
+         work as long as the element is in the document, since its sibling
+         placement is what matters; the promo's own visibility is governed
+         by sync(). */
+      var anchor = PLACE_AFTER ? document.querySelector(PLACE_AFTER) : null;
+      if (anchor && anchor.offsetParent !== null && anchor.parentNode){
+        anchor.parentNode.insertBefore(p, anchor.nextSibling);
+        if (PLACED_CLASS) p.classList.add(PLACED_CLASS);
+        p.__uahMoved = true;
+      } else if (PLACE_BEFORE){
+        var beforeEl = document.querySelector(PLACE_BEFORE);
+        if (beforeEl && beforeEl.parentNode){
+          beforeEl.parentNode.insertBefore(p, beforeEl);
+          if (PLACED_CLASS) p.classList.add(PLACED_CLASS);
+          p.__uahMoved = true;
+        }
+      }
+      squashUploadMargins();
+    } catch(e){}
+  }
+
+  function isUploaded(){
+    var fp = document.querySelector('file-progress, .fileProgress');
+    if (fp && (fp.offsetWidth > 0 || fp.offsetHeight > 0)) return true;
+    var z = document.querySelector('.secondDropZone');
+    if (z && (z.offsetWidth > 0 || z.offsetHeight > 0)) return true;
+    var ub = document.querySelector('uploaded-files-block');
+    if (ub && (ub.offsetWidth > 0 || ub.offsetHeight > 0)) return true;
+    var w = document.querySelector('multi-upload-wrapper.multiUpload.active');
+    if (w && !w.closest('template') && !w.closest('#multiUploadTemplates')) return true;
+    var fb = document.querySelector('file-blocks-area');
+    if (fb && fb.children.length > 0) return true;
+    return false;
+  }
+
+  function sync(){
+    var p = document.querySelector(SELECTOR);
+    if (!p) return;
+    if (isUploaded()){
+      p.style.setProperty('display', 'none', 'important');
+    } else {
+      p.style.removeProperty('display');
+    }
+  }
+
+  function tick(){ place(); sync(); }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', tick);
+  } else {
+    tick();
+  }
+  setTimeout(tick, 500);
+  setTimeout(tick, 1500);
+
+  if (typeof MutationObserver !== 'undefined'){
+    var mo = new MutationObserver(function(){ sync(); });
+    mo.observe(document.documentElement, {
+      childList: true, subtree: true,
+      attributes: true, attributeFilter: ['class']
+    });
+  }
+  setInterval(tick, 800);
+})();
+</script>
+{%- endif -%}

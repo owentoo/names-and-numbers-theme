@@ -1,0 +1,120 @@
+{%- comment -%}
+  price-calc-v2.liquid
+
+  New UI for the Price Calculator popup, per mockup.
+  Renders alongside the legacy popup markup — the legacy markup is kept hidden and
+  is used as the "data source" (its .customTabelPopup__item rows carry the min/max/off
+  data that existing JS populates with per-unit prices). This snippet mirrors that
+  data into a redesigned UI with tier cards, a quantity input, and a per-piece price
+  display. All pricing tiers, discount %s, max/min dims still come from their
+  existing places — this is UI only.
+
+  Expects variables:
+    - b (the customTabelPopup block settings)
+{%- endcomment -%}
+
+<div class="pcv2">
+  <div class="pcv2__header">
+    <h2 class="pcv2__title">Price calculator</h2>
+  </div>
+
+  {%- comment -%} Width / Height / Quantity all on one row, each with +/- stepper {%- endcomment -%}
+  <div class="pcv2__section">
+    <div class="pcv2__inputsRow">
+      <div class="pcv2__inputCell">
+        <div class="pcv2__sublabel">Width (in)</div>
+        <div class="pcv2__stepper">
+          <button type="button" class="pcv2__stepBtn" data-pcv2-step="width" data-pcv2-dir="-1" aria-label="Decrease width">−</button>
+          <input
+            type="number"
+            class="pcv2__input pcv2__input--stepper"
+            data-pcv2-width
+            value="{{ b.defaultwidth | default: b.defaultheight | default: 2 }}"
+            min="{{ b.calcwidthminval | default: 0.5 }}"
+            max="{{ b.calcwidthmaxval | default: 22 }}"
+            step="0.5"
+            inputmode="numeric"
+          >
+          <button type="button" class="pcv2__stepBtn" data-pcv2-step="width" data-pcv2-dir="1" aria-label="Increase width">+</button>
+        </div>
+        <div class="pcv2__error" data-pcv2-error-width hidden></div>
+      </div>
+      <div class="pcv2__inputCell">
+        <div class="pcv2__sublabel">Height (in)</div>
+        <div class="pcv2__stepper">
+          <button type="button" class="pcv2__stepBtn" data-pcv2-step="height" data-pcv2-dir="-1" aria-label="Decrease height">−</button>
+          <input
+            type="number"
+            class="pcv2__input pcv2__input--stepper"
+            data-pcv2-height
+            value="{{ b.defaultheight | default: 2 }}"
+            min="{{ b.calcheightminval | default: 0.5 }}"
+            max="{{ b.calcheightmaxval | default: 22 }}"
+            step="0.5"
+            inputmode="numeric"
+          >
+          <button type="button" class="pcv2__stepBtn" data-pcv2-step="height" data-pcv2-dir="1" aria-label="Increase height">+</button>
+        </div>
+        <div class="pcv2__error" data-pcv2-error-height hidden></div>
+      </div>
+      <div class="pcv2__inputCell">
+        <div class="pcv2__sublabel">Quantity</div>
+        <div class="pcv2__stepper">
+          <button type="button" class="pcv2__stepBtn" data-pcv2-step="qty" data-pcv2-dir="-1" aria-label="Decrease quantity">−</button>
+          <input
+            type="number"
+            class="pcv2__input pcv2__input--stepper"
+            data-pcv2-qty
+            value="1"
+            min="1"
+            step="1"
+            inputmode="numeric"
+          >
+          <button type="button" class="pcv2__stepBtn" data-pcv2-step="qty" data-pcv2-dir="1" aria-label="Increase quantity">+</button>
+        </div>
+        <div class="pcv2__error" data-pcv2-error-qty hidden></div>
+      </div>
+    </div>
+  </div>
+
+  {%- comment -%} Tier table {%- endcomment -%}
+  <div class="pcv2__section">
+    <div class="pcv2__labelRow">
+      <span class="pcv2__label">Buy more, save more</span>
+    </div>
+    <div class="pcv2__tiers">
+      <div class="pcv2__tiersHead">
+        <div>Qty</div>
+        <div>Discount</div>
+        <div>Per piece</div>
+      </div>
+      <div data-pcv2-tiers></div>
+    </div>
+  </div>
+
+  {%- comment -%} Price display {%- endcomment -%}
+  <div class="pcv2__priceBox">
+    <div class="pcv2__priceRow">
+      <span class="pcv2__priceBefore" data-pcv2-price-before></span>
+      <span class="pcv2__priceAfter" data-pcv2-price-after>$0.00</span>
+      <span class="pcv2__priceMeta">per piece</span>
+    </div>
+  </div>
+
+  {%- comment -%} CTA — upload dropzone {%- endcomment -%}
+  <label for="fileInput" class="pcv2__dropzone pcv2__dropzone--blue lblctrl" data-pcv2-cta data-pcv2-dropzone>
+    <div class="pcv2__dropzone-inner">
+      <span class="pcv2__dropzone-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.35 10.04A7.49 7.49 0 0 0 12 4a7.48 7.48 0 0 0-6.68 4.06A5.5 5.5 0 0 0 6 19h13a4.5 4.5 0 0 0 .35-8.96zM13 13v4h-2v-4H8l4-4 4 4h-3z"/>
+        </svg>
+      </span>
+      <div class="pcv2__dropzone-title">Upload your file</div>
+      <div class="pcv2__dropzone-text">Drag and drop file here or click to browse</div>
+      <span class="pcv2__dropzone-btn">Browse</span>
+      {% if customer %}
+        <a href="#" class="pcv2__dropzone-link purchase_from_previous" data-type="first_upload" data-pcv2-prev-link>Choose a previously uploaded design</a>
+      {% endif %}
+    </div>
+  </label>
+</div>

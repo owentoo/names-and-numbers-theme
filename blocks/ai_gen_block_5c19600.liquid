@@ -1,0 +1,1370 @@
+{% doc %}
+  @prompt
+    i need a section with horizontal scrolling cards, each card needs an image with height and width options, inside the image a text pill, and below the image up to tree lines on text with size, weight, and color option. and under that a cta that can be a button or a text link , each card needs three individual lines of text, pill needs corner alignment options and text needs to go as small as 8px. each line of text needs color, weight, and size options , each line of text needs padding options above it , get rid of Content spacing. and just ipll radius and padding options , get rid of underline on text link, make vertical padding between each element an option default to 0 , cta needs padding above, section needs height and width padding and a bg color or grdient , need padding option under image, the whole card needs to act as a link, need up to ten cards, get rid of roll over effect and add padding to scroll bar 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-scroll-cards-{{ ai_gen_id }} {
+    width: 100%;
+    overflow: hidden;
+    padding: {{ block.settings.section_padding_top }}px {{ block.settings.section_padding_horizontal }}px {{ block.settings.section_padding_bottom }}px;
+    {% if block.settings.section_bg_type == 'color' %}
+      background-color: {{ block.settings.section_bg_color }};
+    {% else %}
+      background: linear-gradient({{ block.settings.gradient_angle }}deg, {{ block.settings.gradient_color_1 }} 0%, {{ block.settings.gradient_color_2 }} 100%);
+    {% endif %}
+  }
+
+  .ai-scroll-cards-container-{{ ai_gen_id }} {
+    display: flex;
+    gap: {{ block.settings.card_gap }}px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: {{ block.settings.scrollbar_color }} transparent;
+    padding: 0 max(20px, calc((100vw - {{ block.settings.max_width }}px) / 2)) {{ block.settings.scrollbar_padding }}px;
+  }
+
+  .ai-scroll-cards-container-{{ ai_gen_id }}::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .ai-scroll-cards-container-{{ ai_gen_id }}::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .ai-scroll-cards-container-{{ ai_gen_id }}::-webkit-scrollbar-thumb {
+    background-color: {{ block.settings.scrollbar_color }};
+    border-radius: 4px;
+  }
+
+  .ai-scroll-card-{{ ai_gen_id }} {
+    flex: 0 0 {{ block.settings.card_width }}px;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .ai-scroll-card-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    height: {{ block.settings.image_height }}px;
+    overflow: hidden;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    margin-bottom: {{ block.settings.image_padding_bottom }}px;
+  }
+
+  .ai-scroll-card-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-scroll-card-image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-scroll-card-image-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  .ai-scroll-card-pill-{{ ai_gen_id }} {
+    position: absolute;
+    background-color: {{ block.settings.pill_bg_color }};
+    color: {{ block.settings.pill_text_color }};
+    padding: {{ block.settings.pill_padding_vertical }}px {{ block.settings.pill_padding_horizontal }}px;
+    border-radius: {{ block.settings.pill_border_radius }}px;
+    font-size: {{ block.settings.pill_font_size }}px;
+    font-weight: {{ block.settings.pill_font_weight }};
+  }
+
+  .ai-scroll-card-pill-{{ ai_gen_id }}.top-left {
+    top: {{ block.settings.pill_offset }}px;
+    left: {{ block.settings.pill_offset }}px;
+  }
+
+  .ai-scroll-card-pill-{{ ai_gen_id }}.top-right {
+    top: {{ block.settings.pill_offset }}px;
+    right: {{ block.settings.pill_offset }}px;
+  }
+
+  .ai-scroll-card-pill-{{ ai_gen_id }}.bottom-left {
+    bottom: {{ block.settings.pill_offset }}px;
+    left: {{ block.settings.pill_offset }}px;
+  }
+
+  .ai-scroll-card-pill-{{ ai_gen_id }}.bottom-right {
+    bottom: {{ block.settings.pill_offset }}px;
+    right: {{ block.settings.pill_offset }}px;
+  }
+
+  .ai-scroll-card-text-container-{{ ai_gen_id }} {
+    margin-bottom: {{ block.settings.spacing_text_to_cta }}px;
+  }
+
+  .ai-scroll-card-text-line1-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text_line1_font_size }}px;
+    font-weight: {{ block.settings.text_line1_font_weight }};
+    color: {{ block.settings.text_line1_color }};
+    line-height: 1.4;
+    padding-top: {{ block.settings.text_line1_padding_top }}px;
+  }
+
+  .ai-scroll-card-text-line2-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text_line2_font_size }}px;
+    font-weight: {{ block.settings.text_line2_font_weight }};
+    color: {{ block.settings.text_line2_color }};
+    line-height: 1.4;
+    padding-top: {{ block.settings.text_line2_padding_top }}px;
+  }
+
+  .ai-scroll-card-text-line3-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text_line3_font_size }}px;
+    font-weight: {{ block.settings.text_line3_font_weight }};
+    color: {{ block.settings.text_line3_color }};
+    line-height: 1.4;
+    padding-top: {{ block.settings.text_line3_padding_top }}px;
+  }
+
+  .ai-scroll-card-cta-{{ ai_gen_id }} {
+    margin-top: auto;
+    padding-top: {{ block.settings.cta_padding_top }}px;
+  }
+
+  .ai-scroll-card-cta-button-{{ ai_gen_id }} {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: {{ block.settings.cta_bg_color }};
+    color: {{ block.settings.cta_text_color }};
+    text-decoration: none;
+    border-radius: {{ block.settings.cta_border_radius }}px;
+    font-size: {{ block.settings.cta_font_size }}px;
+    font-weight: {{ block.settings.cta_font_weight }};
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .ai-scroll-card-{{ ai_gen_id }}:hover .ai-scroll-card-cta-button-{{ ai_gen_id }} {
+    background-color: {{ block.settings.cta_bg_hover_color }};
+    color: {{ block.settings.cta_text_hover_color }};
+  }
+
+  .ai-scroll-card-cta-link-{{ ai_gen_id }} {
+    display: inline-block;
+    color: {{ block.settings.cta_link_color }};
+    text-decoration: none;
+    font-size: {{ block.settings.cta_font_size }}px;
+    font-weight: {{ block.settings.cta_font_weight }};
+    transition: color 0.3s ease;
+  }
+
+  .ai-scroll-card-{{ ai_gen_id }}:hover .ai-scroll-card-cta-link-{{ ai_gen_id }} {
+    color: {{ block.settings.cta_link_hover_color }};
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-scroll-cards-{{ ai_gen_id }} {
+      padding: {{ block.settings.section_padding_top_mobile }}px {{ block.settings.section_padding_horizontal_mobile }}px {{ block.settings.section_padding_bottom_mobile }}px;
+    }
+
+    .ai-scroll-card-{{ ai_gen_id }} {
+      flex: 0 0 {{ block.settings.card_width_mobile }}px;
+    }
+
+    .ai-scroll-card-image-wrapper-{{ ai_gen_id }} {
+      height: {{ block.settings.image_height_mobile }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-scroll-cards-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-scroll-cards-container-{{ ai_gen_id }}">
+    {% for i in (1..10) %}
+      {% liquid
+       assign show_key = 'card_' | append: i | append: '_show'  
+        if block.settings[show_key] != true  
+          continue  
+        endif  
+        assign card_image_key = 'card_' | append: i | append: '_image'
+        assign card_pill_key = 'card_' | append: i | append: '_pill_text'
+        assign card_text_line1_key = 'card_' | append: i | append: '_text_line1'
+        assign card_text_line2_key = 'card_' | append: i | append: '_text_line2'
+        assign card_text_line3_key = 'card_' | append: i | append: '_text_line3'
+        assign card_cta_text_key = 'card_' | append: i | append: '_cta_text'
+        assign card_cta_url_key = 'card_' | append: i | append: '_cta_url'
+
+        assign card_image = block.settings[card_image_key]
+        assign card_pill = block.settings[card_pill_key]
+        assign card_text_line1 = block.settings[card_text_line1_key]
+        assign card_text_line2 = block.settings[card_text_line2_key]
+        assign card_text_line3 = block.settings[card_text_line3_key]
+        assign card_cta_text = block.settings[card_cta_text_key]
+        assign card_cta_url = block.settings[card_cta_url_key]
+      %}
+
+      <a
+        href="{{ card_cta_url | default: '#' }}"
+        class="ai-scroll-card-{{ ai_gen_id }}"
+      >
+        <div class="ai-scroll-card-image-wrapper-{{ ai_gen_id }}">
+          {% if card_image %}
+            <img
+              src="{{ card_image | image_url: width: 800 }}"
+              alt="{{ card_image.alt | escape }}"
+              loading="lazy"
+              width="{{ card_image.width }}"
+              height="{{ card_image.height }}"
+              class="ai-scroll-card-image-{{ ai_gen_id }}"
+            >
+          {% else %}
+            <div class="ai-scroll-card-image-placeholder-{{ ai_gen_id }}">
+              {{ 'image' | placeholder_svg_tag }}
+            </div>
+          {% endif %}
+
+          {% if card_pill != blank %}
+            <div class="ai-scroll-card-pill-{{ ai_gen_id }} {{ block.settings.pill_position }}">
+              {{ card_pill }}
+            </div>
+          {% endif %}
+        </div>
+
+        {% if card_text_line1 != blank or card_text_line2 != blank or card_text_line3 != blank %}
+          <div class="ai-scroll-card-text-container-{{ ai_gen_id }}">
+            {% if card_text_line1 != blank %}
+              <div class="ai-scroll-card-text-line1-{{ ai_gen_id }}">
+                {{ card_text_line1 }}
+              </div>
+            {% endif %}
+            {% if card_text_line2 != blank %}
+              <div class="ai-scroll-card-text-line2-{{ ai_gen_id }}">
+                {{ card_text_line2 }}
+              </div>
+            {% endif %}
+            {% if card_text_line3 != blank %}
+              <div class="ai-scroll-card-text-line3-{{ ai_gen_id }}">
+                {{ card_text_line3 }}
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if card_cta_text != blank %}
+          <div class="ai-scroll-card-cta-{{ ai_gen_id }}">
+            {% if block.settings.cta_style == 'button' %}
+              <span class="ai-scroll-card-cta-button-{{ ai_gen_id }}">
+                {{ card_cta_text }}
+              </span>
+            {% else %}
+              <span class="ai-scroll-card-cta-link-{{ ai_gen_id }}">
+                {{ card_cta_text }}
+              </span>
+            {% endif %}
+          </div>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Horizontal scroll cards",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section style"
+    },
+    {
+      "type": "select",
+      "id": "section_bg_type",
+      "label": "Background type",
+      "options": [
+        {
+          "value": "color",
+          "label": "Solid color"
+        },
+        {
+          "value": "gradient",
+          "label": "Gradient"
+        }
+      ],
+      "default": "color"
+    },
+    {
+      "type": "color",
+      "id": "section_bg_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "gradient_color_1",
+      "label": "Gradient color 1",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "gradient_color_2",
+      "label": "Gradient color 2",
+      "default": "#f2f2f2"
+    },
+    {
+      "type": "range",
+      "id": "gradient_angle",
+      "min": 0,
+      "max": 360,
+      "step": 10,
+      "unit": "deg",
+      "label": "Gradient angle",
+      "default": 180
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_horizontal",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding horizontal",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top_mobile",
+      "min": 0,
+      "max": 150,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding top on mobile",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom_mobile",
+      "min": 0,
+      "max": 150,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding bottom on mobile",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_horizontal_mobile",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding horizontal on mobile",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 1000,
+      "max": 2000,
+      "step": 50,
+      "unit": "px",
+      "label": "Maximum width",
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "card_width",
+      "min": 200,
+      "max": 500,
+      "step": 10,
+      "unit": "px",
+      "label": "Card width",
+      "default": 320
+    },
+    {
+      "type": "range",
+      "id": "card_width_mobile",
+      "min": 100,
+      "max": 400,
+      "step": 10,
+      "unit": "px",
+      "label": "Card width on mobile",
+      "default": 280
+    },
+    {
+      "type": "range",
+      "id": "card_gap",
+      "min": 10,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "label": "Gap between cards",
+      "default": 24
+    },
+    {
+      "type": "color",
+      "id": "scrollbar_color",
+      "label": "Scrollbar color",
+      "default": "#cccccc"
+    },
+    {
+      "type": "range",
+      "id": "scrollbar_padding",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Scrollbar padding",
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "spacing_text_to_cta",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Text to CTA",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Image"
+    },
+    {
+      "type": "range",
+      "id": "image_height",
+      "min": 200,
+      "max": 600,
+      "step": 10,
+      "unit": "px",
+      "label": "Image height",
+      "default": 400
+    },
+    {
+      "type": "range",
+      "id": "image_height_mobile",
+      "min": 150,
+      "max": 500,
+      "step": 10,
+      "unit": "px",
+      "label": "Image height on mobile",
+      "default": 300
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "image_padding_bottom",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Pill"
+    },
+    {
+      "type": "select",
+      "id": "pill_position",
+      "label": "Position",
+      "options": [
+        {
+          "value": "top-left",
+          "label": "Top left"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        }
+      ],
+      "default": "top-left"
+    },
+    {
+      "type": "range",
+      "id": "pill_offset",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "label": "Offset from edge",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "pill_border_radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_vertical",
+      "min": 4,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding vertical",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_horizontal",
+      "min": 8,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding horizontal",
+      "default": 16
+    },
+    {
+      "type": "color",
+      "id": "pill_bg_color",
+      "label": "Background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "pill_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "pill_font_size",
+      "min": 8,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "pill_font_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "header",
+      "content": "Text line 1"
+    },
+    {
+      "type": "range",
+      "id": "text_line1_font_size",
+      "min": 8,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "text_line1_font_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "color",
+      "id": "text_line1_color",
+      "label": "Color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "text_line1_padding_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Text line 2"
+    },
+    {
+      "type": "range",
+      "id": "text_line2_font_size",
+      "min": 8,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "text_line2_font_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "color",
+      "id": "text_line2_color",
+      "label": "Color",
+      "default": "#666666"
+    },
+    {
+      "type": "range",
+      "id": "text_line2_padding_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Text line 3"
+    },
+    {
+      "type": "range",
+      "id": "text_line3_font_size",
+      "min": 8,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "text_line3_font_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "color",
+      "id": "text_line3_color",
+      "label": "Color",
+      "default": "#999999"
+    },
+    {
+      "type": "range",
+      "id": "text_line3_padding_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Call to action"
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 0
+    },
+    {
+      "type": "select",
+      "id": "cta_style",
+      "label": "Style",
+      "options": [
+        {
+          "value": "button",
+          "label": "Button"
+        },
+        {
+          "value": "link",
+          "label": "Text link"
+        }
+      ],
+      "default": "button"
+    },
+    {
+      "type": "range",
+      "id": "cta_font_size",
+      "min": 8,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 15
+    },
+    {
+      "type": "select",
+      "id": "cta_font_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "color",
+      "id": "cta_bg_color",
+      "label": "Button background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "cta_text_color",
+      "label": "Button text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "cta_bg_hover_color",
+      "label": "Button hover background",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "cta_text_hover_color",
+      "label": "Button hover text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "cta_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "label": "Button border radius",
+      "default": 7
+    },
+    {
+      "type": "color",
+      "id": "cta_link_color",
+      "label": "Link color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "cta_link_hover_color",
+      "label": "Link hover color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Card 1"
+    },
+    {
+    "type": "checkbox",
+    "id": "card_1_show",
+    "label": "Show card",
+    "default": true
+  },
+    {
+      "type": "image_picker",
+      "id": "card_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_1_pill_text",
+      "label": "Pill text",
+      "default": "New"
+    },
+    {
+      "type": "text",
+      "id": "card_1_text_line1",
+      "label": "Text line 1",
+      "default": "Premium Collection"
+    },
+    {
+      "type": "text",
+      "id": "card_1_text_line2",
+      "label": "Text line 2",
+      "default": "Designed for modern living"
+    },
+    {
+      "type": "text",
+      "id": "card_1_text_line3",
+      "label": "Text line 3",
+      "default": "Limited availability"
+    },
+    {
+      "type": "text",
+      "id": "card_1_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_1_cta_url",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 2"
+    },
+    {
+  "type": "checkbox",
+  "id": "card_2_show",
+  "label": "Show card",
+  "default": true
+},
+    {
+      "type": "image_picker",
+      "id": "card_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_2_pill_text",
+      "label": "Pill text",
+      "default": "Featured"
+    },
+    {
+      "type": "text",
+      "id": "card_2_text_line1",
+      "label": "Text line 1",
+      "default": "Handpicked Selection"
+    },
+    {
+      "type": "text",
+      "id": "card_2_text_line2",
+      "label": "Text line 2",
+      "default": "Style meets functionality"
+    },
+    {
+      "type": "text",
+      "id": "card_2_text_line3",
+      "label": "Text line 3",
+      "default": "Curated for you"
+    },
+    {
+      "type": "text",
+      "id": "card_2_cta_text",
+      "label": "CTA text",
+      "default": "Learn more"
+    },
+    {
+      "type": "url",
+      "id": "card_2_cta_url",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 3"
+    },
+    {
+  "type": "checkbox",
+  "id": "card_3_show",
+  "label": "Show card",
+  "default": true
+},
+    {
+      "type": "image_picker",
+      "id": "card_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_3_pill_text",
+      "label": "Pill text",
+      "default": "Sale"
+    },
+    {
+      "type": "text",
+      "id": "card_3_text_line1",
+      "label": "Text line 1",
+      "default": "Limited Time Offers"
+    },
+    {
+      "type": "text",
+      "id": "card_3_text_line2",
+      "label": "Text line 2",
+      "default": "Up to 50% off selected items"
+    },
+    {
+      "type": "text",
+      "id": "card_3_text_line3",
+      "label": "Text line 3",
+      "default": "While supplies last"
+    },
+    {
+      "type": "text",
+      "id": "card_3_cta_text",
+      "label": "CTA text",
+      "default": "View deals"
+    },
+    {
+      "type": "url",
+      "id": "card_3_cta_url",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 4"
+    },
+    {
+  "type": "checkbox",
+  "id": "card_4_show",
+  "label": "Show card",
+  "default": true
+},
+    {
+      "type": "image_picker",
+      "id": "card_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_4_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_4_text_line1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_4_text_line2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_4_text_line3",
+      "label": "Text line 3"
+    },
+    {
+      "type": "text",
+      "id": "card_4_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_4_cta_url",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 5"
+    },
+    {
+  "type": "checkbox",
+  "id": "card_5_show",
+  "label": "Show card",
+  "default": true
+},
+    {
+      "type": "image_picker",
+      "id": "card_5_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_5_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_5_text_line1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_5_text_line2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_5_text_line3",
+      "label": "Text line 3"
+    },
+    {
+      "type": "text",
+      "id": "card_5_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_5_cta_url",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 6"
+    },
+    {
+  "type": "checkbox",
+  "id": "card_6_show",
+  "label": "Show card",
+  "default": true
+},
+    {
+      "type": "image_picker",
+      "id": "card_6_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_6_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_6_text_line1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_6_text_line2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_6_text_line3",
+      "label": "Text line 3"
+    },
+    {
+      "type": "text",
+      "id": "card_6_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_6_cta_url",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 7"
+    },
+    {
+  "type": "checkbox",
+  "id": "card_7_show",
+  "label": "Show card",
+  "default": true
+},
+    {
+      "type": "image_picker",
+      "id": "card_7_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_7_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_7_text_line1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_7_text_line2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_7_text_line3",
+      "label": "Text line 3"
+    },
+    {
+      "type": "text",
+      "id": "card_7_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_7_cta_url",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 8"
+    },
+    {
+  "type": "checkbox",
+  "id": "card_8_show",
+  "label": "Show card",
+  "default": true
+},
+    {
+      "type": "image_picker",
+      "id": "card_8_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_8_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_8_text_line1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_8_text_line2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_8_text_line3",
+      "label": "Text line 3"
+    },
+    {
+      "type": "text",
+      "id": "card_8_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_8_cta_url",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 9"
+    },
+    {
+  "type": "checkbox",
+  "id": "card_9_show",
+  "label": "Show card",
+  "default": true
+},
+    {
+      "type": "image_picker",
+      "id": "card_9_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_9_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_9_text_line1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_9_text_line2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_9_text_line3",
+      "label": "Text line 3"
+    },
+    {
+      "type": "text",
+      "id": "card_9_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_9_cta_url",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Card 10"
+    },
+    {
+  "type": "checkbox",
+  "id": "card_10_show",
+  "label": "Show card",
+  "default": true
+},
+    {
+      "type": "image_picker",
+      "id": "card_10_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_10_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "text",
+      "id": "card_10_text_line1",
+      "label": "Text line 1"
+    },
+    {
+      "type": "text",
+      "id": "card_10_text_line2",
+      "label": "Text line 2"
+    },
+    {
+      "type": "text",
+      "id": "card_10_text_line3",
+      "label": "Text line 3"
+    },
+    {
+      "type": "text",
+      "id": "card_10_cta_text",
+      "label": "CTA text"
+    },
+    {
+      "type": "url",
+      "id": "card_10_cta_url",
+      "label": "CTA link"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Horizontal scroll cards"
+    }
+  ]
+}
+{% endschema %}

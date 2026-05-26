@@ -1,0 +1,412 @@
+{{ 'names-and-numbers.css' | asset_url | stylesheet_tag }}
+
+{%- assign product_form_id = 'product-form-nn-' | append: section.id -%}
+
+{%- for block in section.blocks -%}
+  {%- if block.type == 'font' and block.settings.google_url != blank -%}
+    <link rel="stylesheet" href="{{ block.settings.google_url }}">
+  {%- endif -%}
+{%- endfor -%}
+
+{%- capture font_data -%}
+  [
+    {%- assign nn_first_font = true -%}
+    {%- for block in section.blocks -%}
+      {%- if block.type == 'font' -%}
+        {%- unless nn_first_font %},{% endunless -%}
+        {%- assign nn_first_font = false -%}
+        {
+          "id": {{ block.id | json }},
+          "label": {{ block.settings.label | default: block.settings.family | json }},
+          "family": {{ block.settings.family | json }},
+          "weight": {{ block.settings.weight | default: 700 | json }},
+          "sample_letter": {{ block.settings.sample_letter | default: 'A' | json }},
+          "sample_number": {{ block.settings.sample_number | default: 7 | json }}
+        }
+      {%- endif -%}
+    {%- endfor -%}
+  ]
+{%- endcapture -%}
+
+{%- capture color_data -%}
+  [
+    {%- assign nn_first_color = true -%}
+    {%- for block in section.blocks -%}
+      {%- if block.type == 'color' -%}
+        {%- unless nn_first_color %},{% endunless -%}
+        {%- assign nn_first_color = false -%}
+        {
+          "id": {{ block.id | json }},
+          "label": {{ block.settings.label | json }},
+          "hex": {{ block.settings.hex | json }}
+        }
+      {%- endif -%}
+    {%- endfor -%}
+  ]
+{%- endcapture -%}
+
+{%- capture height_data -%}
+  [
+    {%- assign nn_first_h = true -%}
+    {%- for block in section.blocks -%}
+      {%- if block.type == 'height' -%}
+        {%- unless nn_first_h %},{% endunless -%}
+        {%- assign nn_first_h = false -%}
+        {
+          "id": {{ block.id | json }},
+          "label": {{ block.settings.label | json }},
+          "inches": {{ block.settings.inches | json }}
+        }
+      {%- endif -%}
+    {%- endfor -%}
+  ]
+{%- endcapture -%}
+
+{%- capture variants_json -%}
+  [
+    {% for variant in product.variants %}
+      {
+        "id": {{ variant.id | json }},
+        "title": {{ variant.title | json }},
+        "option1": {{ variant.option1 | json }},
+        "price": {{ variant.price | json }},
+        "price_formatted": {{ variant.price | money | strip_html | json }},
+        "available": {{ variant.available | json }},
+        "meta_sqinch": {{ variant.metafields.custom.price_buckets_sq_in_ | json }}
+      }{% unless forloop.last %},{% endunless %}
+    {% endfor %}
+  ]
+{%- endcapture -%}
+
+<div
+  class="nn-page"
+  id="nn-configurator-{{ section.id }}"
+  data-section-id="{{ section.id }}"
+  data-sheet-width-in="{{ section.settings.sheet_width_in | default: 22 }}"
+  data-side-margin-in="{{ section.settings.side_margin_in | default: 0.25 }}"
+  data-horiz-gap-in="{{ section.settings.horiz_gap_in | default: 0.25 }}"
+  data-vert-gap-in="{{ section.settings.vert_gap_in | default: 0.25 }}"
+  data-default-name-height-in="{{ section.settings.default_name_height_in | default: 4 }}"
+  data-default-number-height-in="{{ section.settings.default_number_height_in | default: 8 }}"
+  data-max-entries="{{ section.settings.max_entries | default: 200 }}"
+  data-api-url="{{ section.settings.api_url | default: 'https://hpz51rjda5.execute-api.us-east-1.amazonaws.com/production' }}"
+  data-imgix-host="{{ section.settings.imgix_host | default: 'ninjauploads-production.imgix.net' }}"
+>
+  {%- render 'breadcrumb', container: 'large', vertical_space: 'vertical-space', style: 'breadcrumb-main--margin breadcrumb-main--scroll' -%}
+
+  {%- assign current_variant = product.selected_or_first_available_variant -%}
+
+  <div class="nn-pdp">
+
+    <!-- LEFT: jersey preview + stats -->
+    <div class="nn-pdp__left">
+      <div class="nn-preview-frame">
+        <span class="nn-preview-badge">LIVE PREVIEW</span>
+        <span class="nn-preview-chip" data-nn-chip>—</span>
+
+        <div class="nn-jersey-wrap">
+          <svg class="nn-jersey-svg" viewBox="0 0 480 560" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <!-- Simple t-shirt back outline -->
+            <path
+              data-nn-shirt
+              fill="#111111"
+              stroke="#333333"
+              stroke-width="2"
+              stroke-linejoin="round"
+              d="M 110 95
+                 L 175 70
+                 Q 200 60 240 60
+                 Q 280 60 305 70
+                 L 370 95
+                 L 430 130
+                 L 405 195
+                 L 365 175
+                 L 365 510
+                 Q 365 525 350 525
+                 L 130 525
+                 Q 115 525 115 510
+                 L 115 175
+                 L 75 195
+                 L 50 130 Z"
+            />
+            <!-- Collar -->
+            <path
+              fill="#111111"
+              stroke="#333333"
+              stroke-width="2"
+              d="M 200 60
+                 Q 240 90 280 60
+                 L 305 70
+                 Q 240 95 175 70 Z"
+            />
+            <!-- Name and number overlays (filled by JS) -->
+            <text data-nn-jersey-name   x="240" y="220" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="64"  fill="#ffffff" letter-spacing="2">RIVERA</text>
+            <text data-nn-jersey-number x="240" y="430" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="128" fill="#ffffff">23</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="nn-stat-tiles">
+        <div class="nn-stat-tile">
+          <span class="nn-stat-tile__label">Turnaround</span>
+          <strong class="nn-stat-tile__value">24 hrs</strong>
+        </div>
+        <div class="nn-stat-tile">
+          <span class="nn-stat-tile__label">Min height</span>
+          <strong class="nn-stat-tile__value">2 in</strong>
+        </div>
+        <div class="nn-stat-tile">
+          <span class="nn-stat-tile__label">Print DPI</span>
+          <strong class="nn-stat-tile__value">300+</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: configurator -->
+    <aside class="nn-pdp__right">
+
+      {%- comment -%}
+        Header pulled from existing PDP pattern (see bySizeNew.liquid):
+        - Yotpo star rating comes in as an @app block — add it to this section in the theme editor
+          (Add block → Apps → Yotpo Product Reviews → Star Rating).
+        - Title / description / price use the same Liquid renderers as the live DTF Transfers PDP.
+      {%- endcomment -%}
+
+      <div class="nn-rating">
+        {%- for block in section.blocks -%}
+          {%- if block.type == '@app' -%}
+            {%- render block -%}
+          {%- endif -%}
+        {%- endfor -%}
+        <span class="nn-rating__badge">BEST FOR TEAMS</span>
+      </div>
+
+      <h1 class="nn-title product__title">{{ product.title | escape }}</h1>
+
+      {%- if product.description != blank -%}
+        <div class="nn-description product__description rte">{{ product.description }}</div>
+      {%- endif -%}
+
+      <div class="nn-price-line" data-js-product-price-compact>
+        {%- render 'product-price', variant: current_variant, target: product, product_price_varies: product.price_varies -%}
+        <span class="nn-price-line__hint">Price scales with total print area</span>
+      </div>
+
+      <!-- Step 1: scope -->
+      <section class="nn-step">
+        <header class="nn-step__head">
+          <span class="nn-step__num">1</span>
+          <h2 class="nn-step__title">What are you printing?</h2>
+        </header>
+        <div class="nn-toggle" data-nn-control="scope" role="radiogroup">
+          <button type="button" class="nn-toggle__btn" data-value="names"   role="radio" aria-checked="false">Names</button>
+          <button type="button" class="nn-toggle__btn" data-value="numbers" role="radio" aria-checked="false"># Numbers</button>
+          <button type="button" class="nn-toggle__btn is-selected" data-value="both" role="radio" aria-checked="true">Both</button>
+        </div>
+      </section>
+
+      <!-- Step 2: font -->
+      <section class="nn-step">
+        <header class="nn-step__head">
+          <span class="nn-step__num">2</span>
+          <h2 class="nn-step__title">Font style</h2>
+          <span class="nn-step__current" data-nn-current-font>—</span>
+        </header>
+        <div class="nn-font-grid" data-nn-control="font"></div>
+      </section>
+
+      <!-- Step 3: color -->
+      <section class="nn-step">
+        <header class="nn-step__head">
+          <span class="nn-step__num">3</span>
+          <h2 class="nn-step__title">Color</h2>
+          <span class="nn-step__current" data-nn-current-color>—</span>
+        </header>
+        <div class="nn-swatch-grid" data-nn-control="color"></div>
+      </section>
+
+      <!-- Step 4: heights -->
+      <section class="nn-step" data-nn-step="heights">
+        <header class="nn-step__head">
+          <span class="nn-step__num">4</span>
+          <h2 class="nn-step__title">Letter &amp; number height</h2>
+        </header>
+        <div class="nn-height-group" data-nn-height-for="name">
+          <span class="nn-height-group__label">Name height</span>
+          <div class="nn-height-pills" data-nn-control="height-name"></div>
+        </div>
+        <div class="nn-height-group" data-nn-height-for="number">
+          <span class="nn-height-group__label">Number height</span>
+          <div class="nn-height-pills" data-nn-control="height-number"></div>
+        </div>
+      </section>
+
+      <div class="nn-trust">
+        <div class="nn-trust__icon" aria-hidden="true">✓</div>
+        <div class="nn-trust__body">
+          <strong>Free artwork help, no minimums.</strong>
+          <span>Our team will clean up your roster and proof it before print.</span>
+        </div>
+      </div>
+
+      <!-- Step 5: roster -->
+      <section class="nn-step nn-step--roster">
+        <header class="nn-step__head">
+          <span class="nn-step__num">5</span>
+          <h2 class="nn-step__title">Your roster</h2>
+        </header>
+        <p class="nn-step__hint">Add as many entries as you like. Sizes apply to every row.</p>
+
+        <div class="nn-tabs" data-nn-tabs>
+          <button type="button" class="nn-tab is-active" data-tab="grid">Grid table</button>
+          <button type="button" class="nn-tab" data-tab="paste">Bulk paste</button>
+        </div>
+
+        <div class="nn-tab-pane" data-pane="grid">
+          <div class="nn-roster-wrap">
+            <table class="nn-roster">
+              <thead>
+                <tr>
+                  <th class="nn-roster__th--num">#</th>
+                  <th class="nn-roster__th--name">Name</th>
+                  <th class="nn-roster__th--number">Number</th>
+                  <th class="nn-roster__th--qty">Qty</th>
+                  <th class="nn-roster__th--rm"></th>
+                </tr>
+              </thead>
+              <tbody data-nn-entries></tbody>
+            </table>
+          </div>
+          <button type="button" class="nn-btn nn-btn--ghost nn-btn--block" data-nn-add-entry>+ Add row</button>
+          <p class="nn-roster__count"><span data-nn-entries-count>0</span> entries</p>
+        </div>
+
+        <div class="nn-tab-pane" data-pane="paste" hidden>
+          <textarea
+            class="nn-bulk-textarea"
+            data-nn-bulk-text
+            placeholder="One per line — formats accepted:&#10;Smith, 23&#10;Smith 23&#10;Smith&#9;23"
+            rows="8"
+          ></textarea>
+          <div class="nn-bulk-actions">
+            <button type="button" class="nn-btn nn-btn--ghost" data-nn-bulk-import>Import to roster</button>
+            <button type="button" class="nn-link-btn" data-nn-bulk-clear>Clear</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Inline checkout -->
+      <div class="nn-checkout">
+        <div class="nn-checkout__rows">
+          <div class="nn-checkout__row">
+            <span>Print area</span>
+            <strong data-nn-sqin>—</strong>
+          </div>
+          <div class="nn-checkout__row nn-checkout__row--muted">
+            <span>Sheet size</span>
+            <strong data-nn-dimensions>—</strong>
+          </div>
+          <div class="nn-checkout__row nn-checkout__row--total">
+            <span>Subtotal</span>
+            <strong data-nn-price>—</strong>
+          </div>
+        </div>
+
+        <div class="nn-warning" data-nn-warning hidden></div>
+
+        <product-form
+          id="add-to-cart-{{ section.id }}"
+          class="product-form nn-product-form"
+          {% if settings.cart_action == 'overlay' %} data-ajax-cart data-js-product-form {% endif %}
+        >
+          {%- form 'product', product, id: product_form_id, class: 'form nn-form', novalidate: 'novalidate', data-type: 'add-to-cart-form' -%}
+            <input type="hidden" name="id" value="" data-nn-variant-id>
+            <input type="hidden" name="quantity" value="1">
+
+            <input type="hidden" name="properties[Style]" value="Names & Numbers">
+            <input type="hidden" name="properties[Scope]" value="" data-nn-prop="scope">
+            <input type="hidden" name="properties[Font]" value="" data-nn-prop="font">
+            <input type="hidden" name="properties[Color]" value="" data-nn-prop="color">
+            <input type="hidden" name="properties[Name Height]" value="" data-nn-prop="name-height">
+            <input type="hidden" name="properties[Number Height]" value="" data-nn-prop="number-height">
+            <input type="hidden" name="properties[Entries Count]" value="" data-nn-prop="entries-count">
+            <input type="hidden" name="properties[Entries]" value="" data-nn-prop="entries">
+            <input type="hidden" name="properties[_width]" value="22" data-nn-prop="width">
+            <input type="hidden" name="properties[_height]" value="" data-nn-prop="height">
+            <input type="hidden" name="properties[_render_version]" value="client-v2">
+            <input type="hidden" name="properties[Upload (Vector Files Preferred)]" value="" data-nn-prop="upload-imgix">
+            <input type="hidden" name="properties[_Original Image]" value="" data-nn-prop="upload-s3">
+
+            <button
+              type="submit"
+              class="nn-btn nn-btn--primary nn-btn--block nn-checkout__cta"
+              data-nn-submit
+              disabled
+            >
+              <span data-nn-submit-label>Add a name or number to start</span>
+              <span class="nn-checkout__cta-price" data-nn-cta-price></span>
+            </button>
+          {%- endform -%}
+        </product-form>
+      </div>
+    </aside>
+  </div>
+
+  <script type="application/json" data-nn-fonts>{{ font_data }}</script>
+  <script type="application/json" data-nn-colors>{{ color_data }}</script>
+  <script type="application/json" data-nn-heights>{{ height_data }}</script>
+  <script type="application/json" data-nn-variants>{{ variants_json }}</script>
+</div>
+
+<script src="{{ 'names-and-numbers.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "N&N configurator",
+  "settings": [
+    { "type": "header",  "content": "Sheet" },
+    { "type": "number",  "id": "sheet_width_in",          "label": "Sheet width (inches)",                     "default": 22 },
+    { "type": "text",    "id": "side_margin_in",          "label": "Side margin (inches, decimal OK)",         "default": "0.25" },
+    { "type": "text",    "id": "horiz_gap_in",            "label": "Horizontal gap (inches, decimal OK)",      "default": "0.25" },
+    { "type": "text",    "id": "vert_gap_in",             "label": "Vertical gap (inches, decimal OK)",        "default": "0.25" },
+    { "type": "header",  "content": "Defaults" },
+    { "type": "number",  "id": "default_name_height_in",  "label": "Default name height (inches)",             "default": 4 },
+    { "type": "number",  "id": "default_number_height_in","label": "Default number height (inches)",           "default": 8 },
+    { "type": "number",  "id": "max_entries",             "label": "Max entries per order",                    "default": 200 },
+    { "type": "header",  "content": "Upload backend" },
+    { "type": "text",    "id": "api_url",                 "label": "API base URL",                             "default": "https://hpz51rjda5.execute-api.us-east-1.amazonaws.com/production" },
+    { "type": "text",    "id": "imgix_host",              "label": "imgix host",                               "default": "ninjauploads-production.imgix.net" }
+  ],
+  "blocks": [
+    { "type": "@app" },
+    {
+      "type": "font",
+      "name": "Font",
+      "settings": [
+        { "type": "text",   "id": "label",          "label": "Display label",      "default": "Pro Block" },
+        { "type": "text",   "id": "family",         "label": "CSS font family",    "default": "Anton" },
+        { "type": "text",   "id": "google_url",     "label": "Google Fonts CSS URL", "default": "https://fonts.googleapis.com/css2?family=Anton&display=swap" },
+        { "type": "number", "id": "weight",         "label": "Font weight",        "default": 400 },
+        { "type": "text",   "id": "sample_letter",  "label": "Sample letter",      "default": "A" },
+        { "type": "number", "id": "sample_number",  "label": "Sample number",      "default": 7 }
+      ]
+    },
+    {
+      "type": "color",
+      "name": "Color",
+      "settings": [
+        { "type": "text",  "id": "label", "label": "Color name", "default": "White" },
+        { "type": "color", "id": "hex",   "label": "Color",      "default": "#ffffff" }
+      ]
+    },
+    {
+      "type": "height",
+      "name": "Height preset",
+      "settings": [
+        { "type": "text",   "id": "label",   "label": "Use-case label", "info": "e.g. \"Sleeve / Chest\", \"Back name\"", "default": "Back name" },
+        { "type": "number", "id": "inches",  "label": "Height (inches)",                                                 "default": 4 }
+      ]
+    }
+  ]
+}
+{% endschema %}

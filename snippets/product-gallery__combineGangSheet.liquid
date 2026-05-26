@@ -1,0 +1,475 @@
+<div class=" gallery_position product-gallery product-gallery--{% if section.settings.gallery_layout contains 'scroll' %}scroll{% else %}slider{% endif %} 
+  lap--grid--slider-container
+  {% if section.settings.gallery_layout contains 'scroll' and section.settings.show_thumbnails and product.media.size > 1 %} product-gallery--has-thumbnails {% endif %}
+  "
+  data-js-product-gallery
+  style="--border-radius: {{ section.settings.border_radius }}px"
+>
+  {%- assign alreadyLoadedCssFile = false -%}
+
+  {% style %}
+    #product-{{ section.id }} .product-gallery-item .lazy-image img {
+      padding: {{ section.settings.gallery_padding }}% !important;
+    }
+    {%- if section.settings.gallery_background != 'rgba(0,0,0,0)' -%}
+      #product-{{ section.id }} .product-gallery-item .lazy-image--fit {
+        background-color: {{ section.settings.gallery_background }};
+      }
+    {%- endif -%}
+    {%- if section.settings.gallery_border != 'rgba(0,0,0,0)' -%}
+      #product-{{ section.id }} .product-gallery-item img,
+      #product-{{ section.id }} .product-gallery-item iframe,
+      #product-{{ section.id }} .product-gallery-item video {
+        border: 1px solid {{ section.settings.gallery_border }};
+      }
+    {%- endif -%}
+  {% endstyle %}
+
+  <!-- Gallery image hari -->
+  {%- if product.media.size > 1 -%}
+    <style>
+      @media(max-width:768px){
+        .gallery_position{position:relative;}
+      }
+      .arrow-key{
+        display: flex;
+        width: 32px;
+        height: 32px;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 50%;
+        margin-top:-16px;
+        z-index: 3;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 0.0625rem 0.125rem 0.0625rem #00000026;
+        cursor: pointer;
+      }
+      .arrow-key.disable{opacity:0.5; pointer-events:none;}
+      .arrow-key.next{right:12px;}
+      .arrow-key.prev{left:12px; transform:rotate(180deg)}
+    </style>
+
+    <a class="arrow-key prev">
+      {% render 'product-gallery-arrow' %}
+    </a>
+    <a class="arrow-key next">
+      {% render 'product-gallery-arrow' %}
+    </a>
+
+    <script>
+      $( document )
+      .on(`click`, `.arrow-key.next`, function( e ) {
+        try {
+          e.stopImmediatePropagation();
+          const isAvailable = $( `.product-gallery__thumbnails-holder .thumbnail.active` ).next( `.thumbnail:not(.hidden)` ).length;
+          if ( isAvailable > 0 ) {
+            $( `.product-gallery__thumbnails-holder .thumbnail.active` ).next( `.thumbnail:not(.hidden)` ).click();
+          } else {
+            const isNextAllAvailable = $( `.product-gallery__thumbnails-holder .thumbnail.active` ).nextAll( `.thumbnail:not(.hidden)` ).length;
+            if ( isNextAllAvailable > 0 ) {
+              $( `.product-gallery__thumbnails-holder .thumbnail.active` ).nextAll( `.thumbnail:not(.hidden)` ).first().click();
+            } else {
+              $( `.product-gallery__thumbnails-holder .thumbnail:not(.hidden)` ).first().click();
+            }
+          }
+        } catch ( err ) {
+          console.log( `ERROR .arrow-key.next`, err.message );
+        }
+      })
+      .on(`click`, `.arrow-key.prev`, function( e ) {
+        try {
+          e.stopImmediatePropagation();
+          const isAvailable = $( `.product-gallery__thumbnails-holder .thumbnail.active` ).prev( `.thumbnail:not(.hidden)` ).length;
+          if ( isAvailable > 0 ) {
+            $( `.product-gallery__thumbnails-holder .thumbnail.active` ).prev( `.thumbnail:not(.hidden)` ).click();
+          } else {
+            const isPrevAllAvailable = $( `.product-gallery__thumbnails-holder .thumbnail.active` ).prevAll( `.thumbnail:not(.hidden)` ).length;
+            if ( isPrevAllAvailable > 0 ) {
+              $( `.product-gallery__thumbnails-holder .thumbnail.active` ).prevAll( `.thumbnail:not(.hidden)` ).first().click();
+            } else {
+              $( `.product-gallery__thumbnails-holder .thumbnail:not(.hidden)` ).last().click();
+            }
+          }
+        } catch ( err ) {
+          console.log( `ERROR .arrow-key.prev`, err.message );
+        }
+      })
+      ;
+      {% comment %}
+      $(function(){
+        var _thumb = $(".product-gallery__thumbnails-holder").find(".thumbnail")
+        var _active = $(".product-gallery__thumbnails-holder").find(".thumbnail.active").index()
+
+        if(_active == 0){
+          $(".arrow-key.prev").addClass("disable")
+        }
+        if(_active == (_thumb.lenth - 1)){
+          $(".arrow-key.next").addClass("disable")
+        }
+
+        console.log(_active,"currIndex")
+        $(".arrow-key.next").click(function(){
+          var _active = $(".product-gallery__thumbnails-holder").find(".thumbnail.active");
+          var _obj = $(_active).next();
+          console.log(_obj," =====_obj====",_obj.length,_obj.prev())
+          _obj.attr("data","hari").trigger("click")
+
+          if(_obj.next().length < 1){
+            $(".arrow-key.next").addClass("disable")
+          }else{
+            $(".arrow-key").removeClass("disable")
+          }
+        })
+        $(".arrow-key.prev").click(function(){
+          var _active = $(".product-gallery__thumbnails-holder").find(".thumbnail.active");
+          var _obj = $(_active).prev();
+          console.log(_obj," =====_obj====",_obj.length,_obj.prev())
+          _obj.attr("data","hari").trigger("click");
+
+          if(_obj.prev().length < 1){
+            $(".arrow-key.prev").addClass("disable")
+          }else{
+            $(".arrow-key").removeClass("disable")
+          }
+        })
+      })
+      {% endcomment %}
+    </script>
+  {% endif %}
+  <!-- ./Gallery image hari -->
+  {%- if product.media.size > 1 -%}
+    <css-slider data-options='{
+      "selector": ".product-gallery-item",
+      "autoHeight": false,
+      {%- if section.settings.gallery_layout contains 'scroll' -%}
+        "watchCSS": true,
+      {%- endif -%}
+      {%- if section.settings.show_thumbnails -%}
+        "thumbnails": false,
+        "navigation": false,
+      {%- else -%}
+        "navigationDOM": "<span class=\"css-slider-button css-slider-prev\" style=\"display:none\"><svg fill=\"none\" height=\"11\" viewBox=\"0 0 6 11\" width=\"6\" xmlns=\"http://www.w3.org/2000/svg\"><path clip-rule=\"evenodd\" d=\"m4.32845 10.0708-4.18198-4.18194c-.195261-.19526-.195261-.51185 0-.70711l4.18198-4.181979c.19527-.195262.51185-.195262.70711 0 .19526.195259.19526.511849 0 .707109l-3.32843 3.32842s-.70713.4647-.00002 1l3.32845 3.32843c.19526.19526.19526.51185 0 .70707-.19526.1953-.51185.1953-.70711 0z\" fill=\"#000\" fill-rule=\"evenodd\"/></svg></span><span class=\"css-slider-button css-slider-next\" style=\"display:none\"><svg fill=\"none\" height=\"11\" viewBox=\"0 0 6 11\" width=\"6\" xmlns=\"http://www.w3.org/2000/svg\"><path clip-rule=\"evenodd\" d=\"m.853555.999962 4.181985 4.181978c.19526.19526.19526.51185 0 .70711l-4.181983 4.18195c-.195263.1953-.511845.1953-.707108 0-.1952631-.19523-.1952632-.51181 0-.70708l3.328431-3.32842s.70713-.4647.00002-1l-3.328453-3.32843c-.1952626-.19526-.1952627-.51185 0-.707108.195263-.195262.511845-.195262.707108 0z\" fill=\"#000\" fill-rule=\"evenodd\"/></svg></span>",
+        "thumbnailsDOM": "<div class=\"css-slider-dot-navigation\" style=\"display:none;--size:{{ product.media.size }}\"></div>",
+      {%- endif -%}
+      "listenScroll": false
+    }'
+      class="css-slider--bottom-navigation element--border-radius"
+    >
+  {%- endif -%}
+
+    <div class="grid {% if section.settings.gallery_layout contains 'slider' %} grid--slider {% else %} grid--layout {% endif %} {{ gallery_class }} lap--grid--slider grid--gap-small" style="--mobile-media-width: {{ section.settings.gallery_mobile_width }}%">
+
+      {%- if product.media.size == 0 -%}
+        <div class="product-gallery-item" style="padding-top: 100%">
+          {%- render 'lazy-svg', image: 'product-1', ratio: section.settings.gallery_aspect_ratio, class: 'svg-placeholder svg-placeholder--background' %}
+        </div>
+      {%- else -%}
+        {%- liquid
+          assign forLoopIndex_main = 0
+
+          comment
+            2ND PRODUCT IMAGES START
+          endcomment
+
+          for media in secondProd.media
+            if hideVariantImages
+              assign showMainImg = true
+              for v in secondProd.variants
+                if media.id == v.featured_media.id
+                  assign showMainImg = false
+                  break
+                endif
+              endfor
+              if showMainImg
+                render 'product-media', act: 'secondProd', media: media, enable_zoom: section.settings.enable_zoom, loop: section.settings.enable_video_looping, index: forLoopIndex_main, aspect_ratio: section.settings.gallery_aspect_ratio, fit: section.settings.gallery_fit, layout: section.settings.gallery_layout, desktop_width: section.settings.gallery_desktop_width, mobile_width: section.settings.gallery_mobile_width
+                assign forLoopIndex_main = forLoopIndex_main | plus: 1
+                if media.media_type == "external_video" or media.media_type == "video"
+                  assign video_script = true
+                  if alreadyLoadedCssFile == false
+                    echo 'component-video.css' | asset_url | stylesheet_tag
+                    assign alreadyLoadedCssFile = true
+                  endif
+                endif
+              endif
+            else
+              render 'product-media', act: 'secondProd', media: media, enable_zoom: section.settings.enable_zoom, loop: section.settings.enable_video_looping, index: forloop.index0, aspect_ratio: section.settings.gallery_aspect_ratio, fit: section.settings.gallery_fit, layout: section.settings.gallery_layout, desktop_width: section.settings.gallery_desktop_width, mobile_width: section.settings.gallery_mobile_width
+              if media.media_type == "external_video" or media.media_type == "video"
+                assign video_script = true
+                if alreadyLoadedCssFile == false
+                  echo 'component-video.css' | asset_url | stylesheet_tag
+                  assign alreadyLoadedCssFile = true
+                endif
+              endif
+            endif
+          endfor
+
+          if hideVariantImages
+            assign forLoopRest = forLoopIndex_main | plus: 1
+            for media in secondProd.media
+              assign showMainImg = true
+              for v in secondProd.variants
+                if media.id == v.featured_media.id
+                  assign showMainImg = false
+                  break
+                endif
+              endfor
+              if showMainImg == false
+                render 'product-media', act: 'hidden prodMainMedia secondProd', media: media, enable_zoom: section.settings.enable_zoom, loop: section.settings.enable_video_looping, index: forLoopRest, aspect_ratio: section.settings.gallery_aspect_ratio, fit: section.settings.gallery_fit, layout: section.settings.gallery_layout, desktop_width: section.settings.gallery_desktop_width, mobile_width: section.settings.gallery_mobile_width
+                assign forLoopRest = forLoopRest | plus: 1
+                if media.media_type == "external_video" or media.media_type == "video"
+                  assign video_script = true
+                  if alreadyLoadedCssFile == false
+                    echo 'component-video.css' | asset_url | stylesheet_tag
+                    assign alreadyLoadedCssFile = true
+                  endif
+                endif
+              endif
+            endfor
+          endif
+
+          comment
+            2ND PRODUCT IMAGES END
+          endcomment
+
+          for media in product.media
+            if hideVariantImages
+              assign showMainImg = true
+              for v in product.variants
+                if media.id == v.featured_media.id
+                  assign showMainImg = false
+                  break
+                endif
+              endfor
+              if showMainImg
+                render 'product-media', act: 'firstProd hidden', media: media, enable_zoom: section.settings.enable_zoom, loop: section.settings.enable_video_looping, index: forLoopIndex_main, aspect_ratio: section.settings.gallery_aspect_ratio, fit: section.settings.gallery_fit, layout: section.settings.gallery_layout, desktop_width: section.settings.gallery_desktop_width, mobile_width: section.settings.gallery_mobile_width
+                assign forLoopIndex_main = forLoopIndex_main | plus: 1
+                if media.media_type == "external_video" or media.media_type == "video"
+                  assign video_script = true
+                  if alreadyLoadedCssFile == false
+                    echo 'component-video.css' | asset_url | stylesheet_tag
+                    assign alreadyLoadedCssFile = true
+                  endif
+                endif
+              endif
+            else
+              render 'product-media', act: 'firstProd hidden', media: media, enable_zoom: section.settings.enable_zoom, loop: section.settings.enable_video_looping, index: forloop.index0, aspect_ratio: section.settings.gallery_aspect_ratio, fit: section.settings.gallery_fit, layout: section.settings.gallery_layout, desktop_width: section.settings.gallery_desktop_width, mobile_width: section.settings.gallery_mobile_width
+              if media.media_type == "external_video" or media.media_type == "video"
+                assign video_script = true
+                if alreadyLoadedCssFile == false
+                  echo 'component-video.css' | asset_url | stylesheet_tag
+                  assign alreadyLoadedCssFile = true
+                endif
+              endif
+            endif
+          endfor
+
+          if hideVariantImages
+            assign forLoopRest = forLoopIndex_main | plus: 1
+            for media in product.media
+              assign showMainImg = true
+              for v in product.variants
+                if media.id == v.featured_media.id
+                  assign showMainImg = false
+                  break
+                endif
+              endfor
+              if showMainImg == false
+                render 'product-media', act: 'hidden prodMainMedia firstProd', media: media, enable_zoom: section.settings.enable_zoom, loop: section.settings.enable_video_looping, index: forLoopRest, aspect_ratio: section.settings.gallery_aspect_ratio, fit: section.settings.gallery_fit, layout: section.settings.gallery_layout, desktop_width: section.settings.gallery_desktop_width, mobile_width: section.settings.gallery_mobile_width
+                assign forLoopRest = forLoopRest | plus: 1
+                if media.media_type == "external_video" or media.media_type == "video"
+                  assign video_script = true
+                  if alreadyLoadedCssFile == false
+                    echo 'component-video.css' | asset_url | stylesheet_tag
+                    assign alreadyLoadedCssFile = true
+                  endif
+                endif
+              endif
+            endfor
+          endif
+
+        -%}
+      {%- endif -%}
+
+    </div>
+
+  {%- if product.media.size > 1 -%} </css-slider> {%- endif -%}
+
+  {%- if section.settings.show_thumbnails and product.media.size > 1 -%}
+
+    <div class="product-gallery__thumbnails {% if section.settings.gallery_style contains 'scroll' %} hide portable-show {% endif %}" aria-hidden="true" style="--border-radius: {{ section.settings.border_radius | at_most: 5 }}px">
+      <div class="product-gallery__thumbnails-holder">
+        {%- assign forloopThumb = 0 -%}
+
+        {%- comment -%}2ND PRODUCT THUMBNAILS START{%- endcomment -%}
+        {%- for media in secondProd.media -%}
+          {% if hideVariantImages %}
+            {%- assign showThumbImg = true -%}
+            {% for v in secondProd.variants %}
+              {% if media.id == v.featured_media.id %}
+                {%- assign showThumbImg = false -%}
+                {% break %}
+              {% endif %}
+            {% endfor %}
+            {% if showThumbImg %}
+              <button data-media-type="{{ media.media_type }}"
+                class="thumbnail element--border-radius secondProd" data-index="{{ forloopThumb }}"
+                {% if section.settings.show_thumbnails %} tabindex="0" {% endif %}
+                data-thumb-id="{{ media.id }}"
+              >
+                {%- render 'lazy-image-small', image: media.preview_image, aspect_ratio: settings.cart_image_ratio, fit: settings.cart_image_fit, class: 'thumbnail__image' -%}
+                {%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+                  <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-video-thumbnail' -%}</span>
+                {%- elsif media.media_type == 'model' -%}
+                  <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-model-thumbnail' -%}</span>
+                {%- endif -%}
+              </button>
+              {%- assign forloopThumb = forloopThumb | plus: 1 -%}
+            {% endif %}
+          {% else %}
+            <button data-media-type="{{ media.media_type }}" class="thumbnail element--border-radius secondProd" data-index="{{ forloop.index0 }}" {% if section.settings.show_thumbnails %} tabindex="0" {% endif %} data-thumb-id="{{ media.id }}">
+              {%- render 'lazy-image-small', image: media.preview_image, aspect_ratio: settings.cart_image_ratio, fit: settings.cart_image_fit, class: 'thumbnail__image' -%}
+              {%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+                <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-video-thumbnail' -%}</span>
+              {%- elsif media.media_type == 'model' -%}
+                <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-model-thumbnail' -%}</span>
+              {%- endif -%}
+            </button>
+          {% endif %}
+        {%- endfor -%}
+
+        {% if hideVariantImages %}
+          {%- assign forloopRestThumb = forloopThumb -%}
+          {%- for media in secondProd.media -%}
+            {%- assign showThumbImg = true -%}
+            {% for v in secondProd.variants %}
+              {% if media.id == v.featured_media.id %}
+                {%- assign showThumbImg = false -%}
+                {% break %}
+              {% endif %}
+            {% endfor %}
+            {% if showThumbImg == false %}
+              <button
+                class="thumbnail element--border-radius {% if showThumbImg == false %} hidden prodThumbMedia secondProd{% endif %}" data-index="{{ forloopRestThumb }}"
+                {% if section.settings.show_thumbnails %} tabindex="0" {% endif %}
+                data-thumb-id="{{ media.id }}"
+              >
+                {%- render 'lazy-image-small', image: media.preview_image, aspect_ratio: settings.cart_image_ratio, fit: settings.cart_image_fit, class: 'thumbnail__image' -%}
+                {%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+                  <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-video-thumbnail' -%}</span>
+                {%- elsif media.media_type == 'model' -%}
+                  <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-model-thumbnail' -%}</span>
+                {%- endif -%}
+              </button>
+              {%- assign forloopRestThumb = forloopRestThumb | plus: 1 -%}
+            {% endif %}
+          {%- endfor -%}
+        {% endif %}
+        {%- comment -%}2ND PRODUCT THUMBNAILS END{%- endcomment -%}
+
+        {%- assign forloopThumb = forloopRestThumb -%}
+        {%- for media in product.media -%}
+          {% if hideVariantImages %}
+            {%- assign showThumbImg = true -%}
+            {% for v in product.variants %}
+              {% if media.id == v.featured_media.id %}
+                {%- assign showThumbImg = false -%}
+                {% break %}
+              {% endif %}
+            {% endfor %}
+            {% if showThumbImg %}
+              <button data-media-type="{{ media.media_type }}"
+                class="thumbnail element--border-radius firstProd hidden" data-index="{{ forloopThumb }}"
+                {% if section.settings.show_thumbnails %} tabindex="0" {% endif %}
+                data-thumb-id="{{ media.id }}"
+              >
+                {%- render 'lazy-image-small', image: media.preview_image, aspect_ratio: settings.cart_image_ratio, fit: settings.cart_image_fit, class: 'thumbnail__image' -%}
+                {%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+                  <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-video-thumbnail' -%}</span>
+                {%- elsif media.media_type == 'model' -%}
+                  <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-model-thumbnail' -%}</span>
+                {%- endif -%}
+              </button>
+              {%- assign forloopThumb = forloopThumb | plus: 1 -%}
+            {% endif %}
+          {% else %}
+            <button data-media-type="{{ media.media_type }}" class="thumbnail element--border-radius firstProd hidden" data-index="{{ forloop.index0 }}" {% if section.settings.show_thumbnails %} tabindex="0" {% endif %} data-thumb-id="{{ media.id }}">
+              {%- render 'lazy-image-small', image: media.preview_image, aspect_ratio: settings.cart_image_ratio, fit: settings.cart_image_fit, class: 'thumbnail__image' -%}
+              {%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+                <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-video-thumbnail' -%}</span>
+              {%- elsif media.media_type == 'model' -%}
+                <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-model-thumbnail' -%}</span>
+              {%- endif -%}
+            </button>
+          {% endif %}
+        {%- endfor -%}
+
+        {% if hideVariantImages %}
+          {%- assign forloopRestThumb = forloopThumb -%}
+          {%- for media in product.media -%}
+            {%- assign showThumbImg = true -%}
+            {% for v in product.variants %}
+              {% if media.id == v.featured_media.id %}
+                {%- assign showThumbImg = false -%}
+                {% break %}
+              {% endif %}
+            {% endfor %}
+            {% if showThumbImg == false %}
+              <button
+                class="thumbnail element--border-radius {% if showThumbImg == false %} hidden prodThumbMedia firstProd{% endif %}" data-index="{{ forloopRestThumb }}"
+                {% if section.settings.show_thumbnails %} tabindex="0" {% endif %}
+                data-thumb-id="{{ media.id }}"
+              >
+                {%- render 'lazy-image-small', image: media.preview_image, aspect_ratio: settings.cart_image_ratio, fit: settings.cart_image_fit, class: 'thumbnail__image' -%}
+                {%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+                  <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-video-thumbnail' -%}</span>
+                {%- elsif media.media_type == 'model' -%}
+                  <span class="thumbnail__badge">{%- render 'theme-symbols', icon: 'badge-model-thumbnail' -%}</span>
+                {%- endif -%}
+              </button>
+              {%- assign forloopRestThumb = forloopRestThumb | plus: 1 -%}
+            {% endif %}
+          {%- endfor -%}
+        {% endif %}
+      </div>
+    </div>
+
+  {%- endif -%}
+
+  {%- assign first_3d_model = product.media | where: "media_type", "model" | first -%}
+
+  {%- if first_3d_model -%}
+    <div class="fullwidth text-align--center">
+      <button
+        title="{{ 'products.page.view_in_space_label' | t }}"
+        class="button button--small button--icon button--outline product-gallery__view-in-space"
+        data-shopify-xr
+        data-shopify-first-model3d-id="{{ first_3d_model.id }}"
+        data-shopify-model3d-id="{{ first_3d_model.id }}"
+        data-shopify-title="{{ product.title | escape }}"
+        data-shopify-xr-hidden
+      >
+        <span aria-hidden="true" class="button__icon">{%- render 'theme-symbols', icon: 'model-button' -%}</span>
+        <span class='product-gallery__view-in-space-text'>{{ 'products.page.view_in_space' | t }}</span>
+      </button>
+
+      <link id="ModelViewerStyle" rel="stylesheet" href="https://cdn.shopify.com/shopifycloud/model-viewer-ui/assets/v1.0/model-viewer-ui.css" media="print" onload="this.media='all'">
+      <script src="{{ 'component-product-model.js' | asset_url }}" defer></script>
+
+    </div>
+  {%- endif -%}
+</div>
+
+<script>
+  $(function(){
+    $(".product-gallery__thumbnails .thumbnail").click(function(){
+      var _type = $(this).attr("data-media-type");
+      if(_type == "video"){
+        setTimeout(function(){
+          $(".product-gallery-item.css-slide-active").find(".video-popup__play").trigger("click");
+        },1000);
+      }
+    })
+  })
+</script>

@@ -1,0 +1,385 @@
+{% doc %}
+  @prompt
+    Create a customizable video grid section with a centered main title and subtitle at the top. Below that, add a flexible grid of video cards that can be added or removed as needed. Each video card should support auto-looping videos with fallback still images, overlay title and subtitle text, and a customizable gradient overlay for text visibility. Include settings to control card sizing, padding, corner radius, and grid layout. The section should be fully responsive and allow merchants to easily customize colors, typography, and spacing.
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-video-card-{{ ai_gen_id }} {
+    position: relative;
+    overflow: hidden;
+    border-radius: {{ block.settings.corner_radius }}px;
+    height: 0;
+    padding-bottom: {{ block.settings.aspect_ratio }}%;
+    margin-bottom: {{ block.settings.bottom_spacing }}px;
+    background-color: {{ block.settings.background_color }};
+  }
+
+  .ai-video-card__media-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: {{ block.settings.image_fit }};
+  }
+
+  .ai-video-card__overlay-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: {{ block.settings.overlay_color }};
+    background: linear-gradient({{ block.settings.gradient_direction }}deg, 
+                              {{ block.settings.overlay_color }} {{ block.settings.gradient_start }}%, 
+                              {{ block.settings.overlay_color | color_modify: 'alpha', 0 }} {{ block.settings.gradient_end }}%);
+    display: flex;
+    flex-direction: column;
+    justify-content: {{ block.settings.text_vertical_position }};
+    align-items: {{ block.settings.text_horizontal_position }};
+    padding: {{ block.settings.content_padding }}px;
+  }
+
+  .ai-video-card__content-{{ ai_gen_id }} {
+    text-align: {{ block.settings.text_alignment }};
+    max-width: 100%;
+    {% if block.settings.text_horizontal_position == 'center' %}
+      width: 100%;
+    {% elsif block.settings.text_horizontal_position == 'flex-start' %}
+      align-self: flex-start;
+    {% elsif block.settings.text_horizontal_position == 'flex-end' %}
+      align-self: flex-end;
+    {% endif %}
+  }
+
+  .ai-video-card__title-{{ ai_gen_id }} {
+    color: {{ block.settings.title_color }};
+    font-size: {{ block.settings.title_size }}px;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+  }
+
+  .ai-video-card__subtitle-{{ ai_gen_id }} {
+    color: {{ block.settings.subtitle_color }};
+    font-size: {{ block.settings.subtitle_size }}px;
+    margin: 0;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-video-card__title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.title_size | times: 0.8 }}px;
+    }
+
+    .ai-video-card__subtitle-{{ ai_gen_id }} {
+      font-size: {{ block.settings.subtitle_size | times: 0.8 }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-video-card-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  {% if block.settings.video_url != blank %}
+    <video 
+      class="ai-video-card__media-{{ ai_gen_id }}" 
+      autoplay 
+      muted 
+      {% if block.settings.loop_video %}loop{% endif %} 
+      playsinline
+      {% if block.settings.image != blank %}poster="{{ block.settings.image | image_url: width: 1000 }}"{% endif %}
+    >
+      <source src="{{ block.settings.video_url }}" type="video/mp4">
+      {% if block.settings.image != blank %}
+        <img 
+          src="{{ block.settings.image | image_url: width: 1000 }}" 
+          alt="{{ block.settings.title | escape }}" 
+          loading="lazy" 
+          width="{{ block.settings.image.width }}" 
+          height="{{ block.settings.image.height }}"
+          class="ai-video-card__media-{{ ai_gen_id }}"
+        >
+      {% else %}
+        <div class="ai-video-card__media-{{ ai_gen_id }}">
+          {{ 'image' | placeholder_svg_tag }}
+        </div>
+      {% endif %}
+    </video>
+  {% elsif block.settings.image != blank %}
+    <img 
+      src="{{ block.settings.image | image_url: width: 1000 }}" 
+      alt="{{ block.settings.title | escape }}" 
+      loading="lazy" 
+      width="{{ block.settings.image.width }}" 
+      height="{{ block.settings.image.height }}"
+      class="ai-video-card__media-{{ ai_gen_id }}"
+    >
+  {% else %}
+    <div class="ai-video-card__media-{{ ai_gen_id }}">
+      {{ 'image' | placeholder_svg_tag }}
+    </div>
+  {% endif %}
+
+  <div class="ai-video-card__overlay-{{ ai_gen_id }}">
+    <div class="ai-video-card__content-{{ ai_gen_id }}">
+      {% if block.settings.title != blank %}
+        <h3 class="ai-video-card__title-{{ ai_gen_id }}">{{ block.settings.title }}</h3>
+      {% endif %}
+      {% if block.settings.subtitle != blank %}
+        <p class="ai-video-card__subtitle-{{ ai_gen_id }}">{{ block.settings.subtitle }}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Video Card",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Media"
+    },
+    {
+      "type": "text",
+      "id": "video_url",
+      "label": "Video URL",
+      "info": "Enter a direct link to an MP4 video file"
+    },
+    {
+      "type": "checkbox",
+      "id": "loop_video",
+      "label": "Loop video",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Fallback image"
+    },
+    {
+      "type": "select",
+      "id": "image_fit",
+      "label": "Media fit",
+      "options": [
+        {
+          "value": "cover",
+          "label": "Cover"
+        },
+        {
+          "value": "contain",
+          "label": "Contain"
+        }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Video title"
+    },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Add a description for this video"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "aspect_ratio",
+      "min": 40,
+      "max": 200,
+      "step": 5,
+      "unit": "%",
+      "label": "Aspect ratio",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "corner_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Corner radius",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "content_padding",
+      "min": 10,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Content padding",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "bottom_spacing",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 20
+    },
+    {
+      "type": "select",
+      "id": "text_vertical_position",
+      "label": "Text vertical position",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Top"
+        },
+        {
+          "value": "center",
+          "label": "Middle"
+        },
+        {
+          "value": "flex-end",
+          "label": "Bottom"
+        }
+      ],
+      "default": "flex-end"
+    },
+    {
+      "type": "select",
+      "id": "text_horizontal_position",
+      "label": "Text horizontal position",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ],
+      "default": "flex-start"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#f4f4f4"
+    },
+    {
+      "type": "color",
+      "id": "overlay_color",
+      "label": "Overlay color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "gradient_direction",
+      "min": 0,
+      "max": 360,
+      "step": 10,
+      "unit": "°",
+      "label": "Gradient direction",
+      "default": 180
+    },
+    {
+      "type": "range",
+      "id": "gradient_start",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Gradient start position",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "gradient_end",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Gradient end position",
+      "default": 80
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 16,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Title size",
+      "default": 24
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "subtitle_size",
+      "min": 12,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "label": "Subtitle size",
+      "default": 16
+    }
+  ],
+  "presets": [
+    {
+      "name": "Video Card"
+    }
+  ]
+}
+{% endschema %}

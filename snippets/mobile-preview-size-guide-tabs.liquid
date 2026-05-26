@@ -1,0 +1,525 @@
+{%- comment -%}
+  cache-bust: 2026-05-24-size-guide-tap-zoom-v2
+  Mobile-only tabbed switch between the upload preview ("Your Image")
+  and the Ninja Size Guide. Hidden entirely on desktop — on mobile the
+  pill bar sits at the top of <product-page> (grid-column: 1 / -1) and
+  toggles which element is visible:
+
+    • Your Image  → normal layout (file-preview, toggle bar, pricing,
+                    sizing form, add-to-cart, etc. all visible). Just
+                    hides .dtf_imgix_images.
+    • Size Guide  → shows ONLY .dtf_imgix_images (size guide + garment
+                    color picker) and this tab bar. Hides the entire
+                    .product-text column AND the regular gallery
+                    carousel / pricing tier / video block in the gallery
+                    column. Also hides downstream sections (related
+                    products, reviews, etc.) so the tab is the whole
+                    viewport, not a header over the regular page.
+
+  Scoped to dtf-transfers, dtf-transfers-by-size-v2, and uv-dtf-stickers
+  -decals-by-size via body template classes (see CSS below). Renders
+  ONLY after upload — `.nt-mptabs` is hidden until body has
+  `image-uploaded` so the tabs don't appear on the empty pre-upload
+  state.
+{%- endcomment -%}
+<div class="nt-mptabs" data-nt-mptabs role="tablist" aria-label="Preview or Size Guide" hidden>
+  <button type="button" class="nt-mptabs__tab is-active" data-nt-mptab="preview" role="tab" aria-selected="true">Your Image</button>
+  <button type="button" class="nt-mptabs__tab" data-nt-mptab="size-guide" role="tab" aria-selected="false">Size Guide</button>
+</div>
+
+<style>
+  /* Default: hidden everywhere; CSS below opts in at narrow widths for
+     the three templates that ship this UI. */
+  .nt-mptabs { display: none; }
+
+  @media (max-width: 767px) {
+    body.template-product-by-size-tabs.image-uploaded .nt-mptabs,
+    body.template-product-by-size-bg-options.image-uploaded .nt-mptabs,
+    body.template-product-uv-dtf-by-size.image-uploaded .nt-mptabs {
+      display: flex;
+      grid-column: 1 / -1;
+      gap: 4px;
+      padding: 4px;
+      margin: 0;
+      background: #F3F3F3;
+      border-radius: 999px;
+      width: 100%;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Halve the gap between the tab bar and the content below. Default
+       grid row-gap from .grid--gap-xlarge on mobile is ~32px, plus the
+       tab bar previously had a 12px bottom margin → ~44px total. Force
+       row-gap down to ~22px so the file-preview ruler and size guide
+       card both sit closer to the tab bar by an equal amount. */
+    body.template-product-by-size-tabs.image-uploaded product-page,
+    body.template-product-by-size-bg-options.image-uploaded product-page,
+    body.template-product-uv-dtf-by-size.image-uploaded product-page {
+      row-gap: 22px !important;
+    }
+
+    .nt-mptabs__tab {
+      flex: 1;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: var(--dtfut-grey-900, #111);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nt-mptabs__tab:hover {
+      background: #E5E5E5;
+    }
+    .nt-mptabs__tab:focus-visible {
+      outline: 2px solid #019AFF;
+      outline-offset: 2px;
+    }
+    .nt-mptabs__tab.is-active {
+      background: #fff;
+      color: #019AFF;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+    .nt-mptabs__tab.is-active:hover {
+      background: #fff;
+    }
+
+    /* Tab 1 active → hide Size Guide content. ONLY fire this hide AFTER
+       upload (body.image-uploaded). Pre-upload, the .dtf_imgix_images
+       block contains the garment color picker carousel that the user
+       expects to see on mobile while choosing colors before they upload
+       a file. Earlier this rule fired on page load (nt-mptab-preview is
+       the default tab class, set by the script on every visit), which
+       was hiding the carousel before any upload happened. */
+    body.template-product-by-size-tabs.nt-mptab-preview.image-uploaded .dtf_imgix_images,
+    body.template-product-by-size-bg-options.nt-mptab-preview.image-uploaded .dtf_imgix_images,
+    body.template-product-uv-dtf-by-size.nt-mptab-preview.image-uploaded .dtf_imgix_images {
+      display: none !important;
+    }
+
+    /* Tab 2 active → show ONLY the size guide (+ garment color picker) and
+       the tab bar. Hide the entire .product-text column (pricing, toggle
+       bar, sizing form, add-to-cart, description, reviews) and the gallery
+       carousel + pricing tier widget inside the gallery column. The
+       dtf_imgix_images block already contains both the Ninja Size Guide
+       and the "Change your preview items to any color below" picker. */
+    body.template-product-by-size-tabs.nt-mptab-size-guide product-page > .product-text,
+    body.template-product-by-size-bg-options.nt-mptab-size-guide product-page > .product-text,
+    body.template-product-uv-dtf-by-size.nt-mptab-size-guide product-page > .product-text {
+      display: none !important;
+    }
+    body.template-product-by-size-tabs.nt-mptab-size-guide product-page .gallery_position,
+    body.template-product-by-size-tabs.nt-mptab-size-guide product-page .ninja-pricingTier-from-product,
+    body.template-product-by-size-tabs.nt-mptab-size-guide product-page .video-box,
+    body.template-product-by-size-bg-options.nt-mptab-size-guide product-page .gallery_position,
+    body.template-product-by-size-bg-options.nt-mptab-size-guide product-page .ninja-pricingTier-from-product,
+    body.template-product-by-size-bg-options.nt-mptab-size-guide product-page .video-box,
+    body.template-product-uv-dtf-by-size.nt-mptab-size-guide product-page .gallery_position,
+    body.template-product-uv-dtf-by-size.nt-mptab-size-guide product-page .ninja-pricingTier-from-product,
+    body.template-product-uv-dtf-by-size.nt-mptab-size-guide product-page .video-box {
+      display: none !important;
+    }
+    /* The upload-controls master wrapper (file-preview + dynamic pricing
+       table that desktop logic moves around). Defensive hide in case it
+       gets relocated outside .product-text on certain widths. */
+    body.template-product-by-size-tabs.nt-mptab-size-guide product-page upload-controls,
+    body.template-product-by-size-bg-options.nt-mptab-size-guide product-page upload-controls,
+    body.template-product-uv-dtf-by-size.nt-mptab-size-guide product-page upload-controls {
+      display: none !important;
+    }
+    /* Sections that render AFTER product-page (related products, reviews,
+       FAQ, footer-ish blocks) — hide on Size Guide so the tab really is
+       just the guide + colors with no "regular page" below it. Includes
+       the footer-group (sticky footer / site footer / etc.). */
+    body.template-product-by-size-tabs.nt-mptab-size-guide main > .shopify-section:not(:has(product-page)),
+    body.template-product-by-size-bg-options.nt-mptab-size-guide main > .shopify-section:not(:has(product-page)),
+    body.template-product-uv-dtf-by-size.nt-mptab-size-guide main > .shopify-section:not(:has(product-page)),
+    body.template-product-by-size-tabs.nt-mptab-size-guide .shopify-section-group-footer-group,
+    body.template-product-by-size-bg-options.nt-mptab-size-guide .shopify-section-group-footer-group,
+    body.template-product-uv-dtf-by-size.nt-mptab-size-guide .shopify-section-group-footer-group {
+      display: none !important;
+    }
+
+    /* Mobile sticky "Upload Another File" button (sticky-upload-btn snippet). */
+    body.template-product-by-size-tabs.nt-mptab-size-guide #mobile-sticky-wrapper,
+    body.template-product-by-size-bg-options.nt-mptab-size-guide #mobile-sticky-wrapper,
+    body.template-product-uv-dtf-by-size.nt-mptab-size-guide #mobile-sticky-wrapper {
+      display: none !important;
+    }
+
+    /* Match the "Your Image" tab's top spacing to the "Size Guide" tab.
+       The gallery column wrapper occupies its own grid row, so collapsing
+       it on the Your Image tab keeps the file-preview close to the tab
+       bar. Gate this hide on `.image-uploaded` — pre-upload the user
+       needs the variant product image carousel visible (it's inside this
+       wrapper). Earlier this fired on every page load because
+       nt-mptab-preview is the default tab class. */
+    body.template-product-by-size-tabs.nt-mptab-preview.image-uploaded product-page > .element--is-sticky:not(.product-text),
+    body.template-product-by-size-bg-options.nt-mptab-preview.image-uploaded product-page > .element--is-sticky:not(.product-text),
+    body.template-product-uv-dtf-by-size.nt-mptab-preview.image-uploaded product-page > .element--is-sticky:not(.product-text) {
+      display: none !important;
+    }
+    /* Belt-and-braces: also flatten any residual margins/paddings on the
+       step__1 → split_design → file-preview chain so nothing extra creeps
+       in below the tab bar. */
+    body.template-product-by-size-tabs .split_design.newFilePreview,
+    body.template-product-by-size-bg-options .split_design.newFilePreview,
+    body.template-product-uv-dtf-by-size .split_design.newFilePreview {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+    body.template-product-by-size-tabs .split_design.newFilePreview > *,
+    body.template-product-by-size-bg-options .split_design.newFilePreview > *,
+    body.template-product-uv-dtf-by-size .split_design.newFilePreview > * {
+      margin-top: 0 !important;
+    }
+    body.template-product-by-size-tabs .split_design.newFilePreview file-preview,
+    body.template-product-by-size-bg-options .split_design.newFilePreview file-preview,
+    body.template-product-uv-dtf-by-size .split_design.newFilePreview file-preview {
+      margin-top: 0 !important;
+    }
+    /* The dtfut 4-tab pill bar (Upload / Previous Designs / Create with AI
+       / Design Studio) sits above the preview on mobile too. The gap
+       between it and the file-preview comes from its own bottom margin
+       plus the split_design wrapper's top spacing — trim both halves. */
+    body.template-product-by-size-tabs .dtfut.is-compact,
+    body.template-product-by-size-bg-options .dtfut.is-compact,
+    body.template-product-uv-dtf-by-size .dtfut.is-compact {
+      margin-bottom: 8px !important;
+    }
+
+    /* Force the Remove BG / Upscale / Edit with AI toggle bar to
+       desktop-style single-row layout on these three tab templates.
+       Two stacking forces to defeat:
+         1) bySizeNew.liquid (multiupload_ui block) sets the outer
+            .multiupload-rebuild-tools-inner to flex-direction: column-reverse
+            on mobile.
+         2) bySize.css line 755 sets the inner <toggle-options> to
+            flex-direction: column with .switch width: 100%, stacking the
+            two toggles vertically inside it.
+       Override both. */
+    body.template-product-by-size-tabs .multiupload-rebuild-tools-inner,
+    body.template-product-by-size-bg-options .multiupload-rebuild-tools-inner,
+    body.template-product-uv-dtf-by-size .multiupload-rebuild-tools-inner {
+      flex-direction: row-reverse !important;
+      padding: 4px 4px 4px 12px !important;
+      gap: 8px !important;
+      /* Let the bar take the full available width of its container. The
+         container already inherits the page's natural gutter from the
+         product-text column, so adding our own margin pushed total
+         content past the viewport on mobile. */
+      box-sizing: border-box !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+    /* Flex children of the toggle bar — allow them to shrink below their
+       intrinsic content width so the row never demands more space than
+       the bar provides. Without these, the natural width of the toggles +
+       Edit w/ AI button can spill past the bar and scroll the viewport. */
+    body.template-product-by-size-tabs .multiupload-rebuild-tools-inner > *,
+    body.template-product-by-size-bg-options .multiupload-rebuild-tools-inner > *,
+    body.template-product-uv-dtf-by-size .multiupload-rebuild-tools-inner > * {
+      min-width: 0 !important;
+      flex-shrink: 1 !important;
+    }
+    body.template-product-by-size-tabs .multiupload-rebuild-tools-inner .edit-with-ai,
+    body.template-product-by-size-bg-options .multiupload-rebuild-tools-inner .edit-with-ai,
+    body.template-product-uv-dtf-by-size .multiupload-rebuild-tools-inner .edit-with-ai {
+      width: auto !important;
+    }
+    body.template-product-by-size-tabs .multiupload-rebuild-tools-inner toggle-options,
+    body.template-product-by-size-bg-options .multiupload-rebuild-tools-inner toggle-options,
+    body.template-product-uv-dtf-by-size .multiupload-rebuild-tools-inner toggle-options {
+      flex-direction: row !important;
+      align-items: center !important;
+      max-width: none !important;
+      margin: 0 10px 0 0 !important;
+      width: auto !important;
+    }
+    body.template-product-by-size-tabs .multiupload-rebuild-tools-inner toggle-options .switch,
+    body.template-product-by-size-bg-options .multiupload-rebuild-tools-inner toggle-options .switch,
+    body.template-product-uv-dtf-by-size .multiupload-rebuild-tools-inner toggle-options .switch {
+      flex: unset !important;
+      width: auto !important;
+    }
+    /* Restore the vertical divider between Upscale and Remove BG. */
+    body.template-product-by-size-tabs .multiupload-rebuild-tools-inner toggle-options .switch[for^="superRes"]::before,
+    body.template-product-by-size-bg-options .multiupload-rebuild-tools-inner toggle-options .switch[for^="superRes"]::before,
+    body.template-product-uv-dtf-by-size .multiupload-rebuild-tools-inner toggle-options .switch[for^="superRes"]::before {
+      width: 1px !important;
+      height: 40px !important;
+      margin-right: 4px !important;
+      margin-left: 4px !important;
+      position: static !important;
+      top: auto !important;
+      left: auto !important;
+    }
+    /* Note: "Remove Background" → "Remove BG" and "Edit with AI" →
+       "Edit Image" label shortenings on mobile are now owned by
+       snippets/ai-toolbar-redesign.liquid (new AI-toolbar design). The
+       old rules that lived here injected "Remove BG" via ::before and
+       "Edit w/ AI" via ::after — they conflicted with the new design's
+       injections (duplicate "Remove BG" text + "Edit w/ AI" winning
+       over "Edit Image" due to body-class specificity). Removed. */
+
+    /* Add vertical breathing room between the design-note row and the
+       precut row when they stack to 1 column on mobile. The default
+       `gap: 0 20px` set in nt-design-note.liquid was column-only —
+       intentional on puff/glitter-puff where precut is empty (avoids
+       leaking row-gap into the empty cell). On dtf-transfers and the
+       other tab templates, precut renders content, so a small row-gap
+       is fine and improves vertical rhythm. */
+    body.template-product-by-size-tabs .designerNote_and_preCut,
+    body.template-product-by-size-bg-options .designerNote_and_preCut,
+    body.template-product-uv-dtf-by-size .designerNote_and_preCut {
+      row-gap: 10px !important;
+    }
+
+    /* "+ Add another size of this design" row — vertically center the
+       link inside its container and trim the inline 16px padding +
+       16px margin-bottom (set via inline style on the .add-more-block
+       element) down to a tighter 6px top/bottom + 6px margin. Inline
+       styles are high specificity so the !important is necessary. */
+    body.template-product-by-size-tabs .add-more-block,
+    body.template-product-by-size-bg-options .add-more-block,
+    body.template-product-uv-dtf-by-size .add-more-block {
+      padding-top: 6px !important;
+      padding-bottom: 6px !important;
+      margin-bottom: 6px !important;
+      display: flex !important;
+      align-items: center !important;
+      min-height: 0 !important;
+    }
+    body.template-product-by-size-tabs .add-more-block .addmore_size,
+    body.template-product-by-size-bg-options .add-more-block .addmore_size,
+    body.template-product-uv-dtf-by-size .add-more-block .addmore_size {
+      align-items: center !important;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    if (window.__ntMpTabsBound) return;
+    window.__ntMpTabsBound = true;
+
+    /* Default tab on every page load: Your Image. */
+    function setActiveTab(tab) {
+      var b = document.body;
+      b.classList.remove('nt-mptab-preview', 'nt-mptab-size-guide');
+      b.classList.add('nt-mptab-' + tab);
+      /* Sync every visible tab bar (defensive — usually just one). */
+      document.querySelectorAll('[data-nt-mptabs]').forEach(function (bar) {
+        bar.removeAttribute('hidden');
+        bar.querySelectorAll('.nt-mptabs__tab').forEach(function (t) {
+          var isActive = t.getAttribute('data-nt-mptab') === tab;
+          t.classList.toggle('is-active', isActive);
+          t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+      });
+    }
+    setActiveTab('preview');
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-nt-mptab]');
+      if (!btn) return;
+      setActiveTab(btn.getAttribute('data-nt-mptab'));
+    });
+  })();
+
+  /* ─── Mobile tap-to-zoom on Ninja Size Guide tiles ─────────────────
+     Desktop mirrors this with #dtf_body_image *:hover { transform:
+     scale(2) } in theme.css (min-width: 769px). Mobile has no hover,
+     so toggle .is-tap-zoomed on the tapped tile and the matching
+     mobile CSS in theme.css (max-width: 768px) applies the same 2x
+     scale + dims the rest of the grid. Lives in this snippet (not in
+     pdp_transferBySize.js) because the three tab templates load
+     different transfer JS files (bySize_popular.js for dtf-transfers,
+     bySize.js for uv-dtf-by-size, etc.) and this snippet renders on
+     all of them. */
+  (function () {
+    if (window.__ntSizeGuideTapZoomBound) return;
+    window.__ntSizeGuideTapZoomBound = true;
+    var ZOOM_SEL =
+      "#dtf_body_image > ._first, #dtf_body_image > ._second, " +
+      "#dtf_body_image > ._third, #dtf_body_image > ._forth, " +
+      "#dtf_body_image > ._fifth, #dtf_body_image > ._sixth";
+    function clearAllZooms(except) {
+      var grid = document.getElementById("dtf_body_image");
+      if (!grid) return;
+      grid.querySelectorAll(".is-tap-zoomed").forEach(function (t) {
+        if (t !== except) t.classList.remove("is-tap-zoomed");
+      });
+    }
+    document.addEventListener(
+      "click",
+      function (e) {
+        if (window.innerWidth > 768) return; // desktop already has hover
+        var tile = e.target.closest(ZOOM_SEL);
+        if (tile) {
+          var wasZoomed = tile.classList.contains("is-tap-zoomed");
+          clearAllZooms(wasZoomed ? null : tile);
+          tile.classList.toggle("is-tap-zoomed", !wasZoomed);
+          return;
+        }
+        clearAllZooms(null);
+      },
+      false
+    );
+  })();
+</script>
+
+{%- comment -%}
+  Upload-progress hide rules + body class observer. Bigger ambitions:
+  hide the product title / reviews / As-Low-As / icon list / Buy More &
+  Save row and the gallery carousel while an upload is in flight. The
+  earlier attempt lived in sections/bySizeNew.liquid but that file is
+  already at the 256 KB section limit, so this lives here. Only renders
+  for the three tab templates that need the hide.
+
+  Observer rules (avoid the infinite-loop disaster from the first try):
+    1. The childList observer (for new file inputs) watches ONLY
+       `subtree + childList` — not attributes — so flipping classes on
+       any element does NOT re-trigger it.
+    2. The body observer watches ONLY `body` itself (no subtree) for
+       attribute mutations on the `class` attribute. When it fires it
+       only ever READS body.classList; it never writes to it unless the
+       state needs to actually change (no-op guard in start/stop).
+    3. start/stop early-return if the class is already in the desired
+       state, breaking any potential self-trigger chain.
+{%- endcomment -%}
+<style>
+  body.nt-uploading-active .product-text > h1,
+  body.nt-uploading-active .product-text > h1.product__title,
+  body.nt-uploading-active .product-text > .product__title,
+  body.nt-uploading-active .product-text > .product__subtitle,
+  body.nt-uploading-active .product-text > .has-bg-style--primary,
+  body.nt-uploading-active .product-text > .__prematched-text,
+  body.nt-uploading-active .product-text > ._flex-box,
+  body.nt-uploading-active .product-text > .product__description,
+  body.nt-uploading-active .product-text > .show-more,
+  body.nt-uploading-active .product-text > .iconTextBlock,
+  body.nt-uploading-active .product-text > .min-quantity-block,
+  body.nt-uploading-active .product-text > .buyMoreSave,
+  body.nt-uploading-active .product-text > .yotpo,
+  body.nt-uploading-active .product-text > .yotpo-widget-instance,
+  body.nt-uploading-active .product-text > .yotpo-pictures-widget,
+  body.nt-uploading-active .gallery_position {
+    display: none !important;
+  }
+</style>
+
+<script>
+  (function () {
+    if (window.__ntUploadingObsBound) return;
+    window.__ntUploadingObsBound = true;
+
+    var body = document.body;
+    function start() {
+      if (!body.classList.contains('nt-uploading-active')) {
+        body.classList.add('nt-uploading-active');
+      }
+    }
+    function stop() {
+      if (body.classList.contains('nt-uploading-active')) {
+        body.classList.remove('nt-uploading-active');
+      }
+    }
+
+    /* Hook every file input — `change` is the earliest moment we know
+       an upload is starting, before any class on any other element is
+       touched. Same wireInput is idempotent via __ntWired flag.
+
+       In the change handler we ALSO synchronously force-scroll to top.
+       The existing pdp_transferBySize.js change handler smooth-scrolls
+       to ~157px on the file-preview area; if we only relied on the
+       async MutationObserver below, that scroll would win because it
+       happens first in the same task. Calling scrollTo(0,0) directly
+       here cancels it. We follow up with a smooth scrollTo to give the
+       final state a polished landing. */
+    function wireInput(input) {
+      if (!input || input.__ntWired) return;
+      input.__ntWired = true;
+      input.addEventListener('change', function () {
+        if (!input.files || input.files.length === 0) return;
+        start();
+        /* Desktop only: force-scroll to the actual page top. Mobile
+           keeps its own behavior (anchored scroll to the .nt-mptabs
+           tab bar handled by dtf-upload-tabs.liquid's maybeScroll
+           function). The existing pdp_transferBySize.js change handler
+           smooth-scrolls to ~157px; we override that with an instant
+           scrollTo(0,0) then a smooth follow-up for the polish. */
+        if (window.innerWidth >= 768) {
+          setTimeout(function () {
+            try { window.scrollTo(0, 0); } catch (_e) {}
+            try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_e) {}
+          }, 0);
+          setTimeout(function () {
+            try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_e) {}
+          }, 250);
+        }
+      }, { capture: false });
+    }
+    document.querySelectorAll('input[type="file"]').forEach(wireInput);
+
+    /* childList-only observer — sees newly-added file inputs (multi-upload
+       tiles, popup_fileInput, dynamic clones) but does NOT re-fire on
+       any class/style change anywhere in the tree. */
+    new MutationObserver(function (muts) {
+      for (var i = 0; i < muts.length; i++) {
+        var added = muts[i].addedNodes;
+        if (!added) continue;
+        for (var j = 0; j < added.length; j++) {
+          var n = added[j];
+          if (n.nodeType !== 1) continue;
+          if (n.matches && n.matches('input[type="file"]')) wireInput(n);
+          if (n.querySelectorAll) n.querySelectorAll('input[type="file"]').forEach(wireInput);
+        }
+      }
+    }).observe(document.documentElement, { subtree: true, childList: true });
+
+    /* Body-only observer — fires when the body's own class attribute
+       changes. Watches only body, not subtree, not children. Used solely
+       to clear nt-uploading-active once the post-upload image-uploaded
+       class arrives. (start/stop no-op guards prevent any feedback loop
+       with this observer's own mutation triggering.) */
+    new MutationObserver(function () {
+      if (body.classList.contains('image-uploaded')) stop();
+    }).observe(body, { attributes: true, attributeFilter: ['class'] });
+
+    /* Stop also when the user clicks "Cancel upload" on the ldl loader. */
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t) return;
+      if (t.classList && t.classList.contains('ldl-cancel')) { stop(); return; }
+      if (t.closest && t.closest('.ldl-cancel')) { stop(); return; }
+    });
+
+    /* Previous-design pick triggers the same loading state. The
+       `my-designs-panel` snippet dispatches `md-picker:use-designs`
+       (bubbles to document) the moment the customer confirms a pick
+       via USE DESIGNS. Before this, the product info header (title,
+       reviews, As Low As, certifications, Buy More & Save) stayed
+       visible during the spinner because nothing fired `change` on a
+       file input — the design loads via URL/state, not via the file
+       picker. Mirroring the file-input change behavior here keeps the
+       hide-during-loading behavior consistent across both entry
+       points. The image-uploaded body class observer above clears
+       `nt-uploading-active` once the design finishes loading, same as
+       for fresh uploads. */
+    document.addEventListener('md-picker:use-designs', function (e) {
+      var items = (e && e.detail && e.detail.items) || [];
+      if (!items.length) return;
+      start();
+    });
+  })();
+</script>

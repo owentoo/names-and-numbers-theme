@@ -1,0 +1,1064 @@
+{{ 'component-facets-vertical.css' | asset_url | stylesheet_tag }}
+{{ 'component-range-slider.css' | asset_url | stylesheet_tag }}
+
+{%- liquid
+  assign sort_by = results.sort_by | default: results.default_sort_by
+  if results.url
+    assign results_url = results.url
+  else
+    assign terms = results.terms | escape
+    assign results_url = '?q=' | append: terms | append: '&options%5Bprefix%5D=last&sort_by=' | append: sort_by
+  endif
+
+  assign active_count = 0
+  for filter in results.filters
+    assign active_count = active_count | plus: filter.active_values.size
+    if filter.type == 'price_range'
+      if filter.min_value.value != nil or filter.max_value.value != nil
+        assign active_count = active_count | plus: 1
+      endif
+    endif
+  endfor
+-%}
+
+<div id="bh-filter-bar" class="bh-filter-bar">
+  <div class="bh-filter-bar__inner">
+
+    {%- comment -%} Open All Filters {%- endcomment -%}
+    <button class="bh-btn-all-filters" id="bh-open-drawer" aria-expanded="false" aria-controls="bh-filter-drawer">
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="none" aria-hidden="true">
+        <rect y="0" width="15" height="1.5" fill="currentColor"/>
+        <rect x="2.5" y="4.5" width="10" height="1.5" fill="currentColor"/>
+        <rect x="5" y="9" width="5" height="1.5" fill="currentColor"/>
+      </svg>
+      Open All Filters
+      {%- if active_count > 0 -%}
+        <span class="bh-btn-all-filters__badge">{{ active_count }}</span>
+      {%- else -%}
+        <svg class="bh-btn-all-filters__arrow" width="7" height="12" viewBox="0 0 7 12" fill="none" aria-hidden="true">
+          <path d="M1 1L6 6L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      {%- endif -%}
+    </button>
+
+    {%- comment -%} Quick filter pills — Size, Color, Weight, Brand only {%- endcomment -%}
+    {%- assign bh_pill_whitelist = 'size,color,weight,brand' | split: ',' -%}
+    {%- assign color_labels = settings.color_swatches_labels | split: ',' -%}
+    <div class="bh-pills-row">
+      {%- for filter in results.filters -%}
+        {%- assign filter_label_down = filter.label | downcase -%}
+        {%- assign show_pill = false -%}
+        {%- for pill_key in bh_pill_whitelist -%}
+          {%- if filter_label_down contains pill_key -%}{%- assign show_pill = true -%}{%- endif -%}
+        {%- endfor -%}
+        {%- if show_pill -%}
+          {%- assign pill_active = false -%}
+          {%- if filter.active_values.size > 0 -%}{%- assign pill_active = true -%}{%- endif -%}
+          {%- if filter.type == 'price_range' -%}{%- if filter.min_value.value != nil or filter.max_value.value != nil -%}{%- assign pill_active = true -%}{%- endif -%}{%- endif -%}
+          {%- assign is_color_filter = false -%}
+          {%- if color_labels contains filter_label_down and settings.color_swatches -%}{%- assign is_color_filter = true -%}{%- endif -%}
+          <div class="bh-pill-wrap" data-filter-pill>
+            <button class="bh-pill{% if pill_active %} bh-pill--on{% endif %}" aria-expanded="false" type="button">
+              {{ filter.label }}
+              {%- if filter.active_values.size > 0 -%}
+                <span class="bh-pill__count">{{ filter.active_values.size }}</span>
+              {%- elsif pill_active -%}
+                <span class="bh-pill__count">1</span>
+              {%- endif -%}
+              <svg class="bh-pill__chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="bh-pill__drop{% if is_color_filter %} bh-pill__drop--color{% endif %}" aria-hidden="true">
+              <facet-filters-form>
+                <form id="BhPill-{{ filter.label | handleize }}" class="bh-pill__drop-form">
+                  {%- if results.terms -%}
+                    <input type="hidden" name="q" value="{{ results.terms | escape }}">
+                    <input type="hidden" name="options[prefix]" value="last">
+                  {%- elsif results.current_vendor or results.current_type -%}
+                    <input type="hidden" name="q" value="{{ results.current_vendor }}{{ results.current_type }}">
+                  {%- endif -%}
+
+                  {%- if is_color_filter -%}
+                    {%- comment -%} Split into swatch colors (have hex) and text-only colors {%- endcomment -%}
+                    <div class="bh-color-drop">
+                      {%- if filter.active_values.size > 0 -%}
+                        <div class="bh-color-drop__header">
+                          <span class="bh-color-drop__title">{{ filter.active_values.size }} selected</span>
+                          <a href="{{ filter.url_to_remove }}" class="bh-color-drop__clear js-facet-remove">Clear</a>
+                        </div>
+                      {%- endif -%}
+                      {%- assign has_any_swatch = false -%}
+                      {%- for value in filter.values -%}
+                        {%- if value.swatch.color != blank or value.swatch.image != blank -%}{%- assign has_any_swatch = true -%}{%- endif -%}
+                      {%- endfor -%}
+                      {%- if has_any_swatch -%}
+                        <ul class="bh-color-grid">
+                          {%- for value in filter.values -%}
+                            {%- assign sw_color = '' -%}
+                            {%- assign sw_image = nil -%}
+                            {%- if value.swatch.color != blank -%}{%- assign sw_color = value.swatch.color -%}{%- endif -%}
+                            {%- if value.swatch.image != blank -%}{%- assign sw_image = value.swatch.image -%}{%- endif -%}
+                            {%- if sw_color != '' or sw_image != nil -%}
+                              <li>
+                                <label class="bh-swatch-wrap{% if value.active %} bh-swatch-wrap--on{% endif %}{% if value.count == 0 and value.active == false %} bh-swatch-wrap--dim{% endif %}">
+                                  <input type="checkbox" name="{{ value.param_name }}" value="{{ value.value }}"
+                                    class="bh-swatch-chk"
+                                    {% if value.active %}checked{% endif %}
+                                    {% if value.count == 0 and value.active == false %}disabled{% endif %}
+                                    onchange="this.closest('form').submit()"
+                                  >
+                                  {%- if sw_image != nil -%}
+                                    <img class="bh-swatch-lg" src="{{ sw_image | image_url: width: 56, height: 56, crop: 'center' }}" width="56" height="56" loading="lazy" alt="">
+                                  {%- else -%}
+                                    <span class="bh-swatch-lg" style="background-color:{{ sw_color }}"></span>
+                                  {%- endif -%}
+                                  {%- if value.active -%}
+                                    <span class="bh-swatch-check" aria-hidden="true">
+                                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </span>
+                                  {%- endif -%}
+                                  <span class="bh-swatch-name">{{ value.label | escape }}</span>
+                                </label>
+                              </li>
+                            {%- endif -%}
+                          {%- endfor -%}
+                        </ul>
+                      {%- endif -%}
+                      {%- comment -%} Text fallback for colors without a Search & Discovery hex {%- endcomment -%}
+                      {%- assign has_text_only = false -%}
+                      {%- for value in filter.values -%}
+                        {%- if value.swatch.color == blank and value.swatch.image == blank -%}{%- assign has_text_only = true -%}{%- endif -%}
+                      {%- endfor -%}
+                      {%- if has_text_only -%}
+                        {%- if has_any_swatch -%}<div class="bh-color-more-label">Other</div>{%- endif -%}
+                        <ul class="bh-checklist bh-color-text-list">
+                          {%- for value in filter.values -%}
+                            {%- if value.swatch.color == blank and value.swatch.image == blank -%}
+                              <li>
+                                <label class="bh-check-label{% if value.count == 0 and value.active == false %} bh-check-label--dim{% endif %}">
+                                  <input type="checkbox" name="{{ value.param_name }}" value="{{ value.value }}"
+                                    class="styled-checkbox"
+                                    {% if value.active %}checked{% endif %}
+                                    {% if value.count == 0 and value.active == false %}disabled{% endif %}
+                                    onchange="this.closest('form').submit()"
+                                  >
+                                  <span>{{ value.label | escape }}</span>
+                                  <span class="bh-check-count">({{ value.count }})</span>
+                                </label>
+                              </li>
+                            {%- endif -%}
+                          {%- endfor -%}
+                        </ul>
+                      {%- endif -%}
+                    </div>
+
+                  {%- elsif filter.type == 'price_range' -%}
+                    <div style="padding:14px 16px">
+                    {%- liquid
+                      assign comma_currencies = 'ANG,ARS,BRL,BYN,BYR,CLF,CLP,COP,CRC,CZK,DKK,EUR,HRK,HUF,IDR,ISK,MZN,NOK,PLN,RON,RUB,TRY,UYU,VES,VND' | split: ','
+                      assign use_comma = false
+                      if comma_currencies contains cart.currency.iso_code
+                        assign use_comma = true
+                      endif
+                    -%}
+                    <price-range class="bh-price-inputs">
+                      <div class="bh-price-field">
+                        <span>{{ cart.currency.symbol }}</span>
+                        <input type="number" name="{{ filter.min_value.param_name }}" placeholder="0" min="0"
+                          {%- if filter.min_value.value -%}{%- if use_comma -%}value="{{ filter.min_value.value | money_without_currency | replace: '.', '' | replace: ',', '.' | round }}"{%- else -%}value="{{ filter.min_value.value | money_without_currency | replace: ',', '' | round }}"{% endif %}{%- endif -%}
+                          {%- if use_comma -%}max="{{ filter.range_max | money_without_currency | replace: '.', '' | replace: ',', '.' | round }}"{%- else -%}max="{{ filter.range_max | money_without_currency | replace: ',', '' | round }}"{% endif %}
+                        >
+                      </div>
+                      <span class="bh-price-sep">–</span>
+                      <div class="bh-price-field">
+                        <span>{{ cart.currency.symbol }}</span>
+                        <input type="number" name="{{ filter.max_value.param_name }}" min="0"
+                          {%- if filter.max_value.value -%}{%- if use_comma -%}value="{{ filter.max_value.value | money_without_currency | replace: '.', '' | replace: ',', '.' | ceil }}"{%- else -%}value="{{ filter.max_value.value | money_without_currency | replace: ',', '' | ceil }}"{% endif %}{%- endif -%}
+                          {%- if use_comma -%}placeholder="{{ filter.range_max | money_without_currency | replace: '.', '' | replace: ',', '.' | ceil }}" max="{{ filter.range_max | money_without_currency | replace: '.', '' | replace: ',', '.' | ceil }}"{%- else -%}placeholder="{{ filter.range_max | money_without_currency | replace: ',', '' | ceil }}" max="{{ filter.range_max | money_without_currency | replace: ',', '' | ceil }}"{% endif %}
+                        >
+                      </div>
+                    </price-range>
+                    <button type="submit" class="bh-apply-btn">Apply</button>
+                    </div>
+
+                  {%- else -%}
+                    {%- comment -%} Size, Weight, Brand: standard checklist {%- endcomment -%}
+                    <ul class="bh-checklist" style="padding: 6px 0">
+                      {%- for value in filter.values -%}
+                        <li>
+                          <label class="bh-check-label{% if value.count == 0 and value.active == false %} bh-check-label--dim{% endif %}">
+                            <input type="checkbox" name="{{ value.param_name }}" value="{{ value.value }}"
+                              class="styled-checkbox"
+                              {% if value.active %}checked{% endif %}
+                              {% if value.count == 0 and value.active == false %}disabled{% endif %}
+                              onchange="this.closest('form').submit()"
+                            >
+                            <span>{{ value.label | escape }}</span>
+                            <span class="bh-check-count">({{ value.count }})</span>
+                          </label>
+                        </li>
+                      {%- endfor -%}
+                    </ul>
+                  {%- endif -%}
+                </form>
+              </facet-filters-form>
+            </div>
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+
+    {%- comment -%} Sort By {%- endcomment -%}
+    {%- comment -%} Results count — desktop {%- endcomment -%}
+    <span class="bh-result-count">{{ results.products_count }} result{% if results.products_count != 1 %}s{% endif %}</span>
+
+    {%- if enable_sorting -%}
+      <div class="bh-sort-wrap">
+        <form id="BhSortForm">
+          {%- if results.terms -%}
+            <input type="hidden" name="q" value="{{ results.terms | escape }}">
+            <input type="hidden" name="options[prefix]" value="last">
+          {%- endif -%}
+          <div class="bh-sort-btn-wrap">
+            <label class="bh-sort-label" for="bh-SortBy">
+              Sort By
+              <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true">
+                <path d="M2 1V13M2 13L5 10M2 13L-1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 13V1M10 1L7 4M10 1L13 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </label>
+            <select name="sort_by" id="bh-SortBy" class="bh-sort-select" onchange="this.closest('form').submit()">
+              {%- for option in results.sort_options -%}
+                <option value="{{ option.value | escape }}"{% if option.value == sort_by %} selected{% endif %}>{{ option.name | escape }}</option>
+              {%- endfor -%}
+            </select>
+          </div>
+        </form>
+      </div>
+    {%- endif -%}
+
+  </div>
+
+  {%- comment -%} Mobile filter bar — replaces pills on small screens {%- endcomment -%}
+  <div class="bh-mobile-bar">
+    <button class="bh-mobile-filter-btn" id="bh-open-drawer-mobile" aria-expanded="false" aria-controls="bh-filter-drawer">
+      <svg width="15" height="11" viewBox="0 0 15 11" fill="none" aria-hidden="true">
+        <rect y="0" width="15" height="1.5" fill="currentColor"/>
+        <rect x="2.5" y="4.5" width="10" height="1.5" fill="currentColor"/>
+        <rect x="5" y="9" width="5" height="1.5" fill="currentColor"/>
+      </svg>
+      Filter
+      {%- if active_count > 0 -%}
+        <span class="bh-mobile-filter-badge">{{ active_count }}</span>
+      {%- endif -%}
+    </button>
+    {%- if enable_sorting -%}
+      <div class="bh-mobile-sort-wrap">
+        <form id="BhMobileSortForm">
+          {%- if results.terms -%}
+            <input type="hidden" name="q" value="{{ results.terms | escape }}">
+            <input type="hidden" name="options[prefix]" value="last">
+          {%- endif -%}
+          <select name="sort_by" class="bh-mobile-sort-select" onchange="this.closest('form').submit()">
+            {%- for option in results.sort_options -%}
+              <option value="{{ option.value | escape }}"{% if option.value == sort_by %} selected{% endif %}>{{ option.name | escape }}</option>
+            {%- endfor -%}
+          </select>
+          <svg class="bh-mobile-sort-icon" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true">
+            <path d="M2 1V13M2 13L5 10M2 13L-1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 13V1M10 1L7 4M10 1L13 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="bh-mobile-sort-label">Sort</span>
+        </form>
+      </div>
+    {%- endif -%}
+    <span class="bh-mobile-result-count">{{ results.products_count }} results</span>
+  </div>
+
+  {%- comment -%} Active filter tags {%- endcomment -%}
+  {%- assign has_active = false -%}
+  {%- for filter in results.filters -%}
+    {%- if filter.active_values.size > 0 -%}{%- assign has_active = true -%}{%- endif -%}
+    {%- if filter.type == 'price_range' -%}{%- if filter.min_value.value != nil or filter.max_value.value != nil -%}{%- assign has_active = true -%}{%- endif -%}{%- endif -%}
+  {%- endfor -%}
+  {%- if has_active -%}
+    <div class="bh-active-row">
+      <span class="bh-active-label">Active:</span>
+      {%- for filter in results.filters -%}
+        {%- for value in filter.active_values -%}
+          <a class="bh-active-chip js-facet-remove" href="{{ value.url_to_remove }}">
+            {{ value.label | escape }} <span aria-hidden="true">&times;</span>
+          </a>
+        {%- endfor -%}
+        {%- if filter.type == 'price_range' -%}{%- if filter.min_value.value != nil or filter.max_value.value != nil -%}
+          <a class="bh-active-chip js-facet-remove" href="{{ filter.url_to_remove }}">
+            {{ filter.min_value.value | default: 0 | money }}&ndash;{{ filter.max_value.value | default: filter.range_max | money }} <span aria-hidden="true">&times;</span>
+          </a>
+        {%- endif -%}{%- endif -%}
+      {%- endfor -%}
+      <a href="{{ results_url }}" class="bh-clear-all js-facet-remove">Clear all</a>
+    </div>
+  {%- endif -%}
+
+</div>
+
+{%- comment -%} All Filters left drawer {%- endcomment -%}
+<div id="bh-filter-drawer" class="bh-drawer" aria-hidden="true">
+  <div class="bh-drawer__bg" id="bh-drawer-bg"></div>
+  <div class="bh-drawer__panel">
+    <div class="bh-drawer__hd">
+      <span class="bh-drawer__title">All Filters</span>
+      <button class="bh-drawer__x" id="bh-close-drawer" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="bh-drawer__body">
+      {%- render 'facets-vertical', results: results, enable_filtering: enable_filtering, enable_sorting: false, location: 'mobile' -%}
+    </div>
+    <div class="bh-drawer__ft">
+      <button class="bh-drawer__view-btn" id="bh-close-drawer-2">View Results</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ 'component-show-more.js' | asset_url }}" defer></script>
+<script src="{{ 'component-range-slider.js' | asset_url }}" defer></script>
+<script>
+(function () {
+  var drawer = document.getElementById('bh-filter-drawer');
+  var bg = document.getElementById('bh-drawer-bg');
+  function open() {
+    drawer.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+  function close() {
+    drawer.classList.remove('is-open');
+    drawer.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+  var el = document.getElementById('bh-open-drawer');
+  if (el) el.addEventListener('click', open);
+  var elMobile = document.getElementById('bh-open-drawer-mobile');
+  if (elMobile) elMobile.addEventListener('click', open);
+  ['bh-close-drawer','bh-close-drawer-2'].forEach(function(id){
+    var b = document.getElementById(id);
+    if (b) b.addEventListener('click', close);
+  });
+  if (bg) bg.addEventListener('click', close);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+
+  // Move all pill drops to body so they escape overflow clipping
+  document.querySelectorAll('[data-filter-pill] .bh-pill__drop').forEach(function(drop) {
+    document.body.appendChild(drop);
+  });
+
+  function closeAllPills() {
+    document.querySelectorAll('[data-filter-pill] .bh-pill[aria-expanded="true"]').forEach(function(b){
+      b.setAttribute('aria-expanded','false');
+    });
+    document.querySelectorAll('.bh-pill__drop[aria-hidden="false"]').forEach(function(d){
+      d.setAttribute('aria-hidden','true');
+    });
+  }
+
+  document.querySelectorAll('[data-filter-pill]').forEach(function(wrap) {
+    var btn = wrap.querySelector('.bh-pill');
+    var dropId = 'BhPill-' + (btn ? btn.textContent.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'') : '');
+    // find the matching drop by its form id
+    var drop = document.querySelector('.bh-pill__drop-form[id^="BhPill-"]');
+    // match by order — re-query by data attribute set below
+    btn && btn.setAttribute('data-bh-pill-id', wrap.getAttribute('data-bh-pill-idx') || '');
+
+    if (!btn) return;
+    // find drop that was moved to body — match by position in NodeList
+    var allWraps = Array.from(document.querySelectorAll('[data-filter-pill]'));
+    var idx = allWraps.indexOf(wrap);
+    var allDrops = Array.from(document.querySelectorAll('body > .bh-pill__drop'));
+    drop = allDrops[idx];
+    if (!drop) return;
+
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = btn.getAttribute('aria-expanded') === 'true';
+      closeAllPills();
+      if (!isOpen) {
+        var rect = btn.getBoundingClientRect();
+        drop.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+        drop.style.left = rect.left + 'px';
+        btn.setAttribute('aria-expanded', 'true');
+        drop.setAttribute('aria-hidden', 'false');
+      }
+    });
+  });
+  document.addEventListener('click', closeAllPills);
+  document.addEventListener('scroll', function() {
+    // reposition open drop on scroll
+    var openBtn = document.querySelector('[data-filter-pill] .bh-pill[aria-expanded="true"]');
+    if (!openBtn) return;
+    var allWraps = Array.from(document.querySelectorAll('[data-filter-pill]'));
+    var idx = allWraps.indexOf(openBtn.closest('[data-filter-pill]'));
+    var allDrops = Array.from(document.querySelectorAll('body > .bh-pill__drop'));
+    var drop = allDrops[idx];
+    if (!drop) return;
+    var rect = openBtn.getBoundingClientRect();
+    drop.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+    drop.style.left = rect.left + 'px';
+  }, { passive: true });
+})();
+</script>
+
+<style>
+/* ═══════════════════════════════════════════
+   FILTER BAR
+═══════════════════════════════════════════ */
+.bh-filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #fff;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 0 24px;
+}
+.bh-filter-bar__inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  max-width: 1440px;
+  margin: 0 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.bh-filter-bar__inner::-webkit-scrollbar { display: none; }
+
+/* Open All Filters — dark pill */
+.bh-btn-all-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  height: 38px;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background .15s;
+}
+.bh-btn-all-filters:hover { background: #333; }
+.bh-btn-all-filters__badge {
+  background: #e33;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.bh-btn-all-filters__arrow { opacity: .7; }
+
+/* Quick filter pills — outlined label + chevron */
+.bh-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.bh-pills-row::-webkit-scrollbar { display: none; }
+.bh-pill-wrap { position: relative; flex-shrink: 0; }
+
+.bh-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 36px;
+  background: #fff;
+  color: #1a1a1a;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .15s, background .15s;
+}
+.bh-pill:hover { border-color: #1a1a1a; }
+.bh-pill--on {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+.bh-pill--on:hover { background: #333; border-color: #333; }
+.bh-pill[aria-expanded="true"] { border-color: #1a1a1a; }
+.bh-pill__chevron { transition: transform .2s; flex-shrink: 0; }
+.bh-pill[aria-expanded="true"] .bh-pill__chevron { transform: rotate(180deg); }
+.bh-pill__count {
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+}
+.bh-pill--on .bh-pill__count { background: #fff; color: #1a1a1a; }
+
+/* Pill dropdown — appended to body, positioned via JS */
+.bh-pill__drop {
+  display: none;
+  position: absolute;
+  min-width: 220px;
+  max-height: 420px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.14);
+  z-index: 500;
+  overflow-y: auto;
+}
+.bh-pill__drop--color { min-width: 330px; }
+.bh-pill__drop[aria-hidden="false"] { display: block; }
+.bh-pill__drop-form { padding: 0; }
+
+/* Checklist (Size, Weight, Brand) */
+.bh-checklist { list-style: none; margin: 0; padding: 0; }
+.bh-checklist li { padding: 2px 0; }
+.bh-check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #1a1a1a;
+  line-height: 1.6;
+  padding: 5px 16px;
+}
+.bh-check-label:hover { background: #f7f7f7; }
+.bh-check-label--dim { opacity: .35; cursor: not-allowed; }
+.bh-check-count { color: #bbb; font-size: 12px; margin-left: auto; }
+
+/* Color dropdown wrapper */
+.bh-color-drop { padding: 0; }
+.bh-color-drop__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.bh-color-drop__title { font-size: 12px; color: #666; }
+.bh-color-drop__clear { font-size: 12px; color: #1a1a1a; font-weight: 600; text-decoration: underline; }
+
+/* Color swatch grid */
+.bh-color-grid {
+  list-style: none;
+  margin: 0;
+  padding: 14px 16px 10px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px 8px;
+}
+.bh-swatch-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  cursor: pointer;
+}
+.bh-swatch-wrap--dim { opacity: .3; cursor: not-allowed; }
+.bh-swatch-chk {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.bh-swatch-lg {
+  display: block;
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  border: 2.5px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+  background-size: cover;
+  background-position: center;
+  transition: transform .12s ease, box-shadow .12s ease;
+  position: relative;
+}
+.bh-swatch-wrap:not(.bh-swatch-wrap--dim):hover .bh-swatch-lg {
+  transform: scale(1.07);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.12), 0 3px 10px rgba(0,0,0,.2);
+}
+.bh-swatch-wrap--on .bh-swatch-lg {
+  border-color: #1a1a1a;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.12), 0 0 0 1px #1a1a1a;
+}
+.bh-swatch-check {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  background: rgba(0,0,0,.75);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.bh-swatch-name {
+  font-size: 10px;
+  color: #666;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 50px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bh-color-more-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: 4px 16px 6px;
+  border-top: 1px solid #f0f0f0;
+}
+.bh-color-text-list { padding: 0 4px 10px !important; }
+
+/* Price inputs */
+.bh-price-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.bh-price-sep { color: #aaa; font-size: 14px; }
+.bh-price-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px 8px;
+  flex: 1;
+  font-size: 13px;
+}
+.bh-price-field input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  padding: 0;
+}
+.bh-apply-btn {
+  display: block;
+  width: 100%;
+  padding: 9px;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.bh-apply-btn:hover { background: #333; }
+
+/* Sort By — dark pill */
+.bh-sort-wrap { margin-left: auto; flex-shrink: 0; }
+.bh-sort-btn-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 18px;
+  height: 38px;
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.bh-sort-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: #fff;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.bh-sort-select {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+}
+.bh-sort-btn-wrap { position: relative; }
+
+/* Active filter tags */
+.bh-active-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 8px;
+  flex-wrap: wrap;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+.bh-active-label { font-size: 12px; color: #999; font-weight: 500; }
+.bh-active-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: #f0f0f0;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #1a1a1a;
+  text-decoration: none;
+  border: 1px solid #ddd;
+}
+.bh-active-chip:hover { background: #e5e5e5; }
+.bh-clear-all { font-size: 12px; color: #666; text-decoration: underline; margin-left: 4px; }
+
+/* ═══════════════════════════════════════════
+   LEFT DRAWER
+═══════════════════════════════════════════ */
+.bh-drawer {
+  position: fixed; inset: 0; z-index: 99999;
+  visibility: hidden; pointer-events: none;
+}
+.bh-drawer.is-open { visibility: visible; pointer-events: auto; }
+.bh-drawer__bg {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.5);
+  opacity: 0; transition: opacity .3s;
+}
+.bh-drawer.is-open .bh-drawer__bg { opacity: 1; }
+.bh-drawer__panel {
+  position: absolute; top: 0; left: 0; bottom: 0;
+  width: 380px; max-width: 92vw;
+  background: #fff;
+  transform: translateX(-100%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.bh-drawer.is-open .bh-drawer__panel { transform: translateX(0); }
+.bh-drawer__hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px; border-bottom: 1px solid #eee; flex-shrink: 0;
+}
+.bh-drawer__title { font-size: 16px; font-weight: 700; letter-spacing: .03em; }
+.bh-drawer__x {
+  background: none; border: none; cursor: pointer; padding: 4px; color: #555;
+  border-radius: 4px; display: flex; align-items: center;
+}
+.bh-drawer__x:hover { background: #f0f0f0; }
+.bh-drawer__body { flex: 1; overflow-y: auto; padding: 8px 22px 20px; }
+.bh-drawer__ft { border-top: 1px solid #eee; padding: 16px 22px; flex-shrink: 0; }
+.bh-drawer__view-btn {
+  display: block; width: 100%; padding: 13px;
+  background: #1a1a1a; color: #fff; border: none;
+  border-radius: 5px; font-size: 14px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase; cursor: pointer;
+}
+.bh-drawer__view-btn:hover { background: #333; }
+
+/* ═══════════════════════════════════════════
+   GRID SPACING
+═══════════════════════════════════════════ */
+#blank-collection-page {
+  padding-top: 32px;
+}
+#blank-collection-page #CollectionProductGrid {
+  padding-bottom: 48px;
+}
+#blank-collection-page #main-collection-product-grid {
+  gap: 28px 20px;
+}
+
+/* ═══════════════════════════════════════════
+   PRODUCT CARDS
+═══════════════════════════════════════════ */
+#blank-collection-page .product-item {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  transition: none;
+}
+#blank-collection-page .product-item:hover {
+  transform: none;
+  box-shadow: none;
+}
+#blank-collection-page .product-item__image {
+  background: #f5f5f5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+#blank-collection-page .product-item__image:hover img,
+#blank-collection-page .product-item__image:hover .img {
+  transform: scale(1.03);
+  transition: transform .35s ease;
+}
+#blank-collection-page .card__text-wrapper {
+  padding: 10px 2px 14px;
+}
+
+/* Vendor/brand line */
+#blank-collection-page .bh-card-brand {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.3;
+  margin: 0 0 1px;
+}
+#blank-collection-page .bh-card-brand__model {
+  font-weight: 400;
+  color: #1a1a1a;
+}
+
+/* Product title (style description) */
+#blank-collection-page .product-item__title span {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: #555 !important;
+  line-height: 1.4 !important;
+}
+
+/* Color name */
+#blank-collection-page .bh-color-name {
+  font-size: 12px;
+  color: #777;
+  margin: 8px 0 4px;
+}
+
+/* Swatches row */
+#blank-collection-page .bh-swatches {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  padding: 4px;
+  margin: -4px -4px 6px -4px;
+}
+#blank-collection-page .bh-sw {
+  width: 18px; height: 18px;
+  border-radius: 3px;
+  border: 1.5px solid rgba(0,0,0,.12);
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: box-shadow .1s;
+}
+#blank-collection-page .bh-sw:hover { box-shadow: 0 0 0 1.5px #fff, 0 0 0 3px rgba(0,0,0,0.4); }
+#blank-collection-page .bh-sw-more {
+  font-size: 11px;
+  color: #888;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Price + brand side-by-side row */
+#blank-collection-page .bh-price-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#blank-collection-page .bh-price-brand-row .bh-card-brand {
+  min-height: auto;
+}
+#blank-collection-page .bh-price-brand-row .bh-card-brand__logo {
+  max-height: 18px;
+  max-width: 72px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* Starting at label */
+#blank-collection-page .bh-starting-at {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #999;
+  margin-bottom: 2px;
+}
+
+/* Price */
+#blank-collection-page .product-item__price {
+  margin: 6px 0 2px;
+}
+#blank-collection-page .product-price--original {
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  color: #1a7a3c !important;
+  letter-spacing: -.01em;
+}
+
+/* Ratings */
+#blank-collection-page .product-item__ratings {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+/* Star background: empty stars = light gray, active stars = yellow */
+#blank-collection-page .star-rating__stars {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' fill='%23e0e0e0'/%3E%3C/svg%3E") !important;
+  background-repeat: repeat-x !important;
+  background-size: 20px 20px !important;
+  height: 20px !important;
+  display: inline-block !important;
+}
+#blank-collection-page .star-rating__stars-active {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' fill='%23f5a623'/%3E%3C/svg%3E") !important;
+  background-repeat: repeat-x !important;
+  background-size: 20px 20px !important;
+  height: 20px !important;
+  display: block !important;
+  overflow: hidden !important;
+}
+/* Review count — small gray text */
+#blank-collection-page .star-rating__caption {
+  font-size: 11px !important;
+  color: #888 !important;
+  line-height: 1 !important;
+}
+
+/* Badges */
+#blank-collection-page .product-item__badges {
+  top: 10px; left: 10px;
+}
+
+/* Results count — desktop */
+.bh-result-count {
+  font-size: 12px;
+  color: #999;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+/* Mobile filter bar — hidden on desktop */
+.bh-mobile-bar { display: none; }
+
+@media (max-width: 767px) {
+  /* Hide desktop elements */
+  .bh-filter-bar { padding: 0; }
+  .bh-filter-bar__inner { display: none; }
+  .bh-result-count { display: none; }
+
+  /* Show mobile bar */
+  .bh-mobile-bar {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid #e5e5e5;
+  }
+
+  /* Mobile Filter button */
+  .bh-mobile-filter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    height: 48px;
+    background: #1a1a1a;
+    color: #fff;
+    border: none;
+    border-right: 1px solid #333;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .bh-mobile-filter-badge {
+    background: #e33;
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.5;
+  }
+
+  /* Mobile Sort button */
+  .bh-mobile-sort-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    background: #fff;
+    border-right: 1px solid #e5e5e5;
+    gap: 6px;
+    padding: 0 12px;
+  }
+  .bh-mobile-sort-wrap form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    justify-content: center;
+    position: relative;
+  }
+  .bh-mobile-sort-select {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  .bh-mobile-sort-icon { color: #1a1a1a; flex-shrink: 0; }
+  .bh-mobile-sort-label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #1a1a1a;
+    pointer-events: none;
+  }
+
+  /* Mobile results count */
+  .bh-mobile-result-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 0 14px;
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
+    background: #fff;
+  }
+
+  /* Active chips still show on mobile */
+  .bh-active-row { padding: 6px 12px 8px; }
+}
+</style>

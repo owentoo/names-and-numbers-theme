@@ -1,0 +1,359 @@
+<style>
+.element--is-sticky:has(.popup-overlay){
+    position: unset !important;
+  }
+  .deliveryEstimateTable {
+    width:100%;
+  }
+  .deliveryEstimateTable td {
+    border:none;
+  }
+  .deliveryEstimateError {
+    display:none;
+    color:#ff0000;
+    font-weight:bold;
+  }
+  .shippingToZipCode {
+    text-decoration:underline;
+  }
+  .svg-fast {
+    width:50px;
+  }
+  .svg-fast path {
+    fill: #42a9de;
+  }
+  /* @media screen and (max-width: 900px) {
+    .svg-fast {
+      display:none;
+    }
+  } */
+</style>
+
+<script>
+  function collectionItemsLoaded() {
+  
+    $(".deliveryEstimateContainer").show();
+  
+    const locationPermissionDenied = window.localStorage.getItem(
+      "locationPermissionDenied"
+    );
+    if (locationPermissionDenied === "true") {
+      $(".deliveryEstimateZip").val("78701");
+      estimateDeliveryDate();
+    } else {
+      const savedZipCode = window.localStorage.getItem("deliveryPostalCode");
+      if (savedZipCode) {
+        $(".deliveryEstimateZip").val(savedZipCode);
+        estimateDeliveryDate();
+      } else {
+        $(".deliveryEstimateZip").val("78701");
+        estimateDeliveryDate();
+        requestLocationAccess();
+      }
+    }
+  }
+
+  function resetEstimateDeliveryDate () {
+    $(".popup-overlay").removeClass('popup-overlay-hidden');
+  }
+
+  function estimateDeliveryDate_Static () {
+    const getNextWorkDate = (date) => {
+      let day = date.getDay(), add = 1;
+      if (day === 6)           add = 2; else 
+      if (day === 5)           add = 3;
+      const newDate = new Date(date);
+      newDate.setDate(newDate.getDate() + add); // will correctly handle 31+1 > 32 > 1st next month
+      return newDate;
+    };
+
+    const curDate = new Date();
+    let cutoffDate = new Date(`${curDate.getMonth()+1}/${curDate.getDate()}/${curDate.getFullYear()} 16:30`);
+    const originalCutoffDate = cutoffDate;
+    if (curDate.getTime() >= cutoffDate.getTime()) {
+      cutoffDate = new Date(cutoffDate.getTime()+86400000);
+      if (cutoffDate.getDay() == 0) cutoffDate = new Date(cutoffDate.getTime()+86400000);
+      else if (cutoffDate.getDay() == 6) cutoffDate = new Date(cutoffDate.getTime()+172800000);
+    }
+    console.log("cutoffDate: " + cutoffDate)
+    
+    const daysOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const monthsOfYear = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let shipDate = curDate;
+    if (shipDate.getTime() >= originalCutoffDate.getTime()) shipDate = getNextWorkDate(shipDate);
+    const nextWorkDate = getNextWorkDate(shipDate);
+    const deliveryDateText = `${daysOfWeek[nextWorkDate.getDay()]}, ${monthsOfYear[nextWorkDate.getMonth()]} ${nextWorkDate.getDate()}`;    
+
+    $(".deliveryEstimateDate").show();
+    $(".estimatedDeliveryDate").html(`Get it by ${deliveryDateText}`);
+    
+    let cutoffDesc = '';
+    console.log("cutoffDate: " + cutoffDate + ", curDate: " + curDate)
+    const cutoffDifference = Math.floor((cutoffDate.getTime() - curDate.getTime()) / 1000);
+    console.log("cutoffDifference: " + cutoffDifference)
+    let cutoffHours = Math.floor(cutoffDifference / 3600);
+    if (cutoffHours >= 24) {
+      const cutoffDays = Math.floor(cutoffHours/24);
+      const cutoffHoursRemaining = Math.floor(cutoffHours % 24);          
+      if (cutoffDays > 0) cutoffDesc += cutoffDays + ' day';
+      if (cutoffDays > 1) cutoffDesc += 's';
+      if (cutoffHoursRemaining > 0) cutoffDesc += ' ' + cutoffHoursRemaining + ' hour';
+      if (cutoffHoursRemaining > 1) cutoffDesc += 's';
+    }
+    else {
+      let cutoffMinutes = Math.floor((cutoffDifference % 3600) / 60);
+      if (cutoffHours > 0) cutoffDesc += cutoffHours + ' hour';
+      if (cutoffHours > 1) cutoffDesc += 's';
+      if (cutoffMinutes > 0) cutoffDesc += ' ' + cutoffMinutes + ' minute';
+      if (cutoffMinutes > 1) cutoffDesc += 's';
+    }
+    cutoffDesc = cutoffDesc.trim();
+    $(".estimatedCutoffTime").html(cutoffDesc)
+  }
+  
+  function estimateDeliveryDate () {
+    function toggleLoading (isLoading) {
+      if (isLoading) $(".estimateDeliveryDateButton").addClass("working")
+      else $(".estimateDeliveryDateButton").removeClass("working")
+      
+      return;
+      
+      if (isLoading) {
+        $(".estimateDeliveryDateButton").addClass("loading");
+        $(".estimateDeliveryDateButton span").addClass("hidden");
+        $(".estimateDeliveryDateButton .loading-overlay__spinner").removeClass("hidden");
+      }
+      else {
+        $(".estimateDeliveryDateButton").removeClass("loading");
+        $(".estimateDeliveryDateButton span").removeClass("hidden");
+        $(".estimateDeliveryDateButton .loading-overlay__spinner").addClass("hidden");
+      }
+    }
+
+    function showError (error) {
+      $(".deliveryEstimateError").html(error);
+      $(".deliveryEstimateError").show();
+    }
+    
+    $(".deliveryEstimateError").hide();
+    const deliveryPostalCode = $(".deliveryEstimateZip").val().trim()
+    console.log("estimateDeliveryDate: " + deliveryPostalCode);
+    var validZipTest = /(^\d{5}$)|(^\d{5}-\d{4}$)/;
+    if (!validZipTest.test(deliveryPostalCode)) {
+      showError("Please enter a valid zip code");
+      return;
+    }
+
+    let defaultLineItem = null;
+    const lineItems = [];
+    $("input.itemQuantity").each(function () {
+      const quantity = parseInt($(this).val());
+      const gtin = $(this).attr("data-gtin");
+      if (defaultLineItem == null) defaultLineItem = {gtin, quantity: 1};
+      if (quantity > 0) lineItems.push({gtin,quantity});
+    })
+    if (lineItems.length == 0 && defaultLineItem) lineItems.push(defaultLineItem);
+    if (lineItems.length == 0) {
+      $(".deliveryEstimateError").html("No sizes in stock to delivery");
+      $(".deliveryEstimateError").show();
+      return;
+    }
+
+    toggleLoading(true);    
+    console.log("lineItems: " + JSON.stringify(lineItems));
+    $.ajax({
+      type: "POST",
+      url: 'https://hpz51rjda5.execute-api.us-east-1.amazonaws.com/production/estimateDeliveryDate',
+      data: JSON.stringify({ lineItems, deliveryPostalCode }),
+      contentType: "application/json; charset=utf-8",
+      dataType: 'json',
+      success: function (response) {
+        console.log("estimateDeliveryDate response: " + JSON.stringify(response))
+        toggleLoading(false);
+        if (response.success && response.estimatedDeliveryDate) {
+          const weekday = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+          const month = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+          const tomorrow = new Date(new Date().getTime()+86400000);
+          const estimatedDeliveryDate = new Date(response.estimatedDeliveryDate+"T00:00:00");
+          let day = weekday[estimatedDeliveryDate.getDay()];
+          if (estimatedDeliveryDate.getDate() == tomorrow.getDate()) day = "Tomorrow";
+          $(".shippingToZipCode").html(deliveryPostalCode)
+          // $(".deliveryEstimateZipNeeded").hide();
+          $(".popup-overlay").addClass('popup-overlay-hidden');
+          $(".deliveryEstimateDate").show();
+          $(".estimatedDeliveryDate").html(`Get it by ${day}, ${month[estimatedDeliveryDate.getMonth()]} ${estimatedDeliveryDate.getDate()}`);
+          $(".estimatedCutoffTime").html("calculating time"); 
+          const curDate = new Date();
+          let cutoffDate = new Date(`${curDate.getMonth()+1}/${curDate.getDate()}/${curDate.getFullYear()} 16:30`);
+          if (curDate.getTime() >= cutoffDate.getTime()) {
+            cutoffDate = new Date(cutoffDate.getTime()+86400000);
+            if (cutoffDate.getDay() == 0) cutoffDate = new Date(cutoffDate.getTime()+86400000);
+            else if (cutoffDate.getDay() == 6) cutoffDate = new Date(cutoffDate.getTime()+172800000);
+          }
+          let cutoffDesc = '';
+          const cutoffDifference = Math.floor((cutoffDate.getTime() - curDate.getTime()) / 1000);
+          let cutoffHours = Math.floor(cutoffDifference / 3600);
+          if (cutoffHours >= 24) {
+            const cutoffDays = Math.floor(cutoffHours/24);
+            const cutoffHoursRemaining = Math.floor(cutoffHours % 24);          
+            if (cutoffDays > 0) cutoffDesc += cutoffDays + ' day';
+            if (cutoffDays > 1) cutoffDesc += 's';
+            if (cutoffHoursRemaining > 0) cutoffDesc += ' ' + cutoffHoursRemaining + ' hour';
+            if (cutoffHoursRemaining > 1) cutoffDesc += 's';
+          }
+          else {
+            let cutoffMinutes = Math.floor((cutoffDifference % 3600) / 60);
+            if (cutoffHours > 0) cutoffDesc += cutoffHours + ' hour';
+            if (cutoffHours > 1) cutoffDesc += 's';
+            if (cutoffMinutes > 0) cutoffDesc += ' ' + cutoffMinutes + ' minute';
+            if (cutoffMinutes > 1) cutoffDesc += 's';
+          }
+          cutoffDesc = cutoffDesc.trim();
+          $(".estimatedCutoffTime").html(cutoffDesc)
+          window.localStorage.setItem("deliveryPostalCode",deliveryPostalCode);
+        }
+        else {
+          console.log("Could not add items: " + JSON.stringify(response));
+          showError("Estimated delivery date unavailable at the moment");          
+        }
+      },
+      error: function (response) {
+        console.log("Could not add items: " + response);
+        showError("Estimated delivery date unavailable at the moment");
+        toggleLoading(false);
+      }
+    });
+  }
+
+  $( document ).ready(function() {
+    estimateDeliveryDate();
+
+    /*
+    const savedZipCode = window.localStorage.getItem("deliveryPostalCode");
+    if (savedZipCode) {
+      $(".deliveryEstimateZip").val(savedZipCode);
+      estimateDeliveryDate();
+    }
+    else {
+      $.ajax({
+        type: "GET",
+        //url: 'http://ipwho.is',
+        url: 'http://ipwhois.pro/?key=YGjaRyEWIW8Y8MLO',
+        contentType: "application/json; charset=utf-8",
+        dataType: 'json',
+        success: function (response) {
+          console.log("ipwho response: " + JSON.stringify(response,null,2))
+          try {
+            if (response.success && response.country_code == "US") {
+              console.log("Retrieved geolocation postal code " + response.postal)
+              estimateDeliveryDate();
+            } else {
+               $(".deliveryEstimateZip").val('78701');
+               estimateDeliveryDate();
+            }
+          }
+          catch (error) {
+            console.log("Could not determine geolocation (error: " + error + "): " + response);  
+          }
+        },
+        error: function (response) {
+          console.log("Could not determine geolocation: " + response);
+        }
+      });
+    }
+    */
+  });
+
+
+
+</script>
+
+<div class="deliveryEstimateContainer" style="">
+ {% render 'custom-popup' %}
+
+  <!--
+    <div class="deliveryEstimateZipNeeded" style="display:block;">
+      <h5 style="font-size:1.3em;font-weight:700;margin-bottom:10px;">When will my order arrive?</h5>
+      <table class="deliveryEstimateTable">
+        <tbody><tr>
+          <td style=""><input type="text" class="deliveryEstimateZip" placeholder="Enter Zip Code" style="padding:10px;width:100%;height:49px;"></td>
+          <td style="" class="">
+            <button type="submit" onclick="estimateDeliveryDate();" name="estimateDeliveryDate" class="estimateDeliveryDateButton button button--solid button--product button--loader button--move" style="margin-left:10px;">
+              <span class="button__text">
+                  Get Delivery Date
+              </span>
+              <span class="button__preloader">
+                <svg class="button__preloader-element" viewBox="25 25 50 50"><circle cx="50" cy="50" r="20" fill="none" stroke-width="4"></circle></svg>
+              </span>
+            </button>
+          </td>
+        </tr>
+      </tbody></table>
+
+      <div class="deliveryEstimateError"></div>
+    </div>
+  -->
+
+  <div
+    class="deliveryEstimateDate"
+    style="display:none;background-color: #fff;border-radius:10px;max-width:44rem; padding:0px;border:2px solid #e0e0e0;"
+  >
+    <table style="width:100%;">
+      <tr>
+        <td style="vertical-align:top;">
+          <div style="padding-left:20px;padding-top:15px;padding-bottom:15px;">
+            <div style="display:inline-block;">
+              <svg
+                class="svg-fast"
+                version="1.1"
+                id="Layer_1"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink"
+                x="0px"
+                y="0px"
+                viewBox="0 0 425.1 397.2"
+                style="enable-background:new 0 0 425.1 397.2;"
+                xml:space="preserve"
+              >
+                <g>
+                	<path d="M41.8,169.7h110.9c9.1,0,17.8-7.3,19.5-16.4c1.7-9.1-4.2-16.4-13.3-16.4H48c-9.1,0-17.8,7.3-19.5,16.4
+                		C26.8,162.4,32.7,169.7,41.8,169.7z"/>
+                	<path d="M30.2,230.9h64.5c9.1,0,17.8-7.3,19.5-16.4s-4.2-16.4-13.3-16.4H36.4c-9.1,0-17.8,7.3-19.5,16.4
+                		C15.2,223.6,21.1,230.9,30.2,230.9z"/>
+                	<path d="M53.4,108.5h64.5c9.1,0,17.8-7.3,19.5-16.4c1.7-9.1-4.2-16.4-13.3-16.4H59.6c-9.1,0-17.8,7.3-19.5,16.4
+                		C38.4,101.2,44.3,108.5,53.4,108.5z"/>
+                	<path d="M351.1,75.7h-26.7l4.3-22.9C334.2,23.7,315,0,285.9,0h-212c-9.1,0-17.8,7.3-19.5,16.4c-1.7,9.1,4.2,16.4,13.3,16.4h212
+                		c11,0,18.3,9,16.2,20l-7.4,39.3l-23.1,122.4c-1.7,9.1,4.2,16.4,13.3,16.4h99.6l-12.9,68.2c-1.9,10-10.9,18.3-20.6,19.8
+                		c-2.4-25.9-22.6-45-50.8-45c-28.3,0-55.8,19.2-68,45.3h-60.4c-2.3-26.1-22.5-45.3-50.8-45.3c-28.2,0-55.6,19.1-67.8,45
+                		c-9.3-1.5-15-9.8-13.2-19.8l1.7-8.8c1.7-9.1-4.2-16.4-13.3-16.4s-17.8,7.3-19.5,16.4l-1.7,8.8c-5.3,28,12.4,51,39.6,52.7
+                		c2.3,26.1,22.5,45.4,50.8,45.4s55.8-19.2,68-45.3h60.4c2.3,26.1,22.5,45.3,50.8,45.3c28.4,0,56-19.3,68-45.4
+                		c27.9-1.7,54.3-24.6,59.6-52.7l16-84.6l9.4-49.5C432.8,115.8,400.4,75.7,351.1,75.7z M97.6,364.4c-15.9,0-26.4-13-23.4-28.9
+                		s18.5-28.9,34.4-28.9s26.4,13,23.4,28.9C128.9,351.5,113.6,364.4,97.6,364.4z M276.8,364.4c-15.9,0-26.4-13-23.4-28.9
+                		s18.5-28.9,34.4-28.9s26.4,13,23.4,28.9C308,351.5,292.7,364.4,276.8,364.4z M301.2,198.1l16.9-89.6h26.7
+                		c31.1,0,51.7,25.3,45.8,56.5l-6.3,33.1H301.2z"/>
+                </g>
+              </svg>
+            </div>
+            <div style="margin-left:10px;display:inline-block;">
+              <div style="font-size:1.3em; font-weight:700; color: #000;" class="estimatedDeliveryDate"></div>
+              <div>If ordered the next <span style="font-weight:bold;" class="estimatedCutoffTime"></span></div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div onclick="resetEstimateDeliveryDate();return false;" style="background-color:#e0e0e0; cursor: pointer; padding-left:83px; padding-top:10px; padding-bottom:10px; font-size:1em; border-radius:10px; border-top-left-radius:0px; border-top-right-radius:0px;">
+            Shipping to
+            <span
+              href="#"
+              style="text-decoration:none;"
+              class="shippingToZipCode"
+              >18954 </span>
+            <span class="ninja_edit-icon" style="vertical-align: top; text-decoration:none;">{% render 'edit_icon'%}</span>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>

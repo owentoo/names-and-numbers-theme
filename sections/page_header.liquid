@@ -1,0 +1,191 @@
+{%-liquid
+  assign ss = section.settings
+  assign sb = section.blocks
+-%}
+
+<link rel="stylesheet" href="{{ 'page_header.css' | asset_url }}">
+
+{% if ss.backLinkText != blank and ss.backlinkUrl != blank %}
+  <div class="pageHeaderBackLink">
+    <div class="pageHeader__pageWidth">
+      <a href="{{ ss.backlinkUrl }}">
+        <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><title/><g data-name="Layer 2" id="Layer_2"><path d="M10.1,23a1,1,0,0,0,0-1.41L5.5,17H29.05a1,1,0,0,0,0-2H5.53l4.57-4.57A1,1,0,0,0,8.68,9L2.32,15.37a.9.9,0,0,0,0,1.27L8.68,23A1,1,0,0,0,10.1,23Z"/></g></svg>
+        {{ ss.backLinkText }}
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+<div class="pageHeader" id="{{ section.id }}">
+  <div class="pageHeader__pageWidth">
+    <div class="pageHeader__content">
+      <div class="pageHeader__item">
+        {% if ss.subTitle != blank %}
+          <h3 class="pageHeader__subtitle">{{ ss.subTitle }}</h3>
+        {% endif %}
+        {% if ss.title != blank %}
+          <h1 class="pageHeader__title">
+            {{ ss.title }}
+          </h1>
+        {% endif %}
+      </div>
+      <div class="pageHeader__item video">
+        {% if ss.video != blank %}
+          {% if ss.video contains '/embed/' %}
+            {%- assign youtubeID = ss.video | split: '/embed/' | last | split: '?' | first -%}
+          {% elsif ss.video contains '/watch?v=' %}
+            {%- assign youtubeID = ss.video | split: '/watch?v=' | last | split: '&' | first -%}
+          {% endif %}
+          {% if ss.imagePoster != blank %}
+            {%- assign imgPoster = ss.imagePoster | image_url: width: 1200 -%}
+          {% else %}
+            {%- assign imgPoster = 'https://img.youtube.com/vi/' | append: youtubeID | append: '/0.jpg' -%}
+          {% endif %}
+          {% if imgPoster != blank %}
+            <div class="pageHeader__videoWrapper">
+              {% if ss.playIcon != blank %}
+                <img src="{{ ss.playIcon | image_url: width: 100 }}" class="pageHeader__videoWrapperIcon">
+              {% endif %}
+              <img src="{{ imgPoster }}" youtube-id="{{ youtubeID }}">
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #{{ section.id }} {
+    background-color: {{ ss.bgColor }};
+    padding-top: {{ ss.pt | append: 'px' }};
+    padding-bottom: {{ ss.pb | append: 'px' }};
+  }
+
+  {% if ss.mobileVideoTop %}
+    @media (max-width: 768px) {
+      #{{ section.id }} .pageHeader__item.video {
+        order: 1;
+      }
+      #{{ section.id }} .pageHeader__item:not(.video) {
+        order: 2;
+      }
+    }
+  {% endif %}
+</style>
+
+<script>
+  $( document )
+  .on(`click`, `#{{ section.id }} img[youtube-id], #{{ section.id }} .pageHeader__videoWrapperIcon`, function( e ) {
+    try {
+      e.stopImmediatePropagation();
+      const youtubeID = $( this ).closest( `.pageHeader__videoWrapper` ).find( `img[youtube-id]` ).attr( `youtube-id` );
+      $( this ).closest( `.pageHeader__videoWrapper` ).hide();
+      $( this )
+        .closest( `.pageHeader__videoWrapper` )
+        .after( `
+          <iframe src="https://youtube.com/embed/${ youtubeID }?autoplay=1&&mute=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen=""></iframe>
+        ` );
+    } catch ( err ) {
+      console.log( `ERROR #{{ section.id }} img[youtube-id], #{{ section.id }} .pageHeader__videoWrapperIcon`, err.message );
+    }
+  })
+  ;
+</script>
+
+{% schema %}
+{
+  "name":"Page Header",
+  "settings":[
+    {
+      "type": "text",
+      "id": "backLinkText",
+      "label": "Back link text",
+      "default": "See all pressing instructions"
+    },
+    {
+      "type": "text",
+      "id": "backlinkUrl",
+      "label": "Back link URL",
+      "default": "\/pages\/pressing-instructions"
+    },
+    {
+      "type":"textarea",
+      "id":"title",
+      "label":"Main Title",
+      "default":"Full color Printed Patches"
+    },
+    {
+      "type": "textarea",
+      "id": "subTitle",
+      "label": "Sub title",
+      "default": "Pressing Instructions"
+    },
+    {
+      "type": "image_picker",
+      "id": "playIcon",
+      "label": "Upload Play Icon"
+    },
+    {
+      "type": "image_picker",
+      "id": "imagePoster",
+      "label": "Image poster"
+    },
+    {
+      "type": "video_url",
+      "id": "video",
+      "accept": [
+        "youtube"
+      ],
+      "label": "Add video"
+    },
+    {
+      "type": "checkbox",
+      "id": "mobileVideoTop",
+      "label": "On Mobile video at top",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "bgColor",
+      "label": "Background Color",
+      "default": "#bae6ce"
+    },
+    {
+      "type": "header",
+      "content": "Section Padding"
+    },
+    {
+      "type": "range",
+      "id": "pt",
+      "label": "Padding top",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "pb",
+      "label": "Padding bottom",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 36
+    }
+  ],
+  "presets":[
+    {
+      "name":"Page Header"
+    }
+  ],
+  "disabled_on":{
+    "groups":[
+      "header",
+      "footer"
+    ]
+  }
+}
+{% endschema %}

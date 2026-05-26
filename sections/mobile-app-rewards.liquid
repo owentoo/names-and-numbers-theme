@@ -1,0 +1,243 @@
+{% assign enable_loyalty = false %}
+{% if customer %}
+  {% assign enable_loyalty = true %}
+{% endif %}
+
+{%- if enable_loyalty -%}
+  {%- comment -%} Default to White Belt when tier_label is blank/null so the
+       cashback rate calculation always has a valid tier. {%- endcomment -%}
+  {%- assign tier_raw = customer.metafields.ninja_rewards.tier_label | default: 'White Belt' -%}
+  {%- assign tierinfo = tier_raw | downcase -%}
+  {%- assign total_val = customer.store_credit_account.balance | default: 0 -%}
+  {%- assign belt_class = tier_raw | downcase | split: ' ' | join: '-' -%}
+{%- endif -%}
+
+{% style %}
+  .mar-{{ section.id }} {
+    display: none;
+    padding: {{ section.settings.padding_top }}px 0px {{ section.settings.padding_bottom }}px;
+    background: {{ section.settings.bg_color }};
+  }
+  @media (max-width: 767px) {
+    .mar-{{ section.id }} { display: block; }
+  }
+  .mar-card-{{ section.id }} {
+    background: {{ section.settings.card_bg }};
+    border-radius: {{ section.settings.card_radius }}px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 3px 14px;
+  }
+  .mar-left-{{ section.id }} {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+    text-decoration: none;
+    color: inherit;
+  }
+  .mar-icon-wrap-{{ section.id }} {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .mar-icon-{{ section.id }} {
+    width: {{ section.settings.icon_size }}px;
+    height: {{ section.settings.icon_size }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .mar-icon-{{ section.id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .mar-icon-{{ section.id }} svg {
+    width: 100%;
+    height: 100%;
+  }
+  .mar-body-{{ section.id }} {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
+  .mar-title-{{ section.id }} {
+    font-size: {{ section.settings.title_size }}px;
+    font-weight: 700;
+    color: {{ section.settings.title_color }};
+    line-height: 1.2;
+  }
+  .mar-sub-{{ section.id }} {
+    font-size: {{ section.settings.sub_size }}px;
+    color: {{ section.settings.sub_color }};
+    margin-top: 2px;
+    line-height: 1.2;
+  }
+  .mar-badge-{{ section.id }} {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-top: 2px;
+    background: {{ section.settings.badge_bg }};
+    color: {{ section.settings.badge_color }};
+  }
+  .mar-value-{{ section.id }} {
+    font-size: {{ section.settings.value_size }}px;
+    font-weight: 700;
+    color: {{ section.settings.value_color }};
+    margin-top: 1px;
+    line-height: 1.2;
+  }
+  .mar-progress-btn-{{ section.id }} {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: {{ section.settings.value_color }};
+    cursor: pointer;
+    text-decoration: underline;
+    white-space: nowrap;
+  }
+  /* Modal panel — expands downward from below the card */
+  .mar-modal-panel-{{ section.id }} {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.45s ease-out;
+    background: {{ section.settings.card_bg }};
+    border-radius: 0 0 {{ section.settings.card_radius }}px {{ section.settings.card_radius }}px;
+  }
+  .mar-modal-panel-{{ section.id }}.open {
+    max-height: 1000px;
+  }
+  .mar-modal-inner-{{ section.id }} {
+    padding: 0 6px 12px;
+  }
+{% endstyle %}
+
+<div class="mar-{{ section.id }}">
+  <div class="mar-card-{{ section.id }}">
+
+    {%- if enable_loyalty -%}
+      {%- assign mar_link = section.settings.link -%}
+    {%- else -%}
+      {%- assign mar_link = '/customer_authentication/login?return_to=%2Fpages%2Fwelcome' -%}
+    {%- endif -%}
+    <a href="{{ mar_link }}" class="mar-left-{{ section.id }}">
+      <div class="mar-icon-wrap-{{ section.id }}">
+        <div class="mar-icon-{{ section.id }}">
+          {%- if enable_loyalty -%}
+            {%- case belt_class -%}
+              {%- when 'black-belt' -%}
+                {%- render 'theme-symbols', icon: 'icon-black-belt-png' -%}
+              {%- when 'yellow-belt' -%}
+                {%- render 'theme-symbols', icon: 'icon-yellow-belt-png' -%}
+              {%- when 'blue-belt' -%}
+                {%- render 'theme-symbols', icon: 'icon-blue-belt-png' -%}
+              {%- else -%}
+                {%- render 'theme-symbols', icon: 'icon-white-belt-png' -%}
+            {%- endcase -%}
+          {%- elsif section.settings.guest_icon != blank -%}
+            <img src="{{ section.settings.guest_icon | image_url: width: 120 }}" alt="Ninja Rewards" width="{{ section.settings.icon_size }}" height="{{ section.settings.icon_size }}" loading="lazy">
+          {%- else -%}
+            {%- render 'theme-symbols', icon: 'icon-loyalty' -%}
+          {%- endif -%}
+        </div>
+      </div>
+
+      <div class="mar-body-{{ section.id }}">
+        <div class="mar-title-{{ section.id }}">{{ section.settings.title }}</div>
+        {%- if enable_loyalty -%}
+          <div class="mar-value-{{ section.id }}">{{ total_val | money }}</div>
+        {%- else -%}
+          <div class="mar-sub-{{ section.id }}">{{ section.settings.guest_subtitle }}</div>
+          <div class="mar-value-{{ section.id }}">{{ section.settings.guest_cta }}</div>
+        {%- endif -%}
+      </div>
+    </a>
+
+    {%- if enable_loyalty -%}
+      <button class="mar-progress-btn-{{ section.id }}" id="mar-prog-btn-{{ section.id }}">View Progress</button>
+    {%- endif -%}
+
+  </div>
+</div>
+
+{%- if enable_loyalty -%}
+<div id="mar-modal-{{ section.id }}" class="mar-modal-panel-{{ section.id }}">
+  <div class="mar-modal-inner-{{ section.id }}">
+    {%- render 'loyalty-tier-progress-mobile' -%}
+  </div>
+</div>
+
+<script>
+(function() {
+  var btn = document.getElementById('mar-prog-btn-{{ section.id }}');
+  var panel = document.getElementById('mar-modal-{{ section.id }}');
+  if (btn && panel) {
+    btn.addEventListener('click', function() {
+      var isOpen = panel.classList.contains('open');
+      panel.classList.toggle('open');
+      btn.textContent = isOpen ? 'View Progress' : 'Hide Progress';
+    });
+  }
+})();
+</script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Rewards Card",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    { "type": "range",  "id": "padding_top",    "label": "Padding Top",       "min": 0, "max": 60, "step": 4, "unit": "px", "default": 0 },
+    { "type": "range",  "id": "padding_bottom",  "label": "Padding Bottom",    "min": 0, "max": 60, "step": 4, "unit": "px", "default": 16 },
+    { "type": "color",  "id": "bg_color",        "label": "Section Background","default": "#f5f7fb" },
+    { "type": "color",  "id": "card_bg",         "label": "Card Background",   "default": "#ffffff" },
+    { "type": "range",  "id": "card_radius",     "label": "Card Radius",       "min": 0, "max": 32, "step": 2, "unit": "px", "default": 16 },
+    { "type": "range",  "id": "icon_size",       "label": "Icon Size",         "min": 32, "max": 80, "step": 4, "unit": "px", "default": 48 },
+    {
+      "type": "header",
+      "content": "Text"
+    },
+    { "type": "text",   "id": "title",           "label": "Title",             "default": "Ninja Rewards" },
+    { "type": "range",  "id": "title_size",      "label": "Title Font Size",   "min": 10, "max": 22, "step": 1, "unit": "px", "default": 15 },
+    { "type": "color",  "id": "title_color",     "label": "Title Color",       "default": "#111111" },
+    { "type": "range",  "id": "value_size",      "label": "Value Font Size",   "min": 12, "max": 28, "step": 1, "unit": "px", "default": 18 },
+    { "type": "color",  "id": "value_color",     "label": "Value Color",       "default": "#019aff" },
+    {
+      "type": "header",
+      "content": "Belt Badge"
+    },
+    { "type": "color",  "id": "badge_bg",        "label": "Badge Background",  "default": "#f0f0f0" },
+    { "type": "color",  "id": "badge_color",     "label": "Badge Text Color",  "default": "#333333" },
+    {
+      "type": "header",
+      "content": "Guest / Logged-Out State"
+    },
+    { "type": "image_picker", "id": "guest_icon",    "label": "Guest Icon Image" },
+    { "type": "text",         "id": "guest_subtitle", "label": "Guest Subtitle",  "default": "Earn points on every order" },
+    { "type": "text",         "id": "guest_cta",      "label": "Guest Right Text","default": "Join free" },
+    { "type": "range",        "id": "sub_size",       "label": "Subtitle Font Size", "min": 9, "max": 16, "step": 1, "unit": "px", "default": 12 },
+    { "type": "color",        "id": "sub_color",      "label": "Subtitle Color",  "default": "#64748b" },
+    {
+      "type": "header",
+      "content": "Link"
+    },
+    { "type": "url", "id": "link", "label": "Card Link" }
+  ],
+  "presets": [{ "name": "Rewards Card" }]
+}
+{% endschema %}

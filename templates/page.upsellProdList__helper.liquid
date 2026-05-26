@@ -1,0 +1,49 @@
+{% layout none %}
+{%- capture getUpsellList -%}
+  {%- assign apparelProductChild__count = 1 -%}
+  {% for prod in settings.upsellBlanksCollection.products limit: settings.showItems %}
+    <div class="prod__Item" pid="{{ prod.id }}" handle="{{ prod.url }}">
+      <div class="prod__Item__img">
+        <img
+          src="{{ prod.featured_image | image_url: width: 300 }}"
+          alt="{{ prod.title | escape }}"
+          class="prod__Item__triggerAction"
+        >
+      </div>
+      <div class="prod__Item__content">
+        <span class="prod__Item__startFrom">starting at</span>
+        <div class="prod__Item__price">
+          {{ prod.price_min | money_without_currency | prepend: '$' }}
+        </div>
+        <div class="prod__Item__yotpo">
+          <div
+            class="yotpo-widget-instance"
+            data-yotpo-instance-id="447610"
+            data-yotpo-product-id="{{ prod.id }}"
+            data-yotpo-section-id="{{ section.id }}"
+            data-yotpo-preloaded-data=""
+          ></div>
+        </div>
+        <h4 class="prod__Item__title">{{ prod.title }}</h4>
+        <div class="prod__Item__pCode">{{ prod.metafields.blanks.second_title_for_blanks }}&nbsp;</div>
+      </div>
+      <div class="prod__Item__atc">
+        <button class="prod__Item__triggerAction button">+ Select Sizes</button>
+      </div>
+
+      <div class="prod__Item__popUp hidden">
+        {% if apparelProductChild__count == 1 %}
+          {%- assign showData = true -%}
+          {%- assign apparelProductChild__count = apparelProductChild__count | plus: 1 -%}
+        {% else %}
+          {%- assign showData = false -%}
+          {%- assign apparelProductChild__count = apparelProductChild__count | plus: 1 -%}
+        {% endif %}
+        {% render 'relatedProd', prod_: prod, section: section, showJSData: showData, isUpsellPopup: true %}
+      </div>
+    </div>
+  {% endfor %}
+{%- endcapture -%}
+{
+  "upsellProdList": {{ getUpsellList | json }}
+}

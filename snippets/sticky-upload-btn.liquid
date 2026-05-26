@@ -1,0 +1,454 @@
+<div id="mobile-sticky-wrapper">
+  <button id="mobile-sticky-upload">
+    Upload Your First File
+  </button>
+</div>
+
+<style>
+
+    #mobile-sticky-wrapper {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  padding: 10px 15px;
+  transform: translateY(100%);
+  transition: transform 0.35s ease;
+  z-index: 9999;
+  box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.18);
+}
+
+#mobile-sticky-wrapper.show {
+  transform: translateY(0);
+}
+
+#mobile-sticky-wrapper:not(.show) #mobile-sticky-upload {
+  display: none !important;
+}
+
+#mobile-sticky-upload {
+      width: 100%; 
+    border-radius: 8px;
+    border: none;
+    background: #07A7F2;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 13px 10px;
+}
+
+@media (min-width: 768px) {
+  #mobile-sticky-wrapper {
+    display: none;
+  }
+}
+ 
+
+ </style>   
+<script>
+(function () {
+  const wrapper = document.getElementById("mobile-sticky-wrapper");
+  const btn = document.getElementById("mobile-sticky-upload");
+  const primaryTarget =
+    document.querySelector("#uploadArea") ||
+    document.querySelector("master-upload#uploadArea") ||
+    document.querySelector(".file-upload-overlay-1 #dropZoon");
+  /* On the v2 PDP (handle dtf-transfers-by-size-v2) the upload-controls /
+     master-upload elements sit inside a tab panel that gets `display: none`
+     when the user switches to Previous Designs / Create with AI / Design
+     Studio. Without an alternate anchor the script would treat that as
+     "upload area scrolled off-screen" and re-show the sticky CTA even
+     though the tab strip is still in view. Prefer the `.dtfut` wrapper
+     when present so visibility is driven by the entire tabbed UI, not by
+     whichever inner panel happens to be active. */
+  const dtfutWrapper = document.querySelector(".dtfut");
+  const primaryAnchor =
+    dtfutWrapper ||
+    document.querySelector("upload-controls") ||
+    document.querySelector(".file-upload-overlay-1") ||
+    primaryTarget;
+  const primaryStageAnchor =
+    dtfutWrapper ||
+    document.querySelector("upload-controls master-upload") ||
+    document.querySelector("master-upload#uploadArea") ||
+    primaryTarget;
+  const uploadedStateAnchor =
+    document.querySelector("#fileupload_custom") ||
+    document.querySelector(".fileupload_custom") ||
+    document.querySelector(".split_design");
+  const secondaryTarget =
+    document.querySelector('label.secondDropZone[for="secondFile"]') ||
+    document.querySelector('.secondDropZone[for="secondFile"]') ||
+    document.querySelector("upload-controls another-upload") ||
+    document.querySelector("another-upload") ||
+    document.querySelector(".secondDropZone");
+  const secondaryAnchor =
+    document.querySelector(".file-upload-overlay-2") ||
+    secondaryTarget;
+  const progressAnchor =
+    document.querySelector("upload-controls file-progress") ||
+    document.querySelector("file-progress.fileProgress") ||
+    document.querySelector(".fileProgress");
+  const primaryFileInput = document.querySelector("#fileInput");
+  const secondaryFileInput =
+    document.querySelector("#secondFile") ||
+    document.querySelector("#anotherFile");
+  const firstLabel = btn ? btn.textContent.trim() : "Upload Your First File";
+
+  if (!wrapper) return;
+
+  if (!btn || (!primaryStageAnchor && !primaryAnchor)) {
+    wrapper.style.display = "none";
+    wrapper.setAttribute("hidden", "hidden");
+    return;
+  }
+
+  const OFFSET = 120; // extra offset so it hides earlier
+  let toggleStickyFrame = null;
+  let activeAnchorObserver = null;
+  let observedAnchor = null;
+  let lastViewportVisibleState = null;
+  let lastViewportAnchor = null;
+
+  function isVisible(el) {
+    if (!el) return false;
+
+    const style = window.getComputedStyle(el);
+
+    return style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      el.getClientRects().length > 0;
+  }
+
+  function isPrimaryStageVisible() {
+    return !!(
+      primaryStageAnchor &&
+      !primaryStageAnchor.classList.contains("hidden") &&
+      isVisible(primaryStageAnchor)
+    );
+  }
+
+  function hasPrimaryUploadCompleted() {
+    /* Check positive upload-completed signals first. We deliberately do NOT
+       early-return on `isPrimaryStageVisible()` here because on the .dtfut
+       tabbed PDPs (gang-sheet, by-size-v2) the primary stage anchor is the
+       outer .dtfut wrapper that stays visible across tabs — so a visibility
+       check would mask a completed upload and the click handler / label
+       would treat the user as if they hadn't uploaded yet. */
+    if (document.body.classList.contains("image-uploaded")) return true;
+    if (uploadedStateAnchor && isVisible(uploadedStateAnchor)) return true;
+    if (primaryTarget && primaryTarget.classList.contains("hidden")) return true;
+    const uploadedDropZone = document.querySelector("#dropZoon.drop-zoon--Uploaded");
+    if (uploadedDropZone) return true;
+    return false;
+  }
+
+  function isPrimaryUploadInProgress() {
+    return !!(
+      progressAnchor &&
+      !progressAnchor.classList.contains("hidden") &&
+      isVisible(progressAnchor)
+    );
+  }
+
+  function getActiveAnchor() {
+    /* After upload completed, anchor on the secondary "Add another" upload
+       area. The bar should ONLY hide when the user can see the drop zone
+       where they'd actually drop their next file — not when they're at the
+       top viewing the file preview, and not when .dtfut is at the top of
+       the viewport. Falls back to uploadedStateAnchor when no secondary
+       anchor exists (non-tabbed PDPs / older templates). */
+    if (hasPrimaryUploadCompleted()) {
+      if (secondaryAnchor) return secondaryAnchor;
+      if (uploadedStateAnchor && isVisible(uploadedStateAnchor)) return uploadedStateAnchor;
+    }
+
+    if (isPrimaryStageVisible()) {
+      return primaryStageAnchor || primaryAnchor;
+    }
+
+    return primaryStageAnchor || primaryAnchor;
+  }
+
+  function shouldUseSecondaryLabel() {
+    return hasPrimaryUploadCompleted();
+  }
+
+  function syncButtonText() {
+    btn.textContent = shouldUseSecondaryLabel()
+      ? "Upload Your Next File"
+      : firstLabel;
+  }
+
+  function scheduleToggleSticky() {
+    if (toggleStickyFrame) {
+      cancelAnimationFrame(toggleStickyFrame);
+    }
+
+    toggleStickyFrame = requestAnimationFrame(() => {
+      toggleStickyFrame = null;
+      syncButtonText();
+      syncActiveAnchorObserver();
+      toggleSticky();
+    });
+  }
+
+  function isAnchorVisibleInViewport(anchor) {
+    if (!anchor || !isVisible(anchor)) return false;
+
+    const rect = anchor.getBoundingClientRect();
+    const viewportTop = OFFSET;
+    const viewportBottom = window.innerHeight - OFFSET;
+
+    return rect.top < viewportBottom && rect.bottom > viewportTop;
+  }
+
+  function syncActiveAnchorObserver() {
+    if (typeof IntersectionObserver === "undefined") return;
+
+    const activeAnchor = getActiveAnchor();
+
+    if (observedAnchor === activeAnchor) return;
+
+    if (activeAnchorObserver) {
+      activeAnchorObserver.disconnect();
+      activeAnchorObserver = null;
+    }
+
+    observedAnchor = activeAnchor || null;
+
+    if (!observedAnchor) return;
+
+    activeAnchorObserver = new IntersectionObserver(
+      () => {
+        scheduleToggleSticky();
+      },
+      {
+        root: null,
+        rootMargin: `-${OFFSET}px 0px -${OFFSET}px 0px`,
+        threshold: 0
+      }
+    );
+
+    activeAnchorObserver.observe(observedAnchor);
+  }
+
+  /* -------------------------
+     VISIBILITY LOGIC
+  -------------------------- */
+  function toggleSticky() {
+    if (isPrimaryUploadInProgress()) {
+      lastViewportVisibleState = false;
+      lastViewportAnchor = null;
+      wrapper.classList.remove("show");
+      return;
+    }
+
+    const activeAnchor = getActiveAnchor();
+    if (!activeAnchor) {
+      lastViewportVisibleState = false;
+      lastViewportAnchor = null;
+      return;
+    }
+    const uploadVisible = isAnchorVisibleInViewport(activeAnchor);
+
+    if (uploadVisible && (!lastViewportVisibleState || lastViewportAnchor !== activeAnchor)) {
+      // console.log("[sticky-upload-btn] Target node is in viewport", activeAnchor);
+    }
+
+    lastViewportVisibleState = uploadVisible;
+    lastViewportAnchor = activeAnchor;
+
+    if (uploadVisible) {
+      wrapper.classList.remove("show");
+    } else {
+      wrapper.classList.add("show");
+    }
+  }
+
+  window.addEventListener("scroll", scheduleToggleSticky);
+  window.addEventListener("resize", scheduleToggleSticky);
+
+  if (progressAnchor && typeof MutationObserver !== "undefined") {
+    const progressObserver = new MutationObserver(scheduleToggleSticky);
+    progressObserver.observe(progressAnchor, {
+      attributes: true,
+      attributeFilter: ["class", "style", "hidden"]
+    });
+  }
+
+  if (typeof MutationObserver !== "undefined") {
+    const syncTargets = [
+      document.body,
+      primaryAnchor,
+      primaryStageAnchor,
+      uploadedStateAnchor,
+      secondaryAnchor
+    ].filter(Boolean);
+
+    syncTargets.forEach((target) => {
+      const observer = new MutationObserver(scheduleToggleSticky);
+      observer.observe(target, {
+        attributes: true,
+        attributeFilter: ["class", "style", "hidden"]
+      });
+    });
+  }
+
+  scheduleToggleSticky();
+
+  /* -------------------------
+     CLICK HANDLER
+  -------------------------- */
+  btn.addEventListener("click", () => {
+    if (hasPrimaryUploadCompleted()) {
+      /* TOP-LEVEL VALIDATION GATE — scoped to gang-sheet upload products only
+         (premium-dtf-gang-sheets, uv-dtf-gang-sheets). On those pages, the
+         rights/agreement checkbox must be checked before another upload is
+         allowed.
+
+         Originally this only checked for `.__validate_upload` (the wrapper
+         class added on `upload:ready` when the checkbox is unchecked). But
+         after `refreshAll_()` runs post-cart-commit it does
+         `$(checkbox).prop('checked', false)` — which doesn't fire the
+         `change` listener, so `.__validate_upload` never gets re-added.
+         The user could then hit the sticky button between commits with an
+         unchecked checkbox and bypass the gate.
+
+         New behaviour: ALWAYS check the rights checkbox directly. If it's
+         unchecked, ensure the `.__validate_upload` wrapper exists (creating
+         it if missing) and fire its click handler — surfacing the existing
+         "Please check the box above to continue" inline error. */
+      var isGangSheetUpload = document.body.classList.contains('template-product-dtf-gang-sheet') ||
+                              document.body.classList.contains('template-product-uv-gang-sheet');
+      if (isGangSheetUpload) {
+        /* The rights/agreement checkbox on gang-sheet PDPs is
+           `#terms-buy_buttons` (`input[name="properties[_Terms Accepted]"]`)
+           inside `.gangsheet_terms`. Fall back to common variants used by
+           other product flows in case the selector ever drifts. */
+        var rightsCheckbox = document.querySelector('.gangsheet_terms #terms-buy_buttons') ||
+                             document.getElementById('terms-buy_buttons') ||
+                             document.querySelector('input[name="properties[_Terms Accepted]"]') ||
+                             document.querySelector('.product__cart-functions .cl-upload--input-field .cl-upload--input[type="checkbox"]') ||
+                             document.querySelector('.cl-upload--input-field .cl-upload--input[type="checkbox"]') ||
+                             document.querySelector('.cl-upload--input[type="checkbox"]');
+        var rightsUnchecked = !!(rightsCheckbox && !rightsCheckbox.checked);
+        var validateEl = document.querySelector('.__validate_upload');
+        if (validateEl || rightsUnchecked) {
+          /* Backfill the wrapper if it's missing (refreshAll_ post-cart-commit
+             unchecks the box without firing the change listener, so the wrapper
+             can be absent here). Then trigger the existing `.__validate_upload`
+             click handler to surface the inline "Please check the box above to
+             continue" error by the checkbox — that's the explicit feedback the
+             user wants when they tap the sticky CTA with the box unchecked. */
+          if (!validateEl) {
+            var addToCartBtn = document.querySelector('.add-to-cart[data-main-product-add-to-cart]');
+            if (addToCartBtn && addToCartBtn.parentElement && !addToCartBtn.parentElement.classList.contains('__validate_upload')) {
+              var stickyWrapper = document.createElement('div');
+              stickyWrapper.className = '__errorcase __validate_upload';
+              addToCartBtn.parentElement.insertBefore(stickyWrapper, addToCartBtn);
+              stickyWrapper.appendChild(addToCartBtn);
+            }
+            validateEl = document.querySelector('.__validate_upload');
+          }
+          if (validateEl) validateEl.click();
+          /* Scroll the terms checkbox into view so the red error the click
+             handler just rendered is actually visible — the sticky CTA lives
+             at the bottom of the viewport, so without this the user taps,
+             nothing visibly changes, and they don't know why. `block: 'center'`
+             keeps it clear of the sticky bar. */
+          var termsTarget = document.querySelector('.gangsheet_terms') ||
+                            document.querySelector('.product__cart-functions .cl-upload--input-fields') ||
+                            rightsCheckbox;
+          if (termsTarget && typeof termsTarget.scrollIntoView === 'function') {
+            termsTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          return;
+        }
+      }
+
+      /* Route the secondary upload through the gated `.anotherTransfer`
+         flow when it's available. That flow:
+           1. Commits the previously-uploaded file to cart first.
+           2. Sets the `anotherTransfer = true` flag so the form knows
+              to reset its state before accepting the new file. */
+      var anotherTransferBtn = document.querySelector('.anotherTransfer');
+      if (anotherTransferBtn) {
+        anotherTransferBtn.click();
+        return;
+      }
+
+      if (secondaryTarget && isVisible(secondaryTarget)) {
+        secondaryTarget.click();
+        return;
+      }
+
+      if (secondaryFileInput) {
+        secondaryFileInput.click();
+        return;
+      }
+    }
+
+    if (primaryTarget && isVisible(primaryTarget)) {
+      primaryTarget.click();
+      return;
+    }
+
+    if (primaryFileInput) {
+      primaryFileInput.click();
+      return;
+    }
+
+    if (secondaryTarget && isVisible(secondaryTarget)) {
+      secondaryTarget.click();
+      return;
+    }
+
+    if (secondaryFileInput) {
+      secondaryFileInput.click();
+    }
+  });
+
+  /* -------------------------
+     FIRST FILE UPLOAD DETECT
+     (HOOK INTO FILE INPUT)
+  -------------------------- */
+  if (primaryFileInput) {
+    primaryFileInput.addEventListener("change", () => {
+      if (primaryFileInput.files.length) {
+        syncButtonText();
+
+        // Scroll back to upload-controls
+        const activeAnchor = getActiveAnchor();
+        if (!activeAnchor) return;
+
+        const top =
+          activeAnchor.getBoundingClientRect().top +
+          window.pageYOffset -
+          80;
+
+        window.scrollTo({
+          top,
+          behavior: "smooth"
+        });
+
+        scheduleToggleSticky();
+        setTimeout(scheduleToggleSticky, 250);
+      }
+    });
+  }
+
+  if (secondaryFileInput) {
+    secondaryFileInput.addEventListener("change", () => {
+      syncButtonText();
+      scheduleToggleSticky();
+    });
+  }
+
+  syncButtonText();
+  scheduleToggleSticky();
+})();
+
+</script>

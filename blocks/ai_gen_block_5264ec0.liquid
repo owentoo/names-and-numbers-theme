@@ -1,0 +1,1899 @@
+{% doc %}
+  @prompt
+    Create a fully customizable Shopify section with a responsive product grid: 3 columns desktop, 2 tablet, 1 mobile. Each product card must be fully clickable and include its own editable CTA button.
+    
+    Product card structure (in order):
+    
+    Optional top-left pill (editable text, color, size, shape, visibility per breakpoint)
+    
+    Product image (uploadable)
+    
+    Custom title
+    
+    Custom price text
+    
+    Custom sub-text
+    
+    CTA button (editable text, link, color, hover color, size, padding, visibility per breakpoint)
+    
+    Section requirements:
+    
+    Editable section heading with full control over alignment, size, spacing, and visibility on desktop/mobile.
+    
+    Full per-card controls: image, title, price, sub-text, pill settings, CTA settings, and individual link (entire card clickable).
+    
+    Layout controls: grid spacing, card padding/margins, card size, border radius, shadows, text alignment, image aspect ratio, and max-width.
+    
+    Separate desktop and mobile controls for spacing, alignment, and visibility.
+    
+    Fully responsive and visually balanced by default.
+    
+    The section must allow complete customization through the theme editor without modifying code., Give me control over the padding of the pills on each product card, Pill padding should effect the outside padding, not the inside of the pill
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-product-grid-{{ ai_gen_id }} {
+    width: 100%;
+    max-width: {{ block.settings.section_max_width }}px;
+    margin: 0 auto;
+    padding: {{ block.settings.section_padding_desktop }}px {{ block.settings.section_horizontal_padding }}px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-grid-{{ ai_gen_id }} {
+      padding: {{ block.settings.section_padding_mobile }}px {{ block.settings.section_horizontal_padding_mobile }}px;
+    }
+  }
+
+  .ai-product-grid-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size_desktop }}px;
+    text-align: {{ block.settings.heading_alignment_desktop }};
+    margin-bottom: {{ block.settings.heading_spacing_desktop }}px;
+    color: {{ block.settings.heading_color }};
+    font-weight: 600;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-grid-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size_mobile }}px;
+      text-align: {{ block.settings.heading_alignment_mobile }};
+      margin-bottom: {{ block.settings.heading_spacing_mobile }}px;
+      {% if block.settings.heading_hide_mobile %}
+        display: none;
+      {% endif %}
+    }
+  }
+
+  {% if block.settings.heading_hide_desktop %}
+    @media screen and (min-width: 750px) {
+      .ai-product-grid-heading-{{ ai_gen_id }} {
+        display: none;
+      }
+    }
+  {% endif %}
+
+  .ai-product-grid-container-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    gap: {{ block.settings.grid_gap_desktop }}px;
+  }
+
+  @media screen and (max-width: 989px) {
+    .ai-product-grid-container-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_tablet }}, 1fr);
+      gap: {{ block.settings.grid_gap_tablet }}px;
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-grid-container-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+      gap: {{ block.settings.grid_gap_mobile }}px;
+    }
+  }
+
+  .ai-product-card-{{ ai_gen_id }} {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: {{ block.settings.card_background }};
+    border-radius: {{ block.settings.card_border_radius }}px;
+    padding: {{ block.settings.card_padding }}px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    {% if block.settings.card_shadow %}
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    {% endif %}
+  }
+
+  .ai-product-card-{{ ai_gen_id }}:hover {
+    transform: translateY(-4px);
+    {% if block.settings.card_shadow %}
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    {% endif %}
+  }
+
+  .ai-product-card-pill-{{ ai_gen_id }} {
+    position: absolute;
+    z-index: 2;
+    padding: {{ block.settings.pill_padding_vertical }}px {{ block.settings.pill_padding_horizontal }}px;
+    font-size: {{ block.settings.pill_font_size }}px;
+    font-weight: 600;
+    border-radius: {{ block.settings.pill_border_radius }}px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-card-pill-{{ ai_gen_id }} {
+      {% if block.settings.pill_hide_mobile %}
+        display: none;
+      {% endif %}
+    }
+  }
+
+  {% if block.settings.pill_hide_desktop %}
+    @media screen and (min-width: 750px) {
+      .ai-product-card-pill-{{ ai_gen_id }} {
+        display: none;
+      }
+    }
+  {% endif %}
+
+  .ai-product-card-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    padding-bottom: {{ block.settings.image_aspect_ratio }}%;
+    overflow: hidden;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    margin-bottom: {{ block.settings.image_spacing }}px;
+  }
+
+  .ai-product-card-image-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-product-card-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-product-card-placeholder-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+    opacity: 0.3;
+  }
+
+  .ai-product-card-content-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    text-align: {{ block.settings.text_alignment }};
+  }
+
+  .ai-product-card-title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.title_font_size }}px;
+    font-weight: 600;
+    color: {{ block.settings.title_color }};
+    margin-bottom: {{ block.settings.title_spacing }}px;
+    line-height: 1.3;
+  }
+
+  .ai-product-card-price-{{ ai_gen_id }} {
+    font-size: {{ block.settings.price_font_size }}px;
+    font-weight: 700;
+    color: {{ block.settings.price_color }};
+    margin-bottom: {{ block.settings.price_spacing }}px;
+  }
+
+  .ai-product-card-subtext-{{ ai_gen_id }} {
+    font-size: {{ block.settings.subtext_font_size }}px;
+    color: {{ block.settings.subtext_color }};
+    margin-bottom: {{ block.settings.subtext_spacing }}px;
+    line-height: 1.5;
+  }
+
+  .ai-product-card-cta-{{ ai_gen_id }} {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: {{ block.settings.cta_padding_vertical }}px {{ block.settings.cta_padding_horizontal }}px;
+    background-color: {{ block.settings.cta_background }};
+    color: {{ block.settings.cta_text_color }};
+    font-size: {{ block.settings.cta_font_size }}px;
+    font-weight: 600;
+    border-radius: {{ block.settings.cta_border_radius }}px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    margin-top: auto;
+    {% if block.settings.text_alignment == 'center' %}
+      align-self: center;
+    {% elsif block.settings.text_alignment == 'right' %}
+      align-self: flex-end;
+    {% else %}
+      align-self: flex-start;
+    {% endif %}
+  }
+
+  .ai-product-card-cta-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.cta_hover_background }};
+    color: {{ block.settings.cta_hover_text_color }};
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-card-cta-{{ ai_gen_id }} {
+      {% if block.settings.cta_hide_mobile %}
+        display: none;
+      {% endif %}
+    }
+  }
+
+  {% if block.settings.cta_hide_desktop %}
+    @media screen and (min-width: 750px) {
+      .ai-product-card-cta-{{ ai_gen_id }} {
+        display: none;
+      }
+    }
+  {% endif %}
+{% endstyle %}
+
+<div class="ai-product-grid-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  {% if block.settings.section_heading != blank %}
+    <h2 class="ai-product-grid-heading-{{ ai_gen_id }}">{{ block.settings.section_heading }}</h2>
+  {% endif %}
+
+  <div class="ai-product-grid-container-{{ ai_gen_id }}">
+    {% for i in (1..12) %}
+      {% liquid
+        assign card_enabled_key = 'card_' | append: i | append: '_enabled'
+        assign card_link_key = 'card_' | append: i | append: '_link'
+        assign card_image_key = 'card_' | append: i | append: '_image'
+        assign card_title_key = 'card_' | append: i | append: '_title'
+        assign card_price_key = 'card_' | append: i | append: '_price'
+        assign card_subtext_key = 'card_' | append: i | append: '_subtext'
+        assign card_pill_text_key = 'card_' | append: i | append: '_pill_text'
+        assign card_pill_bg_key = 'card_' | append: i | append: '_pill_bg'
+        assign card_pill_text_color_key = 'card_' | append: i | append: '_pill_text_color'
+        assign card_pill_offset_top_key = 'card_' | append: i | append: '_pill_offset_top'
+        assign card_pill_offset_left_key = 'card_' | append: i | append: '_pill_offset_left'
+        assign card_cta_text_key = 'card_' | append: i | append: '_cta_text'
+        assign card_cta_link_key = 'card_' | append: i | append: '_cta_link'
+
+        assign card_enabled = block.settings[card_enabled_key]
+        assign card_link = block.settings[card_link_key]
+        assign card_image = block.settings[card_image_key]
+        assign card_title = block.settings[card_title_key]
+        assign card_price = block.settings[card_price_key]
+        assign card_subtext = block.settings[card_subtext_key]
+        assign card_pill_text = block.settings[card_pill_text_key]
+        assign card_pill_bg = block.settings[card_pill_bg_key]
+        assign card_pill_text_color = block.settings[card_pill_text_color_key]
+        assign card_pill_offset_top = block.settings[card_pill_offset_top_key]
+        assign card_pill_offset_left = block.settings[card_pill_offset_left_key]
+        assign card_cta_text = block.settings[card_cta_text_key]
+        assign card_cta_link = block.settings[card_cta_link_key]
+      %}
+
+      {% if card_enabled %}
+        <a
+          href="{{ card_link }}"
+          class="ai-product-card-{{ ai_gen_id }}"
+          {% if card_link == blank %}onclick="return false;"{% endif %}
+        >
+          {% if card_pill_text != blank %}
+            <span
+              class="ai-product-card-pill-{{ ai_gen_id }}"
+              style="background-color: {{ card_pill_bg }}; color: {{ card_pill_text_color }}; top: {{ card_pill_offset_top }}px; left: {{ card_pill_offset_left }}px;"
+            >
+              {{ card_pill_text }}
+            </span>
+          {% endif %}
+
+          <div class="ai-product-card-image-wrapper-{{ ai_gen_id }}">
+            {% if card_image %}
+              <img
+                src="{{ card_image | image_url: width: 800 }}"
+                alt="{{ card_title | escape }}"
+                class="ai-product-card-image-{{ ai_gen_id }}"
+                loading="lazy"
+                width="800"
+                height="{{ 800 | times: block.settings.image_aspect_ratio | divided_by: 100 }}"
+              >
+            {% else %}
+              <div class="ai-product-card-placeholder-{{ ai_gen_id }}">
+                {{ 'product-1' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="ai-product-card-content-{{ ai_gen_id }}">
+            {% if card_title != blank %}
+              <h3 class="ai-product-card-title-{{ ai_gen_id }}">{{ card_title }}</h3>
+            {% endif %}
+
+            {% if card_price != blank %}
+              <div class="ai-product-card-price-{{ ai_gen_id }}">{{ card_price }}</div>
+            {% endif %}
+
+            {% if card_subtext != blank %}
+              <div class="ai-product-card-subtext-{{ ai_gen_id }}">{{ card_subtext }}</div>
+            {% endif %}
+
+            {% if card_cta_text != blank %}
+              <span class="ai-product-card-cta-{{ ai_gen_id }}">
+                {{ card_cta_text }}
+              </span>
+            {% endif %}
+          </div>
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Custom product grid",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section heading"
+    },
+    {
+      "type": "text",
+      "id": "section_heading",
+      "label": "Heading"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "heading_size_desktop",
+      "min": 16,
+      "max": 72,
+      "step": 2,
+      "unit": "px",
+      "label": "Size (desktop)",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 16,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Size (mobile)",
+      "default": 28
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment_desktop",
+      "label": "Alignment (desktop)",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment_mobile",
+      "label": "Alignment (mobile)",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "heading_spacing_desktop",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Bottom spacing (desktop)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "heading_spacing_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Bottom spacing (mobile)",
+      "default": 24
+    },
+    {
+      "type": "checkbox",
+      "id": "heading_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "heading_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "label": "Columns (desktop)",
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "columns_tablet",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "label": "Columns (tablet)",
+      "default": 2
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns (mobile)",
+      "options": [
+        { "value": "1", "label": "1" },
+        { "value": "2", "label": "2" }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "grid_gap_desktop",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Grid gap (desktop)",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "grid_gap_tablet",
+      "min": 0,
+      "max": 48,
+      "step": 4,
+      "unit": "px",
+      "label": "Grid gap (tablet)",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "grid_gap_mobile",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Grid gap (mobile)",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "section_max_width",
+      "min": 1000,
+      "max": 2000,
+      "step": 50,
+      "unit": "px",
+      "label": "Max width",
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "section_padding_desktop",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "Vertical padding (desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_mobile",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Vertical padding (mobile)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_horizontal_padding",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Horizontal padding (desktop)",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "section_horizontal_padding_mobile",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Horizontal padding (mobile)",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Card style"
+    },
+    {
+      "type": "color",
+      "id": "card_background",
+      "label": "Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_padding",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 14
+    },
+    {
+      "type": "checkbox",
+      "id": "card_shadow",
+      "label": "Show shadow",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Image"
+    },
+    {
+      "type": "range",
+      "id": "image_aspect_ratio",
+      "min": 50,
+      "max": 150,
+      "step": 5,
+      "unit": "%",
+      "label": "Aspect ratio",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "image_spacing",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Title"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "title_font_size",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "title_spacing",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Price"
+    },
+    {
+      "type": "color",
+      "id": "price_color",
+      "label": "Color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "price_font_size",
+      "min": 12,
+      "max": 28,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "price_spacing",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Sub-text"
+    },
+    {
+      "type": "color",
+      "id": "subtext_color",
+      "label": "Color",
+      "default": "#666666"
+    },
+    {
+      "type": "range",
+      "id": "subtext_font_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "subtext_spacing",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Pill badge"
+    },
+    {
+      "type": "range",
+      "id": "pill_font_size",
+      "min": 10,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_vertical",
+      "min": 2,
+      "max": 16,
+      "step": 1,
+      "unit": "px",
+      "label": "Inner vertical padding",
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_horizontal",
+      "min": 4,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Inner horizontal padding",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "pill_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 20
+    },
+    {
+      "type": "checkbox",
+      "id": "pill_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "pill_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "CTA button"
+    },
+    {
+      "type": "color",
+      "id": "cta_background",
+      "label": "Background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "cta_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "cta_hover_background",
+      "label": "Hover background",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "cta_hover_text_color",
+      "label": "Hover text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "cta_font_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_vertical",
+      "min": 4,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Vertical padding",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_horizontal",
+      "min": 8,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Horizontal padding",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "cta_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    },
+    {
+      "type": "checkbox",
+      "id": "cta_hide_desktop",
+      "label": "Hide on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "cta_hide_mobile",
+      "label": "Hide on mobile",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Product card 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_enabled",
+      "label": "Enable card",
+      "default": true
+    },
+    {
+      "type": "url",
+      "id": "card_1_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_1_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_1_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_1_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_1_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_1_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_1_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_1_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_1_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_1_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_1_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Product card 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_enabled",
+      "label": "Enable card",
+      "default": true
+    },
+    {
+      "type": "url",
+      "id": "card_2_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_2_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_2_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_2_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_2_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_2_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_2_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_2_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_2_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_2_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_2_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Product card 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_enabled",
+      "label": "Enable card",
+      "default": true
+    },
+    {
+      "type": "url",
+      "id": "card_3_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_3_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_3_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_3_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_3_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_3_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_3_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_3_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_3_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_3_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_3_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Product card 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "card_4_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_4_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_4_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_4_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_4_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_4_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_4_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_4_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_4_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_4_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_4_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Product card 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "card_5_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_5_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_5_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_5_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_5_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_5_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_5_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_5_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_5_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_5_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_5_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_5_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Product card 6"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "card_6_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_6_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_6_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_6_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_6_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_6_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_6_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_6_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_6_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_6_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_6_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_6_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Product card 7"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_7_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "card_7_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_7_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_7_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_7_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_7_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_7_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_7_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_7_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_7_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_7_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_7_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_7_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Product card 8"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_8_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "card_8_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_8_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_8_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_8_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_8_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_8_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_8_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_8_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_8_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_8_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_8_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_8_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Product card 9"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_9_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "card_9_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_9_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_9_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_9_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_9_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_9_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_9_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_9_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_9_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_9_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_9_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_9_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Product card 10"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_10_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "card_10_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_10_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_10_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_10_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_10_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_10_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_10_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_10_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_10_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_10_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_10_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_10_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Product card 11"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_11_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "card_11_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_11_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_11_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_11_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_11_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_11_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_11_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_11_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_11_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_11_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_11_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_11_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "header",
+      "content": "Product card 12"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_12_enabled",
+      "label": "Enable card",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "card_12_link",
+      "label": "Card link"
+    },
+    {
+      "type": "image_picker",
+      "id": "card_12_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_12_title",
+      "label": "Title",
+      "default": "Product title"
+    },
+    {
+      "type": "text",
+      "id": "card_12_price",
+      "label": "Price",
+      "default": "$29.99"
+    },
+    {
+      "type": "textarea",
+      "id": "card_12_subtext",
+      "label": "Sub-text",
+      "default": "Product description goes here"
+    },
+    {
+      "type": "text",
+      "id": "card_12_pill_text",
+      "label": "Pill text"
+    },
+    {
+      "type": "color",
+      "id": "card_12_pill_bg",
+      "label": "Pill background",
+      "default": "#ff0000"
+    },
+    {
+      "type": "color",
+      "id": "card_12_pill_text_color",
+      "label": "Pill text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_12_pill_offset_top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill top offset",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_12_pill_offset_left",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Pill left offset",
+      "default": 16
+    },
+    {
+      "type": "text",
+      "id": "card_12_cta_text",
+      "label": "CTA text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "card_12_cta_link",
+      "label": "CTA link"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Custom product grid"
+    }
+  ],
+  "tag": null
+}
+{% endschema %}

@@ -1,0 +1,1816 @@
+{% doc %}
+  @prompt
+    Create a fully customizable Shopify section that displays a grid of product cards.
+    Layout: 5 columns on desktop, 2–3 on tablet (editable), 1 on mobile, with full control over spacing, padding, and max-width.
+    
+    Card Structure (top → bottom):
+    
+    Image (upload per card; adjustable ratio)
+    
+    Title (editable text)
+    
+    Optional 1-line benefit (toggle on/off per card)
+    
+    Price + Delivery row:
+    
+    Field 1: starting price
+    
+    Field 2: delivery time
+    
+    Option for single-line or stacked layout
+    
+    CTA Button
+    
+    Editable text + link
+    
+    Editable style
+    
+    Button width must be uniform across all cards
+    
+    Hide/show toggle
+    
+    Entire card must also be clickable (separate from CTA).
+    
+    Section Controls:
+    
+    Edit heading + optional subheading
+    
+    Adjust column count per breakpoint
+    
+    Adjust card padding, radius, background, border, shadow, hover state
+    
+    Control text alignment
+    
+    Control row/column gaps + section padding
+    
+    Edit CTA button style and global CTA width
+    
+    Set section max-width or card max-width
+    
+    Card Controls:
+    
+    Upload image
+    
+    Edit title
+    
+    Edit benefit text
+    
+    Edit starting price
+    
+    Edit delivery time
+    
+    Edit CTA text + link
+    
+    Toggle visibility for benefit, price, delivery, CTA
+    
+    Behavior Requirements:
+    
+    Fully responsive
+    
+    Image always on top
+    
+    Cards must remain simple, clean, and scannable
+    
+    All CTAs must display at a consistent width regardless of text length
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-product-grid-{{ ai_gen_id }} {
+    max-width: {{ block.settings.section_max_width }}px;
+    margin: 0 auto;
+    padding: {{ block.settings.section_padding_top }}px {{ block.settings.section_padding_horizontal }}px {{ block.settings.section_padding_bottom }}px;
+  }
+
+  .ai-product-grid-header-{{ ai_gen_id }} {
+    text-align: {{ block.settings.text_alignment }};
+    margin-bottom: {{ block.settings.header_spacing }}px;
+  }
+
+  .ai-product-grid-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size }}px;
+    margin: 0 0 {{ block.settings.subheading_spacing }}px;
+    color: {{ block.settings.heading_color }};
+  }
+
+  .ai-product-grid-subheading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.subheading_size }}px;
+    margin: 0;
+    color: {{ block.settings.subheading_color }};
+  }
+
+  .ai-product-grid-container-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    gap: {{ block.settings.row_gap }}px {{ block.settings.column_gap }}px;
+  }
+
+  .ai-product-card-{{ ai_gen_id }} {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: {{ block.settings.card_background }};
+    border: {{ block.settings.card_border_width }}px solid {{ block.settings.card_border_color }};
+    border-radius: {{ block.settings.card_border_radius }}px;
+    padding: {{ block.settings.card_padding }}px;
+    text-align: {{ block.settings.text_alignment }};
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+    {% if block.settings.card_shadow %}
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    {% endif %}
+  }
+
+  .ai-product-card-{{ ai_gen_id }}:hover {
+    {% if block.settings.card_hover_shadow %}
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    {% endif %}
+    {% if block.settings.card_hover_transform %}
+      transform: translateY(-4px);
+    {% endif %}
+  }
+
+  .ai-product-card-image-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    padding-bottom: {{ block.settings.image_aspect_ratio | times: 100 }}%;
+    margin-bottom: {{ block.settings.image_spacing }}px;
+    overflow: hidden;
+    border-radius: {{ block.settings.image_border_radius }}px;
+  }
+
+  .ai-product-card-image-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-product-card-image-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-product-card-image-placeholder-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+    opacity: 0.3;
+  }
+
+  .ai-product-card-content-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+
+  .ai-product-card-title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.title_size }}px;
+    font-weight: 600;
+    margin: 0 0 {{ block.settings.title_spacing }}px;
+    color: {{ block.settings.title_color }};
+  }
+
+  .ai-product-card-benefit-{{ ai_gen_id }} {
+    font-size: {{ block.settings.benefit_size }}px;
+    margin: 0 0 {{ block.settings.benefit_spacing }}px;
+    color: {{ block.settings.benefit_color }};
+    line-height: 1.4;
+  }
+
+  .ai-product-card-price-delivery-{{ ai_gen_id }} {
+    {% if block.settings.price_delivery_layout == 'row' %}
+      display: flex;
+      align-items: center;
+      justify-content: {{ block.settings.text_alignment }};
+      gap: {{ block.settings.price_delivery_gap }}px;
+    {% else %}
+      display: flex;
+      flex-direction: column;
+      gap: {{ block.settings.price_delivery_gap }}px;
+    {% endif %}
+    margin-bottom: {{ block.settings.price_delivery_spacing }}px;
+  }
+
+  .ai-product-card-price-{{ ai_gen_id }} {
+    font-size: {{ block.settings.price_size }}px;
+    font-weight: 600;
+    color: {{ block.settings.price_color }};
+  }
+
+  .ai-product-card-delivery-{{ ai_gen_id }} {
+    font-size: {{ block.settings.delivery_size }}px;
+    color: {{ block.settings.delivery_color }};
+  }
+
+  .ai-product-card-cta-wrapper-{{ ai_gen_id }} {
+    margin-top: auto;
+  }
+
+  .ai-product-card-cta-{{ ai_gen_id }} {
+    display: inline-block;
+    width: {{ block.settings.cta_width }}%;
+    padding: {{ block.settings.cta_padding_vertical }}px {{ block.settings.cta_padding_horizontal }}px;
+    background-color: {{ block.settings.cta_background }};
+    color: {{ block.settings.cta_text_color }};
+    border: {{ block.settings.cta_border_width }}px solid {{ block.settings.cta_border_color }};
+    border-radius: {{ block.settings.cta_border_radius }}px;
+    font-size: {{ block.settings.cta_font_size }}px;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .ai-product-card-cta-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.cta_hover_background }};
+    color: {{ block.settings.cta_hover_text_color }};
+    border-color: {{ block.settings.cta_hover_border_color }};
+  }
+
+  @media screen and (max-width: 989px) and (min-width: 750px) {
+    .ai-product-grid-container-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_tablet }}, 1fr);
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-grid-container-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+    }
+
+    .ai-product-grid-{{ ai_gen_id }} {
+      padding: {{ block.settings.section_padding_top | times: 0.7 }}px {{ block.settings.section_padding_horizontal | times: 0.7 }}px {{ block.settings.section_padding_bottom | times: 0.7 }}px;
+    }
+
+    .ai-product-grid-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size | times: 0.8 }}px;
+    }
+
+    .ai-product-card-cta-{{ ai_gen_id }} {
+      width: 100%;
+    }
+
+    {% if block.settings.hero_first_mobile %}
+      .ai-product-card-{{ ai_gen_id }}:first-child {
+        grid-column: 1 / -1;
+      }
+      .ai-product-card-{{ ai_gen_id }}:first-child .ai-product-card-image-wrapper-{{ ai_gen_id }} {
+        padding-bottom: 56.25%;
+      }
+      .ai-product-card-{{ ai_gen_id }}:first-child .ai-product-card-content-{{ ai_gen_id }} {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .ai-product-card-{{ ai_gen_id }}:first-child .ai-product-card-title-{{ ai_gen_id }} {
+        margin-bottom: 0;
+        flex: 1;
+        font-size: 18px;
+      }
+      .ai-product-card-{{ ai_gen_id }}:first-child .ai-product-card-cta-wrapper-{{ ai_gen_id }} {
+        flex-shrink: 0;
+      }
+      .ai-product-card-{{ ai_gen_id }}:first-child .ai-product-card-cta-{{ ai_gen_id }} {
+        width: auto;
+        white-space: nowrap;
+        padding: 12px 16px;
+      }
+    {% endif %}
+  }
+{% endstyle %}
+
+<div class="ai-product-grid-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  {% if block.settings.heading != blank or block.settings.subheading != blank %}
+    <div class="ai-product-grid-header-{{ ai_gen_id }}">
+      {% if block.settings.heading != blank %}
+        <h2 class="ai-product-grid-heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h2>
+      {% endif %}
+      {% if block.settings.subheading != blank %}
+        <p class="ai-product-grid-subheading-{{ ai_gen_id }}">{{ block.settings.subheading }}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="ai-product-grid-container-{{ ai_gen_id }}">
+    {% for i in (1..12) %}
+      {% liquid
+        assign card_enabled_key = 'card_' | append: i | append: '_enabled'
+        assign card_image_key = 'card_' | append: i | append: '_image'
+        assign card_title_key = 'card_' | append: i | append: '_title'
+        assign card_benefit_key = 'card_' | append: i | append: '_benefit'
+        assign card_benefit_show_key = 'card_' | append: i | append: '_show_benefit'
+        assign card_price_key = 'card_' | append: i | append: '_price'
+        assign card_delivery_key = 'card_' | append: i | append: '_delivery'
+        assign card_show_price_key = 'card_' | append: i | append: '_show_price'
+        assign card_cta_text_key = 'card_' | append: i | append: '_cta_text'
+        assign card_cta_link_key = 'card_' | append: i | append: '_cta_link'
+        assign card_show_cta_key = 'card_' | append: i | append: '_show_cta'
+        assign card_link_key = 'card_' | append: i | append: '_card_link'
+
+        assign card_enabled = block.settings[card_enabled_key]
+        assign card_image = block.settings[card_image_key]
+        assign card_title = block.settings[card_title_key]
+        assign card_benefit = block.settings[card_benefit_key]
+        assign card_benefit_show = block.settings[card_benefit_show_key]
+        assign card_price = block.settings[card_price_key]
+        assign card_delivery = block.settings[card_delivery_key]
+        assign card_show_price = block.settings[card_show_price_key]
+        assign card_cta_text = block.settings[card_cta_text_key]
+        assign card_cta_link = block.settings[card_cta_link_key]
+        assign card_show_cta = block.settings[card_show_cta_key]
+        assign card_link = block.settings[card_link_key]
+      %}
+
+      {% if card_enabled %}
+        <a
+          href="{{ card_link }}"
+          class="ai-product-card-{{ ai_gen_id }}"
+        >
+          <div class="ai-product-card-image-wrapper-{{ ai_gen_id }}">
+            {% if card_image %}
+              <img
+                src="{{ card_image | image_url: width: 800 }}"
+                alt="{{ card_title | escape }}"
+                class="ai-product-card-image-{{ ai_gen_id }}"
+                loading="lazy"
+                width="800"
+                height="{{ 800 | times: block.settings.image_aspect_ratio }}"
+              >
+            {% else %}
+              <div class="ai-product-card-image-placeholder-{{ ai_gen_id }}">
+                {{ 'product-1' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="ai-product-card-content-{{ ai_gen_id }}">
+            {% if card_title != blank %}
+              <h3 class="ai-product-card-title-{{ ai_gen_id }}">{{ card_title }}</h3>
+            {% endif %}
+
+            {% if card_benefit_show and card_benefit != blank %}
+              <p class="ai-product-card-benefit-{{ ai_gen_id }}">{{ card_benefit }}</p>
+            {% endif %}
+
+            {% if card_show_price and card_price != blank or card_delivery != blank %}
+              <div class="ai-product-card-price-delivery-{{ ai_gen_id }}">
+                {% if card_price != blank %}
+                  <div class="ai-product-card-price-{{ ai_gen_id }}">{{ card_price }}</div>
+                {% endif %}
+                {% if card_delivery != blank %}
+                  <div class="ai-product-card-delivery-{{ ai_gen_id }}">{{ card_delivery }}</div>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            {% if card_show_cta and card_cta_text != blank %}
+              <div class="ai-product-card-cta-wrapper-{{ ai_gen_id }}">
+                <span class="ai-product-card-cta-{{ ai_gen_id }}">
+                  {{ card_cta_text }}
+                </span>
+              </div>
+            {% endif %}
+          </div>
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Product grid",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section header"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Featured Products"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 16,
+      "max": 72,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size",
+      "default": 32
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "subheading_size",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Subheading size",
+      "default": 16
+    },
+    {
+      "type": "color",
+      "id": "subheading_color",
+      "label": "Subheading color",
+      "default": "#666666"
+    },
+    {
+      "type": "range",
+      "id": "subheading_spacing",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Subheading spacing",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "header_spacing",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Header bottom spacing",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "label": "Columns on desktop",
+      "default": 5
+    },
+    {
+      "type": "range",
+      "id": "columns_tablet",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "label": "Columns on tablet",
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "columns_mobile",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "label": "Columns on mobile",
+      "default": 1
+    },
+    {
+      "type": "checkbox",
+      "id": "hero_first_mobile",
+      "label": "Hero first card on mobile",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "section_max_width",
+      "min": 1000,
+      "max": 2000,
+      "step": 50,
+      "unit": "px",
+      "label": "Section max width",
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "Section top padding",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "Section bottom padding",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_horizontal",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Section horizontal padding",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "row_gap",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Row gap",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "column_gap",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Column gap",
+      "default": 32
+    },
+    {
+      "type": "header",
+      "content": "Card style"
+    },
+    {
+      "type": "range",
+      "id": "card_padding",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding",
+      "default": 20
+    },
+    {
+      "type": "color",
+      "id": "card_background",
+      "label": "Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "card_border_width",
+      "min": 0,
+      "max": 4,
+      "step": 1,
+      "unit": "px",
+      "label": "Border width",
+      "default": 1
+    },
+    {
+      "type": "color",
+      "id": "card_border_color",
+      "label": "Border color",
+      "default": "#e5e5e5"
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 14
+    },
+    {
+      "type": "checkbox",
+      "id": "card_shadow",
+      "label": "Show shadow",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_hover_shadow",
+      "label": "Show hover shadow",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "card_hover_transform",
+      "label": "Lift on hover",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Image"
+    },
+    {
+      "type": "select",
+      "id": "image_aspect_ratio",
+      "label": "Aspect ratio",
+      "options": [
+        {
+          "value": "0.5",
+          "label": "2:1"
+        },
+        {
+          "value": "0.666667",
+          "label": "3:2"
+        },
+        {
+          "value": "0.75",
+          "label": "4:3"
+        },
+        {
+          "value": "1",
+          "label": "1:1"
+        },
+        {
+          "value": "1.333333",
+          "label": "3:4"
+        },
+        {
+          "value": "1.5",
+          "label": "2:3"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "image_spacing",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Title"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Size",
+      "default": 18
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "title_spacing",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Benefit"
+    },
+    {
+      "type": "range",
+      "id": "benefit_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Size",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "benefit_color",
+      "label": "Color",
+      "default": "#666666"
+    },
+    {
+      "type": "range",
+      "id": "benefit_spacing",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Price and delivery"
+    },
+    {
+      "type": "select",
+      "id": "price_delivery_layout",
+      "label": "Layout",
+      "options": [
+        {
+          "value": "row",
+          "label": "Single line"
+        },
+        {
+          "value": "column",
+          "label": "Stacked"
+        }
+      ],
+      "default": "row"
+    },
+    {
+      "type": "range",
+      "id": "price_delivery_gap",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Gap",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "price_size",
+      "min": 12,
+      "max": 28,
+      "step": 1,
+      "unit": "px",
+      "label": "Price size",
+      "default": 16
+    },
+    {
+      "type": "color",
+      "id": "price_color",
+      "label": "Price color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "delivery_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Delivery size",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "delivery_color",
+      "label": "Delivery color",
+      "default": "#666666"
+    },
+    {
+      "type": "range",
+      "id": "price_delivery_spacing",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom spacing",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "CTA button"
+    },
+    {
+      "type": "range",
+      "id": "cta_width",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Width",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_vertical",
+      "min": 4,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Vertical padding",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "cta_padding_horizontal",
+      "min": 8,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Horizontal padding",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "cta_font_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Font size",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "cta_background",
+      "label": "Background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "cta_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "cta_border_width",
+      "min": 0,
+      "max": 4,
+      "step": 1,
+      "unit": "px",
+      "label": "Border width",
+      "default": 0
+    },
+    {
+      "type": "color",
+      "id": "cta_border_color",
+      "label": "Border color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "cta_border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    },
+    {
+      "type": "color",
+      "id": "cta_hover_background",
+      "label": "Hover background",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "cta_hover_text_color",
+      "label": "Hover text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "cta_hover_border_color",
+      "label": "Hover border color",
+      "default": "#333333"
+    },
+    {
+      "type": "header",
+      "content": "Card 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_enabled",
+      "label": "Show card",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_1_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_1_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_1_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_1_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_1_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_1_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_1_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_1_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_1_card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "header",
+      "content": "Card 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_enabled",
+      "label": "Show card",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_2_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_2_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_2_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_2_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_2_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_2_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_2_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_2_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_2_card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "header",
+      "content": "Card 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_enabled",
+      "label": "Show card",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_3_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_3_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_3_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_3_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_3_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_3_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_3_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_3_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_3_card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "header",
+      "content": "Card 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_enabled",
+      "label": "Show card",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_4_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_4_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_4_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_4_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_4_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_4_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_4_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_4_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_4_card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "header",
+      "content": "Card 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_enabled",
+      "label": "Show card",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "card_5_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_5_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_5_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_5_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_5_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_5_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_5_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_5_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_5_card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "header",
+      "content": "Card 6"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_enabled",
+      "label": "Show card",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_6_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_6_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_6_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_6_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_6_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_6_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_6_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_6_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_6_card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "header",
+      "content": "Card 7"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_7_enabled",
+      "label": "Show card",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_7_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_7_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_7_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_7_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_7_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_7_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_7_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_7_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_7_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_7_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_7_card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "header",
+      "content": "Card 8"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_8_enabled",
+      "label": "Show card",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_8_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_8_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_8_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_8_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_8_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_8_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_8_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_8_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_8_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_8_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_8_card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "header",
+      "content": "Card 9"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_9_enabled",
+      "label": "Show card",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_9_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_9_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_9_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_9_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_9_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_9_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_9_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_9_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_9_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_9_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_9_card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "header",
+      "content": "Card 10"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_10_enabled",
+      "label": "Show card",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_10_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_10_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_10_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_10_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_10_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_10_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_10_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_10_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_10_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_10_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_10_card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "header",
+      "content": "Card 11"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_11_enabled",
+      "label": "Show card",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_11_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_11_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_11_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_11_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_11_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_11_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_11_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_11_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_11_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_11_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_11_card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "header",
+      "content": "Card 12"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_12_enabled",
+      "label": "Show card",
+      "default": false
+    },
+    {
+      "type": "image_picker",
+      "id": "card_12_image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "card_12_title",
+      "label": "Title",
+      "default": "Product Title"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_12_show_benefit",
+      "label": "Show benefit",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_12_benefit",
+      "label": "Benefit",
+      "default": "Fast shipping & premium quality"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_12_show_price",
+      "label": "Show price and delivery",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_12_price",
+      "label": "Starting price",
+      "default": "From $29.99"
+    },
+    {
+      "type": "text",
+      "id": "card_12_delivery",
+      "label": "Delivery time",
+      "default": "Ships in 2-3 days"
+    },
+    {
+      "type": "checkbox",
+      "id": "card_12_show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "card_12_cta_text",
+      "label": "CTA text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "card_12_cta_link",
+      "label": "CTA link"
+    },
+    {
+      "type": "url",
+      "id": "card_12_card_link",
+      "label": "Card link"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product grid"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,252 @@
+{%- comment -%}
+  Live Dot Loader v2 — reusable upload progress UI for Ninja Transfers.
+  Renders the new design while preserving every JS hook the existing theme
+  code relies on. Drop in anywhere the old <file-progress> markup lived.
+
+  REQUIRED JS HOOKS (do not strip these — bySize.js, pdp_transferBySize.js,
+  __blanksUploadHelper.js, bySize_popular.js, background-removal-widget,
+  image-upscale-widget all depend on at least one of them):
+    • <file-progress> tag with class "fileProgress"  (queried as scope)
+    • .loadingPercent__counter                       (jQuery .text("57%"))
+    • .fileProgress__bar                             (jQuery .css({width:"57%"}))
+    • #fileDetails (when extra_id="fileDetails" passed)
+    • .upload-area__file-details, .file-details (when extra_class passed)
+    • onclick="resetLoading()"                       (cancel handler)
+
+  Parameters (all optional):
+    extra_class — string, appended to the file-progress class list
+    extra_id    — string, sets the id attribute on file-progress
+{%- endcomment -%}
+<file-progress class="fileProgress ldl{% if extra_class %} {{ extra_class }}{% endif %}"{% if extra_id %} id="{{ extra_id }}"{% endif %}>
+  <div class="ldl-card">
+    <div class="ldl-ring" aria-hidden="true">
+      <svg viewBox="0 0 100 100" class="ldl-ring-svg" preserveAspectRatio="xMidYMid meet">
+        <circle class="ldl-track" cx="50" cy="50" r="46"></circle>
+        <circle class="ldl-arc"   cx="50" cy="50" r="46"></circle>
+      </svg>
+      <img class="ldl-ninja fileProgress__ninjaImg"
+           src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Ninja-Running-Loop-200x-200-cleaned.gif?v=1758717834"
+           alt="">
+    </div>
+    <div class="ldl-text">
+      <p class="ldl-status" aria-live="polite">Sharpening the katana&hellip;</p>
+      <p class="ldl-eyebrow">UPLOADING</p>
+      <p class="ldl-percent">
+        <span class="ldl-percent-num">0</span><span class="ldl-percent-sign">%</span>
+      </p>
+      <p class="ldl-desc">We&rsquo;re making sure your upload is perfect for printing.</p>
+      <a href="javascript://" class="ldl-cancel" onclick="resetLoading()">Cancel upload</a>
+    </div>
+  </div>
+  {%- comment -%} Hidden hooks below — required by existing JS. Don't remove. {%- endcomment -%}
+  <span class="loadingPercent__counter ldl-hook" aria-hidden="true">0%</span>
+  <div class="fileProgress__barWrap ldl-hook" aria-hidden="true"><span class="fileProgress__bar" style="width: 0%;"></span></div>
+
+  <style>
+    /* === Live Dot Loader skin === */
+    file-progress.fileProgress.ldl,
+    .only_progressBar file-progress.fileProgress.ldl {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      position: relative;
+      container-type: inline-size;
+      container-name: ldl;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    file-progress.fileProgress.ldl .ldl-hook { position: absolute; left: -99999px; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+    file-progress.fileProgress.ldl .ldl-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 24px;
+      padding: 40px 32px 36px;
+      background: #E7F6FE;
+      border-radius: 20px;
+      box-sizing: border-box;
+    }
+    file-progress.fileProgress.ldl .ldl-ring { position: relative; width: 230px; height: 230px; flex: none; }
+    file-progress.fileProgress.ldl .ldl-ring-svg { width: 100%; height: 100%; display: block; }
+    file-progress.fileProgress.ldl .ldl-track {
+      fill: none; stroke: #FFFFFF; stroke-width: 4;
+    }
+    file-progress.fileProgress.ldl .ldl-arc {
+      fill: none; stroke: #07A7F2; stroke-width: 4;
+      stroke-linecap: round;
+      transform: rotate(-90deg); transform-origin: 50px 50px;
+      stroke-dasharray: 289.027; stroke-dashoffset: 289.027;
+      transition: stroke-dashoffset 60ms linear;
+    }
+    file-progress.fileProgress.ldl .ldl-ninja {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 65%; height: 65%; max-width: none; max-height: none;
+      object-fit: contain; pointer-events: none;
+      background: transparent;
+    }
+    /* Defensive resets — defeat .only_progressBar legacy rules.
+       NOTE: do NOT set font-size here — would override per-element sizes via specificity. */
+    file-progress.fileProgress.ldl .ldl-card p,
+    file-progress.fileProgress.ldl .ldl-card a {
+      opacity: 1;
+      margin-bottom: 0;
+    }
+    file-progress.fileProgress.ldl .ldl-text { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+    file-progress.fileProgress.ldl .ldl-status {
+      margin: 0; max-width: 320px;
+      font-weight: 500; font-size: 13px; color: #6B7C8C; line-height: 1.3;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      animation: ldl-line-in 350ms ease-out;
+    }
+    file-progress.fileProgress.ldl .ldl-eyebrow {
+      margin: 10px 0 0; font-weight: 800; font-size: 30px; letter-spacing: 0.5px;
+      text-transform: uppercase; color: #07A7F2; line-height: 1;
+    }
+    file-progress.fileProgress.ldl .ldl-percent {
+      margin: 6px 0 0; line-height: 1; font-variant-numeric: tabular-nums; color: #0B1B2B;
+      display: inline-flex; align-items: baseline; gap: 2px;
+    }
+    file-progress.fileProgress.ldl .ldl-percent-num {
+      font-weight: 800; font-size: 38px; letter-spacing: -1px; color: #0B1B2B;
+    }
+    file-progress.fileProgress.ldl .ldl-percent-sign {
+      font-weight: 700; font-size: 18px; color: #5B7388; margin-left: 2px;
+    }
+    file-progress.fileProgress.ldl .ldl-desc {
+      margin: 18px 0 0; max-width: 240px;
+      font-weight: 500; font-size: 14px; color: #0B1B2B; line-height: 1.45;
+    }
+    file-progress.fileProgress.ldl .ldl-cancel {
+      margin: 18px 0 0; background: none; border: 0; padding: 4px 12px;
+      font-weight: 700; font-size: 15px; color: #07A7F2;
+      cursor: pointer; text-decoration: none;
+    }
+    file-progress.fileProgress.ldl .ldl-cancel:hover { text-decoration: underline; }
+
+    @container ldl (min-width: 560px) {
+      file-progress.fileProgress.ldl .ldl-card {
+        flex-direction: row;
+        gap: 44px;
+        padding: 56px;
+        text-align: left;
+        align-items: center;
+      }
+      file-progress.fileProgress.ldl .ldl-ring { width: 180px; height: 180px; }
+      file-progress.fileProgress.ldl .ldl-text { align-items: flex-start; }
+      file-progress.fileProgress.ldl .ldl-eyebrow { font-size: 26px; margin-top: 6px; }
+      file-progress.fileProgress.ldl .ldl-percent-num { font-size: 30px; letter-spacing: -0.6px; }
+      file-progress.fileProgress.ldl .ldl-percent-sign { font-size: 16px; }
+      file-progress.fileProgress.ldl .ldl-percent { margin-top: 4px; }
+      file-progress.fileProgress.ldl .ldl-desc { font-size: 13px; margin-top: 12px; max-width: none; }
+      file-progress.fileProgress.ldl .ldl-cancel { font-size: 14px; margin-top: 10px; padding: 0; }
+    }
+    @supports not (container-type: inline-size) {
+      @media (min-width: 600px) {
+        file-progress.fileProgress.ldl .ldl-card { flex-direction: row; gap: 44px; padding: 56px; text-align: left; align-items: center; }
+        file-progress.fileProgress.ldl .ldl-ring { width: 180px; height: 180px; }
+        file-progress.fileProgress.ldl .ldl-text { align-items: flex-start; }
+        file-progress.fileProgress.ldl .ldl-eyebrow { font-size: 26px; margin-top: 6px; }
+        file-progress.fileProgress.ldl .ldl-percent-num { font-size: 30px; letter-spacing: -0.6px; }
+        file-progress.fileProgress.ldl .ldl-percent-sign { font-size: 16px; }
+        file-progress.fileProgress.ldl .ldl-percent { margin-top: 4px; }
+        file-progress.fileProgress.ldl .ldl-desc { font-size: 13px; margin-top: 12px; max-width: none; }
+        file-progress.fileProgress.ldl .ldl-cancel { font-size: 14px; margin-top: 10px; padding: 0; }
+      }
+    }
+    @keyframes ldl-line-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      file-progress.fileProgress.ldl .ldl-status { animation: none; }
+      file-progress.fileProgress.ldl .ldl-arc { transition: none; }
+    }
+
+    /* Multi-upload: hide the ninja-loader card that renders at the top
+       of each <uploaded-files-block> tile (the big "Sharpening the
+       katana… UPLOADING 0%" panel). Each upload tile's <preview-box>
+       already has its own in-place dot-loading state inside the
+       preview area, so the ninja card on top is redundant noise. The
+       master loader at <next-element> level stays visible since that's
+       the only progress indicator on single-upload PDPs. */
+    multi-upload-wrapper uploaded-files-block > file-progress.fileProgress.ldl,
+    uploaded-files-block > file-progress.fileProgress.ldl {
+      display: none !important;
+    }
+  </style>
+
+  <script>
+    (function () {
+      var script = document.currentScript;
+      var root = script && script.closest && script.closest('file-progress.ldl');
+      if (!root || root.dataset.ldlInit === '1') return;
+      root.dataset.ldlInit = '1';
+
+      var arc      = root.querySelector('.ldl-arc');
+      var numEl    = root.querySelector('.ldl-percent-num');
+      var signEl   = root.querySelector('.ldl-percent-sign');
+      var statusEl = root.querySelector('.ldl-status');
+      var counter  = root.querySelector('.loadingPercent__counter');
+      var bar      = root.querySelector('.fileProgress__bar');
+      if (!arc || !numEl || !statusEl || !counter || !bar) return;
+
+      var CIRC = 2 * Math.PI * 46;
+      arc.style.strokeDasharray  = CIRC;
+      arc.style.strokeDashoffset = CIRC;
+
+      function applyPercent(n) {
+        if (isNaN(n)) n = 0;
+        if (n < 0) n = 0;
+        if (n > 100) n = 100;
+        numEl.textContent = Math.round(n);
+        arc.style.strokeDashoffset = CIRC * (1 - n / 100);
+      }
+      function parseFromText(t) {
+        var m = String(t || '').match(/-?\d+(\.\d+)?/);
+        return m ? parseFloat(m[0]) : 0;
+      }
+
+      applyPercent(parseFromText(counter.textContent));
+
+      new MutationObserver(function () {
+        applyPercent(parseFromText(counter.textContent));
+      }).observe(counter, { childList: true, characterData: true, subtree: true });
+
+      new MutationObserver(function () {
+        applyPercent(parseFromText(bar.style.width));
+      }).observe(bar, { attributes: true, attributeFilter: ['style'] });
+
+      var STATUS = [
+        'Sharpening the katana…',
+        'Loading at ninja speed…',
+        'Consulting the scrolls…',
+        'Polishing the shuriken…',
+        'Practicing the art of patience…',
+        'Dusting off the ancient scrolls…',
+        'Tightening the headband…',
+        'Unsheathing the pixels…',
+        'Asking the sensei for approval…',
+        'Tossing a smoke bomb…'
+      ];
+      var reduced = false;
+      try { reduced = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+      var idx = 0;
+      setInterval(function () {
+        idx = (idx + 1) % STATUS.length;
+        if (reduced) {
+          statusEl.textContent = STATUS[idx];
+        } else {
+          statusEl.style.animation = 'none';
+          void statusEl.offsetWidth;
+          statusEl.textContent = STATUS[idx];
+          statusEl.style.animation = '';
+        }
+      }, 2200);
+    })();
+  </script>
+</file-progress>

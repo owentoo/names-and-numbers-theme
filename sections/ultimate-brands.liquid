@@ -1,0 +1,145 @@
+{% include 'ultimate-settings' %}
+
+{{ 'ultimate-brands.css' | asset_url | stylesheet_tag }}
+{% if section.settings.autoPlay %}
+<script src="{{ 'ultimate-sliderv2.js' | asset_url }}" defer="defer"></script>
+{% assign sliderTag = 'ultimate-slider-v2' %}
+{%- else -%}
+<script src="{{ 'ultimate-sliderv2-without-autoplay.js' | asset_url }}" defer="defer"></script>
+{% assign sliderTag = 'ultimate-slider-v2-without-autoplay' %}
+{%- endif -%}
+
+<style>
+  #shopify-section-{{ section.id }} .ultimate-slider-v2 .ultimate-slider-v2-list:not(.swiper-initialized) .ultimate-slider-v2-item {
+    width: calc(100% / {{ section.settings.desktopColumns }});
+    flex: 0 0 calc(100% / {{ section.settings.desktopColumns }});
+  }
+  
+  @media (min-width: {{ minTabletSize }}px) and (max-width: {{ maxTabletSize }}px) {
+    #shopify-section-{{ section.id }} .ultimate-slider-v2 .ultimate-slider-v2-list:not(.swiper-initialized) .ultimate-slider-v2-item {
+      width: calc(100% / {{ section.settings.tabletColumns }});
+      flex: 0 0 calc(100% / {{ section.settings.tabletColumns }});
+    }
+  }
+  
+  @media (max-width: {{ maxMobileSize }}px) {
+    #shopify-section-{{ section.id }} .ultimate-slider-v2 .ultimate-slider-v2-list:not(.swiper-initialized) .ultimate-slider-v2-item {
+      width: calc(100% / {{ section.settings.mobileColumns }});
+      flex: 0 0 calc(100% / {{ section.settings.mobileColumns }});
+    }
+  }
+
+  {%- if section.settings.css != blank -%}
+  {{ section.settings.css }}
+  {% endif %}
+</style>
+
+<{{sliderTag}} class="ultimate-sections ultimate-slider-v2 ultimate-brands{% if section.settings.auto_hide_arrow %} ultimate-slider-v2-auto-hide-arrow{% endif %}{% if section.settings.smoothAutoPlay %} ultimate-slider-v2-hide-arrow{% endif %} {{section.settings.class}}" data-max-mobile-size="{{maxMobileSize}}" data-min-tablet-size="{{minTabletSize}}" data-max-tablet-size="{{maxTabletSize}}" data-min-desktop-size="{{minDesktopSize}}" data-columns="{{section.settings.desktopColumns}}" data-medium-columns="{{section.settings.tabletColumns}}" data-small-columns="{{section.settings.mobileColumns}}"{% if section.settings.autoPlay %} data-auto-play="true"{% if section.settings.smoothAutoPlay %} data-smooth-auto-play="true"{% endif %}{% endif %}
+  data-next-arrow='.ultimate-slider-v2-next'
+  data-prev-arrow='.ultimate-slider-v2-prev'
+>
+  <div class="ultimate-brands-list-container swiper ultimate-slider-v2-list swiper">
+    <div class="swiper-wrapper ultimate-brands-list">
+      {%- for block in section.blocks -%}
+        <div class="swiper-slide ultimate-slider-v2-item ultimate-brands-item">
+          <a class="ultimate-brands-link" href="{{ block.settings.link }}" aria-label="{{ block.settings.image.alt | escape }}">
+            {%- if block.settings.image != blank -%}
+            <img srcset="{%- if block.settings.image.width >= 300 -%}{{ block.settings.image | img_url: '300x' }} 300w{%- endif -%}"
+              sizes="150px"
+              src="{{ block.settings.image | img_url: 'master' }}"
+              alt="{{ block.settings.image.alt | escape }}"
+              width="{{ block.settings.image.width }}"
+              height="{{ block.settings.image.height }}"
+            >
+            {%- else -%}
+              {{ 'image' | placeholder_svg_tag: 'placeholder-svg' }}
+            {%- endif -%}
+          </a>
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+  <div class='ultimate-slider-v2-arrow ultimate-slider-v2-next'></div>
+  <div class='ultimate-slider-v2-arrow ultimate-slider-v2-prev'></div>
+</{{sliderTag}}>
+
+{% schema %}
+{
+  "name": "Ulti Brands",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "number",
+      "id": "desktopColumns",
+      "default": 6,
+      "label": "Columns on desktop"
+    },
+    {
+      "type": "number",
+      "id": "tabletColumns",
+      "label": "Columns on tablet",
+	  "default": 4
+    },
+    {
+      "type": "number",
+      "id": "mobileColumns",
+      "label": "Columns on mobile",
+      "default": 2
+    },
+    {
+      "type": "checkbox",
+      "id": "autoPlay",
+      "default": false,
+      "label": "Auto Play"
+    },
+    {
+      "type": "checkbox",
+      "id": "smoothAutoPlay",
+      "default": false,
+      "label": "Smooth Auto Play"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_hide_arrow",
+      "default": false,
+      "label": "Auto hide arrow"
+    },
+    {
+      "type": "text",
+      "id": "class",
+      "label": "CSS class",
+      "info": "Add class to this section, for example: my-class-1 my-class-2"
+    },
+    {
+      "type": "textarea",
+      "id": "css",
+      "label": "Custom CSS",
+      "info": "Add custom CSS to this section"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "image",
+      "name": "Image",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Logo"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Ulti Brands",
+      "category": "An_ultimate_section"
+    }
+  ]
+}
+{% endschema %}

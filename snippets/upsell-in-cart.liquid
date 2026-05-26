@@ -1,0 +1,203 @@
+{%- liquid
+  assign _jtl_hide = false
+  if cart.item_count > 0
+    assign _jtl_hide = true
+    for item in cart.items
+      assign _jtl_type = item.product.type | downcase
+      unless _jtl_type == 'stickers' or _jtl_type == 'large stickers' or _jtl_type == 'truck stickers' or _jtl_type == 'spangles' or _jtl_type == 'puff transfers' or _jtl_type == 'keychains' or _jtl_type == 'magnets'
+        assign _jtl_hide = false
+        break
+      endunless
+    endfor
+  endif
+-%}
+{%- if _jtl_hide -%}
+<style id="jtl-hide-css">.sidebar-widget.cart-gift-widget{display:none}</style>
+{%- endif -%}
+<style>
+  .upsell__cta {padding: 10px 0; display: none;}
+  .alone .upsell__cta {display: block;}
+</style>
+<script>
+  var _upsellTransferNode = "";
+  var _discount_input = "";
+  var _discount_name = "";
+
+  function _upsell_check(){
+    
+    var upPNode = $("sidebar-drawer");
+    var upPNodeItem = $("cart-form .cart-item")
+    {% if request.page_type == "cart" %}
+      upPNode = $("cart-form").closest(".container--large");
+      upPNodeItem = ".cart-form-item";
+    {% else %}
+      upPNode = $("sidebar-drawer");
+      upPNodeItem = ".cart-item";
+    {% endif %}
+    var itemCount = upPNode.find(upPNodeItem).length;
+    var comboprd = 0;
+    var puff_transfers = upPNode.find(".puff_transfers"+upPNodeItem).length;
+    var spangles = upPNode.find(".spangles"+upPNodeItem).length;
+    
+    var shopify_colletive = upPNode.find(".shopify_colletive_enable"+upPNodeItem).length;
+    var stickers = upPNode.find(".stickers"+upPNodeItem).length;
+    var magnets = upPNode.find(".magnets"+upPNodeItem).length;
+    var combination = puff_transfers + spangles + stickers;
+
+    upPNode.find(".cart-upsell-dtf-uv-block").find(".nodisplay").hide();
+    var custom_transfers = upPNode.find(upPNodeItem+".custom_transfers").length;
+    var uv_dtf = upPNode.find(upPNodeItem+".uv_dtf").length;
+    var _single_tier_rows = upPNode.find(".nt-dg-single").filter(function(){
+      var v = $(this).find("._discount_input").val();
+      return v && v.length > 0;
+    });
+    var uv_powder = upPNode.find(upPNodeItem+".powder").length;
+    var trucksticker = upPNode.find(upPNodeItem+".truck_stickers").length;
+    var largestickers = upPNode.find(upPNodeItem+".large_stickers").length;
+    var transfer_film = upPNode.find(upPNodeItem+".transfer_film").length || 0;
+    var ink = upPNode.find(upPNodeItem+".ink").length || 0;
+    var keychains = upPNode.find(upPNodeItem+".keychains").length || 0;
+    comboprd += ink;
+    comboprd += trucksticker;
+    comboprd += stickers;
+    comboprd += largestickers;
+    comboprd += keychains;
+    comboprd += spangles;
+    comboprd += magnets;
+    comboprd += puff_transfers;
+    
+    if(custom_transfers >= 1 || uv_dtf >= 1 || _single_tier_rows.length >= 1){
+      var _str = "";
+      var itemRow = upPNode.find(upPNodeItem+".custom_transfers,"+upPNodeItem+".uv_dtf").add(_single_tier_rows);
+      itemRow.addClass("alone")
+
+      var u_qty = 0;
+      $(itemRow).each(function(k){
+
+        _upsellTransferNode = $(this);
+        if($(this).find("._cart__quantity").length){
+          var _u_qty = $(this).find("._cart__quantity").val() * 1;
+          u_qty = u_qty + _u_qty;
+        }
+        
+        if(k == 0){
+          if($(this).find("._discount_input").length > 0){
+            _discount_input = $(this).find("._discount_input").val();
+            _str = _discount_input;
+            _str = _str.substring(0,_str.length - 1)
+            _str = _str.replaceAll("min_","")
+            _str = encodeURI(_str).split("#");
+            for(var i=0; i < _str.length; i++){
+              _str[i] = _str[i].split("-");
+              _str[i][0] = _str[i][0] * 1;
+            }
+          }
+        }
+        
+      })
+
+      var _nextArr = [];
+      upPNode.find(".cart-upsell-dtf-uv-block").find(".nodisplay").hide();
+
+      var nwCount = custom_transfers + uv_dtf + _single_tier_rows.length;
+      if (nwCount == 1) {
+        upPNode.find(".cart-upsell-dtf-uv-block").hide();
+      } else {
+        upPNode.find(".cart-upsell-dtf-uv-block").show();
+        itemRow.removeClass("alone");
+      }
+      
+      if (nwCount != 1) {
+        if(_str != ""){
+
+          var maxCount = _str[_str.length - 1][0];
+          //console.log(maxCount," :maxCount",u_qty)
+
+          if(u_qty >= maxCount){
+            upPNode.find(".cart-upsell-dtf-uv-block").find(".max-content-limit").show();
+          }else{
+            //console.log(maxCount," :reached in normal case",u_qty)
+            for(var i=0; i < _str.length; i++){
+              //console.log(_str[i], "_str[i]");
+              var _index = _str[i][0] * 1;
+              if(_index <= u_qty){
+                _nextArr = _str[i+1];
+              }
+            }
+            var _ptext = _nextArr[1].replaceAll("_"," ");
+             _ptext = _ptext.replace("off","");
+            upPNode.find(".cart-upsell-dtf-uv-block").find(".normal-text-content").show();
+            upPNode.find(".cart-upsell-dtf-uv-block .upsell-qty").show().text(_nextArr[0] - u_qty);
+            upPNode.find(".cart-upsell-dtf-uv-block .upsell-savingp").text(_ptext);
+          }
+
+        }else{
+
+          upPNode.find(".cart-upsell-dtf-uv-block").find(".blankcart").show();
+        }
+      } else {
+        upPNode.find(".cart-upsell-dtf-uv-block").children().hide();
+      }
+    }else{
+      upPNode.find(".cart-upsell-dtf-uv-block").show().find(".blankcart").show();
+    }
+
+    if(puff_transfers == 1){
+      upPNode.find(".puff_transfers").addClass("alone")
+     }
+     
+    if(uv_powder == 1){
+      upPNode.find(".powder").addClass("alone")
+     }
+    if(transfer_film == 1){
+      upPNode.find(".transfer_film").addClass("alone")
+     }
+    if(keychains == 1){
+      upPNode.find(".keychains").addClass("alone")
+     }
+    if(trucksticker == 1){
+      upPNode.find(".truck_stickers").addClass("alone")
+    }
+    if(largestickers == 1){
+      upPNode.find(".large_stickers").addClass("alone")
+    }
+     
+    if (typeof _jtlRefreshVisibility === 'function') _jtlRefreshVisibility();
+  }
+  $(function(){
+   // console.log(typeof _upsell_check, " typeof _upsell_check")
+    if(typeof _upsell_check == "function"){
+      _upsell_check();
+    }
+  })
+</script>
+<script>
+(function(){
+  var _JTL_EX = {stickers:1,large_stickers:1,truck_stickers:1,spangles:1,puff_transfers:1,keychains:1,magnets:1};
+  window._jtlRefreshVisibility = function(){
+    var items = document.querySelectorAll('[data-js-cart-item]');
+    var hide = false;
+    if (items.length > 0) {
+      hide = true;
+      for (var i = 0; i < items.length; i++) {
+        if (!_JTL_EX[(items[i].getAttribute('data-product_type') || '').toLowerCase()]) {
+          hide = false;
+          break;
+        }
+      }
+    }
+    var s = document.getElementById('jtl-hide-css');
+    if (hide && !s) {
+      s = document.createElement('style');
+      s.id = 'jtl-hide-css';
+      s.textContent = '.sidebar-widget.cart-gift-widget{display:none}';
+      document.head.appendChild(s);
+    } else if (!hide && s) {
+      s.remove();
+    }
+  };
+  document.querySelectorAll('cart-form').forEach(function(cf){
+    cf.addEventListener('cart-updated', window._jtlRefreshVisibility);
+  });
+})();
+</script>

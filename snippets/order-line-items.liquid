@@ -1,0 +1,86 @@
+{%- comment -%}
+  Shared order line items renderer.
+  Used by Recent Orders (members-portal-layout.liquid) and My Orders (all-orders-row.liquid)
+  so the two views stay visually and structurally identical.
+
+  Params:
+    order            — the order object
+    zero_price_order — bool, force $0.00 display
+    hide_reorder     — bool, hide the reorder button column
+{%- endcomment -%}
+{%- for li in order.line_items -%}
+  {%- assign li_custom_img = "" -%}
+  {%- assign li_width = "" -%}
+  {%- assign li_height = "" -%}
+  {%- assign li_prop_size = li.properties | size -%}
+  {%- if li_prop_size > 0 -%}
+    {%- for p in li.properties -%}
+      {%- assign pf = p.first | downcase | strip -%}
+      {%- if pf == 'preview' and li_custom_img == "" -%}{%- assign li_custom_img = p.last -%}{%- endif -%}
+      {%- if pf == '_cartimg' -%}{%- assign li_custom_img = p.last -%}{%- endif -%}
+      {%- if pf == 'upload (vector files preferred)' and li_custom_img == "" -%}{%- assign li_custom_img = p.last -%}{%- endif -%}
+      {%- if pf == 'preview gang sheet (low res)' and li_custom_img == "" -%}{%- assign li_custom_img = p.last -%}{%- endif -%}
+      {%- if pf == 'width' and p.last != blank -%}{%- assign li_width = p.last -%}{%- endif -%}
+      {%- if pf == 'height' and p.last != blank -%}{%- assign li_height = p.last -%}{%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+  {%- assign li_fallback = li.image | default: li.product.featured_image -%}
+  {%- assign li_variant_title = li.variant.title -%}
+  {%- assign li_is_style = false -%}
+  {%- if li_variant_title contains 'Style #' -%}{%- assign li_is_style = true -%}{%- endif -%}
+  {%- if li_is_style -%}
+    {%- assign li_display_title = li.product.title -%}
+  {%- else -%}
+    {%- assign li_display_title = li.title -%}
+  {%- endif -%}
+  {%- if li_display_title contains ' - Style #' -%}
+    {%- assign li_display_title = li_display_title | split: ' - Style #' | first | strip -%}
+  {%- elsif li_display_title contains 'Style #' -%}
+    {%- assign li_display_title = li_display_title | split: 'Style #' | first | strip -%}
+  {%- endif -%}
+  {%- if li_variant_title != blank and li_variant_title != 'Default Title' -%}
+    {%- assign li_vt_suffix = ' - ' | append: li_variant_title -%}
+    {%- if li_display_title contains li_vt_suffix -%}
+      {%- assign li_display_title = li_display_title | remove: li_vt_suffix -%}
+    {%- endif -%}
+  {%- endif -%}
+  <div class="ao-line-item">
+    <div class="ao-li-thumb">
+      {%- if li_custom_img != "" -%}
+        {%- comment -%}
+          Match order-thumb-strip behavior — call __noImg on the FIRST
+          error so reorder is gated whenever the custom preview is
+          broken, regardless of whether the product-image fallback
+          eventually loads. See members-portal-layout.liquid for the
+          __noImg definition.
+        {%- endcomment -%}
+        <img class="ao-preview-thumb" data-preview-src="{{ li_custom_img }}" src="{{ li_custom_img }}" alt="{{ li.title | escape }}" width="36" height="36" loading="lazy" style="cursor:pointer;" onerror="var e=this;if(window.__noImg)window.__noImg(e);e.classList.remove('ao-preview-thumb');e.removeAttribute('data-preview-src');e.style.cursor='default';e.onerror=null;{%- if li_fallback -%}e.src='{{ li_fallback | image_url: width: 80 }}';{%- endif -%}">
+      {%- elsif li_fallback -%}
+        <img src="{{ li_fallback | image_url: width: 80 }}" alt="{{ li.title | escape }}" width="36" height="36" loading="lazy">
+      {%- else -%}
+        <span class="ao-no-image">NO IMAGE</span>
+      {%- endif -%}
+    </div>
+    <div class="ao-li-info">
+      <div class="ao-li-name">{{ li_display_title }}</div>
+      <div class="ao-li-sub">{%- if li_is_style -%}{%- if li_width != "" and li_height != "" -%}{{ li_width }}" &times; {{ li_height }}" &middot; {%- endif -%}{%- else -%}{%- assign li_sub_label = li.variant.title | default: li.product.type -%}{%- if li_sub_label != blank and li_sub_label != 'Default Title' -%}{{ li_sub_label }} &middot; {%- endif -%}{%- endif -%}{{ li.quantity }} {% if li.quantity == 1 %}piece{% else %}pieces{% endif %}</div>
+    </div>
+    <div class="ao-li-price">{%- if zero_price_order -%}{{ zero_price_label | default: '$0.00' }}{%- else -%}{{ li.final_line_price | money }}{%- endif -%}</div>
+    {%- unless hide_reorder -%}
+    <div class="ao-li-reorder">
+      <textarea class="ao-li-propdata" style="display:none">{ {% for property in li.properties %}{{ property.first | json }}:{{ property.last | json }}{% if forloop.last == false %},{% endif %}{% endfor %} }</textarea>
+      <button type="button" class="ao-li-reorder-btn"
+        data-variant-id="{{ li.variant_id }}"
+        data-quantity="{{ li.quantity }}"
+        data-inventory="{{ li.variant.inventory_quantity }}"
+        data-inventory-policy="{{ li.variant.inventory_policy }}"
+        data-inventory-tracker="{{ li.variant.inventory_management }}"
+        data-order-name="{{ order.name }}"
+        data-lineitem-id="{{ li.id }}">
+        <span class="ao-li-btn-text">Reorder</span>
+        <span class="ao-li-spinner-container"><svg class="ao-spinner" viewBox="0 0 20 20" aria-label="Loading" role="status"><path d="M7.229 1.173a9.25 9.25 0 1 0 11.655 11.412 1.25 1.25 0 1 0-2.4-.698 6.75 6.75 0 1 1-8.506-8.329 1.25 1.25 0 1 0-.75-2.385z" fill="currentColor"/></svg></span>
+      </button>
+    </div>
+    {%- endunless -%}
+  </div>
+{%- endfor -%}

@@ -1,0 +1,703 @@
+{%- comment -%} cache-bust v13 - render aiImageGenerator dialog so AI prompting works on /pages/ninja-design-studio {%- endcomment -%}
+<style>
+    /* Always-on chrome hiding (header / footer / tidio / close-btn). */
+    #close-btn,
+    .shopify-section-group-footer-group {
+      display: none !important;
+    }
+    .shopify-section-group-header-group.site-header-container,
+    .shopify-section-group-header-group.mount-announcement-bar {
+      display: none !important;
+    }
+    #tidio-chat { display: none !important; }
+    .customTabelPopup__overlay-editor {
+      background: none !important;
+    }
+    .customTabelPopup__overlay-editor .editor-container {
+      box-sizing: border-box;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ============================================================
+       Fullscreen toggle button → "× Exit" (BOTH desktop + mobile).
+       The native button label says "Fullscreen" on desktop and
+       toggles studio-embedded popup mode, which doesn't make sense
+       on a page where the studio IS the page content. We re-skin
+       it as "× Exit" and the inline script below intercepts the
+       click to redirect to home (ninjatransfers.com) instead.
+       ============================================================ */
+    #fullscreen-toggle-btn.fs-toggle {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      width: auto !important;
+      min-width: 0 !important;
+      padding: 6px 10px !important;
+      border-radius: 8px !important;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      cursor: pointer !important;
+    }
+    /* Hide every native fs-state child (bracket icon, "Fullscreen"
+       label, exit-fs icon, "Exit Fullscreen" label, mobile glyph,
+       mobile label) — we render our own × + Exit via ::before /
+       ::after on .icon-expand. */
+    #fullscreen-toggle-btn.fs-toggle .fs-icon-bracket,
+    #fullscreen-toggle-btn.fs-toggle .fs-icon-x,
+    #fullscreen-toggle-btn.fs-toggle .fs-label,
+    #fullscreen-toggle-btn.fs-toggle .fs-label-mobile {
+      display: none !important;
+    }
+    #fullscreen-toggle-btn.fs-toggle .icon-collapse {
+      display: none !important;
+    }
+    #fullscreen-toggle-btn.fs-toggle .icon-expand {
+      display: inline-flex !important;
+      align-items: center !important;
+    }
+    #fullscreen-toggle-btn.fs-toggle .icon-expand::before {
+      content: "✕";
+      font-size: 18px;
+      font-weight: 600;
+      color: #0f172a;
+      margin-right: 4px;
+      line-height: 1;
+    }
+    #fullscreen-toggle-btn.fs-toggle .icon-expand::after {
+      content: "Exit";
+      font-size: 15px;
+      font-weight: 600;
+      color: #0f172a;
+      line-height: 1;
+    }
+
+    /* (Editable zoom CSS + script moved to v0-editor.liquid so the
+       same behavior is available on the by-size-v2 PDP and any
+       other page that renders the studio, not just this page.) */
+
+    /* DESKTOP ONLY — render the studio inline on the page (existing
+       behavior). All these overrides are scoped to ≥750px so they
+       don't fight our mobile-specific rules below. */
+    @media (min-width: 750px) {
+      .customTabelPopup__overlay-editor {
+        position: static !important;
+        display: block !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container {
+        border: 1px solid #ddd;
+        height: calc(100dvh - 20px) !important;
+        height: -webkit-fill-available !important;
+        height: calc(calc(var(--vh, 1vh) * 100) - 20px) !important;
+      }
+      body { overflow: auto !important; }
+      .customTabelPopup__overlay-editor .customTabelPopup,
+      .main-content .fullWidth {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+        margin-top: 10px !important;
+        margin-bottom: 10px !important;
+      }
+      .header-container.header-container--top.apponlyelements-web-block {
+        opacity: 0;
+        height: 19px;
+        pointer-events: none;
+      }
+      .toolbar-center { padding-right: 370px !important; }
+      .customTabelPopup__close {
+        cursor: pointer;
+        margin-left: calc(100% - 20px);
+      }
+    }
+
+    /* ============================================================
+       MOBILE LAYOUT (self-contained, doesn't depend on
+       v0-styles.css's :not(.studio-embedded) selector chain).
+       Top: Exit | undo/redo | Use Design.
+       Middle: canvas centered with grey gutter above + below.
+       Bottom: 3 cards — Text / Upload / Create with AI.
+       ============================================================ */
+    @media (max-width: 749px) {
+      /* Hide storefront chrome + lock body so iOS doesn't bounce
+         the underlying page behind our fullscreen overlay. */
+      .header-container.header-container--top.apponlyelements-web-block {
+        display: none !important;
+      }
+      body { overflow: hidden !important; }
+
+      /* Force the overlay into a true fullscreen surface. */
+      .customTabelPopup__overlay-editor {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100dvh !important;
+        max-width: 100vw !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        z-index: 9999 !important;
+        background: #fff !important;
+        display: block !important;
+      }
+      .customTabelPopup__overlay-editor .customTabelPopup {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        overflow: hidden !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container {
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        min-height: 100dvh !important;
+        display: flex !important;
+        flex-direction: column !important;
+        border: 0 !important;
+      }
+      .customTabelPopup__overlay-editor .main-content {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+      }
+
+      /* ============== TOP BAR ============== */
+      .customTabelPopup__overlay-editor .editor-container .toolbar:not(._footer) {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+        padding: 10px 14px !important;
+        border-bottom: 1px solid #e5e7eb !important;
+        background: #fff !important;
+        flex: 0 0 auto !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar:not(._footer) > .toolbar-left {
+        flex: 0 0 auto !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding-right: 0 !important;
+      }
+      /* Hide everything in toolbar-left EXCEPT the fullscreen toggle
+         (which we re-skin as "× Exit"). */
+      .customTabelPopup__overlay-editor .editor-container .toolbar:not(._footer) > .toolbar-left > *:not(#fullscreen-toggle-btn) {
+        display: none !important;
+      }
+      /* Hide the entire desktop center cluster (Text / Upload / Create with AI). */
+      .customTabelPopup__overlay-editor .editor-container .toolbar:not(._footer) > .toolbar-center {
+        display: none !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar:not(._footer) > .toolbar-right {
+        flex: 1 1 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 8px !important;
+        padding-right: 0 !important;
+      }
+      /* Hide non-essential toolbar-right buttons (reset, layers, canvas,
+         export, download). The Use Design CTA (#save-aws-btn) is the
+         only one that should stay visible on mobile. */
+      .customTabelPopup__overlay-editor .editor-container .toolbar:not(._footer) > .toolbar-right > *:not(#save-aws-btn):not(.floating_tools) {
+        display: none !important;
+      }
+
+      /* Mobile-only refinements for the × Exit button (the always-on
+         re-skin above handles the visual; here we just tighten size). */
+      #fullscreen-toggle-btn.fs-toggle {
+        height: 40px !important;
+        padding: 0 4px !important;
+      }
+
+      /* === Use Design CTA — slightly smaller per mockup === */
+      #save-aws-btn {
+        height: 36px !important;
+        padding: 0 14px !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+      }
+
+      /* === Floating undo/redo pill — pin to the top bar, vertically
+         centered with the Use Design button. Toolbar has padding-top:
+         10px and the button is 36px tall, so button center sits at
+         y = 28px from viewport top. Pill: top: 10px + height: 36px
+         puts the pill center at the same y = 28px → vertically
+         aligned. The element lives inside .canvas-area in the DOM,
+         so we can't flex it into .toolbar-right; position: fixed
+         lets us land it at the right viewport coordinates. === */
+      .customTabelPopup__overlay-editor .floating_tools {
+        position: fixed !important;
+        top: 10px !important;
+        bottom: auto !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        height: 36px !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        z-index: 10001 !important;
+        width: max-content !important;
+      }
+      /* Hide pan/zoom controls + the separators on mobile —
+         only undo/redo should appear in the top bar. */
+      .customTabelPopup__overlay-editor .floating_tools #pan-btn,
+      .customTabelPopup__overlay-editor .floating_tools #zoom-in-btn,
+      .customTabelPopup__overlay-editor .floating_tools #zoom-out-btn,
+      .customTabelPopup__overlay-editor .floating_tools .zoom-display,
+      .customTabelPopup__overlay-editor .floating_tools #zoom-display,
+      .customTabelPopup__overlay-editor .floating_tools .separator {
+        display: none !important;
+      }
+      /* Hide the desktop "Undo/Redo" text labels — icon-only on mobile
+         to keep the pill compact in the top bar. */
+      .customTabelPopup__overlay-editor .floating_tools .ft-btn-label {
+        display: none !important;
+      }
+      /* Strip the inherited button border/background so undo/redo
+         render as plain icon buttons matching the by-size-v2 look.
+         Height matches the .floating_tools pill (36px) so the icons
+         center inline with the Use Design button. */
+      .customTabelPopup__overlay-editor .floating_tools #undo-btn,
+      .customTabelPopup__overlay-editor .floating_tools #redo-btn {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 4px 6px !important;
+        height: 36px !important;
+        min-width: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+
+      /* ============== BOTTOM CARD STRIP ==============
+         Each card = white rounded rect with a colored icon chip
+         on the left (green/blue/purple per button) + label text
+         to the right of the chip. Labels are forced via ::after
+         pseudo-elements because the markup hardcodes longer text
+         ("Add Text" / "Upload Image") that doesn't match the spec.
+         Original text is hidden via font-size: 0 on the button;
+         ::after sets its own font-size to bring back the label. */
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer {
+        display: block !important;
+        flex: 0 0 auto !important;
+        padding: 10px 8px !important;
+        border-top: 1px solid #e5e7eb !important;
+        background: #fff !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer > div {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 6px !important;
+        width: 100% !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer > div > button {
+        flex: 1 1 0 !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        height: 44px !important;
+        padding: 4px 6px !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 10px !important;
+        background: #fff !important;
+        /* hide the hardcoded "Add Text" / "Upload Image" text node */
+        font-size: 0 !important;
+        line-height: 1 !important;
+        color: transparent !important;
+        cursor: pointer !important;
+        white-space: nowrap !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+      }
+      /* SPECIFICITY OVERRIDE: v0-styles.css line 712-720 has bare-ID
+         rules `#add-text-btn-2, #add-image-btn-2, #ai-panel-btn-2 {
+         display: none !important }` inside its mobile media query.
+         Those rules win on specificity (0,1,0,0) over our class-based
+         rules (0,0,n,n) even with !important. We need an ID + class
+         combo here so we beat them. Same fix for the .toolbar._footer
+         hide rule on line 718. */
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer {
+        display: block !important;
+      }
+      .customTabelPopup__overlay-editor #add-text-btn-2,
+      .customTabelPopup__overlay-editor #add-image-btn-2,
+      .customTabelPopup__overlay-editor #ai-panel-btn-2 {
+        display: flex !important;
+      }
+
+      /* Icon chip — 24×24 with 14×14 icon. Compact enough that all
+         three labels (including "Create with AI", the longest) fit
+         within an equally-divided third of the viewport without
+         truncation on narrow phones. */
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer > div > button > span {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 24px !important;
+        height: 24px !important;
+        border-radius: 6px !important;
+        flex: 0 0 auto !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer > div > button > span img {
+        width: 14px !important;
+        height: 14px !important;
+        max-height: 14px !important;
+        margin: 0 !important;
+        flex: 0 0 auto !important;
+      }
+
+      /* Per-button chip background (light tint matching the design)
+         and an icon-override pseudo-element. The button markup ships
+         with the wrong icons hardcoded as <img src="..."> (Text.svg
+         renders as "A+", verified_user…png renders as "AI" text);
+         we hide that img and render the desktop's mask-image icons
+         (Text_DS.svg / Upload_DS.svg / Create_with_AI.svg) via ::before
+         on the span. Same icon set the desktop top-bar chips use, so
+         mobile + desktop are visually consistent. */
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-text-btn-2 > span,
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-image-btn-2 > span,
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #ai-panel-btn-2 > span {
+        position: relative !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-text-btn-2 > span img,
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-image-btn-2 > span img,
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #ai-panel-btn-2 > span img {
+        display: none !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-text-btn-2 > span::before,
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-image-btn-2 > span::before,
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #ai-panel-btn-2 > span::before {
+        content: "" !important;
+        display: block !important;
+        width: 14px !important;
+        height: 14px !important;
+        -webkit-mask-position: center !important;
+        mask-position: center !important;
+        -webkit-mask-repeat: no-repeat !important;
+        mask-repeat: no-repeat !important;
+        -webkit-mask-size: contain !important;
+        mask-size: contain !important;
+      }
+
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-text-btn-2 > span {
+        background: #dcfce7 !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-text-btn-2 > span::before {
+        -webkit-mask-image: url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Text_DS.svg?v=1777402372') !important;
+        mask-image: url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Text_DS.svg?v=1777402372') !important;
+        background-color: #16a34a !important;
+      }
+
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-image-btn-2 > span {
+        background: #dbeafe !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-image-btn-2 > span::before {
+        -webkit-mask-image: url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Upload_DS.svg?v=1777402361') !important;
+        mask-image: url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Upload_DS.svg?v=1777402361') !important;
+        background-color: #27aafa !important;
+      }
+
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #ai-panel-btn-2 > span {
+        background: #ede9fe !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #ai-panel-btn-2 > span::before {
+        -webkit-mask-image: url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Create_with_AI.svg?v=1777402306') !important;
+        mask-image: url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Create_with_AI.svg?v=1777402306') !important;
+        background-color: #7c3aed !important;
+      }
+
+      /* Replacement labels via ::after — shorter than the markup's
+         "Add Text" / "Upload Image". font-size on ::after overrides
+         the button's font-size:0, so the original text stays hidden
+         while our pseudo-text shows. */
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-text-btn-2::after,
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-image-btn-2::after,
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #ai-panel-btn-2::after {
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #0f172a !important;
+        letter-spacing: -0.02em !important;
+        line-height: 1 !important;
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-text-btn-2::after {
+        content: "Text";
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #add-image-btn-2::after {
+        content: "Upload";
+      }
+      .customTabelPopup__overlay-editor .editor-container .toolbar._footer #ai-panel-btn-2::after {
+        content: "Create with AI";
+      }
+
+      /* === Canvas area — centered with grey gutter top + bottom === */
+      .customTabelPopup__overlay-editor .canvas-area {
+        flex: 1 1 auto !important;
+        background: #d4d4d4 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+      }
+
+      /* === Floating text/image edit toolbar (.tft) ===
+         When user selects a text/image, this pill appears. v0-styles.css
+         has the mobile fix for this (anchor to viewport edges, scroll
+         overflow) but gates it on :not(.studio-embedded), which doesn't
+         match on this page. Re-implement here without the gate so the
+         toolbar fits within the viewport instead of getting cut off. */
+      .customTabelPopup__overlay-editor #text-float-toolbar.tft {
+        position: fixed !important;
+        top: auto !important;
+        bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
+        /* 3px on each side instead of 8px — gives ~10px more total
+           width so the trailing ⋯ button doesn't clip on narrow
+           viewports while still leaving a hairline gutter from the
+           viewport edges. */
+        left: 3px !important;
+        right: 3px !important;
+        transform: none !important;
+        max-width: calc(100vw - 6px) !important;
+        align-items: stretch !important;
+        flex-direction: column !important;
+      }
+      .customTabelPopup__overlay-editor #text-float-toolbar .tft-bar {
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        justify-content: flex-start !important;
+      }
+      .customTabelPopup__overlay-editor #text-float-toolbar .tft-bar::-webkit-scrollbar {
+        display: none !important;
+      }
+      .customTabelPopup__overlay-editor #text-float-toolbar .tft-btn {
+        padding: 5px 8px !important;
+        font-size: 12.5px !important;
+        flex: 0 0 auto !important;
+      }
+      .customTabelPopup__overlay-editor #text-float-toolbar .tft-sep {
+        flex: 0 0 auto !important;
+      }
+
+      /* === Right-panel as a bottom drawer on mobile ===
+         When the user taps a bottom card (Text / Upload / Create
+         with AI), the right-panel slides up from the bottom as a
+         70vh drawer. Without these explicit rules the AI panel
+         opens off-screen because /pages/ninja-design-studio's
+         markup lacks the `.outside-studio` class that v0-styles.css's
+         mobile drawer rules are gated on. */
+      .customTabelPopup__overlay-editor .right-panel {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        max-height: 70vh !important;
+        height: auto !important;
+        min-height: 0 !important;
+        background: #fff !important;
+        box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.12) !important;
+        border-top-left-radius: 16px !important;
+        border-top-right-radius: 16px !important;
+        z-index: 10000 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        transform: translateY(100%) !important;
+        transition: transform 0.3s ease !important;
+        pointer-events: none !important;
+      }
+      .customTabelPopup__overlay-editor .right-panel._active {
+        transform: translateY(0) !important;
+        pointer-events: auto !important;
+      }
+      /* Inner content area scrolls if it overflows the drawer height. */
+      .customTabelPopup__overlay-editor .right-panel > .panel-content,
+      .customTabelPopup__overlay-editor .right-panel > div {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      /* AI panel inside the drawer — fill the available height with a
+         flex column so the chat thread scrolls and the composer stays
+         pinned to the bottom edge of the drawer. */
+      .customTabelPopup__overlay-editor .right-panel #ai-panel.ai-chat {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        padding: 16px !important;
+        overflow: hidden !important;
+      }
+      .customTabelPopup__overlay-editor .right-panel #ai-panel.ai-chat .ai-chat-thread {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      /* Recently Generated panel — make it span the full drawer
+         width on mobile. The base `.ai-chat-history` rule applies
+         14px horizontal padding + a tinted bg, and the parent
+         #ai-panel adds a 16px gutter, so by default the section
+         sits inset inside the drawer with two visible borders.
+         Negative horizontal margin pulls it back out to the drawer
+         edges; the existing internal padding keeps content clear
+         of those edges. */
+      .customTabelPopup__overlay-editor .right-panel #ai-panel .ai-chat-history {
+        margin-left: -16px !important;
+        margin-right: -16px !important;
+        border-radius: 0 !important;
+        width: calc(100% + 32px) !important;
+        max-width: none !important;
+      }
+      /* (Backdrop dimmer removed per design — drawer slides up over
+         the canvas without any greyed-out wash. Tap-outside-to-close
+         is still wired via v0-script.js's document click listener.) */
+    }
+</style>
+
+{% render "v0-editor" %}
+
+{%- comment -%}
+  Render the native AI image dialog markup + script. ai-chat-sandbox.js's
+  realGenerate() submits prompts via the existing #generative-ai-dialog
+  form — without those elements in the DOM it bails immediately with
+  "AI dialog not in DOM", which surfaces in the chat as
+  "Something went wrong. Please try again." On product pages this snippet
+  is rendered as part of the upload flow (bySize.liquid → __multipleSnippets
+  contentFor 'aiImageGenerator'). The standalone design studio page never
+  hits that flow, so we render the same content block directly here.
+{%- endcomment -%}
+{%- render '__multipleSnippets', product: product, section: section, block: block, contentFor: 'aiImageGenerator' -%}
+{%- render 'dtf-ai-modal' -%}
+
+{%- comment -%}
+  Click handler for the "× Exit" button (re-skinned
+  #fullscreen-toggle-btn). On this page the studio IS the page,
+  so the native fullscreen-toggle behavior (toggle studio-embedded
+  popup) doesn't make sense.
+
+  Mirror the .studio-logo (Ninja Head) handler from v0-script.js
+  line 5344-5349:
+    - If the user has an active design (#save-aws-btn enabled),
+      show the "Changes you made may not be saved" confirmation
+      modal (.customTabelPopup__overlay-exit-studio).
+    - If they haven't started anything (#save-aws-btn disabled),
+      go straight home.
+  Capture-phase so we beat v0-script.js's bubble-phase toggle.
+{%- endcomment -%}
+<script>
+  (function () {
+    document.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest && e.target.closest('#fullscreen-toggle-btn');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      var saveBtn = document.getElementById('save-aws-btn');
+      var hasChanges = saveBtn && !saveBtn.disabled;
+      if (hasChanges) {
+        var overlay = document.querySelector('.customTabelPopup__overlay-exit-studio');
+        if (overlay) overlay.style.display = 'grid';
+      } else {
+        window.location.href = '/';
+      }
+    }, true);
+  })();
+</script>
+
+{%- comment -%}
+  Default zoom to 90% when the user lands on the design studio
+  page. v0-script.js's fitCanvasToArea computes a fit-to-width
+  scale that's typically near 100% on desktop and ~25-40% on
+  mobile, and the result depends on the canvas-area dimensions
+  at first paint (which can race before CSS settles). Pinning
+  to 90% gives a consistent landing zoom that matches design
+  spec. We retry until window.setStudioZoom is available since
+  v0-script.js attaches it inside $(document).ready.
+{%- endcomment -%}
+<script>
+  (function () {
+    var DEFAULT_ZOOM = 90;
+    var attempts = 0;
+    function applyDefaultZoom() {
+      attempts++;
+      if (typeof window.setStudioZoom === 'function') {
+        try { window.setStudioZoom(DEFAULT_ZOOM); } catch (_) {}
+        return;
+      }
+      if (attempts < 50) setTimeout(applyDefaultZoom, 100);
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyDefaultZoom);
+    } else {
+      applyDefaultZoom();
+    }
+  })();
+</script>
+
+{%- comment -%}
+  Editable #zoom-display now lives in v0-editor.liquid so the
+  behavior is shared across every page that renders the studio
+  (standalone DS page, by-size-v2 design-studio tab, dtf-transfers
+  Design with Studio overlay).
+{%- endcomment -%}
+
+<div class="customTabelPopup__overlay-exit-studio nj-popup" style="display:none">
+              <div class="customTabelPopup">
+                <span class="customTabelPopup__close" onclick="document.querySelector('.customTabelPopup__overlay-exit-studio').style.display = 'none'">
+                  <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+                </span>
+                <h4 style="position: absolute;top: 20px;opacity:0;">Remove File</h4>
+
+                <p style="text-align:center;">Changes you made may not be saved.</p>
+                 <div style="display:flex;justify-content:center;gap:10px;flex-direction: column;">
+                      <a href="{{ routes.root_url }}" class="button button--solid">Leave Ninja Studio</a>
+                      <button type="button" onclick="document.querySelector('.customTabelPopup__overlay-exit-studio').style.display = 'none'" class="close button button--solid" style="background: #999 !important;">Cancel</button>
+                    </div>
+              </div>
+  </div>
+<script>
+     $(document).ready(function(){
+        setTimeout(function(){
+                $('.transparent-swatch.canvas-color-swatch').click();
+        },1000)
+      });
+</script>
+
+{% schema %}
+  {
+    "name": "Design tool widget",
+    "settings": [],
+    "presets": [
+      {
+        "name": "Design tool widget"
+      }
+    ]
+  }
+{% endschema %}

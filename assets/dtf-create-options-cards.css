@@ -1,0 +1,209 @@
+/* =========================================================
+   DTF Create Options Cards
+   ---------------------------------------------------------
+   50/50 side-by-side replacement for the legacy pink AI box
+   + grey "Try our Ninja Design Studio" CTA stack on
+   /products/dtf-transfers (variant A templates). The legacy
+   blocks stay in the DOM so their event handlers + dialogs
+   keep working — they're hidden by the CSS in this file.
+   ========================================================= */
+
+/* Hide the legacy widgets when our new cards are present. Using
+   `:has()` so the rules only apply when the new component is
+   actually rendered on the page; falls back gracefully on browsers
+   without :has() support (those keep showing the legacy boxes). */
+.product-page:has(.dtf-create-options) .generative-ai-area,
+.product-page:has(.dtf-create-options) .delivery-block.print-ready-box,
+body:has(.dtf-create-options) .generative-ai-area,
+body:has(.dtf-create-options) .delivery-block.print-ready-box {
+  display: none !important;
+}
+
+/* Hide the new cards once the user has uploaded a file. `.step__2` is the
+   post-upload UI block — it ships with `.hidden` and the upload pipeline
+   removes that class once a file is in. So `.step__2:not(.hidden)` =
+   "user has uploaded" → cards become irrelevant and would just clutter
+   the post-upload screen. Same `:has()` scoping pattern as above. */
+product-page:has(.step__2:not(.hidden)) .dtf-create-options,
+body:has(.step__2:not(.hidden)) .dtf-create-options {
+  display: none !important;
+}
+
+/* Also hide while the upload is IN PROGRESS — `.step__2` only loses its
+   `.hidden` class after the upload pipeline finishes, so during the
+   "We're making sure your upload is perfect for printing" loading state
+   the cards would briefly flash on top of the progress UI. The presence
+   of `.preview-block.image-loading` (set on the placeholder block while
+   the file is processing) is the reliable in-progress signal. */
+product-page:has(preview-block.image-loading) .dtf-create-options,
+body:has(preview-block.image-loading) .dtf-create-options {
+  display: none !important;
+}
+
+.dtf-create-options {
+  margin: 18px 0 24px;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.dtf-create-options__divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 20px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.dtf-create-options__divider-line {
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+.dtf-create-options__divider-text {
+  flex: 0 0 auto;
+}
+
+.dtf-create-options__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dtf-create-card {
+  position: relative;
+  background: #f5f6f8;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px;
+  /* Desktop: explicit 50/50 split so the body and illustration each
+     occupy half the card. Grid handles vertical alignment per column. */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* Body centers vertically; illustration overrides to bottom-right. */
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  min-height: 170px;
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.dtf-create-card:hover {
+  border-color: #c2c7d3;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+.dtf-create-card__body {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.dtf-create-card__heading {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.dtf-create-card__sub {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: #6b7280;
+  line-height: 1.45;
+}
+.dtf-create-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  transition: opacity .15s ease;
+}
+.dtf-create-card__cta:hover {
+  opacity: 0.85;
+}
+/* AI variant — pink/magenta accent matches the AI brand color used
+   in the .ai-chat-brand label and the AI chip border. */
+.dtf-create-card__cta--ai {
+  color: #ec4899;
+}
+/* Studio variant — sky-blue to match Use Design + the Ninja brand. */
+.dtf-create-card__cta--studio {
+  color: #019aff;
+}
+/* Illustration sits in the right grid column on desktop, taking the full
+   50% width with the artwork right-aligned (the asset's composition
+   already includes the bleed/cropping baked in). */
+.dtf-create-card__illust {
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  height: auto;
+}
+.dtf-create-card__illust--desktop {
+  /* Anchor the illustration to the bottom-right of its grid cell so
+     the artwork sits flush against the card's bottom-right corner.
+     Negative margins let it bleed past the card padding on the right
+     and bottom edges, matching the mockup. */
+  align-self: end;
+  justify-self: end;
+  max-height: 170px;
+  object-fit: contain;
+  object-position: right bottom;
+  margin: 0 -18px -18px 0;
+  width: calc(100% + 18px);
+}
+.dtf-create-card__illust--mobile {
+  display: none;
+}
+
+/* Mobile — single column, text stacked above the illustration. The
+   illustration sits at the bottom of the card and bleeds past the right
+   edge to match the design. Switch from grid back to a row-stacked layout
+   so the body sits naturally on top with the illustration below. */
+@media (max-width: 749px) {
+  .dtf-create-options__grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .dtf-create-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 280px;
+    padding: 22px 22px 0 22px;
+    gap: 12px;
+  }
+  .dtf-create-card__body {
+    flex: 0 0 auto;
+    text-align: center;
+    align-items: center;
+  }
+  .dtf-create-card__heading { font-size: 15px; }
+  .dtf-create-card__sub { font-size: 13px; margin-bottom: 14px; }
+  .dtf-create-card__cta { align-self: center; }
+  .dtf-create-card__illust--desktop {
+    display: none;
+  }
+  .dtf-create-card__illust--mobile {
+    display: block;
+    position: relative;
+    flex: 1 1 auto;
+    width: calc(100% + 22px);
+    max-width: none;
+    margin-left: auto;
+    margin-right: -22px;
+    align-self: flex-end;
+    height: auto;
+    max-height: 220px;
+    object-fit: contain;
+    object-position: right bottom;
+  }
+}

@@ -1,0 +1,375 @@
+{% schema %}
+{
+  "name": "Mobile APP menu",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "hide",
+      "label": "Visible on APP",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_everywhere",
+      "label": "Visible everywhere",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "APP menu"
+    }
+  ]
+}
+{% endschema %}
+
+{% if section.settings.hide_everywhere == true %}
+  {% assign hide_on_desktop = section.settings.hide %}
+  {% assign top_menu_entries = shop.metafields.custom.app_menu.value %}
+  
+  {% if request.page_type == 'index' %}
+  {% assign current_url = 'https://ninjatransfers.com' %}
+    {% elsif request.page_type == 'collection' %}
+  {% assign current_url =  request.path %}
+  {% else  %}
+  {% assign current_url = request.origin | append: request.path %}
+  {% endif %}
+  
+  <style>
+    .grt-c-top-mobile-menu {display: flex; justify-content: space-around; align-items: center; padding: 12px 8px; padding-bottom:16px; gap: 0px; flex-wrap: wrap; background: #fff; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9998; box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);}
+    .grt-c-top-mobile-menu__item {flex: 1; text-align: center;}
+    .grt-c-top-mobile-menu .app-menu-arr-icon{transform:rotate(-90deg);}
+    .grt-c-top-mobile-menu a,.grt-c-top-mobile-menu button {font-size: 16px; color: #000; text-decoration: none; background: none; border: none; padding: 0; cursor: pointer; display: inline-block; width: 100%;}
+    .grt-c-top-mobile-menu img.main {width: 40px; height: 40px; margin-bottom: 4px; display: block; margin-left: auto; margin-right: auto; background: #dfdfdf; border-radius: 50%; padding: 7px;}
+    .grt-c-submenu-drawer {position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100vh; background: #fff; z-index: 9999; padding:10px 20px; display:block; flex-direction: column; overflow-y: auto; transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease-in-out;
+      transform: translateX(100%); opacity: 0; box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3); text-align:left;}
+    .grt-c-submenu-drawer.grt-c-active {transform: translateX(0); opacity: 1; right: 0;}
+    .grt-c-submenu-drawer.grt-c-active::before {content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: -1; transition: background 0.4s ease-in-out;}
+    .grt-c-submenu-drawer .grt-c-close-btn {align-self: flex-end; font-size: 16px; cursor: pointer; margin-bottom: 10px; color: #000; position: absolute; top: 12px; right: 20px; z-index:24;}
+    .grt-c-submenu-drawer ul {list-style: none; padding: 0; margin: 0; display:block;}
+    .grt-c-submenu-drawer li{border-bottom:solid 1px #E4E4E4; line-height:20px; padding: 10px 0;}
+    .grt-c-submenu-drawer a{color: #000; text-decoration: none; display: block; line-height:24px;}
+    .grt-c-submenu-drawer {width: 100%; max-width: none;}
+    .grt-c-submenu-drawer li.sublink:not(.app-nav-heading){padding-left: 20px; margin-top:4px;}
+    .grt-c-submenu-drawer .app-nav-heading,.grt-c-submenu-drawer .app-nav-heading a{font-size:16px; display: flex; flex-flow: row; justify-content: space-between;}
+    .grt-c-submenu-drawer .hasmenu:not(.opened-state) > ul{display:none;}
+    .opened-state > ul {display: block; position: absolute; width: calc(100% - 40px); height: calc(100% - 40px); z-index: 22; background: #fff; top: 38px; overflow: hidden; overflow-y: auto; right:20px; left:20px;}
+    .opened-state > ul.fourmenu{top:0; left:0; width: 100%;}
+    .opened-state > ul.thirdmenu{top:50px;}
+    .submenuback .icon{transform:rotate(90deg); margin-right:4px; display:inline-block;}
+    .menu-head{line-height:30px; position:relative; z-index: 23; font-size:16px; padding-bottom:10px;}
+    .menu-head:after{left:-20px; right:-20px; bottom:0; height:1px; background:#E4E4E4; width:calc(100% + 40px); position:absolute; content:""; calc(100% + 40px)}
+    .grt-c-submenu-drawer .main-text{font-size:13px !important;}
+    .menu-flex-inline{display: inline-flex; align-items: center; gap: 16px;}
+    .menu-flex-inline .menu-flex-img{width:48px; height:48px; overflow:hidden; border-radius:8px;}
+    .menu-flex-inline .menu-flex-img img{max-width:100%;}
+  </style>
+ {% assign navisblank = "" %}
+  {% liquid
+    assign templateList = 'collection.blanks-collection,collection.test-collection,collection.blanks-home,collection.blanks-home-dev,collection.blanks-home-t-shirt' | split: ','
+    if templateList contains template
+      assign navisblank = "blanks"
+    endif
+  %}
+  {% if product.metafields.specs.shirt_style or collection.metafields.custom.apparel_filters %}
+    {% assign navisblank = "blanks" %}
+  {% endif %}
+  
+  {% if hide_on_desktop %}
+    <div class="apponlyelements-rel">
+      <div class="apponlyelements">
+  {% endif %}
+  
+  <!-- Main Menu -->
+  <div class="grt-c-top-mobile-menu" style="display:none;">
+    {% for menu in top_menu_entries %}
+      {% assign url = menu.url.value | default: menu.collection_url.value.url %}
+      {% assign submenu_items = menu.submenu.value %}
+      {% assign is_active = false %}
+      {% if current_url == url %}
+        {% assign is_active = true %}
+      {% endif %}
+      {% if menu.class_selection == navisblank %}
+        {% assign is_active = true %}
+      {% endif %}
+      
+      <div class="grt-c-top-mobile-menu__item">
+        {% if submenu_items %}
+          <button class="grt-c-open-submenu-btn" data-target="submenu-{{ forloop.index }}" aria-label="Open {{ menu.text.value | escape }} submenu" aria-expanded="false">
+            {% if is_active %}
+              <img class="main" src="{{ menu.active_icon_image | img_url: 'master' }}" alt="{{ menu.text.value | escape }} active" />
+            {% else %}
+              <img class="main" src="{{ menu.icon | img_url: 'master' }}" alt="{{ menu.text.value | escape }}" />
+            {% endif %}
+            <div class="main-text">{{ menu.text.value }}</div>
+          </button>
+        {% else %}
+          {% if url and menu.text.value %}
+            <a href="{{ url }}">
+              {% if is_active and menu.active_icon_image %}
+                <img class="main" src="{{ menu.active_icon_image | img_url: 'master' }}" alt="{{ menu.text.value | escape }} active">
+              {% elsif menu.icon %}
+                <img class="main" src="{{ menu.icon | img_url: 'master' }}" alt="{{ menu.text.value | escape }}">
+              {% else %}
+                <img class="main" src="" alt="{{ menu.text.value | escape }}">
+              {% endif %}
+              <div class="main-text">{{ menu.text.value }}</div>
+            </a>
+          {% endif %}
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  
+
+  {% capture submenu_content %}
+    {% for menu in top_menu_entries %}
+      {% assign submenu_items = menu.submenu.value %}
+      {% if submenu_items %}
+        <div class="grt-c-submenu-drawer" id="submenu-{{ forloop.index }}">
+          <div class="menu-head"><strong>Menu</strong></div>
+          <span class="grt-c-close-btn" aria-label="Close submenu">✖</span>
+          <ul>
+            
+            <li id="menu-item-account" style="border-bottom: 1px solid var(--color-borders-main);">
+              <div class="Meteor-MobileNavigation__Link">
+                <a style="padding-top:0; border:none; justify-content:flex-start;" class="menu-link no-focus-link  text-weight--bold text-size--large" href="{%- liquid
+                  if customer
+                    echo routes.account_url
+                  else
+                  echo routes.account_login_url
+                  endif
+                -%}">
+                  <span style="display: inline-flex; align-items: center; font-size:14px;">
+                      {%- if customer -%}
+                        {{ 'general.breadcrumb.account.title' | t }}
+                      {%- else -%}
+                        Login
+                      {%- endif -%}
+                  </span>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" data-direction="right" class="Meteor-Arrow" style="transform: none;"><path fill-rule="evenodd" clip-rule="evenodd" d="M12.3953 6.50508L8.89529 3.00508C8.62159 2.73138 8.17919 2.73138 7.90549 3.00508C7.63179 3.27878 7.63179 3.72118 7.90549 3.99488L10.2106 6.29998H2.10039C1.71329 6.29998 1.40039 6.61358 1.40039 6.99998C1.40039 7.38638 1.71329 7.69998 2.10039 7.69998H10.2106L7.90549 10.0051C7.63179 10.2788 7.63179 10.7212 7.90549 10.9949C8.04199 11.1314 8.22119 11.2 8.40039 11.2C8.57959 11.2 8.75879 11.1314 8.89529 10.9949L12.3953 7.49488C12.669 7.22118 12.669 6.77878 12.3953 6.50508Z" fill="#5C5F62"></path></svg>
+                    
+                </a>
+              </div>
+            </li>
+            {% for sub in submenu_items %}
+              {% liquid
+                assign sub_url = sub.submenu_url | default: ""
+                if sub.submenu_collection_url != blank
+                  assign sub_url = sub.submenu_collection_url.value.url
+                endif
+                if sub.product != blank
+                  assign sub_url = sub.product.value.url
+                endif
+                assign thirdmenu = false
+                if sub.app_category
+                  assign thirdmenu = true
+                endif
+              %}
+              {% if sub.submenu_text and sub.status != false %}
+                {% if sub.menu_type == "Heading" %}
+                  <li class="app-menu-heading {% if thirdmenu %}hasmenu{% endif %}">
+                    <div class="app-nav-heading heading {% if thirdmenu %}hasmenuclick{% endif %}">
+                      {% if sub_url != "" %}<a href="{{ sub_url }}">{% endif %}
+                        <span>{{ sub.submenu_text }}</span>
+                        {% if thirdmenu %}
+                          <span class="icon app-menu-arr-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 320 512" data-license="Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc." style="width: 1em; height: 1em; display: inline-flex; flex-shrink: 0; vertical-align: middle; margin-left: 0.6em; margin-bottom: 0.5em;">
+                              <path d="M182.6 470.6c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-9.2-9.2-11.9-22.9-6.9-34.9s16.6-19.8 29.6-19.8H288c12.9 0 24.6 7.8 29.6 19.8s2.2 25.7-6.9 34.9l-128 128z" fill="currentColor"></path>
+                            </svg>
+                          </span>
+                        {% endif %}
+                      {% if sub_url != "" %}</a>{% endif %}
+                    </div>
+                {% elsif sub.menu_type == "Sub heading" %}
+                  <li class="sublink {% if thirdmenu %}hasmenu{% endif %}">
+                    <div class="heading {% if thirdmenu %}hasmenuclick{% endif %}">
+                      {% if sub_url != "" %}<a href="{{ sub_url }}">{% endif %}
+                        <span>{{ sub.submenu_text }}</span>
+                        {% if thirdmenu %}
+                          <span class="icon app-menu-arr-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 320 512" data-license="Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc." style="width: 1em; height: 1em; display: inline-flex; flex-shrink: 0; vertical-align: middle; margin-left: 0.6em; margin-bottom: 0.5em;">
+                              <path d="M182.6 470.6c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-9.2-9.2-11.9-22.9-6.9-34.9s16.6-19.8 29.6-19.8H288c12.9 0 24.6 7.8 29.6 19.8s2.2 25.7-6.9 34.9l-128 128z" fill="currentColor"></path>
+                            </svg>
+                          </span>
+                        {% endif %}
+                      {% if sub_url != "" %}</a>{% endif %}
+                    </div>
+                {% else %}
+                  <li><a href="{{ sub_url }}">{{ sub.submenu_text }}</a></li>
+                {% endif %}
+                
+                {% if thirdmenu %}
+                  {% assign third_menu = sub.app_category.value %}
+                  <ul class="thirdmenu">
+                    <li class="submenuback">
+                      <a href="javascript:void(0);">
+                        <span class="icon">
+                          <svg fill="none" height="7" viewBox="0 0 12 7" width="12" xmlns="http://www.w3.org/2000/svg">
+                            <g fill="#000">
+                              <path d="m1.2334.554688 5.65685 5.656852-.7071.70711-5.656858-5.65686z"></path><path d="m11.8247 1.26221-5.65685 5.65685-.7071-.70711 5.65685-5.65685z"></path>
+                            </g>
+                          </svg>
+                        </span>Back
+                      </a>
+                    </li>
+                    {% for thmenu in third_menu %}
+                      {% liquid
+                        assign thmenu_url = thmenu.cat_link | default: ""
+                        if thmenu.collection != blank
+                          assign thmenu_url = thmenu.collection.value.url
+                          assign menu_thumb = thmenu.collection.value.featured_image | img_url: 'medium'
+                        endif
+                        if thmenu.product != blank
+                          assign thmenu_url = thmenu.product.value.url
+                          assign menu_thumb = thmenu.product.value.featured_image | img_url: 'medium'
+                        endif
+                        assign formenu = false
+                        if thmenu.fourth_level
+                          assign formenu = true
+                        endif
+                      %}
+                      <li class="{% if formenu %}hasmenu{% endif %}">
+                        <div class="{% if formenu %}hasmenuclick{% endif %} {% if thmenu.menu_type == 'Heading' %}app-nav-heading{% endif %}">
+                          {% if thmenu.menu_type == "Heading" %}
+                            <span>{{ thmenu.title }}</span>
+                            {% if formenu %}
+                              <span class="icon app-menu-arr-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 320 512" data-license="Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc." style="width: 1em; height: 1em; display: inline-flex; flex-shrink: 0; vertical-align: middle; margin-left: 0.6em; margin-bottom: 0.5em;">
+                                  <path d="M182.6 470.6c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-9.2-9.2-11.9-22.9-6.9-34.9s16.6-19.8 29.6-19.8H288c12.9 0 24.6 7.8 29.6 19.8s2.2 25.7-6.9 34.9l-128 128z" fill="currentColor"></path>
+                                </svg>
+                              </span>
+                            {% endif %}
+                          {% else %}
+                            {% assign menu_image = thmenu.menu_image | downcase | replace: " ","-" %}
+                            {% liquid
+                              if menu_image == "custom-image"
+                                assign menu_thumb = thmenu.menu_image_file | img_url: '100x'
+                              endif
+                              if menu_image == "only-text" or menu_image == ""
+                                assign menu_thumb = ""
+                              endif
+                            %}
+                            <a href="{{ thmenu_url }}" data-menu_image="{{ menu_image }}" data-menuthumb="{{ menu_thumb }}">
+                              <div class="menu-flex-inline">
+                                {% if menu_image != "" %}
+                                  <div class="menu-flex-img">
+                                    <img src="{{ menu_thumb }}" alt="{{ thmenu.title }}" />
+                                  </div>
+                                {% endif %}
+                                <div>{{ thmenu.title }}</div>
+                              </div>
+                            </a>
+                          {% endif %}
+                        </div>
+                        {% if formenu %}
+                          {% assign fourth_level = thmenu.fourth_level.value %}
+                          <ul class="fourmenu">
+                            <li class="submenuback">
+                              <a href="javascript:void(0);">
+                                <span class="icon">
+                                  <svg fill="none" height="7" viewBox="0 0 12 7" width="12" xmlns="http://www.w3.org/2000/svg">
+                                    <g fill="#000">
+                                      <path d="m1.2334.554688 5.65685 5.656852-.7071.70711-5.656858-5.65686z"></path><path d="m11.8247 1.26221-5.65685 5.65685-.7071-.70711 5.65685-5.65685z"></path>
+                                    </g>
+                                  </svg>
+                                </span>Back
+                              </a>
+                            </li>
+                            {% for formenu in fourth_level %}
+                              {% liquid
+                                assign formenu_url = formenu.cat_link | default: ""
+                                if formenu.collection != blank
+                                  assign formenu_url = formenu.collection.value.url
+                                  assign menu_thumb = formenu.collection.value.featured_image | img_url: 'medium'
+                                endif
+                                if formenu.product != blank
+                                  assign formenu_url = formenu.product.value.url
+                                  assign menu_thumb = formenu.product.value.featured_image | img_url: 'medium'
+                                endif
+                              %}
+                              <li><a href="{{ formenu_url }}">{{ formenu.title }}</a></li>
+                            {% endfor %}
+                          </ul>
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% endcapture %}
+  
+ 
+  {{ submenu_content }}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('Script loaded');
+      const openButtons = document.querySelectorAll('.grt-c-open-submenu-btn');
+      const closeButtons = document.querySelectorAll('.grt-c-close-btn');
+  
+      console.log('Open buttons found:', openButtons.length);
+  
+      openButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const targetId = button.getAttribute('data-target');
+          console.log('Opening drawer:', targetId);
+          const drawer = document.getElementById(targetId);
+          if (drawer) {
+            console.log('Drawer found:', drawer);
+            document.querySelectorAll('.grt-c-submenu-drawer.grt-c-active').forEach(activeDrawer => {
+              if (activeDrawer.id !== targetId) {
+                activeDrawer.classList.remove('grt-c-active');
+                const otherButton = document.querySelector(`[data-target="${activeDrawer.id}"]`);
+                if (otherButton) otherButton.setAttribute('aria-expanded', 'false');
+              }
+            });
+            drawer.classList.add('grt-c-active');
+            button.setAttribute('aria-expanded', 'true');
+            document.body.style.overflow = 'hidden';
+          } else {
+            console.error('Drawer not found for ID:', targetId);
+          }
+        });
+      });
+  
+      closeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const drawer = button.closest('.grt-c-submenu-drawer');
+          if (drawer) {
+            $(".grt-c-submenu-drawer .hasmenu").removeClass("opened-state")
+            drawer.classList.remove('grt-c-active');
+            const openButton = document.querySelector(`[data-target="${drawer.id}"]`);
+            if (openButton) {
+              openButton.setAttribute('aria-expanded', 'false');
+            }
+            document.body.style.overflow = '';
+          }
+        });
+      });
+  
+  
+       $(".grt-c-submenu-drawer").on("click", ".hasmenuclick", function (e) {
+         var pli = $(this).closest("li.hasmenu");
+          if (pli.length) {
+            pli.addClass("opened-state");
+          }
+        });
+        
+        $(".grt-c-submenu-drawer").on("click", ".submenuback", function (e) {
+          var recent_obj = $(this).closest(".opened-state");
+          recent_obj.removeClass("opened-state")
+        });
+        
+      
+    });
+  </script>
+      {% if hide_on_desktop %}
+  </div>
+  </div>
+  {% endif %}
+{% endif %}

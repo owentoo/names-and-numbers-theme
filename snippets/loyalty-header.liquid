@@ -1,0 +1,120 @@
+{% assign enable_loyalty = false %}
+{% if customer %}
+  {% assign enable_loyalty = true %}
+{% endif %}
+
+  {% if enable_loyalty %}
+    {%- comment -%}Hidden widget keeps swellAPI alive for the Rewards History popup button{%- endcomment -%}
+    <div aria-hidden="true" style="position:relative;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;z-index:-1;">
+      <div class="yotpo-widget-instance" data-yotpo-instance-id="1303691"></div>
+    </div>
+    <div class="loyalty-box d-none">
+      <a href="https://ninjatransfers.com/pages/ninja-rewards">
+        <span class="reward-icon-wrap">
+          <span class="loyalty-icon">
+            {% assign classname = customer.metafields.ninja_rewards.tier_label | default: 'White Belt' | downcase %}
+            {% assign classname = classname | split : " " %}
+            {% assign classname = classname | join : "-" %}
+            {% case classname %}
+              {% when 'black-belt' %}
+                {%- render 'theme-symbols', icon: 'icon-black-belt-png' -%}
+              {% when 'white-belt' %}
+                {%- render 'theme-symbols', icon: 'icon-white-belt-png' -%}
+              {% when 'yellow-belt' %}
+                {%- render 'theme-symbols', icon: 'icon-yellow-belt-png' -%}
+              {% when 'blue-belt' %}
+                {%- render 'theme-symbols', icon: 'icon-blue-belt-png' -%}
+            {% endcase %}
+          </span>
+          {% comment %} <span class="reward-ttext">{{ customer.metafields.ninja_rewards.tier_label }}</span> {% endcomment %}
+        </span>
+        <span class="d-none d-sm-block {{ classname }}">
+          <span class="reward-belt-classes">
+          {%liquid
+            # Default to White Belt (2%) when tier_label is blank/null so the
+            # cashback rate is always set instead of falling through unset.
+            if customer.metafields.ninja_rewards.tier_label != blank
+              assign tierinfo = customer.metafields.ninja_rewards.tier_label | downcase
+            else
+              assign tierinfo = 'white belt'
+            endif
+            case tierinfo
+              when 'white belt'
+                assign pointval = 0.02
+              when 'yellow belt'
+                assign pointval = 0.04
+              when 'blue belt'
+                assign pointval = 0.06
+              when 'black belt'
+                assign pointval = 0.10
+              else
+                assign pointval = 0.02
+            endcase
+            assign total_val = customer.store_credit_account.balance
+          %}
+            <span>Ninja Rewards</span>
+            <div><strong>{{ total_val | money }}</strong></div>
+          </span>
+        </span>
+      </a>
+      <div class="layalty-hoverbox loyalty-subscriber-tier">
+        {%- render 'loyalty-tier-progress' -%}
+      </div>
+    </div>
+  {% else %}
+    {% unless customer %}
+    <div class="loyalty-box d-none d-sm-block">
+      <a href="https://ninjatransfers.com/pages/ninja-rewards" class="loyalty-box">
+        <span class="reward-icon-wrap non-login">
+        <span class="loyalty-icon">
+          {%- render 'theme-symbols', icon: 'icon-loyalty' -%}
+        </span>
+        </span>
+        <span class="d-none d-sm-block">
+          <span>Ninja Rewards</span>
+          <span class="d-block"><strong>Sign up and earn</strong> </span>
+        </span>
+      </a>
+      <div class="layalty-hoverbox">
+        <div>
+        <div class="loyalty-hover-innerbox">
+          <h2 class="loyalty-text-heading">Earn points <div class="d-inline d-sm-block">Redeem for <span class="lnkcolor">discounts</span>.</div></h2>
+          <p class="loyalty-text-desc">Join our loyalty program & earn up to <strong>5X points</strong> on every order as well as access to exclusive bonuses and promotion rewards.</p>
+          <a class="button button--solid button--product button--loader button--move" href="https://ninjatransfers.com/pages/ninja-rewards">
+            <span class="button__text">
+                Start Earning Today
+            </span>
+            <span class="button__preloader">
+              <svg class="button__preloader-element" viewBox="25 25 50 50"><circle cx="50" cy="50" r="20" fill="none" stroke-width="4"></circle></svg>
+            </span>
+          </a>
+        </div>
+        <div class="layalty-hoverbox-img"></div>
+        </div>
+      </div>
+    </div>
+    {% endunless %}
+  {% endif %}
+  
+<style>
+  .loyalty-subscriber-tier.layalty-hoverbox{padding:16px;}
+  .loyalty-subscriber-tier .yotpo-vip-tiers-widget .yotpo-vip-tiers-list{margin:0; padding:0 !important}
+  .yotpo-vip-tiers-list .yotpo-vip-tiers-container,.yotpo-vip-tiers-list .yotpo-vip-tiers-headline{display:none;}
+  .template-page-ninja-rewards-new .main-content .yotpo-vip-tiers-list .yotpo-vip-tiers-container{display:block; padding-top:24px;}
+  .yotpo-vip-tiers-widget .yotpo-vip-tiers-list{padding:0 !important; padding-top:32px !important;} 
+  .loyalty-box{position:relative;}
+  .loyalty-box:hover .layalty-hoverbox{display:block; z-index:10;}
+  .layalty-hoverbox.accountpage{display:block; background:#F0F8FB; position:relative; top:0; left:0; margin:0; width:100%; margin-bottom:24px; margin-top:16px;}
+  .layalty-hoverbox.accountpage:after,.layalty-hoverbox.accountpage:before{content:none;}
+  .layalty-hoverbox:after{content:""; position:absolute; height:16px; left:0; right:0; top:-16px;}
+  .layalty-hoverbox:before{position:absolute; left:50%; top:-8px; width:16px; height:16px; background:#fff; transform:rotate(45deg); content:""; box-shadow:0px -3px 1px 0px #f1f1f1;}
+  .layalty-hoverbox {border-radius: 24px; width: 600px; padding:32px 18px; background: #fff; position: absolute; left: 50%; margin-left:-300px; top: calc(100% + 12px); display: none; box-shadow: 5px 10px 18px rgba(0,0,0,0.4); padding-right: 260px; padding-top:24px;}
+  .layalty-hoverbox .loyalty-hover-innerbox{width:355px; position:relative; z-index:1;}
+  .loyalty-text-heading{font-size:32px; line-height:40px;}
+  .loyalty-text-desc{font-size:13px; line-height:18px;}
+  .layalty-hoverbox-img{width:260px; position:absolute; top:0; bottom:0; right:0; background: #fff url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/rewards-ninja.jpg?v=1712247176') no-repeat right bottom; background-size: 88%; border-top-right-radius:16px; border-bottom-right-radius:16px;}
+  .mobile-menu.loyalty-box{border-top: 1px solid var(--color-borders-main); padding-top: 8px; padding-bottom: 8px;}
+  .mobile-menu.loyalty-box .loyalty-icon svg{width:40px; height:40px;}
+  .mobile-menu.loyalty-box .loyalty-icon{flex-grow:0;}
+  
+</style>

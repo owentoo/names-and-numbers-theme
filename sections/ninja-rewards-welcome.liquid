@@ -1,0 +1,387 @@
+{%- comment -%}
+  Top-level visits to /pages/ninja-rewards should resolve into the
+  members portal with the Ninja Rewards sidebar tab pre-selected. The
+  welcome page also AJAX-fetches /pages/ninja-rewards into its
+  .mp-ajax-pane, so the redirect must ONLY fire when this section is
+  rendering at the document root (top-level navigation). When the
+  members portal injects this content into its pane, the surrounding
+  document's pathname is /pages/welcome, so the redirect is skipped
+  and the original rewards UI renders inside the pane as designed.
+{%- endcomment -%}
+<script>
+  (function () {
+    try {
+      var p = window.location.pathname || '';
+      if (p === '/pages/ninja-rewards' || p === '/pages/ninja-rewards/') {
+        var qs = window.location.search || '';
+        var sep = qs ? (qs + '&') : '?';
+        window.location.replace('/pages/welcome' + sep + 'tab=ninja-rewards' + window.location.hash);
+      }
+    } catch (_e) { /* never block render */ }
+  })();
+</script>
+{% assign is_logged_in = false %}
+{% if customer %}{% assign is_logged_in = true %}{% endif %}
+
+{% if request.design_mode %}
+  {% if section.settings.preview_state == 'logged_in' %}{% assign is_logged_in = true %}{% endif %}
+  {% if section.settings.preview_state == 'logged_out' %}{% assign is_logged_in = false %}{% endif %}
+{% endif %}
+
+{% assign display_name    = section.settings.preview_first_name | default: 'Ninja' %}
+{% assign display_tier    = 'White Belt' %}
+{% assign display_pct     = '2%' %}
+{% assign remaining_cents = 0 %}
+{% assign next_tier       = 'Yellow Belt' %}
+{% assign tier_pill_bg    = '#ffffff' %}
+{% assign tier_pill_color = '#1d2433' %}
+{% assign accent_color    = '#90a4ae' %}
+
+{% assign available_value = 0 %}
+{% if customer %}
+  {% assign display_name    = customer.first_name | default: display_name %}
+  {% assign display_tier    = customer.metafields.ninja_rewards.tier_label | default: 'White Belt' %}
+  {% assign remaining_cents = customer.metafields.ninja_rewards.next_tier_gap | default: 0 %}
+  {% assign available_value = customer.store_credit_account.balance | default: 0 %}
+{% endif %}
+
+{% if display_tier == 'Yellow Belt' %}
+  {% assign display_pct     = '4%' %}
+  {% assign next_tier       = 'Blue Belt' %}
+  {% assign tier_pill_bg    = 'linear-gradient(135deg,#ffe57f 0%,#f5c800 100%)' %}
+  {% assign tier_pill_color = '#78350f' %}
+  {% assign accent_color    = '#f5c800' %}
+{% elsif display_tier == 'Blue Belt' %}
+  {% assign display_pct     = '6%' %}
+  {% assign next_tier       = 'Black Belt' %}
+  {% assign tier_pill_bg    = 'linear-gradient(135deg,#60b4ff 0%,#2196d4 100%)' %}
+  {% assign tier_pill_color = '#fff' %}
+  {% assign accent_color    = '#4ea8f5' %}
+{% elsif display_tier == 'Black Belt' %}
+  {% assign display_pct     = '10%' %}
+  {% assign next_tier       = '' %}
+  {% assign tier_pill_bg    = 'linear-gradient(135deg,#5a6270 0%,#2c3239 100%)' %}
+  {% assign tier_pill_color = '#f1f5f9' %}
+  {% assign accent_color    = '#94a3b8' %}
+{% endif %}
+
+<style>
+  .nrw-wrap {
+    width: 100%;
+    box-sizing: border-box;
+    /* Match the rewards-tiers section's outer geometry — max-width 1400px
+       + 32px horizontal padding — so the welcome card's visible edges line
+       up with the tier-cards row below. Half-bottom padding tightens the
+       gap to the tier section. */
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 32px 12px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .nrw-card {
+    /* Card fills the wrap's content area (1400 − 64 = 1336px max). */
+    margin: 0;
+    background: #1d2433;
+    border-radius: 24px;
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    color: #fff;
+    box-sizing: border-box;
+  }
+  .nrw-card__left { flex: 1 1 auto; min-width: 0; }
+  .nrw-card__eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #e2e8f0;
+    margin-bottom: 8px;
+  }
+  .nrw-card__namerow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .nrw-card__name {
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    margin: 0;
+  }
+  .nrw-card__belt {
+    background: {{ tier_pill_bg }};
+    color: {{ tier_pill_color }};
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border-radius: 99px;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .nrw-card__stats {
+    display: flex;
+    gap: 36px;
+    flex: 0 0 auto;
+  }
+  .nrw-stat { display: flex; flex-direction: column; gap: 8px; }
+  .nrw-stat__label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #e2e8f0;
+    line-height: 1;
+  }
+  .nrw-stat__value {
+    font-size: clamp(24px, 2.6vw, 32px);
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  /* Match the header dropdown's "$X.XX Ninja Cash" green
+     (sections/header.liquid:462 — .login-box__cash). */
+  .nrw-stat__value--cash { color: #27AF1A; }
+  .nrw-stat__suffix {
+    font-size: 16px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-left: 4px;
+  }
+  /* Tier-colored "TO X BELT" labels — color tracks the *next* tier so the
+     user sees what they're working toward at a glance. Value stays white
+     for legibility; only the label gets the accent. Black uses slate
+     instead of pure #000 — pure black on the navy card is ~1.2:1 contrast
+     and effectively invisible. */
+  .nrw-stat--yellow .nrw-stat__label { color: #fbbf24; }
+  .nrw-stat--blue   .nrw-stat__label { color: #60a5fa; }
+  .nrw-stat--black  .nrw-stat__label { color: #94a3b8; }
+  /* Logged-out variant — single column, sub-text + sign-in CTA */
+  .nrw-card--out { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .nrw-card--out .nrw-card__sub {
+    color: #94a3b8;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  .nrw-signin-btn {
+    display: inline-block;
+    background: #4ea8f5;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 24px;
+    border-radius: 99px;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .nrw-signin-btn:hover { background: #2196d4; color: #fff; }
+
+  /* Tablet/narrow desktop — stack stats below the name block. */
+  @media (max-width: 960px) {
+    .nrw-card { flex-direction: column; align-items: flex-start; gap: 24px; }
+    .nrw-card__stats { width: 100%; justify-content: space-between; gap: 24px; }
+  }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    .nrw-wrap { padding: 16px 16px 8px; }
+    .nrw-card { padding: 22px 20px; gap: 20px; border-radius: 18px; }
+    .nrw-card__namerow { gap: 10px; }
+    .nrw-card__belt { font-size: 11px; padding: 6px 14px; }
+    .nrw-card__stats { gap: 16px; }
+    .nrw-stat__value { font-size: 22px; }
+    .nrw-stat__suffix { font-size: 13px; }
+    .nrw-card__sub { font-size: 13px; }
+    .nrw-signin-btn { font-size: 13px; padding: 8px 20px; }
+  }
+  /* Smallest phones — keep the 3 stats horizontal so the card stays a
+     two-row UI (name+belt on top, stats on the bottom). Stacking into a
+     single column would push to 5+ visual lines, which we want to avoid. */
+  @media (max-width: 420px) {
+    .nrw-card__stats { gap: 12px; }
+    .nrw-stat__label { font-size: 10px; letter-spacing: 0.06em; }
+    .nrw-stat__value { font-size: 18px; white-space: nowrap; }
+    .nrw-stat__suffix { font-size: 11px; margin-left: 3px; }
+  }
+</style>
+
+{% if is_logged_in %}
+  <div class="nrw-wrap">
+    <div class="nrw-card">
+      <div class="nrw-card__left">
+        <div class="nrw-card__eyebrow">Welcome Back</div>
+        <div class="nrw-card__namerow">
+          <h2 class="nrw-card__name">Ninja {{ display_name }}</h2>
+          <span class="nrw-card__belt">{{ display_tier }}</span>
+        </div>
+      </div>
+      <div class="nrw-card__stats">
+        <div class="nrw-stat">
+          <div class="nrw-stat__label">Ninja Cash</div>
+          <div class="nrw-stat__value nrw-stat__value--cash">{{ available_value | money }}</div>
+        </div>
+        <div class="nrw-stat">
+          <div class="nrw-stat__label">Earning</div>
+          <div class="nrw-stat__value">{{ display_pct }}<span class="nrw-stat__suffix">back</span></div>
+        </div>
+        {% if next_tier != blank and remaining_cents > 0 %}
+        {%- assign next_tier_handle = next_tier | downcase | split: ' ' | first -%}
+        <div class="nrw-stat nrw-stat--{{ next_tier_handle }}">
+          <div class="nrw-stat__label">To {{ next_tier }}</div>
+          <div class="nrw-stat__value">{{ remaining_cents | times: 100 | money }}<span class="nrw-stat__suffix">to go</span></div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="nrw-wrap">
+    <div class="nrw-card nrw-card--out">
+      <div class="nrw-card__left">
+        <div class="nrw-card__eyebrow">Welcome</div>
+        <div class="nrw-card__namerow">
+          <h2 class="nrw-card__name">Ninja</h2>
+        </div>
+      </div>
+      <div class="nrw-card__sub">Sign in to see your belt, track your progress, and earn cash back on every order.</div>
+      <a class="nrw-signin-btn" href="{{ routes.account_login_url }}">Sign In / Join Now</a>
+    </div>
+  </div>
+{% endif %}
+
+{% if customer %}
+<style>
+  #nrw-swell-close {
+    position: fixed;
+    z-index: 2147483648;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.7);
+    background: rgba(30,30,30,0.85);
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transform: translate(50%, -50%);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    transition: background 0.15s;
+  }
+  #nrw-swell-close:hover { background: rgba(0,0,0,0.95); }
+</style>
+<script>
+(function () {
+  function injectCloseButton() {
+    var attempts = 0;
+    var timer = setInterval(function () {
+      var popup = document.getElementById('swell-popup');
+      if (!popup || popup.offsetWidth === 0) {
+        if (++attempts >= 30) clearInterval(timer);
+        return;
+      }
+      clearInterval(timer);
+
+      var existing = document.getElementById('nrw-swell-close');
+      if (existing) existing.remove();
+
+      var xBtn = document.createElement('button');
+      xBtn.id = 'nrw-swell-close';
+      xBtn.setAttribute('aria-label', 'Close');
+      xBtn.innerHTML = '&times;';
+      document.body.appendChild(xBtn);
+
+      function position() {
+        var r = popup.getBoundingClientRect();
+        xBtn.style.top  = r.top + 'px';
+        xBtn.style.left = r.right + 'px';
+      }
+      position();
+      window.addEventListener('resize', position);
+
+      function cleanup() {
+        xBtn.remove();
+        window.removeEventListener('resize', position);
+        obs.disconnect();
+      }
+
+      xBtn.addEventListener('click', function () {
+        if (window.swellAPI) window.swellAPI.closeRewardsPopup();
+        cleanup();
+      });
+
+      // Watch for popup removal or hide
+      var obs = new MutationObserver(function () {
+        var p = document.getElementById('swell-popup');
+        if (!p || p.offsetWidth === 0) cleanup();
+      });
+      obs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
+    }, 100);
+  }
+
+  function openHistory() {
+    if (window.swellAPI && typeof window.swellAPI.showPopupByType === 'function') {
+      window.swellAPI.showPopupByType('HistoryPopup');
+    } else if (window.swellAPI && typeof window.swellAPI.showRewardsPopup === 'function') {
+      window.swellAPI.showRewardsPopup('history');
+    }
+    injectCloseButton();
+  }
+
+  function init() {
+    var btn = document.getElementById('nrw-history-trigger');
+    if (!btn) return;
+    btn.addEventListener('click', openHistory);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    setTimeout(init, 500);
+  }
+})();
+</script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Rewards Welcome",
+  "tag": "section",
+  "class": "ninja-rewards-welcome",
+  "settings": [
+    {
+      "type": "header",
+      "content": "CMS Preview Settings"
+    },
+    {
+      "type": "select",
+      "id": "preview_state",
+      "label": "Preview State",
+      "info": "Only affects the theme editor. Live site always uses actual login status.",
+      "options": [
+        { "value": "auto",       "label": "Auto (live login status)" },
+        { "value": "logged_in",  "label": "Logged In" },
+        { "value": "logged_out", "label": "Logged Out" }
+      ],
+      "default": "logged_in"
+    },
+    {
+      "type": "text",
+      "id": "preview_first_name",
+      "label": "Preview First Name",
+      "info": "Name shown in the editor when Preview State is set to Logged In.",
+      "default": "Ninja"
+    }
+  ]
+}
+{% endschema %}

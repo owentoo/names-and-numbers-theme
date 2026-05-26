@@ -1,0 +1,182 @@
+{% assign style_category = 'style-' | append: product.metafields.specs.shirt_style %}
+{% assign style_collection = product.collections | where: "handle", style_category | first %}
+
+{% paginate style_collection.products by 1000 %}
+{% assign sortedColors = style_collection.products | sort: "url"  %}
+{% endpaginate %}
+
+{% assign whiteVariantSmall = blank %}
+{% assign grayVariantSmall = blank %}
+{% assign colorVariantSmall = blank %}
+{% assign whiteTierPricing = blank %}
+{% assign grayTierPricing = blank %}
+{% assign colorTierPricing = blank %}
+{% for style_product in sortedColors %} 
+  {% assign shirt_color = style_product.metafields.specs.shirt_color | upcase %}
+  {% if shirt_color == "WHITE" %}
+      {% if whiteTierPricing == blank  %}
+        {% assign whiteVariantSmall = style_product.variants | where: "title", "S" | first %}
+        {% assign whiteTierPricing = whiteVariantSmall.metafields.custom.tier_pricing | split: "," %}
+      {% endif %}
+  {% elsif shirt_color == "BLACK" %}
+      {% if grayTierPricing == blank  %}
+        {% assign grayVariantSmall = style_product.variants | where: "title", "S" | first %}
+        {% assign grayTierPricing = grayVariantSmall.metafields.custom.tier_pricing | split: "," %}
+      {% endif %}
+  {% else %}
+      {% if colorTierPricing == blank or colorTierPricing.size != 7 %}
+        {% assign colorVariantSmall = style_product.variants | where: "title", "S" | first %}
+        {% assign colorTierPricing = colorVariantSmall.metafields.custom.tier_pricing | split: "," %}
+      {% endif %}
+  {% endif %}
+{% endfor %}
+
+{% if whiteTierPricing.size == 7 and colorTierPricing.size == 7 and grayTierPricing.size == 7 %}
+  {% assign whiteMSRP = whiteVariantSmall.price | times: 1.96 %}
+  {% assign grayMSRP = grayVariantSmall.price | times: 1.96 %}
+  {% assign colorMSRP = colorVariantSmall.price | times: 1.96 %}
+<style>
+  .tierPricingGridTable {
+    width:100%;
+  }
+
+  .tierPricingRetailGridTable, .tierPricingBulkGridTable {
+    width:100%;
+  }
+
+  .tierPricingBulkGridTable .percentOff {
+    font-weight:bold;
+    color:#42a9de;
+    font-size:0.7em;
+  }
+
+  .tierPricingBulkGridTable tbody td {
+    border:none;
+    border-bottom:2px solid #eeeeee;
+    padding-top:5px;
+    padding-bottom:5px;
+  }
+
+  .tierPricingBulkGridTable tbody tr.active td {
+    background-color:#e4f4fe;
+    border:none;
+  }
+
+  .tierPricingBulkGridTable td {
+    width:25%;
+  }
+
+  .tierPricingRetailGridTable td {
+    width:25%;
+  }
+
+  .tierPricingGridTable td {
+    border:none;
+    border-bottom:2px solid #f3f3f3;
+    padding:3px;
+  }
+
+  .tierPricingGridTable thead td {
+    font-weight:bold;
+  }
+
+  .tierPricingGridTable .percentOff {
+    font-weight:bold;
+    color:#42a9de;
+    font-size:0.7em;
+  }
+</style>
+
+<div style="margin-bottom:2rem;">
+  <div style="font-weight:bold;font-size:1.6em;margin-bottom:10px;">
+    Save Up To 49% Off Retail
+  </div>
+  <table class="tierPricingRetailGridTable">
+    <thead>
+      <tr>
+        <td style="background-color: #eeeeee;"></td>
+        <td style="font-weight:bold;background-color: #eeeeee;padding-top:10px;padding-bottom:10px;">White</td>
+        <td style="font-weight:bold;background-color: #eeeeee;padding-top:10px;padding-bottom:10px;">Gray</td>
+        <td style="font-weight:bold;background-color: #eeeeee;padding-top:10px;padding-bottom:10px;">Colors from</td>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding-left:20px;;padding-top:5px;">Retail</td>
+        <td style="text-decoration: line-through;font-size:0.9em;color: #9a9a9a;">{{ whiteMSRP | money }}</td>
+        <td style="text-decoration: line-through;font-size:0.9em;color: #9a9a9a;">{{ grayMSRP | money }}</td>
+        <td style="text-decoration: line-through;font-size:0.9em;color: #9a9a9a;">{{ colorMSRP | money }}</td>
+      </tr>
+      <tr>
+        <td style="font-weight:bold;padding-left:20px;;padding-top:5px;">Starting at</td>
+        <td style="font-weight:bold;font-size:1.6em;color:#42a9de;">{{ whiteVariantSmall.price | money }}</td>
+        <td style="font-weight:bold;font-size:1.6em;color:#42a9de;">{{ grayVariantSmall.price | money }}</td>
+        <td style="font-weight:bold;font-size:1.6em;color:#42a9de;">{{ colorVariantSmall.price | money }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="font-weight:bold;font-size:1.6em;margin-top:20px;margin-bottom:10px;">
+    Bulk Buyer Discount
+  </div>
+  <table class="tierPricingBulkGridTable">
+    <thead>
+      <tr>
+        <td style="font-weight:bold;background-color: #eeeeee;padding-top:10px;padding-left:20px;padding-bottom:10px;">Cart Total</td>
+        <td style="font-weight:bold;background-color: #eeeeee;padding-top:10px;padding-bottom:10px;">White</td>
+        <td style="font-weight:bold;background-color: #eeeeee;padding-top:10px;padding-bottom:10px;">Gray</td>
+        <td style="font-weight:bold;background-color: #eeeeee;padding-top:10px;padding-bottom:10px;">Colors from</td>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="tierRow tier1">
+        <td style="padding-left:20px;">$99+</td>
+        <td style="">{{ whiteTierPricing[0] | money }} <span class="percentOff">{{ whiteMSRP | minus: whiteTierPricing[0] | divided_by: whiteMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ grayTierPricing[0] | money }} <span class="percentOff">{{ grayMSRP | minus: grayTierPricing[0] | divided_by: grayMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ colorTierPricing[0] | money }} <span class="percentOff">{{ colorMSRP | minus: colorTierPricing[0] | divided_by: colorMSRP | times:100 | round }}% off</span></td>
+      </tr>
+      <tr class="tierRow tier2">
+        <td style="padding-left:20px;">$150+</td>
+        <td style="">{{ whiteTierPricing[1] | money }} <span class="percentOff">{{ whiteMSRP | minus: whiteTierPricing[1] | divided_by: whiteMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ grayTierPricing[1] | money }} <span class="percentOff">{{ grayMSRP | minus: grayTierPricing[1] | divided_by: grayMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ colorTierPricing[1] | money }} <span class="percentOff">{{ colorMSRP | minus: colorTierPricing[1] | divided_by: colorMSRP | times:100 | round }}% off</span></td>
+      </tr>
+      <tr class="tierRow tier3">
+        <td style="padding-left:20px;">$250+</td>
+        <td style="">{{ whiteTierPricing[2] | money }} <span class="percentOff">{{ whiteMSRP | minus: whiteTierPricing[2] | divided_by: whiteMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ grayTierPricing[2] | money }} <span class="percentOff">{{ grayMSRP | minus: grayTierPricing[2] | divided_by: grayMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ colorTierPricing[2] | money }} <span class="percentOff">{{ colorMSRP | minus: colorTierPricing[2] | divided_by: colorMSRP | times:100 | round }}% off</span></td>
+      </tr>
+      <tr class="tierRow tier4">
+        <td style="padding-left:20px;">$500+</td>
+        <td style="">{{ whiteTierPricing[3] | money }} <span class="percentOff">{{ whiteMSRP | minus: whiteTierPricing[3] | divided_by: whiteMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ grayTierPricing[3] | money }} <span class="percentOff">{{ grayMSRP | minus: grayTierPricing[3] | divided_by: grayMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ colorTierPricing[3] | money }} <span class="percentOff">{{ colorMSRP | minus: colorTierPricing[3] | divided_by: colorMSRP | times:100 | round }}% off</span></td>
+      </tr>
+      <tr class="tierRow tier5">
+        <td style="padding-left:20px;">$1,000+</td>
+        <td style="">{{ whiteTierPricing[4] | money }} <span class="percentOff">{{ whiteMSRP | minus: whiteTierPricing[4] | divided_by: whiteMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ grayTierPricing[4] | money }} <span class="percentOff">{{ grayMSRP | minus: grayTierPricing[4] | divided_by: grayMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ colorTierPricing[4] | money }} <span class="percentOff">{{ colorMSRP | minus: colorTierPricing[4] | divided_by: colorMSRP | times:100 | round }}% off</span></td>
+      </tr>
+      <tr class="tierRow tier6">
+        <td style="padding-left:20px;">$1,750+</td>
+        <td style="">{{ whiteTierPricing[5] | money }} <span class="percentOff">{{ whiteMSRP | minus: whiteTierPricing[5] | divided_by: whiteMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ grayTierPricing[5] | money }} <span class="percentOff">{{ grayMSRP | minus: grayTierPricing[5] | divided_by: grayMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ colorTierPricing[5] | money }} <span class="percentOff">{{ colorMSRP | minus: colorTierPricing[5] | divided_by: colorMSRP | times:100 | round }}% off</span></td>
+      </tr>
+      <tr class="tierRow tier7">
+        <td style="padding-left:20px;">$3,800+</td>
+        <td style="">{{ whiteTierPricing[6] | money }} <span class="percentOff">{{ whiteMSRP | minus: whiteTierPricing[6] | divided_by: whiteMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ grayTierPricing[6] | money }} <span class="percentOff">{{ grayMSRP | minus: grayTierPricing[6] | divided_by: grayMSRP | times:100 | round }}% off</span></td>
+        <td style="">{{ colorTierPricing[6] | money }} <span class="percentOff">{{ colorMSRP | minus: colorTierPricing[6] | divided_by: colorMSRP | times:100 | round }}% off</span></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <div style="margin-top:10px;color:#737373;">
+    Prices are for sizes S - XL
+  </div>
+</div>
+
+{% endif %}

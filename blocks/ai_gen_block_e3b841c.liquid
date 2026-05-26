@@ -1,0 +1,295 @@
+{% doc %}
+  @prompt
+    Create a responsive two-column section where the left column (1/3 width) contains a customizable text card with title, description, and styling options, and the right column (2/3 width) contains an embedded YouTube video player with URL input. Include mobile responsiveness that stacks vertically on smaller screens and add a maximum section width setting for layout control.
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .two-column-video-{{ ai_gen_id }} {
+    display: flex;
+    flex-wrap: wrap;
+    gap: {{ block.settings.gap }}px;
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    padding: {{ block.settings.padding }}px;
+  }
+
+  .text-column-{{ ai_gen_id }} {
+    flex: 1;
+    min-width: 250px;
+    flex-basis: calc(33% - {{ block.settings.gap | divided_by: 2 }}px);
+    background-color: {{ block.settings.card_background }};
+    padding: {{ block.settings.card_padding }}px;
+    border-radius: {{ block.settings.card_border_radius }}px;
+    box-shadow: {% if block.settings.card_shadow %}0 4px 12px rgba(0, 0, 0, 0.1){% else %}none{% endif %};
+  }
+
+  .video-column-{{ ai_gen_id }} {
+    flex: 2;
+    min-width: 300px;
+    flex-basis: calc(67% - {{ block.settings.gap | divided_by: 2 }}px);
+  }
+
+  .card-title-{{ ai_gen_id }} {
+    color: {{ block.settings.title_color }};
+    font-size: {{ block.settings.title_size }}px;
+    margin-top: 0;
+    margin-bottom: 15px;
+  }
+
+  .card-description-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.text_size }}px;
+    line-height: 1.5;
+  }
+
+  .video-container-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    border-radius: {{ block.settings.video_border_radius }}px;
+  }
+
+  .video-container-{{ ai_gen_id }} iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .video-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f4f4f4;
+    border-radius: {{ block.settings.video_border_radius }}px;
+  }
+
+  .video-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    color: #888;
+  }
+
+  @media screen and (max-width: 768px) {
+    .two-column-video-{{ ai_gen_id }} {
+      flex-direction: column;
+    }
+
+    .text-column-{{ ai_gen_id }},
+    .video-column-{{ ai_gen_id }} {
+      flex-basis: 100%;
+      width: 100%;
+    }
+
+    .text-column-{{ ai_gen_id }} {
+      margin-bottom: {{ block.settings.gap }}px;
+    }
+
+    .card-title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.title_size | minus: 4 }}px;
+    }
+
+    .card-description-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size | minus: 1 }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="two-column-video-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="text-column-{{ ai_gen_id }}">
+    <h2 class="card-title-{{ ai_gen_id }}">{{ block.settings.title }}</h2>
+    <div class="card-description-{{ ai_gen_id }}">{{ block.settings.description }}</div>
+  </div>
+  
+  <div class="video-column-{{ ai_gen_id }}">
+    <div class="video-container-{{ ai_gen_id }}">
+      {% if block.settings.youtube_url != blank %}
+        {% assign youtube_id = block.settings.youtube_url | split: "v=" | last | split: "&" | first %}
+        <iframe 
+          src="https://www.youtube.com/embed/{{ youtube_id }}?rel=0" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowfullscreen
+          title="{{ block.settings.title }}"
+          loading="lazy">
+        </iframe>
+      {% else %}
+        <div class="video-placeholder-{{ ai_gen_id }}">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M16 8v8"></path>
+            <path d="M8 16V8"></path>
+          </svg>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Text & Video",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout Settings"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Maximum width",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "padding",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Section padding",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Space between columns",
+      "default": 30
+    },
+    {
+      "type": "header",
+      "content": "Text Content"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Featured Video"
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "Description",
+      "default": "Watch our latest video to learn more about our products and services. This informative content will help you understand the benefits and features we offer."
+    },
+    {
+      "type": "header",
+      "content": "Card Styling"
+    },
+    {
+      "type": "color",
+      "id": "card_background",
+      "label": "Background color",
+      "default": "#f8f8f8"
+    },
+    {
+      "type": "range",
+      "id": "card_padding",
+      "min": 10,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Card padding",
+      "default": 25
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Card border radius",
+      "default": 8
+    },
+    {
+      "type": "checkbox",
+      "id": "card_shadow",
+      "label": "Add shadow",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Text Styling"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 16,
+      "max": 48,
+      "step": 1,
+      "unit": "px",
+      "label": "Title size",
+      "default": 28
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#333333"
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Video Settings"
+    },
+    {
+      "type": "text",
+      "id": "youtube_url",
+      "label": "YouTube URL",
+      "info": "Example: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    },
+    {
+      "type": "range",
+      "id": "video_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Video border radius",
+      "default": 8
+    }
+  ],
+  "presets": [
+    {
+      "name": "Text & Video"
+    }
+  ],
+  "class": "text-video-block"
+}
+{% endschema %}

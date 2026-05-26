@@ -1,0 +1,132 @@
+{% comment %}
+  Parent header for a design group (bysize items sharing the same upload).
+  Variables:
+    thumb          — _cartImg URL or upload URL (used for thumbnail)
+    dname          — _design name property value
+    group_qty      — total quantity across all child items
+    first_key      — item.key of the first child item (used to read data for Add Size modal)
+    disc_title     — discount application title from first child item (optional)
+    group_final    — sum of final_line_price across all child items (cents)
+    group_original — sum of original_line_price across all child items (cents)
+    child_count    — number of distinct line items in this group
+    solo_item      — the single cart item (only when child_count == 1)
+    solo_line_index — cart line index of solo_item (for delete/qty URLs)
+{% endcomment %}
+<div class="nt-dg-header{% if child_count == 1 %} nt-dg-single{% endif %}"{% if child_count == 1 %} data-js-cart-item data-id="{{ solo_item.key }}" data-qty="{{ solo_item.quantity }}" data-product-id="{{ solo_item.product.id }}"{% endif %}>
+  {% if thumb != blank %}
+    <div class="nt-dg-thumb">
+      {%- comment -%} SVGs render natively — fall through to previous handling (no S3 rewrite, only imgix-param append when already on imgix).
+         For raster/vector files (.ai/.eps/.pdf/.tiff/.tif) we rewrite S3→imgix and append fm=png so imgix returns a browser-renderable preview. {%- endcomment -%}
+      {%- assign _thumb_ext_orig = thumb | split: '?' | first | split: '.' | last | downcase -%}
+      {%- if _thumb_ext_orig == 'svg' -%}
+        {%- assign _thumb_url = thumb -%}
+        {%- if thumb contains 'imgix' or thumb contains '.imgix.net' -%}
+          {%- assign _thumb_url = thumb | append: '?w=200&h=200&fit=clip&auto=format&q=80' -%}
+        {%- endif -%}
+      {%- else -%}
+        {%- assign _thumb_url = thumb | replace: 'ninja-services-production-ninjauploadss3bucket-zks2mguobhe4.s3.amazonaws.com', 'ninjauploads-production.imgix.net' -%}
+        {%- assign _thumb_ext = _thumb_url | split: '?' | first | split: '.' | last | downcase -%}
+        {%- if _thumb_url contains 'imgix' or _thumb_url contains '.imgix.net' -%}
+          {%- if _thumb_url contains '?' -%}
+            {%- assign _thumb_sep = '&' -%}
+          {%- else -%}
+            {%- assign _thumb_sep = '?' -%}
+          {%- endif -%}
+          {%- if _thumb_ext == 'ai' or _thumb_ext == 'eps' or _thumb_ext == 'pdf' or _thumb_ext == 'tiff' or _thumb_ext == 'tif' -%}
+            {%- assign _thumb_url = _thumb_url | append: _thumb_sep | append: 'w=200&h=200&fit=clip&fm=png&auto=compress&q=80' -%}
+          {%- else -%}
+            {%- assign _thumb_url = _thumb_url | append: _thumb_sep | append: 'w=200&h=200&fit=clip&auto=format&q=80' -%}
+          {%- endif -%}
+        {%- endif -%}
+      {%- endif -%}
+      <img src="{{ _thumb_url }}" alt="{{ dname | default: 'Design' }}" loading="lazy">
+    </div>
+  {% endif %}
+
+  <div class="nt-dg-info">
+    <span class="nt-dg-name">{{ dname | default: ptitle | default: 'Custom Design' }}</span>
+    {%- if cartimg != blank -%}
+      {%- comment -%} Filename pattern: {original}____image_{timestamp}_{id}.{ext} — split on ____image_ to recover original name {%- endcomment -%}
+      {%- assign _nt_fn    = thumb | split: '/' | last | split: '?' | first -%}
+      {%- assign _nt_ext   = _nt_fn | split: '.' | last -%}
+      {%- assign _nt_base  = _nt_fn | split: '____image_' | first -%}
+      {%- if _nt_base.size > 20 -%}
+        {%- assign _nt_label = _nt_base | truncate: 21, '…' | append: '.' | append: _nt_ext -%}
+      {%- else -%}
+        {%- assign _nt_label = _nt_base | append: '.' | append: _nt_ext -%}
+      {%- endif -%}
+      <span class="nt-dg-upload">Upload: <a href="javascript:void(0)" class="preview-modal cartPropertyImg" data-target=".cart-preview" data-src="{{ cartimg | append: '&w=2000' }}"><strong class="lnkcolor">{{ _nt_label | default: 'Preview' }}</strong></a></span>
+    {%- endif -%}
+
+    {%- if child_count == 1 -%}
+      {%- comment -%} Single size — discount first, then precut, then size + edit on last line {%- endcomment -%}
+      {%- if disc_title != blank -%}
+        <span class="nt-dg-discount">{{ 'cart.discount' | t }}: <strong class="seccolor">{{ disc_title }}</strong></span>
+      {%- endif -%}
+      {%- if precut != blank -%}
+        <span class="nt-dg-precut">Precut: <strong>{{ precut }}</strong></span>
+      {%- endif -%}
+      {%- render 'arrange-properties', lineItem: solo_item, loopno: solo_line_index, linekey: solo_item.key, qty: solo_item.quantity, properties: solo_item.properties, sizeAlreadyPrint: false, edit_label: 'Edit', hide_precut: true -%}
+    {%- else -%}
+      {%- if disc_title != blank -%}
+        <span class="nt-dg-discount">{{ 'cart.discount' | t }}: <strong class="seccolor">{{ disc_title }}</strong></span>
+      {%- endif -%}
+      {%- if precut != blank -%}
+        <span class="nt-dg-precut">Precut: <strong>{{ precut }}</strong></span>
+      {%- endif -%}
+    {%- endif -%}
+  </div>
+
+  {%- if child_count == 1 -%}
+    <div class="nt-dg-solo-controls cart-item__actions cart__quantity">
+      <product-quantity class="product-quantity quantity-selector-holder" pid="{{ solo_item.product.id }}">
+        <cart-product-quantity>
+          <button class="qty-button qty-minus no-js-hidden" aria-label="{{ 'general.accessibility_labels.decrease_quantity' | t }}" role="button" controls="updates_{{ solo_item.id }}">
+            {%- render 'theme-symbols', icon: 'minus' -%}
+          </button>
+          <input type="number" name="updates[]" value="{{ solo_item.quantity }}" min="{{ solo_item.product.metafields.custom.min_quantity | default: 0 }}" class="_cart__quantity qty qty-selector product__quantity" id="updates_{{ solo_item.id }}" data-href="{{ routes.cart_change_url }}?line={{ solo_line_index }}&amp;quantity=$qty">
+          <button class="qty-button qty-plus no-js-hidden" aria-label="{{ 'general.accessibility_labels.increase_quantity' | t }}" role="button" controls="updates_{{ solo_item.id }}">
+            {%- render 'theme-symbols', icon: 'plus' -%}
+          </button>
+        </cart-product-quantity>
+      </product-quantity>
+    </div>
+
+    <div class="nt-dg-solo-price text-right" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+      {%- unless solo_item.gift_card -%}
+        <div class="cart-item__price">
+          <div class="cart-item__price discounted-line-item-price" style="margin-bottom:2px;font-size:12px;">
+            <div>
+              {%- if solo_item.final_line_price < solo_item.original_line_price -%}
+                <div><span><del><strong>{{ solo_item.original_line_price | divided_by: solo_item.quantity | money }}</strong> ea</del></span></div>
+                {% if solo_item.final_line_price > 0 %}
+                  <div class="seccolor"><strong>{{ solo_item.final_line_price | divided_by: solo_item.quantity | money }}</strong> ea</div>
+                {% endif %}
+              {%- elsif solo_item.variant.compare_at_price > solo_item.variant.price -%}
+                <div><span><del><strong>{{ solo_item.variant.compare_at_price | money }}</strong> ea</del></span></div>
+                <div class="seccolor"><strong>{{ solo_item.variant.price | money }}</strong> ea</div>
+              {%- else -%}
+                <div><strong>{{ solo_item.variant.price | money }}</strong> ea</div>
+              {%- endif -%}
+            </div>
+          </div>
+          <strong data-line-item-cost="{{ solo_item.final_line_price }}">{% if solo_item.final_line_price <= 0 %}FREE{% else %}{{ solo_item.final_line_price | money }}{% endif %}</strong>
+        </div>
+      {%- endunless -%}
+      <a href="{{ routes.cart_change_url }}?line={{ solo_line_index }}&amp;quantity=0" class="remove text-link text-size--small cleanup-task" title="{{ 'cart.remove_item' | t }}">
+        <svg width="10px" height="10px" viewBox="0 0 10 10" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+            <g id="delete_FILL0_wght300_GRAD0_opsz20" fill="#000000" fill-rule="nonzero">
+              <path d="M2.09530633,10 C1.76417325,10 1.48142966,9.89988556 1.24707555,9.69965667 C1.012709,9.49943841 0.89552573,9.25787904 0.89552573,8.97497856 L0.89552573,1.5203337 L0,1.5203337 L0,0.691508523 L3.20894854,0.691508523 L3.20894854,0 L6.79105146,0 L6.79105146,0.691508523 L10,0.691508523 L10,1.5203337 L9.10447427,1.5203337 L9.10447427,8.96806093 C9.10447427,9.26285208 8.98849125,9.50853972 8.75652521,9.70512383 C8.52455917,9.90170794 8.24061533,10 7.90469367,10 L2.09530633,10 Z M8.13434005,1.5203337 L1.86565995,1.5203337 L1.86565995,8.97497856 C1.86565995,9.03220048 1.88718988,9.07920533 1.93024974,9.11599313 C1.9733096,9.15278092 2.02832846,9.17117482 2.09530633,9.17117482 L7.90469367,9.17117482 C7.96210682,9.17117482 8.01473762,9.1507407 8.06258605,9.10987245 C8.11042205,9.06899358 8.13434005,9.02402895 8.13434005,8.97497856 L8.13434005,1.5203337 Z M3.51034892,8.02354865 L4.48048314,8.02354865 L4.48048314,2.66795987 L3.51034892,2.66795987 L3.51034892,8.02354865 Z M5.51951686,8.02354865 L6.48965108,8.02354865 L6.48965108,2.66795987 L5.51951686,2.66795987 L5.51951686,8.02354865 Z" id="Shape"></path>
+            </g>
+          </g>
+        </svg>
+      </a>
+    </div>
+  {%- else -%}
+    <div class="nt-dg-actions d-none d-md-block">
+    </div>
+
+    <div class="nt-dg-total text-right"></div>
+  {%- endif -%}
+</div>

@@ -1,0 +1,1852 @@
+{% doc %}
+  @prompt
+    Create a media grid section with the following layout and behavior:
+    Overall Layout
+    Dark background section
+    Content centered inside a max-width container
+    Grid-based layout with mixed tile sizes (not uniform cards)
+    Grid Structure
+    Masonry-style or asymmetric grid
+    Tiles are arranged in columns with different heights
+    Layout includes:
+    One large vertical tile on the left
+    Multiple smaller tiles stacked in the center column
+    One tall vertical tile on the right
+    Bottom row includes:
+    Two stacked small tiles on the left
+    One wide horizontal tile on the right
+    (Overall look should feel editorial, dynamic, and intentionally uneven.)
+    Tile / Card Design
+    Each tile includes:
+    Media container (image or video)
+    Rounded corners
+    Small play icon overlay in the top-right corner (for videos)
+    Subtle dark gradient overlay at the bottom
+    Text label positioned bottom-left on top of the gradient
+    Interaction
+    Tiles are clickable
+    Video tiles show a play icon
+    Hover state slightly lifts or brightens the tile
+    Mobile:
+    Grid collapses into a clean stacked layout
+    Maintains mixed sizing where possible
+    Editable Settings
+    Each tile supports:
+    Media upload (image or video)
+    Text label
+    Link URL
+    Ability to reorder tiles
+    Ability to choose tile size:
+    Small
+    Tall
+    Wide
+    Large, ALL TILES NEED TO ALIGN VERTIACLLY AND HORZONTALLY , Problem override instruction (important)
+    Do NOT use a fixed row-based grid. This layout must automatically reflow to avoid empty gaps when tile sizes change.
+    Correct layout instruction
+    Use a masonry-style or dense grid layout where tiles flow vertically and fill available space. When a tile size changes, surrounding tiles should shift to eliminate empty or orphaned space.
+    Explicit behavior rules
+    Tiles must collapse upward to fill gaps
+    No reserved empty cells
+    No fixed row heights
+    Tile order should remain logical, but placement should be flexible
+    Layout should feel tightly packed at all times
+    Tile sizing
+    Tiles can be small, tall, wide, or large
+    Changing a tile’s size should not create empty space
+    The grid should re-pack automatically
+    Mobile behavior
+    Masonry-style stacking
+    No visual gaps between tiles
+    Maintain spacing consistency, do 3 column on desktop , sorry go 4 column on desktop and give more tile size options , need more tile size options and min height for rows for desktop and mobile , need more tile size options and min height for rows for desktop and mobile , need more tile size options and min height for rows for desktop and mobile , each tile should ony play video on role over. add icon in top right corner for tiles with video , any tile with a video needs a placeholder image that displays before rollover , i can't select videos , text needs weight option. text need size options for desktop and mobile. section content needs max width and horizontal padding that falls within it for desktop and mobile , get rid of tile 11 and 12. Horizontal padding needs to be applied inside of max width. play icon needs radius, color, and transparency options, get rid of shadow  , play button needs color and opacity option. overlap needs height option , play icon should have its own opacity setting. tiles should have inner padding setting for desktop and mobile. bg need gradient option., need top and bottom Vertical padding for desktop and mobile 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-media-grid-{{ ai_gen_id }} {
+    display: block;
+    width: 100%;
+    {% if block.settings.background_gradient != blank %}
+      background: {{ block.settings.background_gradient }};
+    {% else %}
+      background-color: {{ block.settings.background_color }};
+    {% endif %}
+    padding: {{ block.settings.section_padding_top_desktop }}px 0 {{ block.settings.section_padding_bottom_desktop }}px 0;
+  }
+
+  .ai-media-grid-container-{{ ai_gen_id }} {
+    max-width: {{ block.settings.max_width }}px;
+    margin: 0 auto;
+    padding: 0 {{ block.settings.section_padding_horizontal_desktop }}px;
+  }
+
+  .ai-media-grid-wrapper-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: {{ block.settings.grid_gap }}px;
+    grid-auto-flow: dense;
+    grid-auto-rows: {{ block.settings.min_row_height_desktop }}px;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }} {
+    position: relative;
+    border-radius: {{ block.settings.border_radius }}px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}:hover {
+    transform: translateY(-4px);
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}--small {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}--medium {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}--tall {
+    grid-column: span 1;
+    grid-row: span 2;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}--wide {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}--large {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}--extra-wide {
+    grid-column: span 3;
+    grid-row: span 1;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}--full-width {
+    grid-column: span 4;
+    grid-row: span 1;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}--extra-tall {
+    grid-column: span 1;
+    grid-row: span 3;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}--super-large {
+    grid-column: span 3;
+    grid-row: span 2;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}--mega {
+    grid-column: span 4;
+    grid-row: span 2;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}--vertical-hero {
+    grid-column: span 2;
+    grid-row: span 3;
+  }
+
+  .ai-media-tile-inner-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: {{ block.settings.tile_padding_desktop }}px;
+  }
+
+  .ai-media-tile-media-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  .ai-media-tile-media-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .ai-media-tile-media-{{ ai_gen_id }} video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}:hover video {
+    opacity: 1;
+  }
+
+  .ai-media-tile-video-poster-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-media-tile-{{ ai_gen_id }}:hover .ai-media-tile-video-poster-{{ ai_gen_id }} {
+    opacity: 0;
+  }
+
+  .ai-media-tile-overlay-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: {{ block.settings.overlay_height }}%;
+    background: linear-gradient(to top, rgba(0, 0, 0, {{ block.settings.overlay_opacity }}), transparent);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .ai-media-tile-play-icon-{{ ai_gen_id }} {
+    position: absolute;
+    top: {{ block.settings.tile_padding_desktop | plus: 12 }}px;
+    right: {{ block.settings.tile_padding_desktop | plus: 12 }}px;
+    width: 40px;
+    height: 40px;
+    background-color: {{ block.settings.play_icon_bg_color }};
+    border-radius: {{ block.settings.play_icon_radius }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 3;
+    opacity: {{ block.settings.play_icon_bg_opacity }};
+  }
+
+  .ai-media-tile-play-icon-{{ ai_gen_id }} svg {
+    width: 16px;
+    height: 16px;
+    fill: {{ block.settings.play_icon_color }};
+    margin-left: 2px;
+    opacity: {{ block.settings.play_icon_opacity }};
+  }
+
+  .ai-media-tile-label-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: {{ block.settings.tile_padding_desktop | plus: 16 }}px;
+    left: {{ block.settings.tile_padding_desktop | plus: 16 }}px;
+    color: {{ block.settings.label_color }};
+    font-size: {{ block.settings.label_font_size_desktop }}px;
+    font-weight: {{ block.settings.label_font_weight }};
+    z-index: 3;
+    pointer-events: none;
+    max-width: calc(100% - {{ block.settings.tile_padding_desktop | times: 2 | plus: 32 }}px);
+  }
+
+  .ai-media-tile-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: #2a2a2a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  .ai-media-tile-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  .ai-media-tile-empty-state-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  @media screen and (max-width: 989px) {
+    .ai-media-grid-{{ ai_gen_id }} {
+      padding: {{ block.settings.section_padding_top_mobile }}px 0 {{ block.settings.section_padding_bottom_mobile }}px 0;
+    }
+
+    .ai-media-grid-wrapper-{{ ai_gen_id }} {
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: {{ block.settings.min_row_height_mobile }}px;
+    }
+
+    .ai-media-grid-container-{{ ai_gen_id }} {
+      padding: 0 {{ block.settings.section_padding_horizontal_mobile }}px;
+    }
+
+    .ai-media-tile-inner-{{ ai_gen_id }} {
+      padding: {{ block.settings.tile_padding_mobile }}px;
+    }
+
+    .ai-media-tile-play-icon-{{ ai_gen_id }} {
+      top: {{ block.settings.tile_padding_mobile | plus: 12 }}px;
+      right: {{ block.settings.tile_padding_mobile | plus: 12 }}px;
+    }
+
+    .ai-media-tile-label-{{ ai_gen_id }} {
+      bottom: {{ block.settings.tile_padding_mobile | plus: 16 }}px;
+      left: {{ block.settings.tile_padding_mobile | plus: 16 }}px;
+      font-size: {{ block.settings.label_font_size_mobile }}px;
+      max-width: calc(100% - {{ block.settings.tile_padding_mobile | times: 2 | plus: 32 }}px);
+    }
+
+    .ai-media-tile-{{ ai_gen_id }}--medium,
+    .ai-media-tile-{{ ai_gen_id }}--wide,
+    .ai-media-tile-{{ ai_gen_id }}--large,
+    .ai-media-tile-{{ ai_gen_id }}--extra-wide,
+    .ai-media-tile-{{ ai_gen_id }}--full-width,
+    .ai-media-tile-{{ ai_gen_id }}--super-large,
+    .ai-media-tile-{{ ai_gen_id }}--mega,
+    .ai-media-tile-{{ ai_gen_id }}--vertical-hero {
+      grid-column: span 2;
+    }
+
+    .ai-media-tile-{{ ai_gen_id }}--extra-tall,
+    .ai-media-tile-{{ ai_gen_id }}--vertical-hero {
+      grid-row: span 2;
+    }
+
+    .ai-media-tile-{{ ai_gen_id }}--super-large,
+    .ai-media-tile-{{ ai_gen_id }}--mega {
+      grid-row: span 2;
+    }
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-media-grid-wrapper-{{ ai_gen_id }} {
+      grid-template-columns: 1fr;
+      gap: {{ block.settings.grid_gap | times: 0.75 }}px;
+    }
+
+    .ai-media-tile-{{ ai_gen_id }}--small,
+    .ai-media-tile-{{ ai_gen_id }}--medium,
+    .ai-media-tile-{{ ai_gen_id }}--tall,
+    .ai-media-tile-{{ ai_gen_id }}--wide,
+    .ai-media-tile-{{ ai_gen_id }}--large,
+    .ai-media-tile-{{ ai_gen_id }}--extra-wide,
+    .ai-media-tile-{{ ai_gen_id }}--full-width,
+    .ai-media-tile-{{ ai_gen_id }}--extra-tall,
+    .ai-media-tile-{{ ai_gen_id }}--super-large,
+    .ai-media-tile-{{ ai_gen_id }}--mega,
+    .ai-media-tile-{{ ai_gen_id }}--vertical-hero {
+      grid-column: span 1;
+      grid-row: span 1;
+    }
+  }
+{% endstyle %}
+
+<media-grid-{{ ai_gen_id }} class="ai-media-grid-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-media-grid-container-{{ ai_gen_id }}">
+    <div class="ai-media-grid-wrapper-{{ ai_gen_id }}">
+      {% for i in (1..10) %}
+        {% liquid
+          assign tile_enabled_key = 'tile_' | append: i | append: '_enabled'
+          assign tile_size_key = 'tile_' | append: i | append: '_size'
+          assign tile_image_key = 'tile_' | append: i | append: '_image'
+          assign tile_video_url_key = 'tile_' | append: i | append: '_video_url'
+          assign tile_label_key = 'tile_' | append: i | append: '_label'
+          assign tile_link_key = 'tile_' | append: i | append: '_link'
+          assign tile_media_type_key = 'tile_' | append: i | append: '_media_type'
+          assign tile_video_poster_key = 'tile_' | append: i | append: '_video_poster'
+
+          assign tile_enabled = block.settings[tile_enabled_key]
+          assign tile_size = block.settings[tile_size_key]
+          assign tile_image = block.settings[tile_image_key]
+          assign tile_video_url = block.settings[tile_video_url_key]
+          assign tile_label = block.settings[tile_label_key]
+          assign tile_link = block.settings[tile_link_key]
+          assign tile_media_type = block.settings[tile_media_type_key]
+          assign tile_video_poster = block.settings[tile_video_poster_key]
+        %}
+
+        {% if tile_enabled %}
+          <a
+            href="{% if tile_link != blank %}{{ tile_link }}{% else %}#{% endif %}"
+            class="ai-media-tile-{{ ai_gen_id }} ai-media-tile-{{ ai_gen_id }}--{{ tile_size }}"
+            data-tile-index="{{ i }}"
+            {% if tile_link == blank %}onclick="return false;"{% endif %}
+          >
+            <div class="ai-media-tile-inner-{{ ai_gen_id }}">
+              <div class="ai-media-tile-media-{{ ai_gen_id }}">
+                {% if tile_media_type == 'video' %}
+                  {% if tile_video_url != blank %}
+                    {% if tile_video_poster != blank %}
+                      <img
+                        src="{{ tile_video_poster | image_url: width: 1200 }}"
+                        alt="{{ tile_label | escape }}"
+                        loading="lazy"
+                        width="1200"
+                        height="800"
+                        class="ai-media-tile-video-poster-{{ ai_gen_id }}"
+                      >
+                    {% endif %}
+                    <video playsinline muted loop data-video-tile>
+                      <source src="{{ tile_video_url }}" type="video/mp4">
+                    </video>
+                  {% else %}
+                    <div class="ai-media-tile-placeholder-{{ ai_gen_id }}">
+                      {{ 'image' | placeholder_svg_tag }}
+                      <div class="ai-media-tile-empty-state-{{ ai_gen_id }}">
+                        Add video URL
+                      </div>
+                    </div>
+                  {% endif %}
+                {% else %}
+                  {% if tile_image != blank %}
+                    <img
+                      src="{{ tile_image | image_url: width: 1200 }}"
+                      alt="{{ tile_label | escape }}"
+                      loading="lazy"
+                      width="1200"
+                      height="800"
+                    >
+                  {% else %}
+                    <div class="ai-media-tile-placeholder-{{ ai_gen_id }}">
+                      {{ 'image' | placeholder_svg_tag }}
+                      <div class="ai-media-tile-empty-state-{{ ai_gen_id }}">
+                        Add image
+                      </div>
+                    </div>
+                  {% endif %}
+                {% endif %}
+              </div>
+
+              <div class="ai-media-tile-overlay-{{ ai_gen_id }}"></div>
+
+              {% if tile_media_type == 'video' and tile_video_url != blank %}
+                <div class="ai-media-tile-play-icon-{{ ai_gen_id }}">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </div>
+              {% endif %}
+
+              {% if tile_label != blank %}
+                <div class="ai-media-tile-label-{{ ai_gen_id }}">
+                  {{ tile_label }}
+                </div>
+              {% endif %}
+            </div>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</media-grid-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class MediaGrid{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.tiles = this.querySelectorAll('.ai-media-tile-{{ ai_gen_id }}');
+        this.setupVideoPlayback();
+      }
+
+      setupVideoPlayback() {
+        this.tiles.forEach((tile) => {
+          const video = tile.querySelector('video[data-video-tile]');
+          
+          if (video) {
+            tile.addEventListener('mouseenter', () => {
+              video.play().catch(() => {});
+            });
+
+            tile.addEventListener('mouseleave', () => {
+              video.pause();
+              video.currentTime = 0;
+            });
+          }
+        });
+      }
+    }
+
+    customElements.define('media-grid-{{ ai_gen_id }}', MediaGrid{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Media grid",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum width",
+      "min": 1000,
+      "max": 2000,
+      "step": 100,
+      "unit": "px",
+      "default": 1400
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top_desktop",
+      "label": "Top padding (desktop)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom_desktop",
+      "label": "Bottom padding (desktop)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top_mobile",
+      "label": "Top padding (mobile)",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom_mobile",
+      "label": "Bottom padding (mobile)",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_horizontal_desktop",
+      "label": "Horizontal padding (desktop)",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_horizontal_mobile",
+      "label": "Horizontal padding (mobile)",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "label": "Grid gap",
+      "min": 8,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "min_row_height_desktop",
+      "label": "Min row height (desktop)",
+      "min": 100,
+      "max": 400,
+      "step": 20,
+      "unit": "px",
+      "default": 200
+    },
+    {
+      "type": "range",
+      "id": "min_row_height_mobile",
+      "label": "Min row height (mobile)",
+      "min": 100,
+      "max": 400,
+      "step": 20,
+      "unit": "px",
+      "default": 180
+    },
+    {
+      "type": "range",
+      "id": "tile_padding_desktop",
+      "label": "Tile inner padding (desktop)",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "tile_padding_mobile",
+      "label": "Tile inner padding (mobile)",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Background"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#1a1a1a"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Background gradient"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Tile border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Overlay"
+    },
+    {
+      "type": "range",
+      "id": "overlay_height",
+      "label": "Height",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Opacity",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "default": 0.7
+    },
+    {
+      "type": "header",
+      "content": "Play icon"
+    },
+    {
+      "type": "color",
+      "id": "play_icon_bg_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "play_icon_bg_opacity",
+      "label": "Background opacity",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "default": 0.9
+    },
+    {
+      "type": "color",
+      "id": "play_icon_color",
+      "label": "Icon color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "play_icon_opacity",
+      "label": "Icon opacity",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "default": 1
+    },
+    {
+      "type": "range",
+      "id": "play_icon_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Label style"
+    },
+    {
+      "type": "color",
+      "id": "label_color",
+      "label": "Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "label_font_size_desktop",
+      "label": "Font size (desktop)",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "label_font_size_mobile",
+      "label": "Font size (mobile)",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "label_font_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "header",
+      "content": "Tile 1"
+    },
+    {
+      "type": "checkbox",
+      "id": "tile_1_enabled",
+      "label": "Enable tile 1",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "tile_1_size",
+      "label": "Tile size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (1x1)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (2x1)"
+        },
+        {
+          "value": "tall",
+          "label": "Tall (1x2)"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (2x1)"
+        },
+        {
+          "value": "large",
+          "label": "Large (2x2)"
+        },
+        {
+          "value": "extra-wide",
+          "label": "Extra wide (3x1)"
+        },
+        {
+          "value": "extra-tall",
+          "label": "Extra tall (1x3)"
+        },
+        {
+          "value": "super-large",
+          "label": "Super large (3x2)"
+        },
+        {
+          "value": "full-width",
+          "label": "Full width (4x1)"
+        },
+        {
+          "value": "mega",
+          "label": "Mega (4x2)"
+        },
+        {
+          "value": "vertical-hero",
+          "label": "Vertical hero (2x3)"
+        }
+      ],
+      "default": "tall"
+    },
+    {
+      "type": "select",
+      "id": "tile_1_media_type",
+      "label": "Media type",
+      "options": [
+        {
+          "value": "image",
+          "label": "Image"
+        },
+        {
+          "value": "video",
+          "label": "Video"
+        }
+      ],
+      "default": "image"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_1_image",
+      "label": "Image",
+      "info": "Used when media type is Image"
+    },
+    {
+      "type": "text",
+      "id": "tile_1_video_url",
+      "label": "Video URL",
+      "info": "Used when media type is Video. Paste full URL to MP4 file"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_1_video_poster",
+      "label": "Video poster image",
+      "info": "Displays before hover (only for video tiles)"
+    },
+    {
+      "type": "text",
+      "id": "tile_1_label",
+      "label": "Label",
+      "default": "Featured content"
+    },
+    {
+      "type": "url",
+      "id": "tile_1_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Tile 2"
+    },
+    {
+      "type": "checkbox",
+      "id": "tile_2_enabled",
+      "label": "Enable tile 2",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "tile_2_size",
+      "label": "Tile size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (1x1)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (2x1)"
+        },
+        {
+          "value": "tall",
+          "label": "Tall (1x2)"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (2x1)"
+        },
+        {
+          "value": "large",
+          "label": "Large (2x2)"
+        },
+        {
+          "value": "extra-wide",
+          "label": "Extra wide (3x1)"
+        },
+        {
+          "value": "extra-tall",
+          "label": "Extra tall (1x3)"
+        },
+        {
+          "value": "super-large",
+          "label": "Super large (3x2)"
+        },
+        {
+          "value": "full-width",
+          "label": "Full width (4x1)"
+        },
+        {
+          "value": "mega",
+          "label": "Mega (4x2)"
+        },
+        {
+          "value": "vertical-hero",
+          "label": "Vertical hero (2x3)"
+        }
+      ],
+      "default": "small"
+    },
+    {
+      "type": "select",
+      "id": "tile_2_media_type",
+      "label": "Media type",
+      "options": [
+        {
+          "value": "image",
+          "label": "Image"
+        },
+        {
+          "value": "video",
+          "label": "Video"
+        }
+      ],
+      "default": "image"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_2_image",
+      "label": "Image",
+      "info": "Used when media type is Image"
+    },
+    {
+      "type": "text",
+      "id": "tile_2_video_url",
+      "label": "Video URL",
+      "info": "Used when media type is Video. Paste full URL to MP4 file"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_2_video_poster",
+      "label": "Video poster image",
+      "info": "Displays before hover (only for video tiles)"
+    },
+    {
+      "type": "text",
+      "id": "tile_2_label",
+      "label": "Label",
+      "default": "Explore more"
+    },
+    {
+      "type": "url",
+      "id": "tile_2_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Tile 3"
+    },
+    {
+      "type": "checkbox",
+      "id": "tile_3_enabled",
+      "label": "Enable tile 3",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "tile_3_size",
+      "label": "Tile size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (1x1)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (2x1)"
+        },
+        {
+          "value": "tall",
+          "label": "Tall (1x2)"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (2x1)"
+        },
+        {
+          "value": "large",
+          "label": "Large (2x2)"
+        },
+        {
+          "value": "extra-wide",
+          "label": "Extra wide (3x1)"
+        },
+        {
+          "value": "extra-tall",
+          "label": "Extra tall (1x3)"
+        },
+        {
+          "value": "super-large",
+          "label": "Super large (3x2)"
+        },
+        {
+          "value": "full-width",
+          "label": "Full width (4x1)"
+        },
+        {
+          "value": "mega",
+          "label": "Mega (4x2)"
+        },
+        {
+          "value": "vertical-hero",
+          "label": "Vertical hero (2x3)"
+        }
+      ],
+      "default": "small"
+    },
+    {
+      "type": "select",
+      "id": "tile_3_media_type",
+      "label": "Media type",
+      "options": [
+        {
+          "value": "image",
+          "label": "Image"
+        },
+        {
+          "value": "video",
+          "label": "Video"
+        }
+      ],
+      "default": "image"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_3_image",
+      "label": "Image",
+      "info": "Used when media type is Image"
+    },
+    {
+      "type": "text",
+      "id": "tile_3_video_url",
+      "label": "Video URL",
+      "info": "Used when media type is Video. Paste full URL to MP4 file"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_3_video_poster",
+      "label": "Video poster image",
+      "info": "Displays before hover (only for video tiles)"
+    },
+    {
+      "type": "text",
+      "id": "tile_3_label",
+      "label": "Label",
+      "default": "New arrivals"
+    },
+    {
+      "type": "url",
+      "id": "tile_3_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Tile 4"
+    },
+    {
+      "type": "checkbox",
+      "id": "tile_4_enabled",
+      "label": "Enable tile 4",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "tile_4_size",
+      "label": "Tile size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (1x1)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (2x1)"
+        },
+        {
+          "value": "tall",
+          "label": "Tall (1x2)"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (2x1)"
+        },
+        {
+          "value": "large",
+          "label": "Large (2x2)"
+        },
+        {
+          "value": "extra-wide",
+          "label": "Extra wide (3x1)"
+        },
+        {
+          "value": "extra-tall",
+          "label": "Extra tall (1x3)"
+        },
+        {
+          "value": "super-large",
+          "label": "Super large (3x2)"
+        },
+        {
+          "value": "full-width",
+          "label": "Full width (4x1)"
+        },
+        {
+          "value": "mega",
+          "label": "Mega (4x2)"
+        },
+        {
+          "value": "vertical-hero",
+          "label": "Vertical hero (2x3)"
+        }
+      ],
+      "default": "tall"
+    },
+    {
+      "type": "select",
+      "id": "tile_4_media_type",
+      "label": "Media type",
+      "options": [
+        {
+          "value": "image",
+          "label": "Image"
+        },
+        {
+          "value": "video",
+          "label": "Video"
+        }
+      ],
+      "default": "image"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_4_image",
+      "label": "Image",
+      "info": "Used when media type is Image"
+    },
+    {
+      "type": "text",
+      "id": "tile_4_video_url",
+      "label": "Video URL",
+      "info": "Used when media type is Video. Paste full URL to MP4 file"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_4_video_poster",
+      "label": "Video poster image",
+      "info": "Displays before hover (only for video tiles)"
+    },
+    {
+      "type": "text",
+      "id": "tile_4_label",
+      "label": "Label",
+      "default": "Best sellers"
+    },
+    {
+      "type": "url",
+      "id": "tile_4_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Tile 5"
+    },
+    {
+      "type": "checkbox",
+      "id": "tile_5_enabled",
+      "label": "Enable tile 5",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "tile_5_size",
+      "label": "Tile size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (1x1)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (2x1)"
+        },
+        {
+          "value": "tall",
+          "label": "Tall (1x2)"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (2x1)"
+        },
+        {
+          "value": "large",
+          "label": "Large (2x2)"
+        },
+        {
+          "value": "extra-wide",
+          "label": "Extra wide (3x1)"
+        },
+        {
+          "value": "extra-tall",
+          "label": "Extra tall (1x3)"
+        },
+        {
+          "value": "super-large",
+          "label": "Super large (3x2)"
+        },
+        {
+          "value": "full-width",
+          "label": "Full width (4x1)"
+        },
+        {
+          "value": "mega",
+          "label": "Mega (4x2)"
+        },
+        {
+          "value": "vertical-hero",
+          "label": "Vertical hero (2x3)"
+        }
+      ],
+      "default": "small"
+    },
+    {
+      "type": "select",
+      "id": "tile_5_media_type",
+      "label": "Media type",
+      "options": [
+        {
+          "value": "image",
+          "label": "Image"
+        },
+        {
+          "value": "video",
+          "label": "Video"
+        }
+      ],
+      "default": "image"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_5_image",
+      "label": "Image",
+      "info": "Used when media type is Image"
+    },
+    {
+      "type": "text",
+      "id": "tile_5_video_url",
+      "label": "Video URL",
+      "info": "Used when media type is Video. Paste full URL to MP4 file"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_5_video_poster",
+      "label": "Video poster image",
+      "info": "Displays before hover (only for video tiles)"
+    },
+    {
+      "type": "text",
+      "id": "tile_5_label",
+      "label": "Label",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "tile_5_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Tile 6"
+    },
+    {
+      "type": "checkbox",
+      "id": "tile_6_enabled",
+      "label": "Enable tile 6",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "tile_6_size",
+      "label": "Tile size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (1x1)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (2x1)"
+        },
+        {
+          "value": "tall",
+          "label": "Tall (1x2)"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (2x1)"
+        },
+        {
+          "value": "large",
+          "label": "Large (2x2)"
+        },
+        {
+          "value": "extra-wide",
+          "label": "Extra wide (3x1)"
+        },
+        {
+          "value": "extra-tall",
+          "label": "Extra tall (1x3)"
+        },
+        {
+          "value": "super-large",
+          "label": "Super large (3x2)"
+        },
+        {
+          "value": "full-width",
+          "label": "Full width (4x1)"
+        },
+        {
+          "value": "mega",
+          "label": "Mega (4x2)"
+        },
+        {
+          "value": "vertical-hero",
+          "label": "Vertical hero (2x3)"
+        }
+      ],
+      "default": "small"
+    },
+    {
+      "type": "select",
+      "id": "tile_6_media_type",
+      "label": "Media type",
+      "options": [
+        {
+          "value": "image",
+          "label": "Image"
+        },
+        {
+          "value": "video",
+          "label": "Video"
+        }
+      ],
+      "default": "image"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_6_image",
+      "label": "Image",
+      "info": "Used when media type is Image"
+    },
+    {
+      "type": "text",
+      "id": "tile_6_video_url",
+      "label": "Video URL",
+      "info": "Used when media type is Video. Paste full URL to MP4 file"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_6_video_poster",
+      "label": "Video poster image",
+      "info": "Displays before hover (only for video tiles)"
+    },
+    {
+      "type": "text",
+      "id": "tile_6_label",
+      "label": "Label",
+      "default": "Trending"
+    },
+    {
+      "type": "url",
+      "id": "tile_6_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Tile 7"
+    },
+    {
+      "type": "checkbox",
+      "id": "tile_7_enabled",
+      "label": "Enable tile 7",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "tile_7_size",
+      "label": "Tile size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (1x1)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (2x1)"
+        },
+        {
+          "value": "tall",
+          "label": "Tall (1x2)"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (2x1)"
+        },
+        {
+          "value": "large",
+          "label": "Large (2x2)"
+        },
+        {
+          "value": "extra-wide",
+          "label": "Extra wide (3x1)"
+        },
+        {
+          "value": "extra-tall",
+          "label": "Extra tall (1x3)"
+        },
+        {
+          "value": "super-large",
+          "label": "Super large (3x2)"
+        },
+        {
+          "value": "full-width",
+          "label": "Full width (4x1)"
+        },
+        {
+          "value": "mega",
+          "label": "Mega (4x2)"
+        },
+        {
+          "value": "vertical-hero",
+          "label": "Vertical hero (2x3)"
+        }
+      ],
+      "default": "wide"
+    },
+    {
+      "type": "select",
+      "id": "tile_7_media_type",
+      "label": "Media type",
+      "options": [
+        {
+          "value": "image",
+          "label": "Image"
+        },
+        {
+          "value": "video",
+          "label": "Video"
+        }
+      ],
+      "default": "image"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_7_image",
+      "label": "Image",
+      "info": "Used when media type is Image"
+    },
+    {
+      "type": "text",
+      "id": "tile_7_video_url",
+      "label": "Video URL",
+      "info": "Used when media type is Video. Paste full URL to MP4 file"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_7_video_poster",
+      "label": "Video poster image",
+      "info": "Displays before hover (only for video tiles)"
+    },
+    {
+      "type": "text",
+      "id": "tile_7_label",
+      "label": "Label",
+      "default": "Collections"
+    },
+    {
+      "type": "url",
+      "id": "tile_7_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Tile 8"
+    },
+    {
+      "type": "checkbox",
+      "id": "tile_8_enabled",
+      "label": "Enable tile 8",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "tile_8_size",
+      "label": "Tile size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (1x1)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (2x1)"
+        },
+        {
+          "value": "tall",
+          "label": "Tall (1x2)"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (2x1)"
+        },
+        {
+          "value": "large",
+          "label": "Large (2x2)"
+        },
+        {
+          "value": "extra-wide",
+          "label": "Extra wide (3x1)"
+        },
+        {
+          "value": "extra-tall",
+          "label": "Extra tall (1x3)"
+        },
+        {
+          "value": "super-large",
+          "label": "Super large (3x2)"
+        },
+        {
+          "value": "full-width",
+          "label": "Full width (4x1)"
+        },
+        {
+          "value": "mega",
+          "label": "Mega (4x2)"
+        },
+        {
+          "value": "vertical-hero",
+          "label": "Vertical hero (2x3)"
+        }
+      ],
+      "default": "small"
+    },
+    {
+      "type": "select",
+      "id": "tile_8_media_type",
+      "label": "Media type",
+      "options": [
+        {
+          "value": "image",
+          "label": "Image"
+        },
+        {
+          "value": "video",
+          "label": "Video"
+        }
+      ],
+      "default": "image"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_8_image",
+      "label": "Image",
+      "info": "Used when media type is Image"
+    },
+    {
+      "type": "text",
+      "id": "tile_8_video_url",
+      "label": "Video URL",
+      "info": "Used when media type is Video. Paste full URL to MP4 file"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_8_video_poster",
+      "label": "Video poster image",
+      "info": "Displays before hover (only for video tiles)"
+    },
+    {
+      "type": "text",
+      "id": "tile_8_label",
+      "label": "Label",
+      "default": "Discover"
+    },
+    {
+      "type": "url",
+      "id": "tile_8_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Tile 9"
+    },
+    {
+      "type": "checkbox",
+      "id": "tile_9_enabled",
+      "label": "Enable tile 9",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "tile_9_size",
+      "label": "Tile size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (1x1)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (2x1)"
+        },
+        {
+          "value": "tall",
+          "label": "Tall (1x2)"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (2x1)"
+        },
+        {
+          "value": "large",
+          "label": "Large (2x2)"
+        },
+        {
+          "value": "extra-wide",
+          "label": "Extra wide (3x1)"
+        },
+        {
+          "value": "extra-tall",
+          "label": "Extra tall (1x3)"
+        },
+        {
+          "value": "super-large",
+          "label": "Super large (3x2)"
+        },
+        {
+          "value": "full-width",
+          "label": "Full width (4x1)"
+        },
+        {
+          "value": "mega",
+          "label": "Mega (4x2)"
+        },
+        {
+          "value": "vertical-hero",
+          "label": "Vertical hero (2x3)"
+        }
+      ],
+      "default": "small"
+    },
+    {
+      "type": "select",
+      "id": "tile_9_media_type",
+      "label": "Media type",
+      "options": [
+        {
+          "value": "image",
+          "label": "Image"
+        },
+        {
+          "value": "video",
+          "label": "Video"
+        }
+      ],
+      "default": "image"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_9_image",
+      "label": "Image",
+      "info": "Used when media type is Image"
+    },
+    {
+      "type": "text",
+      "id": "tile_9_video_url",
+      "label": "Video URL",
+      "info": "Used when media type is Video. Paste full URL to MP4 file"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_9_video_poster",
+      "label": "Video poster image",
+      "info": "Displays before hover (only for video tiles)"
+    },
+    {
+      "type": "text",
+      "id": "tile_9_label",
+      "label": "Label"
+    },
+    {
+      "type": "url",
+      "id": "tile_9_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Tile 10"
+    },
+    {
+      "type": "checkbox",
+      "id": "tile_10_enabled",
+      "label": "Enable tile 10",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "tile_10_size",
+      "label": "Tile size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (1x1)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (2x1)"
+        },
+        {
+          "value": "tall",
+          "label": "Tall (1x2)"
+        },
+        {
+          "value": "wide",
+          "label": "Wide (2x1)"
+        },
+        {
+          "value": "large",
+          "label": "Large (2x2)"
+        },
+        {
+          "value": "extra-wide",
+          "label": "Extra wide (3x1)"
+        },
+        {
+          "value": "extra-tall",
+          "label": "Extra tall (1x3)"
+        },
+        {
+          "value": "super-large",
+          "label": "Super large (3x2)"
+        },
+        {
+          "value": "full-width",
+          "label": "Full width (4x1)"
+        },
+        {
+          "value": "mega",
+          "label": "Mega (4x2)"
+        },
+        {
+          "value": "vertical-hero",
+          "label": "Vertical hero (2x3)"
+        }
+      ],
+      "default": "small"
+    },
+    {
+      "type": "select",
+      "id": "tile_10_media_type",
+      "label": "Media type",
+      "options": [
+        {
+          "value": "image",
+          "label": "Image"
+        },
+        {
+          "value": "video",
+          "label": "Video"
+        }
+      ],
+      "default": "image"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_10_image",
+      "label": "Image",
+      "info": "Used when media type is Image"
+    },
+    {
+      "type": "text",
+      "id": "tile_10_video_url",
+      "label": "Video URL",
+      "info": "Used when media type is Video. Paste full URL to MP4 file"
+    },
+    {
+      "type": "image_picker",
+      "id": "tile_10_video_poster",
+      "label": "Video poster image",
+      "info": "Displays before hover (only for video tiles)"
+    },
+    {
+      "type": "text",
+      "id": "tile_10_label",
+      "label": "Label"
+    },
+    {
+      "type": "url",
+      "id": "tile_10_link",
+      "label": "Link"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Media grid"
+    }
+  ]
+}
+{% endschema %}

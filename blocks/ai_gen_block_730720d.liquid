@@ -1,0 +1,664 @@
+{% doc %}
+  @prompt
+    i need a section with a video background. an overlay option. a container with a max width with padding and margin that match the themes. inside the container i need wrapper that can be aligned within the container with a max width, it needs an h1, para text, three optional buttons and below that a small play icon and text that will pull up a youtube video , content, needs to be container inside a wrapper that is themes contents width. video icons needs size option  
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-video-hero-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    display: block;
+  }
+
+  .ai-video-hero__video-wrapper-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  .ai-video-hero__video-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-video-hero__overlay-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: {{ block.settings.overlay_color }};
+    opacity: {{ block.settings.overlay_opacity }};
+    z-index: 2;
+  }
+
+  .ai-video-hero__outer-container-{{ ai_gen_id }} {
+    position: relative;
+    z-index: 3;
+    max-width: {{ settings.theme_max_width }}px;
+    margin: 0 auto;
+    padding: {{ settings.container_vertical_space }}px {{ settings.grid_gap }}px;
+  }
+
+  .ai-video-hero__content-wrapper-{{ ai_gen_id }} {
+    max-width: {{ block.settings.content_max_width }}px;
+    margin: 0 auto;
+    text-align: {{ block.settings.content_alignment }};
+  }
+
+  .ai-video-hero__heading-{{ ai_gen_id }} {
+    font-family: {{ settings.headings_font_primary.family }}, {{ settings.headings_font_primary.fallback_families }};
+    font-weight: {{ settings.headings_font_primary.weight }};
+    font-size: {{ settings.headings_primary_size }}px;
+    line-height: {{ settings.headings_line }};
+    letter-spacing: {{ settings.headings_spacing }}px;
+    color: {{ block.settings.text_color }};
+    margin: 0 0 20px;
+  }
+
+  .ai-video-hero__text-{{ ai_gen_id }} {
+    font-family: {{ settings.body_font_primary.family }}, {{ settings.body_font_primary.fallback_families }};
+    font-weight: {{ settings.body_font_primary.weight }};
+    font-size: {{ settings.body_primary_size }}px;
+    line-height: {{ settings.body_line }};
+    color: {{ block.settings.text_color }};
+    margin: 0 0 30px;
+  }
+
+  .ai-video-hero__buttons-{{ ai_gen_id }} {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+  }
+
+  {% if block.settings.content_alignment == 'center' %}
+    .ai-video-hero__buttons-{{ ai_gen_id }} {
+      justify-content: center;
+    }
+  {% elsif block.settings.content_alignment == 'right' %}
+    .ai-video-hero__buttons-{{ ai_gen_id }} {
+      justify-content: flex-end;
+    }
+  {% else %}
+    .ai-video-hero__buttons-{{ ai_gen_id }} {
+      justify-content: flex-start;
+    }
+  {% endif %}
+
+  .ai-video-hero__button-{{ ai_gen_id }} {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px 30px;
+    font-family: {{ settings.body_font_primary.family }}, {{ settings.body_font_primary.fallback_families }};
+    font-size: {{ settings.body_primary_size }}px;
+    text-decoration: none;
+    border-radius: {{ settings.border_radius_buttons }}px;
+    border-width: {{ settings.border_width_buttons }}px;
+    border-style: solid;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .ai-video-hero__button--primary-{{ ai_gen_id }} {
+    background-color: {{ block.settings.button_1_bg_color }};
+    color: {{ block.settings.button_1_text_color }};
+    border-color: {{ block.settings.button_1_bg_color }};
+  }
+
+  .ai-video-hero__button--primary-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_1_hover_bg_color }};
+    color: {{ block.settings.button_1_hover_text_color }};
+    border-color: {{ block.settings.button_1_hover_bg_color }};
+  }
+
+  .ai-video-hero__button--secondary-{{ ai_gen_id }} {
+    background-color: {{ block.settings.button_2_bg_color }};
+    color: {{ block.settings.button_2_text_color }};
+    border-color: {{ block.settings.button_2_bg_color }};
+  }
+
+  .ai-video-hero__button--secondary-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_2_hover_bg_color }};
+    color: {{ block.settings.button_2_hover_text_color }};
+    border-color: {{ block.settings.button_2_hover_bg_color }};
+  }
+
+  .ai-video-hero__button--tertiary-{{ ai_gen_id }} {
+    background-color: {{ block.settings.button_3_bg_color }};
+    color: {{ block.settings.button_3_text_color }};
+    border-color: {{ block.settings.button_3_bg_color }};
+  }
+
+  .ai-video-hero__button--tertiary-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.button_3_hover_bg_color }};
+    color: {{ block.settings.button_3_hover_text_color }};
+    border-color: {{ block.settings.button_3_hover_bg_color }};
+  }
+
+  .ai-video-hero__video-trigger-{{ ai_gen_id }} {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: {{ block.settings.text_color }};
+    font-family: {{ settings.body_font_primary.family }}, {{ settings.body_font_primary.fallback_families }};
+    font-size: {{ settings.body_primary_size }}px;
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-video-hero__video-trigger-{{ ai_gen_id }}:hover {
+    opacity: 0.8;
+  }
+
+  .ai-video-hero__play-icon-{{ ai_gen_id }} {
+    width: {{ block.settings.play_icon_size }}px;
+    height: {{ block.settings.play_icon_size }}px;
+    border-radius: 50%;
+    background-color: {{ block.settings.play_icon_bg_color }};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+  }
+
+  .ai-video-hero__video-trigger-{{ ai_gen_id }}:hover .ai-video-hero__play-icon-{{ ai_gen_id }} {
+    transform: scale(1.1);
+  }
+
+  .ai-video-hero__play-icon-{{ ai_gen_id }} svg {
+    width: calc({{ block.settings.play_icon_size }}px * 0.4);
+    height: calc({{ block.settings.play_icon_size }}px * 0.4);
+    fill: {{ block.settings.play_icon_color }};
+    margin-left: 2px;
+  }
+
+  .ai-video-hero__modal-{{ ai_gen_id }} {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-video-hero__modal-{{ ai_gen_id }}.active {
+    display: flex;
+  }
+
+  .ai-video-hero__modal-content-{{ ai_gen_id }} {
+    position: relative;
+    width: 90%;
+    max-width: 1200px;
+    aspect-ratio: 16 / 9;
+  }
+
+  .ai-video-hero__modal-close-{{ ai_gen_id }} {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 30px;
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-video-hero__modal-close-{{ ai_gen_id }}:hover {
+    opacity: 0.7;
+  }
+
+  .ai-video-hero__modal-iframe-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-video-hero__heading-{{ ai_gen_id }} {
+      font-size: calc({{ settings.headings_primary_size }}px * 0.6);
+    }
+
+    .ai-video-hero__buttons-{{ ai_gen_id }} {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .ai-video-hero__button-{{ ai_gen_id }} {
+      width: 100%;
+    }
+
+    .ai-video-hero__play-icon-{{ ai_gen_id }} {
+      width: calc({{ block.settings.play_icon_size }}px * 0.8);
+      height: calc({{ block.settings.play_icon_size }}px * 0.8);
+    }
+
+    .ai-video-hero__play-icon-{{ ai_gen_id }} svg {
+      width: calc({{ block.settings.play_icon_size }}px * 0.32);
+      height: calc({{ block.settings.play_icon_size }}px * 0.32);
+    }
+  }
+{% endstyle %}
+
+<video-hero-{{ ai_gen_id }} class="ai-video-hero-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  {% if block.settings.background_video %}
+    <div class="ai-video-hero__video-wrapper-{{ ai_gen_id }}">
+      <video
+        class="ai-video-hero__video-{{ ai_gen_id }}"
+        autoplay
+        muted
+        loop
+        playsinline
+      >
+        <source src="{{ block.settings.background_video }}" type="video/mp4">
+      </video>
+    </div>
+  {% endif %}
+
+  {% if block.settings.show_overlay %}
+    <div class="ai-video-hero__overlay-{{ ai_gen_id }}"></div>
+  {% endif %}
+
+  <div class="ai-video-hero__outer-container-{{ ai_gen_id }}">
+    <div class="ai-video-hero__content-wrapper-{{ ai_gen_id }}">
+      {% if block.settings.heading != blank %}
+        <h1 class="ai-video-hero__heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h1>
+      {% endif %}
+
+      {% if block.settings.text != blank %}
+        <div class="ai-video-hero__text-{{ ai_gen_id }}">{{ block.settings.text }}</div>
+      {% endif %}
+
+      <div class="ai-video-hero__buttons-{{ ai_gen_id }}">
+        {% if block.settings.button_1_text != blank %}
+          <a
+            href="{{ block.settings.button_1_link }}"
+            class="ai-video-hero__button-{{ ai_gen_id }} ai-video-hero__button--primary-{{ ai_gen_id }}"
+          >
+            {{ block.settings.button_1_text }}
+          </a>
+        {% endif %}
+
+        {% if block.settings.button_2_text != blank %}
+          <a
+            href="{{ block.settings.button_2_link }}"
+            class="ai-video-hero__button-{{ ai_gen_id }} ai-video-hero__button--secondary-{{ ai_gen_id }}"
+          >
+            {{ block.settings.button_2_text }}
+          </a>
+        {% endif %}
+
+        {% if block.settings.button_3_text != blank %}
+          <a
+            href="{{ block.settings.button_3_link }}"
+            class="ai-video-hero__button-{{ ai_gen_id }} ai-video-hero__button--tertiary-{{ ai_gen_id }}"
+          >
+            {{ block.settings.button_3_text }}
+          </a>
+        {% endif %}
+      </div>
+
+      {% if block.settings.youtube_video_id != blank %}
+        <button
+          class="ai-video-hero__video-trigger-{{ ai_gen_id }}"
+          data-video-id="{{ block.settings.youtube_video_id }}"
+          aria-label="Play video"
+        >
+          <span class="ai-video-hero__play-icon-{{ ai_gen_id }}">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </span>
+          {% if block.settings.video_trigger_text != blank %}
+            <span>{{ block.settings.video_trigger_text }}</span>
+          {% endif %}
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="ai-video-hero__modal-{{ ai_gen_id }}">
+    <div class="ai-video-hero__modal-content-{{ ai_gen_id }}">
+      <button class="ai-video-hero__modal-close-{{ ai_gen_id }}" aria-label="Close video">×</button>
+      <iframe
+        class="ai-video-hero__modal-iframe-{{ ai_gen_id }}"
+        src=""
+        allow="autoplay; encrypted-media"
+        allowfullscreen
+      ></iframe>
+    </div>
+  </div>
+</video-hero-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class VideoHero{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.videoTrigger = this.querySelector('.ai-video-hero__video-trigger-{{ ai_gen_id }}');
+        this.modal = this.querySelector('.ai-video-hero__modal-{{ ai_gen_id }}');
+        this.modalClose = this.querySelector('.ai-video-hero__modal-close-{{ ai_gen_id }}');
+        this.modalIframe = this.querySelector('.ai-video-hero__modal-iframe-{{ ai_gen_id }}');
+
+        if (this.videoTrigger) {
+          this.setupEventListeners();
+        }
+      }
+
+      setupEventListeners() {
+        this.videoTrigger.addEventListener('click', () => {
+          const videoId = this.videoTrigger.getAttribute('data-video-id');
+          if (videoId) {
+            this.openModal(videoId);
+          }
+        });
+
+        this.modalClose.addEventListener('click', () => {
+          this.closeModal();
+        });
+
+        this.modal.addEventListener('click', (e) => {
+          if (e.target === this.modal) {
+            this.closeModal();
+          }
+        });
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && this.modal.classList.contains('active')) {
+            this.closeModal();
+          }
+        });
+      }
+
+      openModal(videoId) {
+        this.modalIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        this.modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+
+      closeModal() {
+        this.modal.classList.remove('active');
+        this.modalIframe.src = '';
+        document.body.style.overflow = '';
+      }
+    }
+
+    customElements.define('video-hero-{{ ai_gen_id }}', VideoHero{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Video hero",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Background video"
+    },
+    {
+      "type": "video",
+      "id": "background_video",
+      "label": "Background video"
+    },
+    {
+      "type": "header",
+      "content": "Overlay"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_overlay",
+      "label": "Show overlay",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "overlay_color",
+      "label": "Overlay color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "label": "Overlay opacity",
+      "default": 0.5
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "range",
+      "id": "content_max_width",
+      "min": 400,
+      "max": 1200,
+      "step": 50,
+      "unit": "px",
+      "label": "Content max width",
+      "default": 800
+    },
+    {
+      "type": "select",
+      "id": "content_alignment",
+      "label": "Content alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Welcome to our store"
+    },
+    {
+      "type": "textarea",
+      "id": "text",
+      "label": "Text",
+      "default": "Discover our amazing products and services"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Button 1"
+    },
+    {
+      "type": "text",
+      "id": "button_1_text",
+      "label": "Button text",
+      "default": "Shop now"
+    },
+    {
+      "type": "url",
+      "id": "button_1_link",
+      "label": "Button link"
+    },
+    {
+      "type": "color",
+      "id": "button_1_bg_color",
+      "label": "Background color",
+      "default": "#019aff"
+    },
+    {
+      "type": "color",
+      "id": "button_1_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_1_hover_bg_color",
+      "label": "Hover background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_1_hover_text_color",
+      "label": "Hover text color",
+      "default": "#019aff"
+    },
+    {
+      "type": "header",
+      "content": "Button 2"
+    },
+    {
+      "type": "text",
+      "id": "button_2_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "button_2_link",
+      "label": "Button link"
+    },
+    {
+      "type": "color",
+      "id": "button_2_bg_color",
+      "label": "Background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_2_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_2_hover_bg_color",
+      "label": "Hover background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_2_hover_text_color",
+      "label": "Hover text color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Button 3"
+    },
+    {
+      "type": "text",
+      "id": "button_3_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "button_3_link",
+      "label": "Button link"
+    },
+    {
+      "type": "color",
+      "id": "button_3_bg_color",
+      "label": "Background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_3_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_3_hover_bg_color",
+      "label": "Hover background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_3_hover_text_color",
+      "label": "Hover text color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "YouTube video"
+    },
+    {
+      "type": "text",
+      "id": "youtube_video_id",
+      "label": "YouTube video ID",
+      "info": "Enter the video ID from the YouTube URL (e.g., dQw4w9WgXcQ)"
+    },
+    {
+      "type": "text",
+      "id": "video_trigger_text",
+      "label": "Video trigger text",
+      "default": "Watch video"
+    },
+    {
+      "type": "range",
+      "id": "play_icon_size",
+      "min": 30,
+      "max": 80,
+      "step": 5,
+      "unit": "px",
+      "label": "Play icon size",
+      "default": 40
+    },
+    {
+      "type": "color",
+      "id": "play_icon_bg_color",
+      "label": "Play icon background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "play_icon_color",
+      "label": "Play icon color",
+      "default": "#000000"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Video hero"
+    }
+  ]
+}
+{% endschema %}

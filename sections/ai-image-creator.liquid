@@ -1,0 +1,342 @@
+{%- comment -%}
+  ai-image-creator — Standalone page version of the Create-with-AI experience.
+
+  Used by /pages/ai-image-creator (template: page.ai-image-creator.json).
+  Renders the same hero + history UI that lives inside the tabs / modal,
+  but inline as a page — no modal shell, no tab system. Works on desktop
+  and mobile out of the box (the underlying styles are responsive).
+
+  The native generative AI dialog markup is rendered hidden so the
+  generation pipeline (#AISearchInput → submit → #generative-ai-images)
+  keeps working unchanged. Our hero programmatically drives that form
+  via dtf-upload-tabs.js / wireAiHero. dtf-ai-history.js manages the
+  recent-creations grid via MutationObserver on #generative-ai-images.
+
+  Order-as-DTF: when the user multi-selects history tiles and clicks
+  the black bar, we don't have a local upload pipeline (this is a
+  page, not a product). dtf-ai-page.js intercepts the dispatched
+  `md-picker:use-designs` event, stashes the chosen images in
+  sessionStorage, and navigates to /products/dtf-transfers, where
+  dtf-upload-tabs.js consumes the stash and re-dispatches the event
+  into the real upload pipeline.
+{%- endcomment -%}
+
+{{ 'ai-create.css' | asset_url | stylesheet_tag }}
+
+<section class="dtf-ai-page">
+  <div class="dtf-ai-page__inner">
+    {%- if section.settings.eyebrow != blank -%}
+      <p class="dtf-ai-page__eyebrow">{{ section.settings.eyebrow }}</p>
+    {%- endif -%}
+    {%- if section.settings.heading != blank -%}
+      <h1 class="dtf-ai-page__heading">{{ section.settings.heading }}</h1>
+    {%- endif -%}
+    {%- if section.settings.sub != blank -%}
+      <p class="dtf-ai-page__sub">{{ section.settings.sub }}</p>
+    {%- endif -%}
+
+    {%- comment -%}
+      Native generative AI dialog + asset CSS.
+      Wrapped in .dtf-ai-page__legacy so dtf-ai-page.css can hide the
+      pink "Create with AI" box (the dialog itself stays usable as a
+      programmatic form). This block is functionally identical to the
+      contentFor 'aiImageGenerator' branch in __multipleSnippets, but
+      we inline it so we don't need product/section/block context.
+    {%- endcomment -%}
+    <div class="dtf-ai-page__legacy" aria-hidden="true">
+      {{ 'generative-ai-image.css' | asset_url | stylesheet_tag }}
+      <div style="display: none;"><button id="generativeAiStart" type="button">CLICK ME</button></div>
+      <div class="generative-ai-area">
+        <div class="ai__wrapper">
+          <div class="ai__title">Create a design with Ninja AI</div>
+          <div class="ai__subtitle">Unleash your creativity and design your vision effortlessly with Ninja AI</div>
+          <div class="ai__btn">Create an Image</div>
+        </div>
+      </div>
+
+      <dialog id="generative-ai-dialog">
+        <header>
+          <div>
+            <img src="{{ 'ai-generation-icon.png' | asset_url }}" width="48" height="48" alt="an icon of the ninja mascot on a colorful background">
+            <span>Ninja AI Image Creator</span>
+          </div>
+          <button><img src="{{ 'AI__ic_close.svg' | asset_url }}" alt="" width="12" height="12"></button>
+        </header>
+
+        <form>
+          <input type="search" name="prompt" id="AISearchInput" placeholder="Describe your design..." value="" required autocomplete="off">
+          <img src="{{ 'AI__ic_close.svg' | asset_url }}" class="searchCross" width="12" height="12">
+          <button type="submit">Generate <img src="{{ 'ai-magic.png' | asset_url }}" alt="" width="20"></button>
+          <div class="AISearchMenu" id="AISearchMenu"></div>
+        </form>
+
+        <p id="generative-ai-remaining-searches"></p>
+        <p id="generative-ai-generating"></p>
+
+        <div id="generative-ai-dialog-loader"><img src="//cdn.shopify.com/s/files/1/0558/0265/8899/files/loader-2.gif?v=1723724647" alt="loading animation"></div>
+
+        <section id="generative-ai-tips" class="generativeAItips">
+          <header>Example Prompt</header>
+          <div class="examplePrompt">
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/example.jpg?v=1747861546" class="examplePrompt__desktop">
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Group_10.png?v=1747925994" class="examplePrompt__mobile">
+          </div>
+          <hr>
+          <header>Example Output</header>
+          <div class="exampleOutput">
+            <div class="exampleOutput__item" item="1"><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/a-clean-and-modern-logo-illustration-fea_aFuultKgQh-HNvXcKTMAZw_hGGDDkT3QsqQ5SxEV74Nug_0003_Layer_1.jpg?v=1747861649"></div>
+            <div class="exampleOutput__item" item="2"><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/a-clean-and-modern-logo-illustration-fea_aFuultKgQh-HNvXcKTMAZw_hGGDDkT3QsqQ5SxEV74Nug_0001_a-logo-illustration-of-a-cha.jpg?v=1747861649"></div>
+            <div class="exampleOutput__item" item="3"><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/a-clean-and-modern-logo-illustration-fea_aFuultKgQh-HNvXcKTMAZw_hGGDDkT3QsqQ5SxEV74Nug_0004_Background.jpg?v=1747861649"></div>
+          </div>
+        </section>
+
+        <section id="generative-ai-images"></section>
+      </dialog>
+      {{ 'generative-ai-image-modal.js' | asset_url | script_tag }}
+    </div>
+
+    {%- comment -%}
+      The actual page UI — uses the polished ai-chat panel (same as the
+      "Create with AI" tab on the product page and the DS overlay). Driven
+      by ai-chat-sandbox.js. instanceKey "aipage" routes "Use this design"
+      clicks through the stashAndHandoff path (see ai-chat-sandbox.js)
+      since this page has no local upload pipeline.
+
+      `data-dtf-ai-page` is kept on the outer host so the legacy capture
+      handlers in dtf-ai-page.js still no-op the stray figure clicks from
+      the hidden legacy dialog.
+    {%- endcomment -%}
+    <div class="dtfut__ai-host dtf-ai-page__host" data-dtf-ai-page>
+      <div class="ai-chat" data-ai-panel data-ai-instance="aipage">
+        <div class="ai-chat-thread" data-ai-thread>
+          <div class="ai-chat-header">
+            <div class="ai-chat-brand">NINJA AI</div>
+            <h2 class="ai-chat-title">Create something in seconds.</h2>
+            <p class="ai-chat-subtitle">Describe what you want or tap an idea below to see it in action.</p>
+
+            <div class="ai-chat-pills" data-ai-pills>
+              <button type="button" class="ai-chat-pill"
+                      data-ai-pill-prompt="A modern logo of a bold dumbbell icon in bright electric blue, hot pink, and neon yellow with text that says &quot;Common Ground Athletics&quot; on a pure white background">
+                <span class="ai-chat-pill-emoji">🏋️</span>
+                <span>Colorful gym logo</span>
+              </button>
+              <button type="button" class="ai-chat-pill"
+                      data-ai-pill-prompt="A bold modern design of a large floral bouquet in vivid pink, coral, and sage with text that says &quot;Mama&quot; in chunky serif on a white background">
+                <span class="ai-chat-pill-emoji">🌸</span>
+                <span>Floral mama design</span>
+              </button>
+              <button type="button" class="ai-chat-pill"
+                      data-ai-pill-prompt="A vibrant party design of streamers and stars in hot pink, electric orange, neon green, and bright blue with text that says &quot;Let&#39;s Party&quot; in wavy groovy letters on a pure white background">
+                <span class="ai-chat-pill-emoji">✨</span>
+                <span>Groovy party design</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-chat-composer">
+          <div class="ai-pop-error" data-ai-error></div>
+          <div class="ai-chat-input-wrap">
+            <textarea data-ai-prompt rows="1"
+                      placeholder="Describe your design…"></textarea>
+            <div class="ai-chat-actions">
+              <button type="button" class="ai-chat-clear" data-ai-clear aria-label="Clear prompt" hidden>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>
+              </button>
+              <button type="button" class="ai-chat-send is-empty"
+                      data-ai-generate aria-label="Generate" disabled>
+                <svg class="ai-chat-send-icon" viewBox="0 0 20 20" fill="none"
+                     stroke="currentColor" stroke-width="2.4"
+                     stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                  <path d="M10 15V5M5 10l5-5 5 5"/>
+                </svg>
+                <span class="ai-chat-send-label">Generate</span>
+                <span class="ai-pop-spin" aria-hidden="true"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-chat-history" data-ai-history>
+          <div class="ai-chat-history-head">
+            <h3 class="ai-chat-history-title">Recently Generated</h3>
+            <button type="button" class="ai-chat-history-toggle"
+                    data-ai-history-toggle
+                    aria-expanded="true"
+                    aria-label="Hide recently generated">
+              <span class="ai-chat-history-toggle-label" data-ai-history-toggle-label>Hide</span>
+              <svg class="ai-chat-history-toggle-chev" viewBox="0 0 16 16" fill="none"
+                   stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 10l4-4 4 4"/>
+              </svg>
+            </button>
+          </div>
+          <div class="ai-chat-history-grid" data-ai-history-grid></div>
+          <div class="ai-chat-history-foot">
+            <button type="button" class="ai-chat-history-clear"
+                    data-ai-history-clear>Clear all</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+{%- comment -%}
+  Other Ordering Options modal for the AI page. Mirrors the 13-product
+  modal in snippets/my-designs-panel.liquid (used on /pages/welcome).
+  Opened by ai-chat-sandbox.js when the secondary CTA is clicked with a
+  single AI image selected. Each card's href is set at click time to
+  `/products/<handle>?file=<imageUrl>` so the destination product
+  pre-loads the AI image.
+{%- endcomment -%}
+<div class="aip-oo-overlay" data-aip-oo-overlay>
+  <div class="aip-oo-modal" role="dialog" aria-modal="true" aria-labelledby="aip-oo-title">
+    <div class="aip-oo-header">
+      <h3 id="aip-oo-title" class="aip-oo-title">Ordering options</h3>
+      <button type="button" class="aip-oo-close" data-aip-oo-close aria-label="Close">&times;</button>
+    </div>
+    <div class="aip-oo-grid">
+      <a href="#" class="aip-oo-card" data-handle="uv-dtf-stickers-decals-by-size">
+        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/UV-by-size-hero-v4-1.jpg?v=1754065953" alt="UV By Size" loading="lazy">
+        <span class="aip-oo-card__name">UV By Size</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="3d-puff-transfers">
+        <img src="https://ninjatransfers.com/cdn/shop/files/3d_Puff_Transfer_2700f976-338f-45e1-8cbb-21e2e08ac09e.png?v=1764968108" alt="Puff Transfer" loading="lazy">
+        <span class="aip-oo-card__name">Puff Transfer</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="vinyl-stickers">
+        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Custom_Vinyl_Stickers.jpg?v=1759871344" alt="Vinyl Stickers" loading="lazy">
+        <span class="aip-oo-card__name">Vinyl Stickers</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="spangle-transfers">
+        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/DTF_Spangle_Transfers_579ce79c-f7e0-4ad4-a21e-96c57347c601.png?v=1764969544" alt="Spangle Transfer" loading="lazy">
+        <span class="aip-oo-card__name">Spangle Transfer</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="custom-magnets">
+        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Magnet_main.jpg?v=1759242125" alt="Custom Magnets" loading="lazy">
+        <span class="aip-oo-card__name">Custom Magnets</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="custom-soft-vinyl-keychains">
+        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Custom_Keychain_Duo.png?v=1762551290" alt="Soft Vinyl Keychains" loading="lazy">
+        <span class="aip-oo-card__name">Soft Vinyl Keychains</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="truck-stickers">
+        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/custom-truck-stickersninja-patches-347968.png?v=1762462265" alt="Truck Stickers" loading="lazy">
+        <span class="aip-oo-card__name">Truck Stickers</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="bumper-stickers">
+        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/custom-bumper-stickersninja-patches-565643.png?v=1762462265" alt="Bumper Stickers" loading="lazy">
+        <span class="aip-oo-card__name">Bumper Stickers</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="3d-glitter-puff-transfers">
+        <img src="https://ninjatransfers.com/cdn/shop/files/Glitter_puff_Transfers.png?v=1764968777" alt="3D Glitter Puff" loading="lazy">
+        <span class="aip-oo-card__name">3D Glitter Puff</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="indoor-floor-graphics">
+        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Indoor_floor_graphics.png?v=1765488325" alt="Indoor Floor Graphics" loading="lazy">
+        <span class="aip-oo-card__name">Indoor Floor Graphics</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="outdoor-floor-graphics">
+        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Outdoor_floor_graphics.png?v=1765488305" alt="Outdoor Floor Graphics" loading="lazy">
+        <span class="aip-oo-card__name">Outdoor Floor Graphics</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="window-clings">
+        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/ieAHVtChyFCyct5VAWi6n.png?v=1767630230" alt="Window Clings" loading="lazy">
+        <span class="aip-oo-card__name">Window Clings</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+      <a href="#" class="aip-oo-card" data-handle="low-tac-wall-graphics">
+        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/wallgraphic02.png?v=1766507125" alt="Low Tac Wall Graphics" loading="lazy">
+        <span class="aip-oo-card__name">Low Tac Wall Graphics</span>
+        <span class="aip-oo-card__cta">+ Order now</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* Open/close handlers for the Other Ordering Options modal. The selection
+     bar in ai-chat-sandbox.js triggers `aip-oo:open` with the AI image URL;
+     we set each card's href to /products/<handle>?file=<url> and reveal the
+     overlay. Card clicks navigate naturally — no need to intercept. */
+  (function () {
+    var overlay = document.querySelector('[data-aip-oo-overlay]');
+    if (!overlay) return;
+    var grid = overlay.querySelector('.aip-oo-grid');
+
+    function open(imageUrl) {
+      if (!imageUrl) return;
+      var encoded = encodeURIComponent(imageUrl);
+      overlay.querySelectorAll('.aip-oo-card').forEach(function (card) {
+        var handle = card.getAttribute('data-handle');
+        card.href = '/products/' + handle + '?file=' + encoded;
+      });
+      overlay.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function close() {
+      overlay.classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('aip-oo:open', function (e) {
+      open(e && e.detail && e.detail.imageUrl);
+    });
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) close();
+      if (e.target.closest('[data-aip-oo-close]')) close();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && overlay.classList.contains('is-open')) close();
+    });
+  })();
+</script>
+
+{{ 'ai-chat-sandbox.js' | asset_url | script_tag }}
+{{ 'dtf-ai-page.js' | asset_url | script_tag }}
+
+{% schema %}
+{
+  "name": "AI Image Creator",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow text",
+      "default": "Ninja AI"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Page heading",
+      "default": "Create your design with AI"
+    },
+    {
+      "type": "textarea",
+      "id": "sub",
+      "label": "Subheading",
+      "default": "Describe what you want to print and we'll generate a print-ready design in seconds. Click any result to send it straight to a DTF transfer order."
+    }
+  ],
+  "presets": [
+    {
+      "name": "AI Image Creator"
+    }
+  ]
+}
+{% endschema %}

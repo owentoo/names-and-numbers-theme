@@ -1,0 +1,863 @@
+{%- comment -%}
+  New AI image toolbar design (B6 from the design handoff).
+
+  Wraps the existing `.multiupload-rebuild-tools-inner` element in an
+  AI-themed shell:
+    - Outer `.ai-wrap` — position: relative anchor
+    - Inner `.ai-ring` — 2px-padding gradient sheen border (animated)
+    - `.ai-badge`     — "Powered by AI" pill, top-left, sits above the ring
+
+  The toggle and button styling is overridden to match the spec:
+    - 44×26 toggle tracks (off #C5C6C8, on #32D661), 20×20 thumb
+    - "Edit Image" pill button (renamed from "Edit with AI"; AI signal lives
+      in the badge instead of the button icon)
+    - The old sparkle img inside toggle labels is hidden
+
+  Implementation:
+    - DOM wrap is done in JS so we don't have to touch the markup in
+      shared snippets like __multipleSnippets.liquid (which is used by many
+      sections — risky to alter).
+    - CSS overrides existing rules from bySizeNew.liquid / bySize.liquid
+      using higher specificity (descendant from the new .ai-ring wrapper).
+{%- endcomment -%}
+<style>
+  /* ===== AI toolbar redesign ===== */
+
+  /* Outer wrapper — sized to content and centered horizontally.
+     margin-top gives the "Powered by AI" badge (positioned 8px above
+     the toolbar inside .multiupload-rebuild-tools-inner) clearance from
+     whatever element renders directly above the toolbar (e.g. the
+     "Preview: The image will print as shown above." caption, or the
+     "Choose 3 colors" instruction on spangle). 24px gives enough
+     clearance for the badge (~17px tall) plus visible gap. */
+  .ai-wrap {
+    position: relative;
+    display: block;
+    width: -webkit-fit-content;
+    width: -moz-fit-content;
+    width: fit-content;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 24px;
+  }
+
+  /* The actual toolbar is the position anchor for the badge so that
+     bg-removal-multi.js (which on dtf-transfers-by-size-v2 injects a
+     ~140px-tall "Background Removal Options" panel as a sibling of
+     the toolbar inside .ai-ring) doesn't push the badge up to the top
+     of the wrapper. The badge always sits above the toolbar itself. */
+  .ai-ring .multiupload-rebuild-tools-inner {
+    position: relative !important;
+  }
+  /* When the BG removal options panel precedes the toolbar (only on
+     by-size-bg-options template via bg-removal-multi.js), add vertical
+     space between them so the AI badge sitting above the toolbar has
+     room and doesn't visually crash into the Option 1/2/3 card. The
+     badge itself extends ~17px above the toolbar (badge height + the
+     8px negative top), so we need at least 24px clearance plus a
+     visual breathing gap. */
+  .ai-ring .nt-bgr-tabs + .multiupload-rebuild-tools-inner {
+    margin-top: 22px !important;
+  }
+
+  /* ===== Universal AI toolbar visibility =====
+     Single source of truth: show Remove Background + Upscale + Edit
+     with AI on EVERY product that has the toolbar markup. Overrides
+     the per-template hide rules in bySize.liquid (e.g.
+     `body.template-product-puff-transfers .multiupload-rebuild-tools-inner .edit-with-ai
+      { display: none !important }`).
+
+     Selector includes `html body` to bump specificity to (0,3,2),
+     beating bySize.liquid's per-template rules at (0,3,1) so this
+     wins regardless of cascade order. */
+  html body .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai {
+    display: inline-flex !important;
+  }
+  html body .ai-ring .multiupload-rebuild-tools-inner .fileupload_bg_options {
+    display: flex !important;
+  }
+  /* Dissolve the .style3 wrapper so the <label class="switch"> inside
+     becomes a direct flex child of .fileupload_bg_options. Without
+     this, the .style3 wrapper (flex: 0 1 auto from existing CSS) gets
+     squeezed below its content width and the label overflows it —
+     e.g. on 3D Puff Transfers the "Remove Background" label is 165px
+     wide but its .style3 wrapper collapsed to 124px, so the label
+     visually overlapped the Upscale group next to it. With .style3
+     gone, the labels size to their own content and lay out cleanly.
+
+     EXCEPTION: `.style3.hidden` is set by __multipleSnippets.liquid
+     when isCustomStickerProduct / isBumperStickerProduct is true — the
+     Remove Background toggle is meant to stay hidden on those products.
+     The `:not(.hidden)` filter respects that. */
+  html body .ai-ring .multiupload-rebuild-tools-inner .fileupload_bg_options .style3:not(.hidden) {
+    display: contents !important;
+  }
+  html body .ai-ring .multiupload-rebuild-tools-inner .fileupload_bg_options .style3.hidden {
+    display: none !important;
+  }
+  html body .ai-ring .multiupload-rebuild-tools-inner .fileupload_bg_options .style3:not(.hidden) label.switch {
+    display: inline-flex !important;
+  }
+  html body .ai-ring .multiupload-rebuild-tools-inner toggle-options,
+  html body .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch {
+    display: inline-flex !important;
+  }
+  /* Multi-upload tiles set show-bg-option="false" and show-superres-option="false"
+     on <toggle-options> to hide both switches per-tile. bySize.css line 771-773
+     reads these attrs and applies display:none to .bgRemover / .superRes. Plus
+     bySize.css line 768-770 hides the whole toggle-options when both flags
+     are false. Override here so the switches stay visible on multi-upload. */
+  html body .ai-ring .multiupload-rebuild-tools-inner toggle-options[show-bg-option="false"] .switch.bgRemover,
+  html body .ai-ring .multiupload-rebuild-tools-inner toggle-options[show-superres-option="false"] .switch.superRes {
+    display: inline-flex !important;
+  }
+  html body .ai-ring .multiupload-rebuild-tools-inner toggle-options[show-bg-option="false"][show-superres-option="false"] {
+    display: inline-flex !important;
+  }
+
+  /* ===== Hide the ninja-loader card on multi-upload tiles =====
+     Each uploaded-files-block tile renders a <file-progress class="fileProgress ldl">
+     with the running ninja "Sharpening the katana…" panel. The user wants
+     only the in-place preview-block dot-loader, not this big card. The
+     existing ldl-loader.liquid rule used `>` direct child but the actual
+     DOM nests file-progress deeper in some cases — use descendant. */
+  multi-upload-wrapper file-progress.fileProgress.ldl,
+  uploaded-files-block file-progress.fileProgress.ldl,
+  multi-upload uploaded-files-block file-progress.fileProgress.ldl {
+    display: none !important;
+  }
+
+  /* Center the "Preview: The image will print as shown above." caption
+     and the AI toolbar horizontally relative to the preview-image area
+     above them. The previewText already has text-align:center inline
+     but some templates override it — !important locks it in. */
+  preview-box .previewText,
+  .preview-box .previewText,
+  .split_design.newFilePreview .previewText {
+    text-align: center !important;
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* ===== Hide the AI toolbar entirely on gang sheet templates =====
+     Gang sheets (DTF Gang Sheets / UV DTF Gang Sheets) accept a single
+     pre-laid 22"-wide file — there's no Remove Background / Upscale /
+     Edit with AI flow there. If the toolbar markup ever appears on
+     these templates (e.g. via shared snippets), hide it entirely. */
+  body.template-product-dtf-gang-sheet .ai-wrap,
+  body.template-product-uv-gang-sheet .ai-wrap,
+  body.template-product-dtf-gang-sheet .multiupload-rebuild-tools-inner,
+  body.template-product-uv-gang-sheet .multiupload-rebuild-tools-inner,
+  body.template-product-dtf-gang-sheet .multiupload-rebuild-tools,
+  body.template-product-uv-gang-sheet .multiupload-rebuild-tools {
+    display: none !important;
+  }
+
+  /* "Powered by AI" badge — pill, overflows the top of the toolbar. */
+  .ai-badge {
+    position: absolute;
+    top: -8px;
+    left: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #019AFF;
+    color: #fff;
+    font-family: 'Inter', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+    box-shadow: 0 3px 9px rgba(1, 154, 255, 0.35);
+    z-index: 3;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .ai-badge svg {
+    width: 8px;
+    height: 8px;
+    fill: currentColor;
+    flex: 0 0 auto;
+  }
+
+  /* Ring is now invisible — keeps the wrapper structure (for the
+     badge's positioning anchor) but no border. Drop shadow lives on
+     the inner toolbar instead. */
+  .ai-ring {
+    position: relative;
+    display: block;
+    padding: 0;
+    border-radius: 12px;
+    background: transparent;
+  }
+
+  /* Inner toolbar — overrides the existing .multiupload-rebuild-tools-inner
+     styles when wrapped inside .ai-ring. Sizes are 25% smaller than spec.
+     Drop shadow replaces the previous blue ring outline.
+
+     min-width gives the bar breathing room when some toggles are hidden
+     per-template (e.g. puff hides Edit with AI + Upscale and only shows
+     Remove Background — without this the bar would collapse to ~185px
+     and the 100px badge would crowd it). */
+  .ai-ring .multiupload-rebuild-tools-inner {
+    background: #fff !important;
+    border: 1px solid #E2E3E5 !important;
+    border-radius: 12px !important;
+    padding: 7px 7px 7px 13px !important;
+    margin: 0 !important;
+    gap: 10px !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 280px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+    flex-direction: row-reverse !important;
+  }
+
+  /* ===== Toggles =====
+     Two structures appear in this theme:
+       (A) Old single-upload form  : .multiupload-rebuild-tools-inner .style3 label.switch [+ img + text + input + .slider]
+       (B) New multi-upload-UI form: .multiupload-rebuild-tools-inner toggle-options .switch.bgRemover / .switch.superRes [+ img + input + text + .slider]
+     The CSS below works on both — selectors join (A) and (B). */
+  .ai-ring .multiupload-rebuild-tools-inner .style3,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    background: transparent !important;
+  }
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: #1f1f22 !important;
+    font-family: 'Inter', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+    cursor: pointer;
+    white-space: nowrap;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  /* Hide the old sparkle image inside each toggle label. */
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch > span:has(> img),
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch img,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch img,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch > span:has(> img) {
+    display: none !important;
+  }
+  /* Hide the underlying checkbox; the .slider div is the visual track. */
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch input,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch input.toggleOption,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch input {
+    position: absolute !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  /* The slider track (.slider.round in both structures). 25% smaller. */
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch .slider,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch .slider {
+    position: relative !important;
+    display: inline-block !important;
+    width: 33px !important;
+    height: 20px !important;
+    border-radius: 999px !important;
+    background: #C5C6C8 !important;
+    flex: 0 0 auto !important;
+    cursor: pointer;
+    transition:
+      background 180ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 180ms cubic-bezier(0.2, 0.7, 0.2, 1) !important;
+  }
+  /* Wipe any ::before/::after the existing slider CSS may have set. */
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch .slider::before,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch .slider::before {
+    content: none !important;
+    display: none !important;
+  }
+  /* The thumb — 25% smaller, scaled offsets to match. */
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch .slider::after,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch .slider::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 2px !important;
+    left: 2px !important;
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    background: #fff !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    transition:
+      transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 180ms cubic-bezier(0.2, 0.7, 0.2, 1) !important;
+  }
+  /* ON state — checkbox checked. Thumb translate also scaled (33-16-4=13). */
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch input:checked + .slider,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch input:checked + .slider,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch input.toggleOption:checked + .slider {
+    background: #32D661 !important;
+  }
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch input:checked + .slider::after,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch input:checked + .slider::after {
+    transform: translateX(13px) !important;
+  }
+  /* Hover (whole label = tap target). */
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch:hover .slider,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch:hover .slider {
+    background: #B6B7BA !important;
+    box-shadow: 0 0 0 4px rgba(1, 154, 255, 0.18) !important;
+  }
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch:hover input:checked + .slider,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch:hover input:checked + .slider {
+    background: #28C457 !important;
+    box-shadow: 0 0 0 4px rgba(1, 154, 255, 0.22) !important;
+  }
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch:hover .slider::after,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch:hover .slider::after {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.14) !important;
+  }
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch:active .slider,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch:active .slider {
+    transform: scale(0.96) !important;
+  }
+  /* Label color shift on hover. */
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch:hover,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch:hover {
+    color: #019AFF !important;
+  }
+
+  /* Vertical divider between Remove Background and Upscale groups. */
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch[for^="superRes"]::before,
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch[for^="superRes"]::before,
+  .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch.superRes::before,
+  .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch.superRes::before {
+    width: 1px !important;
+    height: 20px !important;
+    background: #d6d6d8 !important;
+    margin: 0 4px 0 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    position: static !important;
+    display: inline-block !important;
+    content: "" !important;
+    flex: 0 0 auto !important;
+    align-self: center !important;
+    top: auto !important;
+    left: auto !important;
+    box-shadow: none !important;
+    font-size: 0 !important;
+  }
+
+  /* ===== "Edit with AI" — dashed grey outline by default, grey pill
+     on hover. Defaults to transparent background with a 1px dashed
+     border (same #E2E3E5 grey as the toolbar's outer border) so it
+     reads as a button affordance. On hover the grey pill appears with
+     drop shadow. Sparkle + "Edit with AI" text remain visible
+     throughout. width: auto + flex: 0 0 auto are critical — bySize
+     mobile CSS sets width: 100% which would stretch the button and
+     squeeze the toggles to one side. ===== */
+  .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai {
+    background: transparent !important;
+    color: #1f1f22 !important;
+    font-family: 'Inter', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 7px 12px !important;
+    border-radius: 8px !important;
+    border: 1px dashed #E2E3E5 !important;
+    box-shadow: none !important;
+    width: auto !important;
+    flex: 0 0 auto !important;
+    transition:
+      transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      background 120ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      border-color 120ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 120ms cubic-bezier(0.2, 0.7, 0.2, 1) !important;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai:hover {
+    background: #ECECEC !important;
+    transform: translateY(-1px);
+    box-shadow:
+      0 2px 6px rgba(15, 23, 42, 0.12),
+      0 1px 2px rgba(15, 23, 42, 0.08) !important;
+  }
+  .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai:active {
+    transform: translateY(0);
+    box-shadow:
+      0 1px 3px rgba(15, 23, 42, 0.12),
+      0 1px 2px rgba(15, 23, 42, 0.08) !important;
+  }
+  /* Hide the sparkle img inside the button — badge above carries the AI
+     signal now. */
+  .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai .edit-with-aiFlex > img,
+  .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai img {
+    display: none !important;
+  }
+  /* Edit Image label — hide the original text span entirely (was using
+     font-size:0 which kept it as a 0-width flex item), then inject the
+     new label via ::after and a yellow sparkle icon via ::before. */
+  .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai .edit-with-aiFlex > span {
+    display: none !important;
+  }
+  .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai .edit-with-aiFlex {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px !important;
+    line-height: 1;
+  }
+  /* Yellow AI sparkle icon (3 overlapping 4-pointed stars). Same shape
+     as the "Powered by AI" badge icon but in brand yellow. Fixed 14px
+     so it stays visible regardless of the surrounding font-size (which
+     drops to 11px on mobile). */
+  .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai .edit-with-aiFlex::before {
+    content: "" !important;
+    display: inline-block !important;
+    flex: 0 0 auto !important;
+    width: 14px !important;
+    height: 14px !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FFC30B'><path d='M12 2 13.6 9.1 20.5 11 13.6 12.9 12 20 10.4 12.9 3.5 11 10.4 9.1 12 2Z'/><path d='M19 3 19.7 5.3 22 6 19.7 6.7 19 9 18.3 6.7 16 6 18.3 5.3 19 3Z' opacity='.75'/><path d='M5 14 5.6 15.7 7.3 16.3 5.6 16.9 5 18.6 4.4 16.9 2.7 16.3 4.4 15.7 5 14Z' opacity='.55'/></svg>") !important;
+    background-repeat: no-repeat !important;
+    background-size: contain !important;
+    background-position: center !important;
+  }
+  .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai .edit-with-aiFlex::after {
+    content: "Edit with AI";
+    font-size: 11px;
+    font-weight: 700;
+    color: #1f1f22;
+  }
+
+  /* ===== Mobile adjustments — match desktop visuals exactly. =====
+     Only layout differences:
+       - bar spans full container width (vs. fit-content centered on desktop)
+       - justify-content: space-between to spread Remove Background / Upscale /
+         Edit Image groups across the full width — keeps "Upscale" visually
+         centered between the two end groups, matching the desktop look
+       - negative margin-bottom to halve the natural gap below the toolbar
+     All typography, paddings, toggle sizes etc. inherit from the
+     desktop rules above.
+
+     Specificity is bumped via `body .ai-ring …` to override the older
+     mobile rules in mobile-preview-size-guide-tabs.liquid (which set
+     padding: 4px 4px 4px 12px + gap: 8px on the inner toolbar via the
+     `body.template-product-by-size-tabs .multiupload-rebuild-tools-inner`
+     selector). Without the body-class boost here, those win on mobile
+     and the bar looks more cramped than desktop. */
+  @media (max-width: 767px) {
+    .ai-wrap {
+      display: block !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+      /* No negative margin — caused the toolbar to overlap the next
+         section below (e.g. vinyl-stickers Width/Height inputs sit
+         directly under the toolbar with no intervening element). */
+      margin-bottom: 12px !important;
+    }
+    /* dtf-transfers (template-product-by-size-tabs) mobile — cut the
+       padding between the AI toolbar and the "Buy More & Save w/
+       cumulative discounts" block in half. Default gap was
+       12 (ai-wrap mb) + 1 (border) + 14 (.buyMoreSave pt) ≈ 27px;
+       halve to ~14px. */
+    body.template-product-by-size-tabs .ai-wrap {
+      margin-bottom: 6px !important;
+    }
+    body.template-product-by-size-tabs .buyMoreSave {
+      padding-top: 7px !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      /* 4 visual items (Remove BG, divider, Upscale, Edit with AI)
+         spread to the bar edges via space-between. With reduced font /
+         padding below the items fit a ~360px mobile width with visible
+         gaps between groups instead of crowding each other. */
+      display: flex !important;
+      flex-direction: row !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      padding: 5px 8px 5px 8px !important;
+      gap: 0 !important;
+    }
+    /* Dissolve the toggle-options box so its children (bgRemover and
+       superRes) become flex items of the outer toolbar. toggle-options'
+       own ::before now also participates in the outer flex, where we
+       render the divider.
+
+       Also dissolve the older .fileupload_bg_options + .style3 wrappers
+       used on puff / glitter / spangle / magnets / keychains / stickers
+       so their inner <label class="switch"> elements become flex items
+       too. Without this the entire .fileupload_bg_options shows up as
+       one big block flex item and the layout collapses. */
+    html body .ai-ring .multiupload-rebuild-tools-inner toggle-options,
+    html body .ai-ring .multiupload-rebuild-tools-inner .fileupload_bg_options,
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3:not(.hidden) {
+      display: contents !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3.hidden {
+      display: none !important;
+    }
+    /* Design-note (collapsible textarea) lives inside the toolbar on
+       puff/glitter/spangle but should sit on its OWN row below the
+       toggles, not in the toggle row. Force a full-width line break
+       via flex-basis: 100%. */
+    html body .ai-ring .multiupload-rebuild-tools-inner .nt-design-note {
+      flex: 0 0 100% !important;
+      width: 100% !important;
+      order: 99 !important;
+      margin-top: 8px !important;
+    }
+    /* Also need to handle the .fileupload_bg_options::before divider
+       that the puff/glitter CSS may render — kill those alt dividers
+       so only one divider source exists (our toggle-options::before
+       OR a fallback ::after on the bgRemover-equivalent label). */
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch[for="option_checkbox_upscale"]::before {
+      content: none !important;
+      display: none !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch.bgRemover,
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch[for="option_checkbox"] {
+      order: 1 !important;
+    }
+    /* Divider — ONE per toolbar. With `.style3 { display: contents }`
+       each .style3's ::before would render as a flex item, producing
+       multiple dividers on puff / glitter / spangle / magnets /
+       keychains / stickers (each has two .style3 elements). So we use
+       .fileupload_bg_options::before (single occurrence) for the
+       .style3 family, and toggle-options::before for dtf-transfers'
+       multi-upload structure. .style3::before is explicitly killed
+       below to defeat any inherited divider styling. */
+    html body .ai-ring .multiupload-rebuild-tools-inner toggle-options::before,
+    html body .ai-ring .multiupload-rebuild-tools-inner .fileupload_bg_options::before {
+      content: "" !important;
+      display: block !important;
+      order: 2 !important;
+      width: 1px !important;
+      min-height: 24px !important;
+      align-self: stretch !important;
+      margin: 4px 0 !important;
+      padding: 0 !important;
+      background: #d6d6d8 !important;
+      border: none !important;
+      flex: 0 0 auto !important;
+      box-sizing: border-box !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3::before {
+      content: none !important;
+      display: none !important;
+    }
+    /* When Remove BG is hidden (sticker templates), the divider would
+       sit at the start of the bar with nothing to its left. Detect
+       this via :has() and suppress the divider in that case. */
+    html body .ai-ring .multiupload-rebuild-tools-inner .fileupload_bg_options:has(> .style3.hidden:first-child)::before,
+    html body .ai-ring .multiupload-rebuild-tools-inner:has(.fileupload_bg_options > .style3.hidden:first-child) .fileupload_bg_options::before {
+      content: none !important;
+      display: none !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch.superRes,
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch[for="option_checkbox_upscale"] {
+      order: 3 !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai {
+      order: 4 !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch.superRes::before,
+    html body .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch[for^="superRes"]::before,
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch[for="option_checkbox_upscale"]::before,
+    html body .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch.bgRemover::after,
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch[for="option_checkbox"]::after {
+      content: none !important;
+      display: none !important;
+    }
+    /* Mobile typography — tightened so all 4 items fit a 360–414px
+       viewport with visible gaps between groups instead of crowding.
+       Specifically: label font 10px, switch gap 4px, edit-with-ai
+       button is the most compact: 5px 8px padding, 10px font. */
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch,
+    html body .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch {
+      font-size: 10px !important;
+      gap: 4px !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai {
+      font-size: 10px !important;
+      padding: 5px 8px !important;
+      border-radius: 7px !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      /* Critical: bySize.liquid mobile sets .edit-with-ai { width: 100% }
+         which stretches the button across the bar and squeezes the
+         toggles to the left side — making spangle / puff / glitter /
+         magnets / keychains / stickers look cramped vs. dtf-transfers
+         (which uses bySizeNew.liquid that doesn't have this rule).
+         Force auto-width so the button sizes to its content and
+         justify-content: space-between can distribute the gaps. */
+      width: auto !important;
+      flex: 0 0 auto !important;
+      justify-content: center !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai .edit-with-aiFlex {
+      gap: 4px !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai .edit-with-aiFlex::before {
+      width: 11px !important;
+      height: 11px !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai .edit-with-aiFlex::after {
+      font-size: 10px !important;
+    }
+    /* Toggle dimensions — 25% smaller than desktop. */
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch .slider,
+    html body .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch .slider {
+      width: 26px !important;
+      height: 16px !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch .slider::after,
+    html body .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch .slider::after {
+      top: 2px !important;
+      left: 2px !important;
+      width: 12px !important;
+      height: 12px !important;
+    }
+    html body .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch input:checked + .slider::after,
+    html body .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch input:checked + .slider::after {
+      transform: translateX(10px) !important;
+    }
+  }
+
+  /* ===== multi-upload-wrapper layout — compact treatment, DESKTOP ONLY.
+     ======================================================================
+     The multi-upload tile column is much narrower than the main PDP
+     layout on desktop, so the full-size desktop toolbar (row-reverse,
+     no display:contents on wrappers) makes the Upscale label and
+     Edit-with-AI button overlap.
+
+     On MOBILE inside multi-upload-wrapper, the existing
+     @media (max-width: 767px) block above already provides the
+     compact layout — and those rules ARE the regular-mobile rules,
+     so multi-upload mobile and regular mobile look identical. Letting
+     the more-specific multi-upload rules also apply on mobile was
+     causing a slightly different visual (extra specificity won, but
+     with marginally different padding/wrap behavior).
+
+     Wrapping in `@media (min-width: 768px)` so the multi-upload block
+     ONLY kicks in on desktop. Mobile multi-upload now inherits the
+     mobile @media rules unchanged. */
+  @media (min-width: 768px) {
+  html body multi-upload-wrapper .ai-wrap {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 5px 8px 5px 8px !important;
+    gap: 0 !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner toggle-options,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .fileupload_bg_options,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3:not(.hidden) {
+    display: contents !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3.hidden {
+    display: none !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch[for="option_checkbox_upscale"]::before {
+    content: none !important;
+    display: none !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch.bgRemover,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch[for="option_checkbox"] {
+    order: 1 !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner toggle-options::before,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .fileupload_bg_options::before {
+    content: "" !important;
+    display: block !important;
+    order: 2 !important;
+    width: 1px !important;
+    min-height: 24px !important;
+    align-self: stretch !important;
+    margin: 4px 0 !important;
+    padding: 0 !important;
+    background: #d6d6d8 !important;
+    border: none !important;
+    flex: 0 0 auto !important;
+    box-sizing: border-box !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3::before {
+    content: none !important;
+    display: none !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch.superRes,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch[for="option_checkbox_upscale"] {
+    order: 3 !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai {
+    order: 4 !important;
+    font-size: 9.5px !important;
+    padding: 5px 7px !important;
+    border-radius: 7px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: auto !important;
+    flex: 0 0 auto !important;
+    justify-content: center !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch.superRes::before,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch[for^="superRes"]::before,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch[for="option_checkbox_upscale"]::before,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch.bgRemover::after,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch[for="option_checkbox"]::after {
+    content: none !important;
+    display: none !important;
+  }
+  /* Desktop multi-upload — fonts and toggles 5% smaller than the mobile
+     base (10px → 9.5px, 26×16 toggle → 25×15) so the bar reads less
+     cramped inside the narrow tile column. */
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch {
+    font-size: 9.5px !important;
+    gap: 4px !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai .edit-with-aiFlex {
+    gap: 4px !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai .edit-with-aiFlex::before {
+    width: 10px !important;
+    height: 10px !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .edit-with-ai .edit-with-aiFlex::after {
+    font-size: 9.5px !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch .slider,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch .slider {
+    width: 25px !important;
+    height: 15px !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch .slider::after,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch .slider::after {
+    top: 2px !important;
+    left: 2px !important;
+    width: 11px !important;
+    height: 11px !important;
+  }
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner .style3 label.switch input:checked + .slider::after,
+  html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner toggle-options .switch input:checked + .slider::after {
+    transform: translateX(10px) !important;
+  }
+  } /* close @media (min-width: 768px) for multi-upload-wrapper */
+
+  /* ===== Mobile inside multi-upload-wrapper — push the toolbar to the
+     max available width (minus the viewport gutters). Bumped from -8px
+     to -14px each side so the bar gains ~12px more breathing room
+     beyond what the tile's side padding would otherwise allow. Internal
+     padding tightened to 4px so the four items get more space before
+     they crowd. */
+  @media (max-width: 767px) {
+    html body multi-upload-wrapper .ai-wrap {
+      margin-left: -14px !important;
+      margin-right: -14px !important;
+      width: calc(100% + 28px) !important;
+      max-width: calc(100% + 28px) !important;
+    }
+    html body multi-upload-wrapper .ai-ring .multiupload-rebuild-tools-inner {
+      padding-left: 4px !important;
+      padding-right: 4px !important;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    if (window.__ntAIToolbarBound) return;
+    window.__ntAIToolbarBound = true;
+
+    var BADGE_SVG =
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path d="M12 2 13.6 9.1 20.5 11 13.6 12.9 12 20 10.4 12.9 3.5 11 10.4 9.1 12 2Z" />' +
+        '<path d="M19 3 19.7 5.3 22 6 19.7 6.7 19 9 18.3 6.7 16 6 18.3 5.3 19 3Z" opacity=".75" />' +
+        '<path d="M5 14 5.6 15.7 7.3 16.3 5.6 16.9 5 18.6 4.4 16.9 2.7 16.3 4.4 15.7 5 14Z" opacity=".55" />' +
+      '</svg>';
+
+    function wrapOne(inner) {
+      if (!inner || inner.closest('.ai-ring')) return;
+      var parent = inner.parentNode;
+      if (!parent) return;
+      var wrap = document.createElement('div');
+      wrap.className = 'ai-wrap';
+      var ring = document.createElement('div');
+      ring.className = 'ai-ring';
+      parent.insertBefore(wrap, inner);
+      wrap.appendChild(ring);
+      ring.appendChild(inner);
+      /* Badge goes INSIDE the toolbar (position: absolute via CSS) so it
+         stays anchored to the toolbar itself — even when downstream
+         scripts like bg-removal-multi.js inject extra panels inside
+         .ai-ring as siblings of the toolbar. */
+      var badge = document.createElement('div');
+      badge.className = 'ai-badge';
+      badge.innerHTML = BADGE_SVG + '<span>Powered by AI</span>';
+      inner.appendChild(badge);
+    }
+
+    function wrapAll() {
+      document.querySelectorAll('.multiupload-rebuild-tools-inner').forEach(wrapOne);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', wrapAll);
+    } else {
+      wrapAll();
+    }
+
+    /* Re-wrap toolbars added dynamically (multi-upload tiles cloned from
+       templates). childList only — no attribute observation to avoid the
+       infinite-loop class of bugs from the upload-state observer. */
+    new MutationObserver(function (muts) {
+      for (var i = 0; i < muts.length; i++) {
+        var added = muts[i].addedNodes;
+        if (!added) continue;
+        for (var j = 0; j < added.length; j++) {
+          var n = added[j];
+          if (n.nodeType !== 1) continue;
+          if (n.matches && n.matches('.multiupload-rebuild-tools-inner')) {
+            wrapOne(n);
+          }
+          if (n.querySelectorAll) {
+            n.querySelectorAll('.multiupload-rebuild-tools-inner').forEach(wrapOne);
+          }
+        }
+      }
+    }).observe(document.documentElement, { subtree: true, childList: true });
+  })();
+</script>

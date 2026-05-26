@@ -1,0 +1,1108 @@
+{% doc %}
+  @prompt
+    make me a section that follows the themes horizontal max width padding and margin. inside i need a container with optional an amount of link blocks 4-20. Each block needs an image and text. container needs an arrows to show blocks that overflow, show place holders for blocks and blocks should not go outside of the the themes max width, blocks should not go outside of max width, show arrow if they go outside of max width, align blocks to the left side of the sections max width, contain all content within the max width of the section, follow the themes horizontal max width padding and margin, get rid of shadow around blocks, and don't show arrows when there is nothing to the right or left, give me text options for size, color, and weight for desktop and mobile, as well as hover color, i need Block width option for desktop and mobile from 40-200. Border radius should apply to every corner of the image, text need line height option, section needs padding and margin option for top and bottom, i need Section Spacing options for desktop and mobile, give me an option to make the arrow more bold, add option for a bg color that takes up the whole section, give me hover options, i just need an option on hover for the block to grow, i do not want an image zoom, i don't see the arrows, for Space between blocks i need desktop and mobile options in intervals of 2 from 10 to 60, get rid of "Change background color on hover" and "Change content background on hover" and "Block background", "Add shadow to blocks" should only apply to the image, "Add shadow to images" should only apply on hover, give me options for "Add shadow to images on hover", simplfy "Image Shadow Settings", make sure nothing falls outside of the themes max width setting, revert last change, section content should follow the themes horizontal max width, padding, and margin for desktop all screen sizes
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-scroll-wrapper-{{ ai_gen_id }} {
+    background-color: {{ block.settings.section_bg_color }};
+    width: 100%;
+  }
+
+  .ai-scroll-section-{{ ai_gen_id }} {
+    max-width: {{ settings.theme_max_width }}px;
+    margin: {{ block.settings.margin_top_desktop }}px auto {{ block.settings.margin_bottom_desktop }}px;
+    padding: {{ block.settings.padding_top_desktop }}px {{ settings.grid_gap }}px {{ block.settings.padding_bottom_desktop }}px;
+    position: relative;
+  }
+
+  .ai-scroll-container-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .ai-scroll-track-{{ ai_gen_id }} {
+    display: flex;
+    gap: {{ block.settings.gap_desktop }}px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    padding: 20px 0;
+    justify-content: flex-start;
+    align-items: flex-start;
+    margin: 0;
+  }
+
+  .ai-scroll-track-{{ ai_gen_id }}::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ai-scroll-item-{{ ai_gen_id }} {
+    flex: 0 0 {{ block.settings.block_width_desktop }}px;
+    min-width: {{ block.settings.block_width_desktop }}px;
+    max-width: {{ block.settings.block_width_desktop }}px;
+    scroll-snap-align: start;
+    border-radius: {{ block.settings.border_radius }}px;
+    overflow: hidden;
+    transition: transform {{ block.settings.hover_transition_speed }}s ease;
+  }
+
+  {% if block.settings.hover_scale_enabled %}
+    .ai-scroll-item-{{ ai_gen_id }}:hover {
+      transform: scale({{ block.settings.hover_scale_amount | divided_by: 100.0 | plus: 1 }});
+    }
+  {% endif %}
+
+  .ai-scroll-item-link-{{ ai_gen_id }} {
+    display: block;
+    text-decoration: none;
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-scroll-item-image-wrapper-{{ ai_gen_id }} {
+    width: 100%;
+    aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    overflow: hidden;
+    border-radius: {{ block.settings.border_radius }}px;
+    transition: box-shadow {{ block.settings.hover_transition_speed }}s ease;
+  }
+
+  {% if block.settings.image_shadow_enabled %}
+    .ai-scroll-item-{{ ai_gen_id }}:hover .ai-scroll-item-image-wrapper-{{ ai_gen_id }} {
+      box-shadow: 0 {{ block.settings.image_shadow_size }}px {{ block.settings.image_shadow_size | times: 2 }}px rgba(0, 0, 0, {{ block.settings.image_shadow_opacity | divided_by: 100.0 }});
+    }
+  {% endif %}
+
+  .ai-scroll-item-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: {{ block.settings.border_radius }}px;
+  }
+
+  .ai-scroll-item-image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f4f4f4;
+    border-radius: {{ block.settings.border_radius }}px;
+  }
+
+  .ai-scroll-item-image-placeholder-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+    opacity: 0.5;
+  }
+
+  .ai-scroll-item-content-{{ ai_gen_id }} {
+    padding: 15px;
+  }
+
+  .ai-scroll-item-title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text_size_desktop }}px;
+    font-weight: {{ block.settings.text_weight }};
+    line-height: {{ block.settings.text_line_height }};
+    margin: 0;
+    text-align: center;
+    color: {{ block.settings.text_color }};
+    transition: color {{ block.settings.hover_transition_speed }}s ease;
+  }
+
+  .ai-scroll-item-{{ ai_gen_id }}:hover .ai-scroll-item-title-{{ ai_gen_id }} {
+    color: {{ block.settings.text_hover_color }};
+  }
+
+  .ai-scroll-nav-{{ ai_gen_id }} {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: {{ block.settings.arrow_background }};
+    color: {{ block.settings.arrow_color }};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    border: none;
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .ai-scroll-nav-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.arrow_hover_background }};
+    color: {{ block.settings.arrow_hover_color }};
+    transform: translateY(-50%) scale(1.1);
+  }
+
+  .ai-scroll-nav-{{ ai_gen_id }} svg {
+    stroke-width: {{ block.settings.arrow_stroke_width }}px;
+  }
+
+  .ai-scroll-nav-prev-{{ ai_gen_id }} {
+    left: 0;
+  }
+
+  .ai-scroll-nav-next-{{ ai_gen_id }} {
+    right: 0;
+  }
+
+  .ai-scroll-nav-{{ ai_gen_id }}.hidden {
+    display: none !important;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-scroll-section-{{ ai_gen_id }} {
+      padding: {{ block.settings.padding_top_mobile }}px {{ settings.grid_gap | divided_by: 2 }}px {{ block.settings.padding_bottom_mobile }}px;
+      margin: {{ block.settings.margin_top_mobile }}px auto {{ block.settings.margin_bottom_mobile }}px;
+    }
+
+    .ai-scroll-track-{{ ai_gen_id }} {
+      gap: {{ block.settings.gap_mobile }}px;
+    }
+
+    .ai-scroll-item-{{ ai_gen_id }} {
+      flex: 0 0 {{ block.settings.block_width_mobile }}px;
+      min-width: {{ block.settings.block_width_mobile }}px;
+      max-width: {{ block.settings.block_width_mobile }}px;
+    }
+    
+    .ai-scroll-item-title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_mobile }}px;
+    }
+    
+    .ai-scroll-nav-{{ ai_gen_id }} {
+      width: 35px;
+      height: 35px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-scroll-wrapper-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-scroll-section-{{ ai_gen_id }}">
+    <link-scroll-container-{{ ai_gen_id }} class="ai-scroll-container-{{ ai_gen_id }}">
+      <button
+        class="ai-scroll-nav-{{ ai_gen_id }} ai-scroll-nav-prev-{{ ai_gen_id }} hidden" 
+        aria-label="Previous items"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="{{ block.settings.arrow_stroke_width }}" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      
+      <div class="ai-scroll-track-{{ ai_gen_id }}">
+        {% for i in (1..block.settings.number_of_blocks) %}
+          {% assign link_key = 'link_' | append: i %}
+          {% assign image_key = 'image_' | append: i %}
+          {% assign text_key = 'text_' | append: i %}
+          <div class="ai-scroll-item-{{ ai_gen_id }}">
+            <a href="{{ block.settings[link_key] | default: '#' }}" class="ai-scroll-item-link-{{ ai_gen_id }}">
+              <div class="ai-scroll-item-image-wrapper-{{ ai_gen_id }}">
+                {% if block.settings[image_key] != blank %}
+                  <img 
+                    src="{{ block.settings[image_key] | image_url: width: 400}}" 
+                    alt="{{ block.settings[text_key] | escape }}"
+                    loading="lazy"
+                    class="ai-scroll-item-image-{{ ai_gen_id }}"
+                  >
+                {% else %}
+                  <div class="ai-scroll-item-image-placeholder-{{ ai_gen_id }}">
+                    {{'image' | placeholder_svg_tag }}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="ai-scroll-item-content-{{ ai_gen_id }}">
+                <h3 class="ai-scroll-item-title-{{ ai_gen_id }}">
+                  {% if block.settings[text_key] != blank %}
+                    {{ block.settings[text_key] }}
+                  {% else %}
+                    Link block {{ i }}
+                  {% endif %}
+                </h3>
+              </div>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+      
+      <button 
+        class="ai-scroll-nav-{{ ai_gen_id }} ai-scroll-nav-next-{{ ai_gen_id }}" 
+        aria-label="Next items"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="{{ block.settings.arrow_stroke_width }}" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </link-scroll-container-{{ ai_gen_id }}>
+  </div>
+</div>
+
+<script>
+  (function() {
+    class LinkScrollContainer extends HTMLElement {
+      constructor() {
+        super();
+        this.scrollTrack = this.querySelector('.ai-scroll-track-{{ ai_gen_id }}');
+        this.prevButton = this.querySelector('.ai-scroll-nav-prev-{{ ai_gen_id }}');
+        this.nextButton = this.querySelector('.ai-scroll-nav-next-{{ ai_gen_id }}');
+        this.items = this.querySelectorAll('.ai-scroll-item-{{ ai_gen_id }}');
+        this.isMobile = window.innerWidth <= 749;
+        this.scrollAmount = this.isMobile ? 
+          {{ block.settings.block_width_mobile }} + {{ block.settings.gap_mobile }} : 
+          {{ block.settings.block_width_desktop }} + {{ block.settings.gap_desktop }};
+      }
+
+      connectedCallback() {
+        if (!this.scrollTrack || this.items.length === 0) return;
+        
+        this.prevButton.addEventListener('click', () => this.scroll(-1));
+        this.nextButton.addEventListener('click', () => this.scroll(1));
+        this.scrollTrack.addEventListener('scroll', () => this.updateButtonState());
+        
+        setTimeout(() => {
+          this.checkScrollability();
+          this.updateButtonState();
+        }, 100);
+        
+        window.addEventListener('resize', () => {
+          this.isMobile = window.innerWidth <= 749;
+          this.scrollAmount = this.isMobile ? 
+            {{ block.settings.block_width_mobile }} + {{ block.settings.gap_mobile }} : 
+            {{ block.settings.block_width_desktop }} + {{ block.settings.gap_desktop }};
+          setTimeout(() => {
+            this.checkScrollability();
+            this.updateButtonState();
+          }, 100);
+        });
+      }
+      
+      checkScrollability() {
+        const containerWidth = this.scrollTrack.clientWidth;
+        const itemWidth = this.isMobile ? {{ block.settings.block_width_mobile }} : {{ block.settings.block_width_desktop }};
+        const gap = this.isMobile ? {{ block.settings.gap_mobile }} : {{ block.settings.gap_desktop }};
+        const totalContentWidth = this.items.length * (itemWidth + gap) - gap;
+        
+        const isScrollable = totalContentWidth > containerWidth;
+        
+        if (isScrollable) {
+          this.nextButton.style.display = 'flex';
+          this.updateButtonState();
+        } else {
+          this.prevButton.classList.add('hidden');
+          this.nextButton.classList.add('hidden');
+        }
+      }
+
+      scroll(direction) {
+        const currentScroll = this.scrollTrack.scrollLeft;
+        const targetScroll = currentScroll + (this.scrollAmount * direction);
+        
+        this.scrollTrack.scrollTo({
+          left: targetScroll,
+          behavior: 'smooth'
+        });
+      }
+
+      updateButtonState() {
+        const scrollLeft = this.scrollTrack.scrollLeft;
+        const maxScrollLeft = this.scrollTrack.scrollWidth - this.scrollTrack.clientWidth;
+        
+        if (scrollLeft <= 5) {
+          this.prevButton.classList.add('hidden');
+        } else {
+          this.prevButton.classList.remove('hidden');
+        }
+        
+        if (scrollLeft >= maxScrollLeft - 5) {
+          this.nextButton.classList.add('hidden');
+        } else {
+          this.nextButton.classList.remove('hidden');
+        }
+      }
+    }
+
+    customElements.define('link-scroll-container-{{ ai_gen_id }}', LinkScrollContainer);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Scrolling Link Blocks",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "range",
+      "id": "number_of_blocks",
+      "min": 4,
+      "max": 20,
+      "step": 1,
+      "default": 8,
+      "label": "Number of blocks"
+    },
+    {
+      "type": "header",
+      "content": "Section Spacing - Desktop"
+    },
+    {
+      "type": "range",
+      "id": "padding_top_desktop",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_desktop",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "margin_top_desktop",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom_desktop",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Section Spacing - Mobile"
+    },
+    {
+      "type": "range",
+      "id": "padding_top_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "margin_top_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Block 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_1",
+      "label": "Text",
+      "default": "Link block 1"
+    },
+    {
+      "type": "url",
+      "id": "link_1",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_2",
+      "label": "Text",
+      "default": "Link block 2"
+    },
+    {
+      "type": "url",
+      "id": "link_2",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_3",
+      "label": "Text",
+      "default": "Link block 3"
+    },
+    {
+      "type": "url",
+      "id": "link_3",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_4",
+      "label": "Text",
+      "default": "Link block 4"
+    },
+    {
+      "type": "url",
+      "id": "link_4",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_5",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_5",
+      "label": "Text",
+      "default": "Link block 5"
+    },
+    {
+      "type": "url",
+      "id": "link_5",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_6",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_6",
+      "label": "Text",
+      "default": "Link block 6"
+    },
+    {
+      "type": "url",
+      "id": "link_6",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 7"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_7",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_7",
+      "label": "Text",
+      "default": "Link block 7"
+    },
+    {
+      "type": "url",
+      "id": "link_7",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 8"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_8",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_8",
+      "label": "Text",
+      "default": "Link block 8"
+    },
+    {
+      "type": "url",
+      "id": "link_8",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 9"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_9",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_9",
+      "label": "Text",
+      "default": "Link block 9"
+    },
+    {
+      "type": "url",
+      "id": "link_9",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 10"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_10",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_10",
+      "label": "Text",
+      "default": "Link block 10"
+    },
+    {
+      "type": "url",
+      "id": "link_10",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 11"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_11",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_11",
+      "label": "Text",
+      "default": "Link block 11"
+    },
+    {
+      "type": "url",
+      "id": "link_11",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 12"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_12",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_12",
+      "label": "Text",
+      "default": "Link block 12"
+    },
+    {
+      "type": "url",
+      "id": "link_12",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 13"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_13",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_13",
+      "label": "Text",
+      "default": "Link block 13"
+    },
+    {
+      "type": "url",
+      "id": "link_13",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 14"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_14",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_14",
+      "label": "Text",
+      "default": "Link block 14"
+    },
+    {
+      "type": "url",
+      "id": "link_14",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 15"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_15",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_15",
+      "label": "Text",
+      "default": "Link block 15"
+    },
+    {
+      "type": "url",
+      "id": "link_15",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 16"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_16",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_16",
+      "label": "Text",
+      "default": "Link block 16"
+    },
+    {
+      "type": "url",
+      "id": "link_16",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 17"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_17",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_17",
+      "label": "Text",
+      "default": "Link block 17"
+    },
+    {
+      "type": "url",
+      "id": "link_17",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 18"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_18",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_18",
+      "label": "Text",
+      "default": "Link block 18"
+    },
+    {
+      "type": "url",
+      "id": "link_18",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 19"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_19",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_19",
+      "label": "Text",
+      "default": "Link block 19"
+    },
+    {
+      "type": "url",
+      "id": "link_19",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Block 20"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_20",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "text_20",
+      "label": "Text",
+      "default": "Link block 20"
+    },
+    {
+      "type": "url",
+      "id": "link_20",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "block_width_desktop",
+      "min": 40,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Block width (desktop)",
+      "default": 160
+    },
+    {
+      "type": "range",
+      "id": "block_width_mobile",
+      "min": 40,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Block width (mobile)",
+      "default": 120
+    },
+    {
+      "type": "range",
+      "id": "gap_desktop",
+      "min": 10,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Space between blocks (desktop)",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "gap_mobile",
+      "min": 10,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Space between blocks (mobile)",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "image_aspect_ratio",
+      "label": "Image aspect ratio",
+      "options": [
+        {
+          "value": "1",
+          "label": "1:1 (Square)"
+        },
+        {
+          "value": "0.8",
+          "label": "5:4"
+        },
+        {
+          "value": "0.75",
+          "label": "4:3"
+        },
+        {
+          "value": "0.6666",
+          "label": "3:2"
+        },
+        {
+          "value": "0.5625",
+          "label": "16:9"
+        }
+      ],
+      "default": "0.75"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Text Settings"
+    },
+    {
+      "type": "range",
+      "id": "text_size_desktop",
+      "min": 12,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (desktop)",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (mobile)",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "text_line_height",
+      "min": 1,
+      "max": 2,
+      "step": 0.1,
+      "label": "Text line height",
+      "default": 1.4
+    },
+    {
+      "type": "select",
+      "id": "text_weight",
+      "label": "Text weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "500"
+    },
+    {
+      "type": "header",
+      "content": "Navigation Arrows"
+    },
+    {
+      "type": "range",
+      "id": "arrow_stroke_width",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "unit": "px",
+      "label": "Arrow thickness",
+      "default": 2
+    },
+    {
+      "type": "color",
+      "id": "arrow_background",
+      "label": "Arrow background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "arrow_color",
+      "label": "Arrow color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "arrow_hover_background",
+      "label": "Arrow hover background",
+      "default": "#f4f4f4"
+    },
+    {
+      "type": "color",
+      "id": "arrow_hover_color",
+      "label": "Arrow hover color",
+      "default": "#0066cc"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "section_bg_color",
+      "label": "Section background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_hover_color",
+      "label": "Text hover color",
+      "default": "#0066cc"
+    },
+    {
+      "type": "header",
+      "content": "Hover Effects"
+    },
+    {
+      "type": "checkbox",
+      "id": "hover_scale_enabled",
+      "label": "Enable block scale on hover",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "hover_scale_amount",
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "unit": "%",
+      "label": "Scale amount",
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "hover_transition_speed",
+      "min": 0.1,
+      "max": 1,
+      "step": 0.1,
+      "label": "Hover transition speed",
+      "default": 0.3
+    },
+    {
+      "type": "header",
+      "content": "Image Shadow"
+    },
+    {
+      "type": "checkbox",
+      "id": "image_shadow_enabled",
+      "label": "Add shadow to images on hover",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "image_shadow_size",
+      "min": 2,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Shadow size",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "image_shadow_opacity",
+      "min": 10,
+      "max": 50,
+      "step": 5,
+      "unit": "%",
+      "label": "Shadow opacity",
+      "default": 20
+    }
+  ],
+  "presets": [
+    {
+      "name": "Scrolling Link Blocks"
+    }
+  ]
+}
+{% endschema %}

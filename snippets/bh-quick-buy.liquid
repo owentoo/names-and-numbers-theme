@@ -1,0 +1,128 @@
+{%- comment -%} bh-quick-buy.liquid — Quick Buy modal, matches grt-upsell-block modal exactly. Usage: render 'bh-quick-buy', product: product {%- endcomment -%}
+
+{%- liquid
+  assign modal_id = 'bh-modal-' | append: product.id
+  assign v = product.selected_or_first_available_variant
+
+  assign qb_lowest = product.variants[0]
+  for vr in product.variants
+    if vr.price < qb_lowest.price
+      assign qb_lowest = vr
+    endif
+  endfor
+  assign qb_img = v.image | default: product.featured_image
+
+  assign upsell_product_heading = product.metafields.blanks.second_title_for_blanks | default: product.title
+  assign upsell_shirt_style = product.metafields.specs.shirt_style | strip
+  assign upsell_use_parent_child_flow = false
+  if upsell_shirt_style != blank
+    assign upsell_use_parent_child_flow = true
+  endif
+-%}
+
+<dialog id="{{ modal_id }}" class="grt-product-modal" data-default-vid="{{ v.id }}">
+  <div class="grt-product-modal__container">
+
+    <div class="grt-product-modal__loading" aria-hidden="true">
+      <div class="grt-product-modal__loading-spinner"></div>
+      <div class="grt-product-modal__loading-text">Loading options...</div>
+    </div>
+
+    <div class="grt-product-modal__content">
+      <div class="grt-product-modal__layout">
+
+        <div class="grt-product-modal__media">
+          {%- if qb_img != blank -%}
+            <img data-modal-image
+              src="{{ qb_img | image_url: width: 832 }}"
+              width="416" height="416"
+              alt="{{ qb_img.alt | default: product.title | escape }}">
+          {%- endif -%}
+        </div>
+
+        <div class="grt-product-modal__details">
+
+          <button class="grt-product-modal__close grt-modal__close" type="button" data-close-modal="{{ modal_id }}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1.6 16L0 14.4L6.4 8L0 1.6L1.6 0L8 6.4L14.4 0L16 1.6L9.6 8L16 14.4L14.4 16L8 9.6L1.6 16Z" fill="black"/>
+            </svg>
+          </button>
+
+          <div class="grt-product-modal__header">
+            <div class="grt-product-card__yotpo grt-modal__star">
+              <div class="yotpo-widget-instance" data-yotpo-instance-id="447610" data-yotpo-product-id="{{ product.id }}" data-yotpo-section-id="{{ section.id }}" data-yotpo-preloaded-data=""></div>
+            </div>
+            <h2 class="grt-product-modal__title">{{ upsell_product_heading }}</h2>
+            {%- if upsell_use_parent_child_flow -%}
+              <div class="grt-product-modal__full-details">
+                <a href="{{ product.url }}" target="_blank" rel="noopener noreferrer">View Full Details</a>
+              </div>
+            {%- endif -%}
+            <div class="grt-product-modal__price-container">
+              {%- if upsell_use_parent_child_flow -%}
+                <div class="grt-product-modal__starting-at">Starting at</div>
+              {%- endif -%}
+              <span class="grt-product-modal__price">{{ qb_lowest.price | money }}</span>
+              {%- if qb_lowest.compare_at_price and qb_lowest.compare_at_price > qb_lowest.price -%}
+                <span class="grt-product-modal__compare-price">{{ qb_lowest.compare_at_price | money }}</span>
+              {%- endif -%}
+            </div>
+          </div>
+
+          <form class="grt-product-modal__form" novalidate method="post" action="/cart/add" data-initial-variant="{{ v.id }}">
+            <input type="hidden" name="id" value="{{ v.id }}" data-variant-input />
+
+            {%- if product.variants.size > 1 -%}
+              {%- render 'grt-upsell-variant-options',
+                p: product,
+                v: v,
+                swatch_option_name: 'Color'
+              -%}
+            {%- endif -%}
+
+            <div class="grt-product-modal__label grt-size-qty-parent-label" data-size-qty-parent-label style="display:none;">Variant</div>
+            <div class="grt-pdp-size-grid" data-pdp-size-grid style="display:none;"></div>
+            <div class="grt-size-qty-grid" data-size-qty-grid style="display:none;"></div>
+
+            <div class="grt-product-modal__qty" data-qty-wrap>
+              <label class="grt-product-modal__label" for="grt-qty-{{ modal_id }}">Quantity</label>
+              <div class="grt-qty">
+                <div class="grt-qty-box-wrapper">
+                  <button type="button" class="grt-qty__btn" data-qty-minus aria-label="Decrease quantity">-</button>
+                  <input id="grt-qty-{{ modal_id }}" class="grt-qty__input" type="number" name="quantity" value="1" min="1" step="1" inputmode="numeric" pattern="[0-9]*" data-qty-input>
+                  <button type="button" class="grt-qty__btn" data-qty-plus aria-label="Increase quantity">+</button>
+                </div>
+              </div>
+            </div>
+
+            {%- unless upsell_use_parent_child_flow -%}
+              <div class="grt-product-modal__description grt-modal__description-wrapper">
+                <div class="grt-product-modal__description-text half__description">
+                  {{ product.description | strip_html | truncate: 220 }}
+                  <div class="grt-product-modal__more">
+                    <a href="javascript:void(0);" class="showfullcta">See More</a>
+                  </div>
+                </div>
+                <div class="grt-product-modal__description-text full__description">
+                  {{ product.description | strip_html }}
+                  <div class="grt-product-modal__more">
+                    <a href="javascript:void(0);" class="hidefullcta">See Less</a>
+                  </div>
+                </div>
+              </div>
+            {%- endunless -%}
+
+          </form>
+
+          <div class="grt-product-modal__buttons">
+            <button class="grt-product-modal__add-button button" type="button" {% unless v.available %}disabled{% endunless %}>
+              Add to cart
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</dialog>

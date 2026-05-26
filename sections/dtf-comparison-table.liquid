@@ -1,0 +1,463 @@
+{%- comment -%}
+  DTF Comparison Table — fully editable comparison grid for the
+  free-samples PDP (and any other page where it's added).
+
+  Header text, the four column labels, the "ours" column highlight,
+  and every row are configurable in the theme editor. Each row is a
+  block with a label + four cell values; each cell has a status
+  (positive / warning / negative) that drives its text color.
+{%- endcomment -%}
+
+{%- liquid
+  assign ours = section.settings.ours_column | default: '1'
+  assign col1_label = section.settings.col1_label
+  assign col2_label = section.settings.col2_label
+  assign col3_label = section.settings.col3_label
+  assign col4_label = section.settings.col4_label
+-%}
+
+<style>
+  .dct-{{ section.id }} {
+    background: {{ section.settings.bg_color }};
+    padding: {{ section.settings.padding_top }}px 24px {{ section.settings.padding_bottom }}px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  .dct-{{ section.id }} .dct__inner {
+    max-width: {{ section.settings.max_width }}px;
+    margin: 0 auto;
+  }
+  .dct-{{ section.id }} .dct__head {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .dct-{{ section.id }} .dct__kicker {
+    color: {{ section.settings.kicker_color }};
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin: 0 0 14px;
+  }
+  .dct-{{ section.id }} .dct__heading {
+    color: {{ section.settings.text_color }};
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+  }
+  .dct-{{ section.id }} .dct__subheading {
+    color: {{ section.settings.subheading_color }};
+    font-size: 16px;
+    line-height: 1.6;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .dct-{{ section.id }} .dct__table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dct-{{ section.id }} table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .dct-{{ section.id }} th,
+  .dct-{{ section.id }} td {
+    padding: 18px 28px;
+    text-align: left;
+    font-size: 15px;
+    line-height: 1.4;
+    background: #fff;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+  .dct-{{ section.id }} tbody tr:last-child td { border-bottom: 0; }
+  .dct-{{ section.id }} thead th {
+    font-weight: 600;
+    color: {{ section.settings.text_color }};
+  }
+  .dct-{{ section.id }} thead th:first-child { background: transparent; }
+
+  /* "Ours" header — dark inset card with the OURS badge in the top-right. */
+  .dct-{{ section.id }} thead th.dct__col-ours {
+    background: {{ section.settings.ours_header_bg }};
+    color: {{ section.settings.ours_header_text }};
+    position: relative;
+    font-weight: 700;
+  }
+  .dct-{{ section.id }} .dct__ours-badge {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: {{ section.settings.ours_badge_bg }};
+    color: {{ section.settings.ours_badge_text_color }};
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    padding: 3px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+
+  .dct-{{ section.id }} td.dct__row-label {
+    font-weight: 700;
+    color: {{ section.settings.text_color }};
+  }
+  .dct-{{ section.id }} td.dct__cell--positive {
+    color: {{ section.settings.positive_color }};
+    font-weight: 600;
+  }
+  .dct-{{ section.id }} td.dct__cell--warning {
+    color: #dc2626;
+    font-weight: 600;
+  }
+  .dct-{{ section.id }} td.dct__cell--negative {
+    color: {{ section.settings.negative_color }};
+  }
+
+  @media (max-width: 749px) {
+    .dct-{{ section.id }} { padding-left: 16px; padding-right: 16px; }
+    .dct-{{ section.id }} .dct__head { margin-bottom: 24px; }
+    .dct-{{ section.id }} .dct__heading { font-size: 26px; }
+    .dct-{{ section.id }} .dct__subheading { font-size: 14px; }
+    .dct-{{ section.id }} th,
+    .dct-{{ section.id }} td { padding: 14px 16px; font-size: 13px; }
+    .dct-{{ section.id }} .dct__ours-badge { font-size: 8px; padding: 2px 5px; top: 8px; right: 8px; }
+  }
+</style>
+
+<div class="dct-{{ section.id }}">
+  <div class="dct__inner">
+    <div class="dct__head">
+      {%- if section.settings.kicker != blank -%}
+        <p class="dct__kicker">{{ section.settings.kicker }}</p>
+      {%- endif -%}
+      {%- if section.settings.heading != blank -%}
+        <h2 class="dct__heading">{{ section.settings.heading }}</h2>
+      {%- endif -%}
+      {%- if section.settings.subheading != blank -%}
+        <p class="dct__subheading">{{ section.settings.subheading }}</p>
+      {%- endif -%}
+    </div>
+
+    <div class="dct__table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th aria-hidden="true"></th>
+            <th class="{% if ours == '1' %}dct__col-ours{% endif %}">
+              {{ col1_label }}
+              {%- if ours == '1' -%}<span class="dct__ours-badge">{{ section.settings.ours_badge_text }}</span>{%- endif -%}
+            </th>
+            <th class="{% if ours == '2' %}dct__col-ours{% endif %}">
+              {{ col2_label }}
+              {%- if ours == '2' -%}<span class="dct__ours-badge">{{ section.settings.ours_badge_text }}</span>{%- endif -%}
+            </th>
+            <th class="{% if ours == '3' %}dct__col-ours{% endif %}">
+              {{ col3_label }}
+              {%- if ours == '3' -%}<span class="dct__ours-badge">{{ section.settings.ours_badge_text }}</span>{%- endif -%}
+            </th>
+            <th class="{% if ours == '4' %}dct__col-ours{% endif %}">
+              {{ col4_label }}
+              {%- if ours == '4' -%}<span class="dct__ours-badge">{{ section.settings.ours_badge_text }}</span>{%- endif -%}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'row' -%}
+              <tr {{ block.shopify_attributes }}>
+                <td class="dct__row-label">{{ block.settings.label }}</td>
+                <td class="dct__cell dct__cell--{{ block.settings.col1_status }}">{{ block.settings.col1_value }}</td>
+                <td class="dct__cell dct__cell--{{ block.settings.col2_status }}">{{ block.settings.col2_value }}</td>
+                <td class="dct__cell dct__cell--{{ block.settings.col3_status }}">{{ block.settings.col3_value }}</td>
+                <td class="dct__cell dct__cell--{{ block.settings.col4_status }}">{{ block.settings.col4_value }}</td>
+              </tr>
+            {%- endif -%}
+          {%- endfor -%}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "DTF Comparison Table",
+  "tag": "section",
+  "class": "section--dtf-comparison-table",
+  "max_blocks": 12,
+  "settings": [
+    { "type": "header", "content": "Header" },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker",
+      "default": "Why DTF"
+    },
+    {
+      "type": "color",
+      "id": "kicker_color",
+      "label": "Kicker color",
+      "default": "#019aff"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "How we stack up."
+    },
+    {
+      "type": "textarea",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "DTF isn't the only way to decorate apparel — but for most shops it's the best tradeoff on cost, speed, and quality."
+    },
+    { "type": "header", "content": "Columns" },
+    {
+      "type": "text",
+      "id": "col1_label",
+      "label": "Column 1 label",
+      "default": "DTF (ours)"
+    },
+    {
+      "type": "text",
+      "id": "col2_label",
+      "label": "Column 2 label",
+      "default": "Screen print"
+    },
+    {
+      "type": "text",
+      "id": "col3_label",
+      "label": "Column 3 label",
+      "default": "HTV vinyl"
+    },
+    {
+      "type": "text",
+      "id": "col4_label",
+      "label": "Column 4 label",
+      "default": "Sublimation"
+    },
+    {
+      "type": "select",
+      "id": "ours_column",
+      "label": "\"Ours\" column",
+      "info": "Which column gets the dark highlight + OURS badge.",
+      "options": [
+        { "value": "1", "label": "Column 1" },
+        { "value": "2", "label": "Column 2" },
+        { "value": "3", "label": "Column 3" },
+        { "value": "4", "label": "Column 4" },
+        { "value": "0", "label": "None" }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "text",
+      "id": "ours_badge_text",
+      "label": "\"Ours\" badge text",
+      "default": "OURS"
+    },
+    { "type": "header", "content": "Layout" },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "unit": "px",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "unit": "px",
+      "default": 64
+    },
+    { "type": "header", "content": "Colors" },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Section background",
+      "default": "#f5f7fa"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Heading / row label color",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "subheading_color",
+      "label": "Subheading color",
+      "default": "#525252"
+    },
+    {
+      "type": "color",
+      "id": "ours_header_bg",
+      "label": "\"Ours\" header background",
+      "default": "#0f172a"
+    },
+    {
+      "type": "color",
+      "id": "ours_header_text",
+      "label": "\"Ours\" header text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "ours_badge_bg",
+      "label": "\"Ours\" badge background",
+      "default": "#f97316"
+    },
+    {
+      "type": "color",
+      "id": "ours_badge_text_color",
+      "label": "\"Ours\" badge text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "positive_color",
+      "label": "Positive cell color",
+      "default": "#16a34a"
+    },
+    {
+      "type": "color",
+      "id": "warning_color",
+      "label": "Warning cell color",
+      "default": "#dc2626"
+    },
+    {
+      "type": "color",
+      "id": "negative_color",
+      "label": "Negative cell color",
+      "default": "#9ca3af"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "row",
+      "name": "Row",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Row label",
+          "default": "Min. order"
+        },
+        { "type": "header", "content": "Column 1 cell" },
+        {
+          "type": "text",
+          "id": "col1_value",
+          "label": "Value",
+          "default": "1 piece"
+        },
+        {
+          "type": "select",
+          "id": "col1_status",
+          "label": "Color",
+          "options": [
+            { "value": "positive", "label": "Positive (green)" },
+            { "value": "warning",  "label": "Warning (red)" },
+            { "value": "negative", "label": "Negative (gray)" }
+          ],
+          "default": "positive"
+        },
+        { "type": "header", "content": "Column 2 cell" },
+        {
+          "type": "text",
+          "id": "col2_value",
+          "label": "Value",
+          "default": "24+ pieces"
+        },
+        {
+          "type": "select",
+          "id": "col2_status",
+          "label": "Color",
+          "options": [
+            { "value": "positive", "label": "Positive (green)" },
+            { "value": "warning",  "label": "Warning (red)" },
+            { "value": "negative", "label": "Negative (gray)" }
+          ],
+          "default": "negative"
+        },
+        { "type": "header", "content": "Column 3 cell" },
+        {
+          "type": "text",
+          "id": "col3_value",
+          "label": "Value",
+          "default": "1 piece"
+        },
+        {
+          "type": "select",
+          "id": "col3_status",
+          "label": "Color",
+          "options": [
+            { "value": "positive", "label": "Positive (green)" },
+            { "value": "warning",  "label": "Warning (red)" },
+            { "value": "negative", "label": "Negative (gray)" }
+          ],
+          "default": "warning"
+        },
+        { "type": "header", "content": "Column 4 cell" },
+        {
+          "type": "text",
+          "id": "col4_value",
+          "label": "Value",
+          "default": "1 piece"
+        },
+        {
+          "type": "select",
+          "id": "col4_status",
+          "label": "Color",
+          "options": [
+            { "value": "positive", "label": "Positive (green)" },
+            { "value": "warning",  "label": "Warning (red)" },
+            { "value": "negative", "label": "Negative (gray)" }
+          ],
+          "default": "warning"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "DTF Comparison Table",
+      "blocks": [
+        { "type": "row", "settings": { "label": "Min. order",            "col1_value": "1 piece",       "col1_status": "positive", "col2_value": "24+ pieces",  "col2_status": "negative", "col3_value": "1 piece",   "col3_status": "warning",  "col4_value": "1 piece",  "col4_status": "warning"  } },
+        { "type": "row", "settings": { "label": "Full color / photo",    "col1_value": "Yes",           "col1_status": "positive", "col2_value": "Limited",     "col2_status": "warning",  "col3_value": "No",        "col3_status": "negative", "col4_value": "Yes",      "col4_status": "positive" } },
+        { "type": "row", "settings": { "label": "Works on cotton",       "col1_value": "Yes",           "col1_status": "positive", "col2_value": "Yes",         "col2_status": "positive", "col3_value": "Yes",       "col3_status": "positive", "col4_value": "No",       "col4_status": "negative" } },
+        { "type": "row", "settings": { "label": "Soft hand feel",        "col1_value": "Very soft",     "col1_status": "positive", "col2_value": "Medium",      "col2_status": "warning",  "col3_value": "Plastic-y", "col3_status": "negative", "col4_value": "None",     "col4_status": "positive" } },
+        { "type": "row", "settings": { "label": "Wash durability",       "col1_value": "60+ washes",    "col1_status": "positive", "col2_value": "60+ washes",  "col2_status": "positive", "col3_value": "25–40",     "col3_status": "warning",  "col4_value": "60+",      "col4_status": "positive" } },
+        { "type": "row", "settings": { "label": "Setup time",            "col1_value": "None",          "col1_status": "positive", "col2_value": "Hours",       "col2_status": "negative", "col3_value": "Minutes",   "col3_status": "warning",  "col4_value": "Minutes",  "col4_status": "warning"  } },
+        { "type": "row", "settings": { "label": "Cost per piece (qty 12)", "col1_value": "$1.80",       "col1_status": "positive", "col2_value": "$4.50",       "col2_status": "negative", "col3_value": "$3.20",     "col3_status": "warning",  "col4_value": "$2.80",    "col4_status": "warning"  } }
+      ]
+    }
+  ]
+}
+{% endschema %}

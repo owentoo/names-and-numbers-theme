@@ -1,0 +1,54 @@
+{%- comment -%}
+  Shared order thumb-strip renderer.
+  Shows up to `max_thumbs` line-item preview thumbnails with "+N more" button if order has more.
+  Used by Recent Orders (members-portal-layout.liquid) and My Orders (all-orders-row.liquid).
+
+  Params:
+    order        — the order object
+    line_count   — int, total line items in order
+    toggle_value — string used for the toggle data attribute (e.g. 'abc-123', 'abc-123-m', 'ro-abc-123')
+    toggle_attr  — attribute name for the toggle ('data-toggle-ro' or 'data-toggle-order')
+    max_thumbs   — int, max thumbs to show (default 7 for desktop; pass 5 for mobile)
+{%- endcomment -%}
+{%- assign ao_max = max_thumbs | default: 7 -%}
+<div class="ao-thumb-strip">
+  {%- for li in order.line_items -%}
+    {%- if forloop.index > ao_max -%}{%- break -%}{%- endif -%}
+    {%- assign li_strip_img = "" -%}
+    {%- assign li_sp = li.properties | size -%}
+    {%- if li_sp > 0 -%}
+      {%- for p in li.properties -%}
+        {%- assign pf = p.first | downcase -%}
+        {%- if pf == 'preview' and li_strip_img == "" -%}{%- assign li_strip_img = p.last -%}{%- endif -%}
+        {%- if pf == '_cartimg' -%}{%- assign li_strip_img = p.last -%}{%- endif -%}
+        {%- if pf == 'upload (vector files preferred)' and li_strip_img == "" -%}{%- assign li_strip_img = p.last -%}{%- endif -%}
+        {%- if pf == 'preview gang sheet (low res)' and li_strip_img == "" -%}{%- assign li_strip_img = p.last -%}{%- endif -%}
+      {%- endfor -%}
+    {%- endif -%}
+    {%- assign li_sfb = li.image | default: li.product.featured_image -%}
+    <span class="ao-strip-thumb">
+      {%- if li_strip_img != "" -%}
+        {%- comment -%}
+          ANY broken custom-preview fires __noImg(this) on the FIRST
+          error to immediately hide reorder for the order row. We still
+          swap to the product fallback for visual display so the row
+          isn't blank, but the reorder gate has already fired so the
+          fallback succeeding doesn't bring reorder back. Previous
+          two-stage behavior (try fallback, then call __noImg on second
+          error) left reorder visible whenever the product image
+          happened to load — which the user wants disallowed since
+          reorder relies on the original custom artwork being intact.
+        {%- endcomment -%}
+        <img class="ao-preview-thumb" data-preview-src="{{ li_strip_img }}" src="{{ li_strip_img }}" alt="{{ li.title | escape }}" width="34" height="34" loading="lazy" style="cursor:pointer;" onerror="var e=this;if(window.__noImg)window.__noImg(e);e.classList.remove('ao-preview-thumb');e.removeAttribute('data-preview-src');e.style.cursor='default';e.onerror=null;{%- if li_sfb -%}e.src='{{ li_sfb | image_url: width: 80 }}';{%- endif -%}">
+      {%- elsif li_sfb -%}
+        <img src="{{ li_sfb | image_url: width: 80 }}" alt="{{ li.title | escape }}" width="34" height="34" loading="lazy">
+      {%- else -%}
+        <span class="ao-no-image">NO IMAGE</span>
+      {%- endif -%}
+    </span>
+  {%- endfor -%}
+  {%- if line_count > ao_max -%}
+    {%- assign ao_extra = line_count | minus: ao_max -%}
+    <button type="button" class="ao-strip-more ao-expand-btn" {{ toggle_attr }}="{{ toggle_value }}">+{{ ao_extra }} more</button>
+  {%- endif -%}
+</div>

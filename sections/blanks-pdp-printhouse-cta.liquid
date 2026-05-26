@@ -1,0 +1,600 @@
+{%- liquid
+  assign sid = section.id | replace: '__', '-' | replace: '_', '-'
+  assign cls = 'printhouse-promo-' | append: sid
+  assign split = section.settings.text_image_split
+  case split
+    when '40_60'
+      assign text_flex = '40'
+      assign img_flex = '60'
+    when '60_40'
+      assign text_flex = '60'
+      assign img_flex = '40'
+    else
+      assign text_flex = '50'
+      assign img_flex = '50'
+  endcase
+  assign max_w = section.settings.section_max_width
+  assign img_side = section.settings.image_side
+  assign pills = section.blocks | where: 'type', 'benefit_pill'
+  assign pill_count = pills.size
+-%}
+
+{%- style -%}
+  .{{ cls }} {
+    --pp-bg: {{ section.settings.bg_color }};
+    --pp-accent: {{ section.settings.accent_color }};
+    --pp-text: {{ section.settings.text_color }};
+    --pp-btn-text: {{ section.settings.button_text_color }};
+    --pp-btn-hover: {{ section.settings.button_hover_color }};
+    --pp-eyebrow-text: {{ section.settings.eyebrow_text_color }};
+    --pp-eyebrow-bg: {{ section.settings.eyebrow_bg_color }};
+    --pp-border: {{ section.settings.border_color }};
+    --pp-radius: {{ section.settings.border_radius }}px;
+    --pp-dt-pt: {{ section.settings.desktop_padding_top }}px;
+    --pp-dt-pb: {{ section.settings.desktop_padding_bottom }}px;
+    --pp-mb-pt: {{ section.settings.mobile_padding_top }}px;
+    --pp-mb-pb: {{ section.settings.mobile_padding_bottom }}px;
+    --pp-inner-pv-dt: {{ section.settings.inner_padding_v_desktop }}px;
+    --pp-inner-ph-dt: {{ section.settings.inner_padding_h_desktop }}px;
+    --pp-inner-pv-mb: {{ section.settings.inner_padding_v_mobile }}px;
+    --pp-inner-ph-mb: {{ section.settings.inner_padding_h_mobile }}px;
+    --pp-btn-spacing-above: {{ section.settings.button_spacing_above }}px;
+    --pp-text-flex: {{ text_flex }}%;
+    --pp-img-flex: {{ img_flex }}%;
+    padding: var(--pp-dt-pt) 0 var(--pp-dt-pb);
+  }
+
+  .{{ cls }}__card {
+    {% case max_w -%}
+      {%- when 'full' -%}
+        max-width: 100%;
+      {%- when 'custom' -%}
+        max-width: {{ section.settings.section_max_width_custom }}px;
+      {%- else -%}
+        max-width: 1200px;
+    {%- endcase %}
+    margin: 0 auto;
+    background: var(--pp-bg);
+    border: 1px solid var(--pp-border);
+    border-radius: var(--pp-radius);
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+    {% if img_side == 'left' %}flex-direction: row-reverse;{% endif %}
+    {% if section.settings.shadow_enabled %}box-shadow: 0 2px 12px rgba(0,0,0,0.08);{% endif %}
+  }
+
+  .{{ cls }}__text {
+    flex: 0 0 var(--pp-text-flex);
+    max-width: var(--pp-text-flex);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    padding: var(--pp-inner-pv-dt) var(--pp-inner-ph-dt);
+    box-sizing: border-box;
+  }
+
+  .{{ cls }}__image {
+    flex: 0 0 var(--pp-img-flex);
+    max-width: var(--pp-img-flex);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .{{ cls }}__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .{{ cls }}__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--pp-eyebrow-bg);
+    color: var(--pp-eyebrow-text);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .{{ cls }}__heading {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--pp-text);
+    margin: 0;
+  }
+
+  .{{ cls }}__body {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--pp-text);
+    opacity: 0.8;
+    margin: 0;
+  }
+  .{{ cls }}__body p { margin: 0; }
+
+  .{{ cls }}__pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 0;
+  }
+
+  .{{ cls }}__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--pp-text);
+    background: rgba(0,0,0,0.04);
+    border-radius: 20px;
+    padding: 5px 12px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .{{ cls }}__pill::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pp-accent);
+    flex-shrink: 0;
+  }
+
+  .{{ cls }}__btn {
+    margin-top: var(--pp-btn-spacing-above);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--pp-btn-text);
+    background: var(--pp-accent);
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    align-self: flex-start;
+    line-height: 1;
+  }
+
+  .{{ cls }}__btn:hover {
+    background: var(--pp-btn-hover);
+    color: var(--pp-btn-text);
+  }
+
+  .{{ cls }}__btn svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 820px) {
+    .{{ cls }} {
+      padding: var(--pp-mb-pt) 16px var(--pp-mb-pb);
+    }
+
+    .{{ cls }}__card {
+      flex-direction: column;
+    }
+
+    .{{ cls }}__text,
+    .{{ cls }}__image {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+
+    .{{ cls }}__image {
+      order: -1;
+      max-height: 240px;
+    }
+
+    .{{ cls }}__text {
+      padding: var(--pp-inner-pv-mb) var(--pp-inner-ph-mb);
+      text-align: left;
+    }
+
+    .{{ cls }}__heading {
+      font-size: 20px;
+    }
+
+    .{{ cls }}__btn {
+      align-self: stretch;
+      justify-content: center;
+    }
+  }
+
+  {% if pill_count >= 3 %}
+  @media (max-width: 520px) {
+    .{{ cls }}__pill:nth-child(3) {
+      display: none;
+    }
+  }
+  {% endif %}
+{%- endstyle -%}
+
+<section class="{{ cls }}" aria-label="{{ section.settings.heading | escape }}">
+  <div class="{{ cls }}__card">
+    <div class="{{ cls }}__text">
+      {%- if section.settings.eyebrow_text != blank -%}
+        <span class="{{ cls }}__eyebrow">{{ section.settings.eyebrow_text }}</span>
+      {%- endif -%}
+
+      {%- if section.settings.heading != blank -%}
+        <h2 class="{{ cls }}__heading">{{ section.settings.heading }}</h2>
+      {%- endif -%}
+
+      {%- if section.settings.body != blank -%}
+        <div class="{{ cls }}__body">{{ section.settings.body }}</div>
+      {%- endif -%}
+
+      {%- if section.settings.show_benefit_pills and pill_count > 0 -%}
+        <ul class="{{ cls }}__pills">
+          {%- for block in pills -%}
+            <li class="{{ cls }}__pill" {{ block.shopify_attributes }}>{{ block.settings.text }}</li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+
+      {%- if section.settings.button_text != blank -%}
+        <a
+          href="{% if section.settings.button_link != blank %}{{ section.settings.button_link }}{% else %}#{% endif %}"
+          class="{{ cls }}__btn"
+          {%- if section.settings.button_open_new_tab %} target="_blank" rel="noopener"{% endif %}
+        >
+          {{ section.settings.button_text }}
+          <svg viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><path d="M7.7 1L13 7m0 0L7.7 13M13 7H1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      {%- endif -%}
+    </div>
+
+    <div class="{{ cls }}__image">
+      {%- if section.settings.image_desktop != blank -%}
+        <picture>
+          {%- if section.settings.image_mobile != blank -%}
+            <source media="(max-width: 820px)" srcset="{{ section.settings.image_mobile | image_url: width: 820 }}">
+          {%- endif -%}
+          <img
+            src="{{ section.settings.image_desktop | image_url: width: 1200 }}"
+            alt="{{ section.settings.image_alt | escape }}"
+            loading="lazy"
+            width="{{ section.settings.image_desktop.width }}"
+            height="{{ section.settings.image_desktop.height }}"
+          >
+        </picture>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Printhouse Promo",
+  "class": "blanks-pdp-printhouse-cta-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow_text",
+      "label": "Eyebrow text",
+      "default": "Ninja Printhouse"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Want Us To Print These For You?"
+    },
+    {
+      "type": "richtext",
+      "id": "body",
+      "label": "Body text",
+      "default": "<p>Turn your blank apparel into finished custom gear. Upload your design, choose your products, and let our team handle the printing.</p>"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "Print My Blanks"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "Button link"
+    },
+    {
+      "type": "checkbox",
+      "id": "button_open_new_tab",
+      "label": "Open link in new tab",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Images"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_desktop",
+      "label": "Desktop image"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_mobile",
+      "label": "Mobile image (optional)"
+    },
+    {
+      "type": "text",
+      "id": "image_alt",
+      "label": "Image alt text"
+    },
+    {
+      "type": "select",
+      "id": "image_side",
+      "label": "Image side (desktop)",
+      "options": [
+        { "value": "right", "label": "Right" },
+        { "value": "left", "label": "Left" }
+      ],
+      "default": "right"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "section_max_width",
+      "label": "Section max width",
+      "options": [
+        { "value": "full", "label": "Full width" },
+        { "value": "page", "label": "Page width" },
+        { "value": "custom", "label": "Custom" }
+      ],
+      "default": "page"
+    },
+    {
+      "type": "range",
+      "id": "section_max_width_custom",
+      "label": "Custom max width",
+      "info": "Only used when max width is set to Custom",
+      "min": 800,
+      "max": 1600,
+      "step": 20,
+      "unit": "px",
+      "default": 1120
+    },
+    {
+      "type": "select",
+      "id": "text_image_split",
+      "label": "Text / image split",
+      "options": [
+        { "value": "40_60", "label": "40 / 60" },
+        { "value": "50_50", "label": "50 / 50" },
+        { "value": "60_40", "label": "60 / 40" }
+      ],
+      "default": "50_50"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "label": "Desktop padding top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "label": "Desktop padding bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "label": "Mobile padding top",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "label": "Mobile padding bottom",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_v_desktop",
+      "label": "Inner padding — desktop (top/bottom)",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_h_desktop",
+      "label": "Inner padding — desktop (left/right)",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_v_mobile",
+      "label": "Inner padding — mobile (top/bottom)",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_h_mobile",
+      "label": "Inner padding — mobile (left/right)",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "button_spacing_above",
+      "label": "Button spacing above",
+      "info": "Extra space above the button, in addition to the column gap.",
+      "min": 0,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Card border radius",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "unit": "px",
+      "default": 10
+    },
+    {
+      "type": "checkbox",
+      "id": "show_benefit_pills",
+      "label": "Show benefit pills",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Card background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent (button, dots, eyebrow bg)",
+      "default": "#f15a24"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Heading & body text",
+      "default": "#111111"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_color",
+      "label": "Button hover color",
+      "default": "#df4f1d"
+    },
+    {
+      "type": "color",
+      "id": "eyebrow_bg_color",
+      "label": "Eyebrow background",
+      "default": "#fff1e8"
+    },
+    {
+      "type": "color",
+      "id": "eyebrow_text_color",
+      "label": "Eyebrow text color",
+      "default": "#f15a24"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Card border color",
+      "default": "#dedede"
+    },
+    {
+      "type": "checkbox",
+      "id": "shadow_enabled",
+      "label": "Card shadow",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "benefit_pill",
+      "name": "Benefit pill",
+      "limit": 6,
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Pill text",
+          "default": "Fast Turnaround"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Printhouse Promo",
+      "blocks": [
+        {
+          "type": "benefit_pill",
+          "settings": { "text": "Fast Turnaround" }
+        },
+        {
+          "type": "benefit_pill",
+          "settings": { "text": "Pro-Quality Prints" }
+        },
+        {
+          "type": "benefit_pill",
+          "settings": { "text": "Ready To Sell" }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

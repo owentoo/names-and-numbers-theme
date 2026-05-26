@@ -1,0 +1,220 @@
+{% layout none %}
+<div class="popupContent__content">
+  <svg class="pdpRelatedProducts__popUp__close" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <defs><style>.cls-1{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px;}</style></defs><title></title><g id="cross"><line class="cls-1" x1="7" x2="25" y1="7" y2="25"></line><line class="cls-1" x1="7" x2="25" y1="25" y2="7"></line></g>
+  </svg>
+{%- for i in (1..1) -%}
+  {%- unless page_url contains "?" -%}{% break %}{%- endunless -%}
+  {%- assign query_string = page_url | split:'?' | last -%}
+  {%- assign qry_parts= query_string | split:'&' -%}
+
+  {%- for part in qry_parts -%}
+    {%- assign key_and_value = part | split:'=' -%}
+    {%- if key_and_value.size > 1 -%}
+      {% if key_and_value[0] == 'variant' %}
+        {% assign param_arr = key_and_value[1] | split:'_' %}
+        {% assign param_color = param_arr[0] | upcase | url_decode  %}
+        {% assign param_variant_id = param_arr[1] %}
+      {% endif %}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor -%}
+
+{%-liquid
+   assign isUpsellPopup = false
+   assign b_margin_bottom = "10"
+   assign b_margin_top = "10"
+  assign block_arr = "title,rating,apparelProductChild,viewmore"
+  assign blockarr = block_arr | split: ","
+  assign current_variant = product.selected_or_first_available_variant
+  assign product_form_id = 'product-form-' | append: section.id
+
+  capture updatedHandle
+    assign metaStyle = product.metafields.specs.shirt_style | downcase
+    echo product.handle | split: metaStyle | first | append: metaStyle
+  endcapture
+-%}
+
+<div class="relatedPopup related-pdp-box" pid="{{ product.id }}" p-handle="{{ product.handle }}">
+  {% if isUpsellPopup %}
+    <!--
+    <go-back-btn>
+      <svg enable-background="new 0 0 32 32" width="16px" height="16px" viewBox="0 0 32 32" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path clip-rule="evenodd" d="M31.106,15H3.278l8.325-8.293 c0.391-0.391,0.391-1.024,0-1.414c-0.391-0.391-1.024-0.391-1.414,0l-9.9,9.899c-0.385,0.385-0.385,1.029,0,1.414l9.9,9.9 c0.391,0.391,1.024,0.391,1.414,0c0.391-0.391,0.391-1.024,0-1.414L3.278,17h27.828c0.552,0,1-0.448,1-1 C32.106,15.448,31.658,15,31.106,15z" fill="#3eaeff" fill-rule="evenodd" id="Arrow_Back"/><g/><g/><g/><g/><g/><g/></svg>
+      <span>Back</span>
+      <set-top><input type="checkbox" class="setTop"></set-top>
+    </go-back-btn>
+    -->
+  {% endif %}
+  <script>
+    function setHandle__{{ product.id }}() { 
+      const currentUrl = `{{ product.url }}`;
+      let pos = currentUrl.indexOf("-child");
+      let targetUrl;
+      if (pos >= 0) {
+        const productStyle = "{{ product.metafields.specs.shirt_style | downcase }}";
+        pos = currentUrl.toLowerCase().indexOf(productStyle);
+        targetUrl = currentUrl.substring(0,pos+productStyle.length);
+      }
+      console.log ( 'targetUrl', targetUrl );
+    }
+  </script>
+
+  <div class="relatedPopup__media">
+    {% render 'related_prod_gallery' prod_: product %}
+
+    <div class="relatedPopup__offers">
+      <div class="relatedPopup__offers__item">
+        <span style="width:24px; height:24px; display:inline-flex;">
+          <svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130.62 130.62">
+            <circle cx="104.43" cy="93.08" r="12.1" fill="none" stroke="#000" stroke-miterlimit="10" stroke-width="4"/><circle cx="38.76" cy="93.08" r="12.1" fill="none" stroke="#000" stroke-miterlimit="10" stroke-width="4"/><path d="M50.86,93.08h30.72V27.55c0-1.17-.94-2.11-2.11-2.11H7.96c-1.17,0-2.11.94-2.11,2.11v65.53h20.82" fill="none" stroke="#000" stroke-miterlimit="10" stroke-width="4"/><polyline points="81.58 34.79 109.43 34.79 124.77 66.13 124.77 93.08 116.52 93.08" fill="none" stroke="#000" stroke-miterlimit="10" stroke-width="4"/><line x1="5.85" y1="71.08" x2="81.58" y2="71.08" fill="none" stroke="#000" stroke-miterlimit="10" stroke-width="4"/><polyline points="124.77 66.13 92.58 66.13 92.58 43.87 114.32 43.87" fill="none" stroke="#000" stroke-miterlimit="10" stroke-width="4"/><line x1="81.58" y1="93.08" x2="92.33" y2="93.08" fill="none" stroke="#000" stroke-miterlimit="10" stroke-width="4"/>
+          </svg>
+        </span>
+        <span>Next day rush delivery</span>
+      </div>  
+      <div class="relatedPopup__offers__item">
+        <span style="width:24px; height:24px; display:inline-flex;">
+          <svg id="Layer_2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.33 23.33">
+            <g id="Layer_1-2" data-name="Layer_1">
+              <path d="M19.92,3.41C15.37-1.14,7.96-1.14,3.41,3.41-1.14,7.96-1.14,15.37,3.41,19.92c2.28,2.27,5.26,3.41,8.25,3.41s5.98-1.14,8.25-3.41c4.55-4.55,4.55-11.95,0-16.5ZM19.21,4.12c4.04,4.04,4.14,10.54.34,14.72L4.49,3.78C6.52,1.94,9.09,1,11.66,1c2.73,0,5.46,1.04,7.54,3.12ZM4.12,19.21C.08,15.17-.03,8.67,3.78,4.49l15.05,15.05c-4.18,3.81-10.68,3.71-14.72-.34Z" />
+            </g>
+          </svg>
+        </span>
+        <span>No Minimums</span>
+      </div>
+      <div class="relatedPopup__offers__item">
+        <span style="width:24px; height:24px; display:inline-flex;">
+        <svg id="Layer_2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20.46 20.53">
+          <g id="Layer_1-2" data-name="Layer_1">
+            <g>
+              <path d="M19.65,15.71h.51v-2h-1.54V3.26H5.45v10.46h-.91V0H0v2h2.54v13.71h.99c-.5.51-.81,1.21-.81,1.97,0,1.57,1.27,2.84,2.84,2.84s2.84-1.27,2.84-2.84c0-.77-.31-1.46-.81-1.97h7.99c-.5.51-.81,1.21-.81,1.97,0,1.57,1.27,2.84,2.84,2.84s2.84-1.27,2.84-2.84c0-.77-.31-1.46-.81-1.97ZM7.45,5.26h9.17v8.46H7.45V5.26ZM5.56,18.53c-.46,0-.84-.38-.84-.84s.38-.84.84-.84.84.38.84.84-.38.84-.84.84ZM17.62,18.53c-.46,0-.84-.38-.84-.84s.38-.84.84-.84.84.38.84.84-.38.84-.84.84Z" fill="#3f6165"/>
+              <rect x="10.44" y="6.86" width="3.18" height="2" fill="#3f6165"/>
+            </g>
+          </g>
+        </svg>
+        </span>
+        <span>Bulk Discounts</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="relatedPopup__content">
+    
+    {% if isUpsellPopup %}
+      
+      <go-back-btn>
+        <svg enable-background="new 0 0 32 32" width="16px" height="16px" viewBox="0 0 32 32" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path clip-rule="evenodd" d="M31.106,15H3.278l8.325-8.293 c0.391-0.391,0.391-1.024,0-1.414c-0.391-0.391-1.024-0.391-1.414,0l-9.9,9.899c-0.385,0.385-0.385,1.029,0,1.414l9.9,9.9 c0.391,0.391,1.024,0.391,1.414,0c0.391-0.391,0.391-1.024,0-1.414L3.278,17h27.828c0.552,0,1-0.448,1-1 C32.106,15.448,31.658,15,31.106,15z" fill="#3eaeff" fill-rule="evenodd" id="Arrow_Back"/><g/><g/><g/><g/><g/><g/></svg>
+        <span>Back</span>
+      </go-back-btn>
+      <h2 class="relatedPopup__content__title" style="margin-top: 0px; margin-bottom: 12px;">{{ product.title | escape }}</h2>
+      <div class="yotpoPlaceHolder" style="margin-top: 0px; margin-bottom: 12px;"></div>
+      <div style="margin-top: 0px; margin-bottom: 12px; display:none;">
+        {% render "apparel-product-price-cards", product: product, isPopUp: true, showJSData: showJSData %}
+      </div>
+      <div class="relatedPopup__content__variants" style="margin-top: 0px; margin-bottom: 12px;" count="{{ apparelProductChild__count }}" aa="{{ showData | json }}" >
+        {% render "apparel-variant", product: product, isPopUp: true, showJSData: showJSData, isUpsellPopup: isUpsellPopup %}
+      </div>
+    {% else %}
+      <!--
+      <go-back-btn class="p_bck">
+        <svg enable-background="new 0 0 32 32" width="16px" height="16px" viewBox="0 0 32 32" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path clip-rule="evenodd" d="M31.106,15H3.278l8.325-8.293 c0.391-0.391,0.391-1.024,0-1.414c-0.391-0.391-1.024-0.391-1.414,0l-9.9,9.899c-0.385,0.385-0.385,1.029,0,1.414l9.9,9.9 c0.391,0.391,1.024,0.391,1.414,0c0.391-0.391,0.391-1.024,0-1.414L3.278,17h27.828c0.552,0,1-0.448,1-1 C32.106,15.448,31.658,15,31.106,15z" fill="#3eaeff" fill-rule="evenodd" id="Arrow_Back"/><g/><g/><g/><g/><g/><g/></svg>
+        <span>Back</span>
+      </go-back-btn>
+      -->
+      {%- for block in blockarr -%}
+        {%- case block -%}
+          {%- when 'title' -%}
+            <h2 class="relatedPopup__content__title" style="margin-top:{{ b_margin_top }}px; margin-bottom:{{ b_margin_bottom }}px;">{{ product.title | escape }}</h2>
+
+          {%- when 'rating' -%}
+            <div class="yotpoPlaceHolder" style="margin-top:{{ b_margin_top }}px; margin-bottom:{{ b_margin_bottom }}px;">
+              <div class="ratting_yopto"></div>
+            </div>
+
+          {%- when 'link' -%}
+            <div class="relatedPopup__content__fullDetail" style="margin-top:{{ b_margin_top }}px; margin-bottom:{{ b_margin_bottom }}px;">
+              <a href="{{ product.url }}">{{ b.linkText }}</a>
+            </div>
+
+          {%- when 'desc' -%}
+            <div class="desc-wrapper">
+              <div class="relatedPopup__content__fullDetail">
+                <a href="javascript:void(0)" class="_tdesc first" tabindex="0">View Description</a>
+                <a href="javascript:void(0)" class="_tndesc second" style="display:none" tabindex="0">Hide Description</a>
+              </div>
+              <div class="product-description hidden">{{ product.description }}</div>  
+            </div>
+            
+          
+          {%- when 'qty' -%}
+          <div class='qty-with-price' >
+            <div class="qty-select">
+                  <div><strong>Quantity</strong></div>
+                  <div class="quantity-selector">
+                    
+                    <button class="qty-btn decrease">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.0566 6.5V7.5H0.0566406L0.0566407 6.5L13.0566 6.5Z" fill="black"></path></svg>  
+                    </button>
+                    <div class="quantity-input" value="1" min="1" contenteditable="true" role="textbox">1</div>
+                    <button class="qty-btn increase">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.05664 0.5H7.05664V13.5H6.05664V0.5Z" fill="black"></path><path d="M13.0566 6.5V7.5H0.0566406L0.0566407 6.5L13.0566 6.5Z" fill="black"></path></svg>  
+                    </button>
+                  </div>
+              </div>
+              <div class="price_node"></div>
+          </div>
+          
+          {%- when 'price' -%}
+            <div style="margin-top:{{ b_margin_top }}px; margin-bottom:{{ b_margin_bottom }}px;">
+                {%- render 'related-price', product: product -%}
+            </div>
+          
+          {%- when 'buy_now' -%}
+            <div class="product-buynow">
+              <button class="button button--solid button--product button--loader button--move add-to-cart" data-productid="{{ product.id }}" data-variantid="{{ product.selected_or_first_available_variant.id }}" tabindex="0">
+                <span class="button__text">Add to Cart</span>
+                <span class="button__preloader">
+                  <svg class="button__preloader-element" viewBox="25 25 50 50">
+                    <circle cx="50" cy="50" r="20" fill="none" stroke-width="4"></circle>
+                  </svg>
+                </span>
+              </button>
+            </div>
+          {%- when 'variant_picker' -%}
+            <div>
+                {%- render 'related-variant', product: product, variant: product.selected_or_first_available_variant, b:b, product_price_varies: product.price_varies -%}
+            </div>
+          
+          {%- when 'priceCards' -%}
+            <div style="margin-top:{{ b_margin_top }}px; margin-bottom:{{ b_margin_bottom }}px;">
+              {% render "apparel-product-price-cards", product: product, isPopUp: true, showJSData: showJSData %}
+            </div>
+
+          {%- when 'apparelProductChild' -%}
+            <div class="relatedPopup__content__variants" style="margin-top:{{ b_margin_top }}px; margin-bottom:{{ b_margin_bottom }}px;" count="{{ apparelProductChild__count }}" aa="{{ showData | json }}" >
+              {% render "apparel-variant", product: product, isPopUp: true, showJSData: showJSData %}
+            </div>
+
+          {%- when 'custom_liquid' -%}
+            {% if b.custom_liquid != blank %}
+              <div style="margin-top:{{ b_margin_top }}px; margin-bottom:{{ b_margin_bottom }}px;" class="product-custom-liquid" {{ block.shopify_attributes }}>
+                {{ b.custom_liquid }}
+              </div>
+            {% endif %}
+
+
+          {%- when 'viewmore' -%}
+              <div class="relatedPopup__content__fullDetail" style="margin-top:0px; margin-bottom:12px;">
+                <a target="_blank" href="/products/{{ product.handle }}">View Full Details</a>
+              </div>
+
+        {%- endcase -%}
+      {%- endfor -%}
+    {% endif %}
+
+  </div>
+</div>
+</div>
+<style>
+  .bottom__popUp .button.addToCartThenCheckout{display:none}
+</style>

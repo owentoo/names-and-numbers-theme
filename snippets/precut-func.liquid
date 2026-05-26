@@ -1,0 +1,247 @@
+{%- assign pcutqty = 0 -%}
+{%- assign pcutitemkey = "" -%}
+{%- assign precutqty = 0 -%}
+{%- if cart.item_count > 0 -%}
+    {%- for item in cart.items -%}
+      {%- if item.variant_id == "42612247363667" or item.variant_id == 42612247363667 -%}
+        {%- assign pcutitemkey = item.key  -%}
+        {%- assign precutqty = item.quantity -%}
+      {%- endif -%}
+      
+      {%- for prop in item.properties -%}
+        {%- assign prop_first_char = prop.first | slice: 0 -%}
+        {%- if prop.last != blank and prop_first_char != '_' -%}
+          
+          {%- if prop.first contains "Precut" -%}
+            {%- if prop.last contains 'Yes' -%}
+              {%- assign pcutqty = pcutqty | plus : item.quantity -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endfor -%}
+{%- endif -%}
+<style>
+  .precutWrapper pre-cut{display:none}
+</style>
+
+  <script>
+    $(function(){
+      $( "body" ).on( "click", ".precut-remove", function() {
+        var $btn = $(this);
+        if ($btn.hasClass('working')) return; /* guard against double-click */
+        $btn.addClass('working').prop('disabled', true);
+        precutCountMatched();
+      })
+    })
+
+    async function precutCountMatched() {
+      try {
+        // Get current cart
+        const cartRes = await fetch('/cart.js');
+        const cart = await cartRes.json();
+    
+        // Filter items with Precut: "Yes"
+        const matchingItems = cart.items.filter(item => item.properties?.Precut === "Yes");
+    
+        if (matchingItems.length === 0) {
+          console.log('No matching items with Precut: "Yes".');
+          return;
+        }
+    
+        // Loop and for each one: remove original and add new with Precut: "No"
+        for (const item of matchingItems) {
+          // Step 1: Remove original
+          await fetch('/cart/change.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: item.key,
+              quantity: 0
+            })
+          });
+    
+          // Step 2: Add item again with updated Precut property
+          const addPayload = {
+            id: item.variant_id,
+            quantity: item.quantity,
+            properties: {
+              ...item.properties,
+              Precut: "No"
+            }
+          };
+    
+          await fetch('/cart/add.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(addPayload)
+          });
+          console.log(`Replaced item ${item.key} with Precut: "No"`);
+        }
+        recheckcart();
+        document.querySelector('.precut-confirm').style.display = 'none'
+    
+        console.log('All applicable line items updated.');
+      } catch (error) {
+        console.error('Failed to update Precut properties:', error);
+      }
+    }
+
+    
+
+async function handleCartAction(cartobj) {
+  try {
+    var variantId = cartobj.variantId;
+    var quantity = cartobj.quantity;
+    var action = cartobj.action;
+    var lineItemKey = cartobj.lineItemKey;
+    
+    let url = '';
+    let payload = {};
+    // Define the URL and payload based on action type
+    if (action === 'add') {
+      url = '/cart/add.js';
+      payload = {
+        items: [{
+          id: variantId,
+          quantity: quantity
+        }]
+      };
+    } else if (action === 'update') {
+      url = '/cart/change.js';
+      payload = {
+        id: lineItemKey,
+        quantity: quantity
+      };
+    } else if (action === 'remove') {
+      url = '/cart/change.js';
+      payload = {
+        id: lineItemKey,
+        quantity: 0
+      };
+    } else {
+      throw new Error(`Unknown cart action: ${action}`);
+    }
+
+    // Await the fetch request
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    // Parse and return the result
+    const data = await response.json();
+    console.log(`🛒 Cart action [${action}] success:`, data);
+    window.refreshCart('notOpen');
+    return data;
+
+  } catch (err) {
+    console.error(`❌ Cart action [${action}] failed:`, err);
+    throw err; // in case you want to catch it outside
+  }
+}
+
+    
+    var pcutqty = {{pcutqty}};
+    var precutqty = {{precutqty}};
+    var pcutitemkey = "{{- pcutitemkey -}}"
+    $(function(){
+      precutFunc();
+    })
+
+    function precutFunc(){
+
+      if(pcutqty != precutqty){
+        if(pcutitemkey == ""){
+          handleCartAction({
+            action: 'add',
+            variantId: 42612247363667,
+            quantity: pcutqty
+          });
+        }else{
+          handleCartAction({
+            action: 'update',
+            lineItemKey: pcutitemkey,
+            quantity: pcutqty
+          });
+        }
+      }
+      
+    }
+
+    function recheckcart(){
+        // Load the cart using Shopify's /cart.js endpoint
+        fetch('/cart.js')
+          .then(response => response.json())
+          .then(cart => {
+            let _pcutqty = 0;
+            let _pcutitemkey = "";
+            let _precutqty = 0;
+      
+            if (cart.items && cart.items.length > 0) {
+              cart.items.forEach(item => {
+                // Match variant ID
+                console.log(item.variant_id," :item.variant_id")
+                if (item.variant_id == "42612247363667" || item.variant_id == 42612247363667) {
+                  _pcutitemkey = item.key;
+                  _precutqty = item.quantity;
+                }
+      
+                // Check item properties
+                if (item.properties) {
+                  for (let key in item.properties) {
+                    const value = item.properties[key];
+      
+                    if (key && !key.startsWith('_') && value) {
+                      if (key.includes("Precut") && String(value).toLowerCase().includes('yes')) {
+                        _pcutqty += item.quantity;
+                      }
+                    }
+                  }
+                }
+              });
+            }
+      
+            // Optional: log values
+            console.log('pcutqty:', pcutqty);
+            console.log('pcutitemkey:', pcutitemkey);
+            console.log('precutqty:', precutqty);
+            pcutqty = _pcutqty;
+            precutqty = _precutqty;
+            pcutitemkey = _pcutitemkey
+            console.log('pcutqty new:', _pcutqty);
+            console.log('pcutitemkey new:', _pcutitemkey);
+            console.log('precutqty new:', _precutqty);
+            precutFunc()
+            // You can now use these values for further logic
+          })
+          .catch(error => {
+            console.error('Error fetching cart:', error);
+          });
+
+    }
+  </script>
+
+  
+<div class="customTabelPopup__overlay fullview precut-confirm hide_overlay" style="display: none;">
+    <div class="customTabelPopup">
+      <span class="customTabelPopup__close" onclick="document.querySelector('.precut-confirm').style.display = 'none'" >
+        <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+      </span>
+      <h4 style="position: absolute;top: 20px;">Remove Pre Cut Option</h4>
+
+      <p style="text-align:center;">Are you sure you want to remove the Pre-Cut option from all of your DTF Transfers by Size items in your cart?</p>
+       <div style="display:flex;justify-content:center;gap:10px;flex-direction: column;">
+            <button type="button" id="precut-remove" class="button button--solid button--loader precut-remove">
+              <span class="button__text">Remove Pre Cut</span>
+              <span class="button__preloader">
+                <svg class="button__preloader-element" viewBox="25 25 50 50"><circle cx="50" cy="50" r="20" fill="none" stroke-width="4"></circle></svg>
+              </span>
+            </button>
+            <button type="button" onclick="document.querySelector('.precut-confirm').style.display = 'none'" class="close button button--solid" style="background: #999 !important;">Cancel</button>
+          </div>
+    </div>
+</div>

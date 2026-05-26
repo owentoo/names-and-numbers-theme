@@ -1,0 +1,636 @@
+{% assign reward_msg = reward_msg | default : false %}
+{% assign reward_cta = "" %}
+{% assign reward_popuptitle = reward_title | default : "" %}
+{% assign reward_popupmsg = reward_text | default : "" %}
+{% if reward_msg %}
+  {% assign reward_cta = "<a href='javascript:void(0)' class='" | append : type  | append : "_learn_more underline'>Learn more</a>" %}
+{% endif %}
+{% if customer %}
+  {% assign reward_cta = "" %}
+{% endif %}
+
+<style>
+  .reward-point-block{background:linear-gradient(135deg, #fff3cd, #ffe69c); color:#6B3500; padding:10px 16px; border-radius:8px; font-size:14px; display:none; flex-flow:row wrap; align-items:center; margin:8px 0; margin-bottom:0; flex-basis:100%; border:1px solid rgba(255,193,7,0.2);}
+  .reward-point-block strong{color:#502700}
+  .reward-icon{width:32px; height:32px; flex-shrink:0; flex-grow:0; margin-right:8px;}
+  .reward-icon svg{width:95%;}
+  #__reward_info{flex-grow:1; justify-content: center; line-height:0;}
+  .__cart-page #__reward_info{font-size:calc(13px / 16 * var(--base-body-primary-size) + 0px);}
+  .learn_customTabelPopup__overlay{z-index:99900}
+  .grt-reward-icon{position:relative; display: inline-flex; align-items: center; font-size:14px;}
+  .grt-reward-icon::before{content:""; background:url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/reward-coin-241125.png?v=1764006639'); width:18px; height:18px; display: inline-block; background-size: 100%;background-size: contain; margin-right:8px;}
+  #cart_reward-point-block .grt-reward-icon{font-size:13px;}
+{% unless customer %}
+  #__reward_info {display: block;}
+{% endunless %}
+  @media(min-width:768px){
+    #__reward_info{display: flex;}
+    .learn_customTabelPopup__overlay .popup-box > div{padding-right:170px;}
+    proceed-to-checkout{display:flex;}
+  }
+  .product-text > upload-controls:not(:last-child){margin-bottom:0;}
+  .grt_payment_icons .payment-terms-extra{margin-top:24px;}
+  .product-text>.grt_payment_icons:not(:last-child){margin-bottom:40px;}
+  /* .step__2.hidden{display:block !important;} */
+
+  /* === Earn-back Crest — replaces the yellow bar on product pages.
+        Signed-in: 72px colored swatch ({rate}%/BACK) + Belt Cashback copy.
+        Signed-out: no swatch, "NINJA REWARDS" eyebrow + Sign-in nudge.
+        Tier source matches /pages/ninja-rewards (customer.metafields.ninja_rewards.tier_label). === */
+  .reward-point-block.reward-crest{
+    background:transparent;
+    border:none;
+    border-radius:0;
+    box-shadow:none;
+    padding:0;
+    margin:14px 0 0;
+    color:#2B2B2B;
+    font-family:'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    justify-content:center;
+    flex-basis:100%;
+  }
+  .reward-point-block.reward-crest #__reward_info,
+  .reward-point-block.reward-crest #MobileStickyRewardInfo{
+    display:inline-flex;
+    width:max-content;
+    max-width:100%;
+    height:64px;
+    background:#F4F4F5;
+    border-radius:10px;
+    align-items:center;
+    overflow:hidden;
+    flex-grow:0;
+    flex-shrink:0;
+    line-height:1.25;
+    color:#2B2B2B;
+    padding:8px;
+  }
+  /* The inner pill is rendered server-side as an empty <div> and populated
+     by JS reading data-reward-msg. Before that runs, the 64px grey rectangle
+     flashes for ~100-300ms as a "loading" placeholder. Hide it while empty
+     so it only appears once JS has filled the swatch + copy. The :empty
+     pseudo no longer matches once content is inserted, so the normal styling
+     takes over automatically. */
+  .reward-point-block.reward-crest #__reward_info:empty,
+  .reward-point-block.reward-crest #MobileStickyRewardInfo:empty {
+    visibility: hidden;
+  }
+  .reward-crest__swatch{
+    width:56px;
+    height:48px;
+    flex:0 0 56px;
+    border-radius:8px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    line-height:1;
+  }
+  .reward-crest__rate{font-size:20px; font-weight:900;}
+  .reward-crest__rate-pre,
+  .reward-crest__rate-sub{
+    font-size:9px; font-weight:800;
+    letter-spacing:0.08em; text-transform:uppercase;
+  }
+  .reward-crest__rate-pre{margin-bottom:2px;}
+  .reward-crest__rate-sub{margin-top:2px;}
+  .reward-crest__swatch--white  {background:#FFFFFF; color:#2B2B2B; box-shadow:inset 0 0 0 1px #E5E7EB;}
+  .reward-crest__swatch--white  .reward-crest__rate-sub,
+  .reward-crest__swatch--white  .reward-crest__rate-pre{opacity:0.7;}
+  .reward-crest__swatch--yellow {background:#F9DE43; color:#2B2B2B;}
+  .reward-crest__swatch--yellow .reward-crest__rate-sub,
+  .reward-crest__swatch--yellow .reward-crest__rate-pre{opacity:0.7;}
+  .reward-crest__swatch--blue   {background:#1E3FAE; color:#FFFFFF;}
+  .reward-crest__swatch--blue   .reward-crest__rate-sub,
+  .reward-crest__swatch--blue   .reward-crest__rate-pre{opacity:0.85;}
+  .reward-crest__swatch--black  {background:#2B2B2B; color:#FFFFFF;}
+  .reward-crest__swatch--black  .reward-crest__rate-sub,
+  .reward-crest__swatch--black  .reward-crest__rate-pre{opacity:0.85;}
+  .reward-crest__swatch--guest  {background:#FFFFFF; color:#2B2B2B; box-shadow:inset 0 0 0 1px #E5E7EB;}
+  .reward-crest__swatch--guest  .reward-crest__rate-sub,
+  .reward-crest__swatch--guest  .reward-crest__rate-pre{opacity:0.65;}
+  .reward-crest__body{
+    padding:0 22px 0 18px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    line-height:1.25;
+  }
+  .reward-crest__eyebrow{
+    font-size:11px; font-weight:800;
+    letter-spacing:0.08em; text-transform:uppercase;
+    color:#717278;
+  }
+  .reward-crest__eyebrow-row{
+    display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  .reward-crest__eyebrow-sep{color:#CDCED1;}
+  .reward-crest__copy{
+    font-size:15px; color:#2B2B2B; margin-top:2px;
+    font-style:normal;
+  }
+  .reward-crest__copy strong{font-weight:800; color:#27af1a;}
+  .reward-crest__signin{
+    font-size:11px; font-weight:800;
+    letter-spacing:0.08em; text-transform:uppercase;
+    color:#019AFF;
+    text-decoration:underline; text-underline-offset:2px;
+  }
+  .reward-crest__signin:hover{color:#007EE5;}
+
+  /* Defensive: ensure the chip and its Learn more link are always interactive,
+     even when the chip is placed inside a wrapper that has been styled to
+     disable pointer events (e.g., __validate_upload on gang-sheet PDPs before
+     the artwork rights checkbox is checked). Opening Learn more in a new tab
+     has nothing to do with form validation, so it should never be gated. */
+  .reward-point-block,
+  .reward-point-block *,
+  a.reward-crest__signin,
+  a.reward-crest__signin * {
+    pointer-events: auto !important;
+  }
+  a.reward-crest__signin {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Cart context (slider cart + cart page, desktop + mobile): stretch the grey
+     card to the FULL width of the parent so it aligns edge-to-edge with the
+     Checkout button. Base rule uses width:max-content (so the chip hugs the
+     content on PDP). Cart context needs full-width to match the button. */
+  .__cart-page.reward-point-block.reward-crest{
+    display:flex !important;
+    justify-content:flex-start !important;
+    width:100% !important;
+  }
+  .__cart-page.reward-point-block.reward-crest #__reward_info,
+  .__cart-page.reward-point-block.reward-crest #MobileStickyRewardInfo{
+    display:flex !important;
+    width:100% !important;
+    max-width:100% !important;
+    flex:1 1 auto !important;
+  }
+
+  /* Product PDP on desktop: stretch the cashback chip to match the width of
+     the Proceed-to-Checkout button above it (which is 100% of the cart
+     functions column). Mobile keeps its own override path so we don't touch
+     the slider/modal contexts here. */
+  @media (min-width: 1024px) {
+    .__product-page.reward-point-block.reward-crest {
+      display: flex !important;
+      justify-content: flex-start !important;
+      width: 100% !important;
+    }
+    .__product-page.reward-point-block.reward-crest #__reward_info,
+    .__product-page.reward-point-block.reward-crest #MobileStickyRewardInfo {
+      display: flex !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      flex: 1 1 auto !important;
+    }
+    /* Body text aligns left like the cart variant for the same wider layout. */
+    .__product-page.reward-point-block.reward-crest .reward-crest__body {
+      align-items: flex-start;
+      text-align: left;
+    }
+    .__product-page.reward-point-block.reward-crest .reward-crest__body > *,
+    .__product-page.reward-point-block.reward-crest .reward-crest__eyebrow,
+    .__product-page.reward-point-block.reward-crest .reward-crest__eyebrow-row,
+    .__product-page.reward-point-block.reward-crest .reward-crest__copy {
+      text-align: left;
+    }
+  }
+  /* Cart context: the parent block has .text-center for legacy reasons (used by
+     the old yellow-bar treatment). Override to LEFT-align the eyebrow + copy
+     inside the body — PDP keeps the centered chip styling unchanged. */
+  .__cart-page .reward-crest__body{
+    align-items:flex-start;
+    text-align:left;
+  }
+  .__cart-page .reward-crest__body > *,
+  .__cart-page .reward-crest__eyebrow,
+  .__cart-page .reward-crest__eyebrow-row,
+  .__cart-page .reward-crest__copy{
+    text-align:left;
+  }
+
+  @media(max-width:480px){
+    /* Mobile-only refinements — keep the chip styling but allow the card to
+       grow taller if copy wraps. */
+    .reward-point-block.reward-crest #__reward_info,
+    .reward-point-block.reward-crest #MobileStickyRewardInfo{
+      display:flex;
+      width:max-content;
+      max-width:100%;
+      height:auto; min-height:54px;
+      border-radius:12px;
+      padding:5px 8px;
+      /* Center the chip horizontally in its container while keeping the
+         text inside left-aligned (see body rules below). */
+      margin-left:auto;
+      margin-right:auto;
+    }
+    /* Parent block centers the chip box itself, while the body left-aligns
+       text content. */
+    .reward-point-block.reward-crest{
+      text-align:center;
+    }
+    .reward-crest__rate{font-size:16px;}
+    .reward-crest__copy{font-size:13px;}
+    .reward-crest__body{
+      padding:0 12px;
+      flex:1 1 auto;
+      min-width:0;
+      align-items:flex-start;
+      text-align:left;
+    }
+    .reward-crest__body > *,
+    .reward-crest__eyebrow,
+    .reward-crest__eyebrow-row,
+    .reward-crest__copy{
+      text-align:left;
+    }
+    .reward-crest__eyebrow{white-space:normal;}
+    .reward-crest__eyebrow-row{gap:6px;}
+
+    /* PDP mobile — tighten vertical breathing room around the chip. The swatch
+       is 48px tall, so a 48px min-height + 4px vertical padding gets us a snug
+       chip with no excess grey space top/bottom. */
+    .__product-page.reward-point-block.reward-crest #__reward_info{
+      min-height:48px;
+      padding:4px 8px;
+    }
+
+    /* Cart mobile (slider + mobile sticky bar) — keep the copy line
+       "You'll earn $X back on this order" on a single line. The card is
+       allowed to be wider than the Checkout button so the copy fits;
+       parent gutters preserve the 16px screen-edge inset. */
+    .__cart-page.reward-point-block.reward-crest .reward-crest__copy{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    /* Cart mobile: halve the top gap between Checkout button and reward chip.
+       Base rule sets margin:14px 0 0 — tighten to 7px on mobile cart contexts.
+       The mobile sticky bar has its own !important override in
+       component-cart.css; this rule applies to the slider cart on mobile. */
+    .__cart-page.reward-point-block.reward-crest{
+      margin-top:7px;
+    }
+  }
+</style>
+
+{%- liquid
+  # Belt tier detection — mirrors sections/ninja-rewards-welcome.liquid.
+  assign is_signed_in = false
+  assign tier_slug = 'guest'
+  assign tier_pct = '10'
+  assign tier_name = ''
+
+  if customer
+    assign is_signed_in = true
+    assign tier_label = customer.metafields.ninja_rewards.tier_label | default: 'White Belt'
+    case tier_label
+      when 'White Belt'
+        assign tier_pct = '2'
+        assign tier_slug = 'white'
+        assign tier_name = 'White Belt'
+      when 'Yellow Belt'
+        assign tier_pct = '4'
+        assign tier_slug = 'yellow'
+        assign tier_name = 'Yellow Belt'
+      when 'Blue Belt'
+        assign tier_pct = '6'
+        assign tier_slug = 'blue'
+        assign tier_name = 'Blue Belt'
+      when 'Black Belt'
+        assign tier_pct = '10'
+        assign tier_slug = 'black'
+        assign tier_name = 'Black Belt'
+      else
+        assign tier_pct = '2'
+        assign tier_slug = 'white'
+        assign tier_name = 'White Belt'
+    endcase
+  endif
+
+  assign item_or_order = 'on this item'
+  if type == 'cart'
+    assign item_or_order = 'on this order'
+  endif
+
+  assign learn_more_href = '/pages/ninja-rewards'
+-%}
+
+{%- if is_signed_in -%}
+  {%- capture rewardmsg -%}<div class='reward-crest__swatch reward-crest__swatch--{{ tier_slug }}'><div class='reward-crest__rate'>{{ tier_pct }}%</div><div class='reward-crest__rate-sub'>BACK</div></div><div class='reward-crest__body'><span class='reward-crest__eyebrow'>{{ tier_name }} Cashback</span><span class='reward-crest__copy'>You'll earn <strong>[_savemoney]</strong> back {{ item_or_order }}</span></div>{%- endcapture -%}
+{%- else -%}
+  {%- capture rewardmsg -%}<div class='reward-crest__swatch reward-crest__swatch--guest'><div class='reward-crest__rate-pre'>Up to</div><div class='reward-crest__rate'>10%</div><div class='reward-crest__rate-sub'>BACK</div></div><div class='reward-crest__body'><span class='reward-crest__eyebrow-row'><span class='reward-crest__eyebrow'>Ninja Rewards Cashback</span><span class='reward-crest__eyebrow-sep'>&middot;</span><a href='{{ learn_more_href }}' target='_blank' rel='noopener' class='reward-crest__signin'>Learn more</a></span><span class='reward-crest__copy'>Earn up to <strong>[_savemoney]</strong> back {{ item_or_order }}</span></div>{%- endcapture -%}
+{%- endif -%}
+{%liquid 
+  assign grt_reward_enable = false
+  if product.metafields.custom.points_apply
+    assign grt_reward_enable = true
+  endif
+  if type == 'cart'
+    assign grt_reward_enable = true
+  endif
+%}
+
+{% if grt_reward_enable %}
+<div id="{{ type }}_reward-point-block" class="reward-point-block reward-crest reward-crest--{{ tier_slug }} text-center {{ classneed }}" data-reward-msg="{{ rewardmsg }}">
+  <div id="__reward_info"></div>
+</div>
+{% endif %}
+
+<script>
+  var __cartreward = 0;
+  var qty_field = 1;
+  var _bysize = 0;
+  var _dyn_price = {{- product.selected_or_first_available_variant.price| default : 1 -}};
+    $(function(){
+      
+      if(document.querySelector('.customQtyFile__qty')){
+        qty_field = document.querySelector('.customQtyFile__qty').value;  
+      }
+
+      {% if type == "product" %}
+        $(document).on("input keyup change", ".widthHeight__value", function () {
+          _qtyupdate();
+        });
+        
+        $(document).on("input keyup change", ".customQtyFile__qty", function () {
+          _qtyupdate();
+        });
+      {% endif %}
+
+      $(".product__quantity").on("keyup",function(){
+        if (typeof _qtyupdate === 'function') _qtyupdate();
+      })
+      $(".qty-button").on("click",function(){
+        if (typeof _qtyupdate === 'function') _qtyupdate();
+      })
+      
+    })
+    {% if type == "product" %}
+    var _grtrewardtotalprice = 0;
+    function _qtyupdate(){
+      
+      if($("line-items-custom .customQtyFile__qty").length > 1){
+        _bysize = 1;
+      }
+      //console.log("_bysize: ",_bysize);
+      if(_bysize == 0){
+        if($(".customTabelPlace__item.selected,.pricesTable__item.selected").length){
+          var _dyn = parseFloat($(".customTabelPlace__item.selected,.pricesTable__item.selected").find("discount").text());
+          if (!isNaN(_dyn)) {
+            _dyn_price = _dyn * 100
+          }
+        }
+      }
+      if(_bysize == 1){
+        _grtrewardtotalprice = 0;
+        $("line-items-custom .widthHeight__custom .precut-unit-logic__total .__discountedPrice").each(function(){
+          var grt_text = $(this).text();
+          grt_text = grt_text.replace("$","");
+          var grt_lineprice = parseFloat(grt_text);
+          if (!isNaN(grt_lineprice)) {
+            _grtrewardtotalprice = _grtrewardtotalprice + grt_lineprice
+          }
+          //console.log(_grtrewardtotalprice,"grt_intial: ",grt_lineprice,$(this))
+        })
+      }
+      
+      if(document.querySelector('.main-product .customQtyFile__qty')){
+        qty_field = document.querySelector('.main-product .customQtyFile__qty').value;
+      }
+
+      if(document.querySelector('.main-product .product__quantity')){
+        qty_field = document.querySelector('.main-product .product__quantity').value;
+      }
+      
+      {{ type }}__reward_func();  
+    }
+    $(function(){
+      /* Section files (bySizeNew.liquid, main-product.liquid, etc.) render
+         reward-point-info as both a fileupload-block child AND a
+         buy_buttons-block child, which produces two <div id="product_reward-
+         point-block"> elements in the DOM with the same id. Each rendered
+         copy of this snippet also runs this $(function(){…}) — and each
+         jQuery .after() / .append() CLONES its argument for every target
+         beyond the first. Multi-upload-wrapper renders three <proceed-to-
+         checkout> elements (mobile footer + desktop sidebar + main); the
+         multiplication produced the duplicate cashback chip the user
+         reported once they switched into multi-upload mode.
+
+         Fix: a one-shot guard ensures the placement logic runs once per
+         page load, all original copies are removed (so no stale id-twin
+         is left in the DOM), and every target selector is :first-only. */
+      if (window.__rewardPointBlockPlaced) return;
+      window.__rewardPointBlockPlaced = true;
+
+      var $originals = $("[id='product_reward-point-block']");
+      if (!$originals.length) return;
+
+      var product_reward = $originals.first().clone(true);
+      $originals.remove();
+
+      if ($(".grt-rewardpointinfo").length) {
+        $(".grt-rewardpointinfo:first").append(product_reward);
+      } else if ($(".customQtyFile").length) {
+        $(".customQtyFile:first").after(product_reward);
+      } else if ($("proceed-to-checkout").length) {
+        $("proceed-to-checkout:first").after(product_reward);
+      } else if ($("product-quantity").length) {
+        $("[data-main-product-add-to-cart]:first").after(product_reward);
+      } else if ($(".gs--wrapper").length) {
+        $(".gs--wrapper:first").after(product_reward);
+      } else {
+        product_reward.addClass("spacingfixed");
+      }
+    })
+    {% endif %}
+    
+  function {{ type }}__reward_func(){
+      var points_per_dollar = 50;
+      {% if customer %}
+        {%liquid
+          # If the customer's belt tier metafield is blank/null, default to
+          # White Belt (2% cashback). This ensures logged-in customers without
+          # an assigned tier still see a valid reward calculation instead of
+          # NaN. Matches the fallback used in the liquid render section above
+          # (line 284: `default: 'White Belt'`).
+          if customer.metafields.ninja_rewards.tier_label != blank
+            assign tierinfo = customer.metafields.ninja_rewards.tier_label | downcase
+          else
+            assign tierinfo = 'white belt'
+          endif
+          case tierinfo
+            when 'white belt'
+              echo "var __point_x = 1;"
+              echo "var __point_price = 0.02;"
+            when 'yellow belt'
+              echo "var __point_x = 1;"
+              echo "var __point_price = 0.04;"
+            when 'blue belt'
+              echo "var __point_x = 1;"
+              echo "var __point_price = 0.06;"
+            when 'black belt'
+              echo "var __point_x = 1;"
+              echo "var __point_price = 0.10;"
+            else
+              echo "var __point_x = 1;"
+              echo "var __point_price = 0.02;"
+          endcase
+        %}
+        var __reward_msg = "{{reward_msg}}";
+      {% else %}
+        var __point_x = 1;
+        var __point_price = 0.10;
+        var __reward_msg = "{{reward_msg}}"; 
+      {% endif %}
+        // Read the reward message from the HTML attribute
+        var reward_msg_holder = document.querySelector('.{{ classneed }}');
+        var __reward_msg = reward_msg_holder ? reward_msg_holder.getAttribute('data-reward-msg') : "Earning [_point] Ninja Rewards Points ([_savemoney])";
+    
+        var __price = _dyn_price;
+    {% if type == "product" %}
+      //console.log("__cartreward: ",__cartreward)
+      __cartreward = 0;
+      if(_bysize == 0){
+        var p__price = _dyn_price
+        var __selected_qty = qty_field || 1;
+        __price = p__price * __selected_qty
+      }
+      if(_bysize == 1){
+        __price = _grtrewardtotalprice * 100
+        //console.log("_grtrewardtotalprice: ",_grtrewardtotalprice)
+      }
+      __price = __price + parseFloat(__cartreward);
+    {% else %}
+      var __price = document.querySelector('#reward_money').value;
+    {% endif %}
+    {% comment %} 
+    {% if customer %}
+      {% if type == "cart" %}
+        __cartreward = __price;
+      {% endif %}
+    {% endif %}
+     {% endcomment %}
+      {% if type == "cart" %}
+        __cartreward = __price;
+      {% endif %}
+      
+        // Calculate reward points and round up if the decimal part is greater than 0.5
+        //console.log("==============================================__point_x:",__point_x,"_bysize: ",_bysize,"__price:",__price,);
+
+        var __reward_point_raw = (__price * __point_x) / 100;
+        var __reward_point = Math.floor(__reward_point_raw) + ((__reward_point_raw % 1) > 0.5 ? 1 : 0);
+        var __product_reward_raw = (__reward_point / points_per_dollar);
+
+        var __reward_price = (__price * __point_price) / 100;
+        if (isNaN(__reward_price)) __reward_price = 0;
+        var __reward_price_amount = __reward_price.toFixed(2);
+        //console.log("__reward_price:",__reward_price,"| __point_price:",__point_price," | __reward_price_amount:",__reward_price_amount)
+
+
+        var __product_reward = Math.floor(__product_reward_raw) + ((__product_reward_raw % 1) > 0.5 ? 1 : 0);
+        __reward_msg = __reward_msg.replace('[_point]', __reward_point);
+        __reward_msg = __reward_msg.replace('[_savemoney]', "$" +__reward_price_amount);
+    
+      //if(__product_reward > 0){
+        
+        var __reward_info = document.querySelector('.{{ classneed }} #__reward_info');
+        if (__reward_info) {
+          $(__reward_info).html(__reward_msg);
+          document.querySelector(".{{ classneed }}.reward-point-block").style.display = "flex";
+        } else {
+          console.log("Element with id '__reward_info' not found.");
+        }
+      //}
+    }
+  
+  (function() {
+    {% if type == "product" %}
+      $(window).on("load",function(){
+    {% endif %}
+        {{ type }}__reward_func();
+    {% if type == "product" %}
+      })
+    {% endif %}
+  })();
+
+  /* Stop "Learn more" clicks from bubbling up to ancestor click handlers
+     (e.g., the __validate_upload delegated handler on gang-sheet PDPs that
+     shows "Please check the box above to continue"). The link's default
+     navigation (target="_blank" → /pages/ninja-rewards) runs as normal. */
+  $(document).on('click', 'a.reward-crest__signin', function(e) {
+    e.stopPropagation();
+  });
+</script>
+
+{% if type == "product" %}
+<style>
+  next-element:not(.enablereward) .reward-point-block{display:none !important;}
+
+  .learn_customTabelPopup__overlay .popup-container{max-width: 600px; width:95%; padding: 24px; background: #fff;}
+  .learn_customTabelPopup__overlay .popup-container p{margin-bottom:16px;}
+  @media(min-width:768px){
+    .learn_customTabelPopup__overlay .popup-container{padding: 40px; background: #fff url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/lil-ninja.jpg?v=1724950215') no-repeat right 39px;
+    min-height: 350px; background-size: 40%; padding-right: 265px;}
+  }
+</style>
+<div class="learn_customTabelPopup__overlay popupoverlay" style="display: none;">
+  <div class="popup-container"> 
+    <span class="popup__close">
+      <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path>
+        <path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path>
+      </svg>
+    </span>
+    <div class="popup-box">
+      <div>
+        <h3>{{ reward_popuptitle }}</h3>
+        <div class="mrg16">{{ reward_popupmsg }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+  <script>
+  $(function(){
+    var learn_customTabelPopup = $(".learn_customTabelPopup__overlay").clone(true);
+    $(".learn_customTabelPopup__overlay").remove();
+    $("body").append(learn_customTabelPopup);
+    $( document )
+    .on(`click`, `.learn_customTabelPopup__overlay`, function( e ) {
+      $('.learn_customTabelPopup__overlay .popup__close').trigger("click");
+    })
+    .on(`click`, `.learn_customTabelPopup__overlay .popup-container`, function( e ) {
+      e.stopImmediatePropagation();
+    })
+    .on(`click`, `.{{ type }}_learn_more`, function( e ) {
+      try {
+        e.stopImmediatePropagation();
+        const learn_customTabelPopup__overlay = $( `.learn_customTabelPopup__overlay` ).length;
+        if ( learn_customTabelPopup__overlay > 0 ) {
+          $( `.learn_customTabelPopup__overlay` ).fadeIn();
+          $( `body` ).css( `overflow`, `hidden` );
+        }
+      } catch ( err ) {
+        console.log( `ERROR .learn_customTabelPopup__overlay`, err.message );
+      }
+    })
+    .on(`click`, `.popup__close`, function( e ) {
+        try {
+          e.stopImmediatePropagation();
+          $(this).parents(".popupoverlay").fadeOut();
+          $( `body` ).removeAttr( `style` );
+        } catch ( err ) {
+          console.log( `ERROR .popup__close`, err.message );
+        }
+    });
+  })
+</script>
+  {% endif %}

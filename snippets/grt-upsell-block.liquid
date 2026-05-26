@@ -1,0 +1,3491 @@
+{%- liquid
+  assign uid = section.id | append: '-' | append: block.id
+  assign upsell_products = block.settings.upsell_products
+  assign has_upsell_products = false
+  assign limit = block.settings.cards_limit | default: 6
+  assign show_slider = false
+  if upsell_products != blank and upsell_products.count > 0
+    assign has_upsell_products = true
+  endif
+  if has_upsell_products and upsell_products.count > limit
+    assign show_slider = true
+  endif
+-%}
+{%- if has_upsell_products -%}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+<style>
+  #grt-upsell-{{ uid }} .swiper-slide{text-align: left;}
+</style>
+
+{%- liquid
+  assign swatch_option_name = block.settings.swatch_option_name | default: 'Color'
+  assign show_upsell_head = false
+  assign show_cart_upsell = true
+
+  if request.page_type == 'cart'
+    if cart.item_count == 0
+      assign show_cart_upsell = false
+    endif
+  endif
+
+  if block.settings.heading != blank
+    assign show_upsell_head = true
+  endif
+  if block.settings.subheading != blank
+    assign show_upsell_head = true
+  endif
+  if block.settings.upsell_info_icon_1 != blank or block.settings.upsell_info_text_1 != blank
+    assign show_upsell_head = true
+  endif
+  if block.settings.upsell_info_icon_2 != blank or block.settings.upsell_info_text_2 != blank
+    assign show_upsell_head = true
+  endif
+-%}
+
+<div class="grt-upsell" id="grt-upsell-{{ uid }}" {{ block.shopify_attributes }}>
+  <div class="grt-product-upsell">
+    {%- if show_upsell_head -%}
+      <div class="grt-upsell__head">
+        {%- if block.settings.heading != blank -%}
+          <h2 class="grt-upsell__title">{{ block.settings.heading }}</h2>
+        {%- endif -%}
+        {%- if block.settings.subheading != blank -%}
+          <p class="grt-upsell__sub">{{ block.settings.subheading }}</p>
+        {%- endif -%}
+        {%- if block.settings.upsell_info_icon_1 != blank or block.settings.upsell_info_text_1 != blank or block.settings.upsell_info_icon_2 != blank or block.settings.upsell_info_text_2 != blank -%}
+          <div class="grt-upsell__meta">
+            {%- if block.settings.upsell_info_icon_1 != blank or block.settings.upsell_info_text_1 != blank -%}
+              <div class="grt-upsell__meta-item">
+                {%- if block.settings.upsell_info_icon_1 != blank -%}
+                  <img
+                    class="grt-upsell__meta-icon"
+                    src="{{ block.settings.upsell_info_icon_1 | image_url }}"
+                    width="20"
+                    height="20"
+                    loading="lazy"
+                    alt="{{ block.settings.upsell_info_text_1 | escape }}"
+                  >
+                {%- endif -%}
+                {%- if block.settings.upsell_info_text_1 != blank -%}
+                  <span class="grt-upsell__meta-text">{{ block.settings.upsell_info_text_1 | escape }}</span>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+            {%- if block.settings.upsell_info_icon_2 != blank or block.settings.upsell_info_text_2 != blank -%}
+              <div class="grt-upsell__meta-item">
+                {%- if block.settings.upsell_info_icon_2 != blank -%}
+                  <img
+                    class="grt-upsell__meta-icon"
+                    src="{{ block.settings.upsell_info_icon_2 | image_url }}"
+                    width="20"
+                    height="20"
+                    loading="lazy"
+                    alt="{{ block.settings.upsell_info_text_2 | escape }}"
+                  >
+                {%- endif -%}
+                {%- if block.settings.upsell_info_text_2 != blank -%}
+                  <span class="grt-upsell__meta-text">{{ block.settings.upsell_info_text_2 | escape }}</span>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+      <div class="grt-upsell__wrap swiper grt-swiper">
+        <div class="grt-upsell__track_ swiper-wrapper" data-upsell-track data-slider-enabled="{{ show_slider }}">
+          {%- for p in upsell_products -%}
+            {%- liquid
+              assign v = p.selected_or_first_available_variant
+              assign modal_id = 'grt-product-modal-' | append: uid | append: '-' | append: forloop.index
+              assign upsell_shirt_style = p.metafields.specs.shirt_style | strip
+              assign upsell_use_parent_child_flow = false
+              if upsell_shirt_style != blank
+                assign upsell_use_parent_child_flow = true
+              endif
+              assign upsell_product_heading = p.metafields.blanks.second_title_for_blanks | default: p.title
+              unless upsell_use_parent_child_flow
+                assign upsell_product_heading = p.title
+              endunless
+              assign upsell_pdp_handle = p.handle
+              if upsell_use_parent_child_flow
+                assign _uph_style_slug = upsell_shirt_style | downcase
+                if _uph_style_slug != blank and p.handle contains _uph_style_slug
+                  assign _uph_parts = p.handle | split: _uph_style_slug
+                  assign upsell_pdp_handle = _uph_parts | first | append: _uph_style_slug
+                endif
+              endif
+            -%}
+            <div class="swiper-slide">
+            <div class="grt-upsell__item" data-upsell-item{%- if upsell_use_parent_child_flow %} data-card-pdp-handle="{{ upsell_pdp_handle | escape }}"{%- endif -%}>
+              <div class="grt-product-layout">
+
+                <!-- Whole card navigates to product -->
+                  <div class="grt-product-card grt-qv-btn"
+                    data-open-modal="{{ modal_id }}"
+                    data-vid="{{ v.id }}"
+                    data-style="{{ p.metafields.specs.shirt_style | downcase }}"
+                    data-handle="{{ p.url }}"
+                    aria-label="Quick view">
+                    <div class="grt-product-card__container">
+
+                      <div class="grt-product-card__media grtproductcard">
+                        <div class="grt-product-card__main-image">
+                          {% comment %} <a href="{{ p.url }}"  aria-label="{{ p.title | escape }}" class="grt-card-overlay"></a> {% endcomment %}
+                          {%- if p.featured_image != blank -%}
+                            <img
+                              src="{{ p.featured_image | image_url: width: 560 }}"
+                              srcset="{{ p.featured_image | image_url: width: 280 }} 280w, {{ p.featured_image | image_url: width: 560 }} 560w"
+                              sizes="(max-width: 749px) 50vw, 280px"
+                              width="280"
+                              height="280"
+                              loading="lazy"
+                              alt="{{ p.featured_image.alt | default: p.title | escape }}"
+                            >
+                          {%- elsif v.image != blank -%}
+                            <img
+                              src="{{ v.image | image_url: width: 560 }}"
+                              srcset="{{ v.image | image_url: width: 280 }} 280w, {{ v.image | image_url: width: 560 }} 560w"
+                              sizes="(max-width: 749px) 50vw, 280px"
+                              width="280"
+                              height="280"
+                              loading="lazy"
+                              alt="{{ v.image.alt | default: p.title | escape }}"
+                            >
+                          {%- else -%}
+                            <div class="grt-product-card__img-placeholder"></div>
+                          {%- endif -%}
+                        </div>
+
+                          <!-- Hidden by default, visible on hover -->
+                          <div class="grt-qv-wrap" id="product-card-quick-view-btn-{{ v.id }}">
+                            <button class="grtqvbtn"
+                              type="button"
+                              data-open-modal="{{ modal_id }}" data-vid="{{ v.id }}"
+                              aria-label="Quick buy">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                              QUICK BUY
+                            </button>
+                          </div>
+                          <!-- ./quick view -->
+                      </div>
+
+                      {%- comment -%}Card color swatch strip — right below product image. Hidden for Supplies products.{%- endcomment -%}
+                      {%- assign _ptype_lc = p.type | downcase -%}
+                      {%- unless _ptype_lc == 'supplies' -%}
+                      <div class="grt-card-swatches" data-card-swatches style="display:none;"></div>
+                      {%- if upsell_use_parent_child_flow -%}
+                        {%- assign _pp = all_products[upsell_pdp_handle] -%}
+                        {%- if _pp != blank -%}
+                          {%- comment -%}Only show color swatches if the product actually has a Color option or shirt_color metafield{%- endcomment -%}
+                          {%- assign _has_color_opt = false -%}
+                          {%- for _opt in _pp.options_with_values -%}
+                            {%- assign _opt_name_lc = _opt.name | downcase -%}
+                            {%- if _opt_name_lc == 'color' or _opt_name_lc == swatch_option_name -%}
+                              {%- assign _has_color_opt = true -%}{%- break -%}
+                            {%- endif -%}
+                          {%- endfor -%}
+                          {%- if _has_color_opt == false -%}
+                            {%- for _pv in _pp.variants -%}
+                              {%- if _pv.metafields.specs.shirt_color != blank -%}
+                                {%- assign _has_color_opt = true -%}{%- break -%}
+                              {%- endif -%}
+                            {%- endfor -%}
+                          {%- endif -%}
+                          {%- if _has_color_opt -%}
+                            {%- comment -%}Use options_with_values for accurate total — not capped like variants (100 limit){%- endcomment -%}
+                            {%- assign _total_colors = 0 -%}{%- for _opt in _pp.options_with_values -%}{%- assign _opt_name_lc = _opt.name | downcase -%}{%- if _opt_name_lc == 'color' or _opt_name_lc == swatch_option_name -%}{%- assign _total_colors = _opt.values.size -%}{%- break -%}{%- endif -%}{%- endfor -%}{%- if _total_colors == 0 -%}{%- assign _tc_seen = '|' -%}{%- for _pv in _pp.variants -%}{%- assign _pck = _pv.metafields.specs.shirt_color | strip | downcase -%}{%- if _pck != blank -%}{%- assign _pct = '|' | append: _pck | append: '|' -%}{%- unless _tc_seen contains _pct -%}{%- assign _tc_seen = _tc_seen | append: _pck | append: '|' -%}{%- assign _total_colors = _total_colors | plus: 1 -%}{%- endunless -%}{%- endif -%}{%- endfor -%}{%- endif -%}
+                            <script type="application/json" data-card-color-json data-card-color-total="{{ _total_colors }}">[{%- assign _ck_seen = '|' -%}{%- assign _ck_first = true -%}{%- for _pv in _pp.variants -%}{%- assign _pcn = _pv.metafields.specs.shirt_color | default: _pv.option1 | strip -%}{%- assign _pck = _pcn | downcase -%}{%- assign _pci = _pv.inventory_quantity -%}{%- if localization.country.iso_code == 'CA' -%}{%- assign _pci = _pv.metafields.custom.ss_ca_inventory | default: _pv.inventory_quantity -%}{%- endif -%}{%- if _pck != blank and _pci > 0 -%}{%- assign _pct = '|' | append: _pck | append: '|' -%}{%- unless _ck_seen contains _pct -%}{%- assign _ck_seen = _ck_seen | append: _pck | append: '|' -%}{%- assign _pch = _pv.metafields.specs.shirt_prim_hex | strip -%}{%- if _pch == blank or _pch == '0' -%}{%- assign _pch = '888888' -%}{%- endif -%}{%- unless _pch contains '#' -%}{%- assign _pch = '#' | append: _pch -%}{%- endunless -%}{%- unless _ck_first -%},{%- endunless -%}{%- assign _ck_first = false -%}{"key":{{ _pck | json }},"name":{{ _pcn | json }},"hex":{{ _pch | json }},"vid":{{ _pv.id | json }},"img":{%- if _pv.image != blank -%}{{ _pv.image | image_url: width: 560 | json }}{%- else -%}null{%- endif -%},"price":{{ _pv.price | json }},"compare":{{ _pv.compare_at_price | json }}}{%- endunless -%}{%- endif -%}{%- endfor -%}]</script>
+                          {%- endif -%}
+                        {%- endif -%}
+                      {%- endif -%}
+                      {%- endunless -%}
+
+                      <div class="grt-product-card__details grtproductcard">
+                        <div class="grt-product-card__info">
+                          <div class="grt-product-card__yotpo">
+                            <div class="yotpo-widget-instance" data-yotpo-instance-id="447610" data-yotpo-product-id="{{ p.id }}" data-yotpo-section-id="{{ section.id }}" data-yotpo-preloaded-data=""></div>
+                          </div>
+                          <h3 class="grt-product-card__title">{{ upsell_product_heading }}</h3>
+                          <div class="grt-product-card__price-row">
+                            <span class="grt-product-card__starting">Starting at</span>
+                            <div class="grt-product-card__price">
+                              <span class="grt-product-card__price-now">{{ v.price | money }}</span>
+                              {%- if v.compare_at_price and v.compare_at_price > v.price -%}
+                                <span class="grt-product-card__price-compare">{{ v.compare_at_price | money }}</span>
+                              {%- endif -%}
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+              </div>
+
+              <!-- Modal -->
+              <dialog id="{{ modal_id }}" class="grt-product-modal" data-default-vid="{{ v.id }}">
+                <div class="grt-product-modal__container">
+                  <div class="grt-product-modal__loading" aria-hidden="true">
+                    <div class="grt-product-modal__loading-spinner"></div>
+                    <div class="grt-product-modal__loading-text">Loading options...</div>
+                  </div>
+
+                  <div class="grt-product-modal__content">
+                    <div class="grt-product-modal__layout">
+                      <div class="grt-product-modal__media">
+                        {%- if v.image != blank -%}
+                          <img data-modal-image src="{{ v.image | image_url: width: 832 }}" width="416" height="416" alt="{{ v.image.alt | default: p.title | escape }}">
+                        {%- elsif p.featured_image != blank -%}
+                          <img data-modal-image src="{{ p.featured_image | image_url: width: 832 }}" width="416" height="416" alt="{{ p.featured_image.alt | default: p.title | escape }}">
+                        {%- endif -%}
+                      </div>
+
+                      <div class="grt-product-modal__details">
+                        
+                        <button class="grt-product-modal__close grt-modal__close" type="button" data-close-modal="{{ modal_id }}">
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M1.6 16L0 14.4L6.4 8L0 1.6L1.6 0L8 6.4L14.4 0L16 1.6L9.6 8L16 14.4L14.4 16L8 9.6L1.6 16Z" fill="black"/>
+                          </svg>
+                        </button>
+
+                        <div class="grt-product-modal__header">
+                          <div class="grt-product-card__yotpo grt-modal__star">
+                              <div class="yotpo-widget-instance" data-yotpo-instance-id="447610" data-yotpo-product-id="{{ p.id }}" data-yotpo-section-id="{{ section.id }}" data-yotpo-preloaded-data=""></div>
+                          </div>
+                          <h2 class="grt-product-modal__title">{{ upsell_product_heading }}</h2>
+                          {% if upsell_use_parent_child_flow %}
+                            <div class="grt-product-modal__full-details">
+                              <a href="{{ p.url }}" target="_blank" rel="noopener noreferrer">View Full Details</a>
+                            </div>
+                          {% endif %}
+                          <div class="grt-product-modal__price-container">
+                            {% if upsell_use_parent_child_flow %}
+                            <div class="grt-product-modal__starting-at">Starting at</div>
+                            {% endif %}
+                            <span class="grt-product-modal__price">{{ v.price | money }}</span>
+                            {%- if v.compare_at_price and v.compare_at_price > v.price -%}
+                              <span class="grt-product-modal__compare-price">{{ v.compare_at_price | money }}</span>
+                            {%- endif -%}
+                          </div>
+                          
+                        </div>
+
+                        <form class="grt-product-modal__form" novalidate method="post" action="/cart/add" data-initial-variant="{{ v.id }}">
+                          <input type="hidden" name="id" value="{{ v.id }}" data-variant-input />
+
+                          {%- if p.variants.size > 1 -%}
+                            {%- render 'grt-upsell-variant-options',
+                              block: block,
+                              p: p,
+                              v: v,
+                              swatch_option_name: swatch_option_name
+                            -%}
+                          {%- endif -%}
+
+                          <div class="grt-product-modal__label grt-size-qty-parent-label" data-size-qty-parent-label style="display:none;">Variant</div>
+                          <div class="grt-pdp-size-grid" data-pdp-size-grid style="display:none;"></div>
+                          <div class="grt-size-qty-grid" data-size-qty-grid style="display:none;"></div>
+
+                          <div class="grt-product-modal__qty" data-qty-wrap>
+                            <label class="grt-product-modal__label" for="grt-qty-{{ modal_id }}">Quantity</label>
+                            <div class="grt-qty">
+                              <div class="grt-qty-box-wrapper">
+                                <button type="button" class="grt-qty__btn" data-qty-minus aria-label="Decrease quantity">-</button>
+                                <input id="grt-qty-{{ modal_id }}" class="grt-qty__input" type="number" name="quantity" value="1" min="1" step="1" inputmode="numeric" pattern="[0-9]*" data-qty-input>
+                                <button type="button" class="grt-qty__btn" data-qty-plus aria-label="Increase quantity">+</button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {% unless upsell_use_parent_child_flow %}
+                          <div class="grt-product-modal__description grt-modal__description-wrapper">
+                            <div class="grt-product-modal__description-text half__description">
+                              {{ p.description | strip_html | truncate: 220 }}
+                              <div class="grt-product-modal__more">
+                                <a href="javascript:void(0);" class="showfullcta">See More</a>
+                              </div>
+                            </div>
+
+                            <div class="grt-product-modal__description-text full__description">
+                              {{ p.description | strip_html }}
+                              <div class="grt-product-modal__more">
+                                <a href="javascript:void(0);" class="hidefullcta">See Less</a>
+                              </div>
+                            </div>
+                          </div>
+                          {% endunless %}
+
+                        </form>
+
+                        <div class="grt-product-modal__buttons">
+                          <button class="grt-product-modal__add-button button" type="button" {% unless v.available %}disabled{% endunless %}>
+                            Add to cart
+                          </button>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </dialog>
+            </div>
+          </div>
+          {%- endfor -%}
+        </div>
+        
+        <div class="swiper-button-prev grt-upsell-prev"></div>
+        <div class="swiper-button-next grt-upsell-next"></div>
+      </div>
+  </div>
+</div>
+
+<script>
+
+  var SHOP_MONEY_FORMAT = {{ shop.money_format | json }};
+  function grt____upsell(){
+    var $root = $("#grt-upsell-{{ uid }}");
+    if (!$root.length) return;
+    if ($root.attr("data-grt-upsell-bound") === "1") return;
+    $root.attr("data-grt-upsell-bound", "1");
+    var pdpColorDataRequests = {};
+    var cardImageCache = {}; // keyed by "pdpHandle::colorName"
+
+    // ---------------------------
+    // Helpers
+    // ---------------------------
+    function formatMoney(cents, format) {
+      if (typeof cents === "string") cents = cents.replace(".", "");
+      var value = "";
+      var placeholderRegex = /\{\{\s*(\w+)\s*\}\}/;
+      var formatString = format || SHOP_MONEY_FORMAT;
+
+      function formatWithDelimiters(number, precision, thousands, decimal) {
+        precision = precision || 2;
+        thousands = thousands || ",";
+        decimal = decimal || ".";
+        number = (number / 100).toFixed(precision);
+        var parts = number.split(".");
+        var dollars = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, thousands);
+        var centsPart = parts[1] ? decimal + parts[1] : "";
+        return dollars + centsPart;
+      }
+
+      var match = formatString.match(placeholderRegex);
+      var token = match ? match[1] : "amount";
+
+      switch (token) {
+        case "amount": value = formatWithDelimiters(cents, 2); break;
+        case "amount_no_decimals": value = formatWithDelimiters(cents, 0); break;
+        case "amount_with_comma_separator": value = formatWithDelimiters(cents, 2, ".", ","); break;
+        case "amount_no_decimals_with_comma_separator": value = formatWithDelimiters(cents, 0, ".", ","); break;
+        default: value = formatWithDelimiters(cents, 2); break;
+      }
+      return formatString.replace(placeholderRegex, value);
+    }
+
+    function getVariantsFromBlock($block) {
+      var $jsonEl = $block.find("[data-variants-json]").first();
+      if (!$jsonEl.length) return [];
+      try { return JSON.parse($jsonEl.text() || "[]"); } catch (e) { return []; }
+    }
+
+    function findVariantById(variants, id) {
+      var sid = String(id || "").trim();
+      if (!sid) return null;
+      for (var i = 0; i < variants.length; i++) {
+        if (String(variants[i].id) === sid) return variants[i];
+      }
+      return null;
+    }
+
+    function getSelectedOptions($block) {
+      var count = parseInt($block.attr("data-option-count") || "0", 10);
+      var selected = new Array(count);
+      for (var i = 0; i < count; i++) selected[i] = null;
+
+      $block.find(".grt-variant-pill.is-active").each(function () {
+        var idx = parseInt($(this).attr("data-option-index"), 10);
+        var val = $(this).attr("data-option-value");
+        if (!isNaN(idx)) selected[idx] = val;
+      });
+      return selected;
+    }
+
+    function findMatchingVariant(variants, selected) {
+      for (var i = 0; i < variants.length; i++) {
+        var vr = variants[i];
+        var ok = true;
+        for (var j = 0; j < selected.length; j++) {
+          if (selected[j] == null) { ok = false; break; }
+          var key = "option" + (j + 1);
+          if ((vr[key] || "") !== selected[j]) { ok = false; break; }
+        }
+        if (ok) return vr;
+      }
+      return null;
+    }
+
+    function setActivePill($block, optionIndex, optionValue) {
+      var $scope = $block.find('.grt-opt__pills[data-option-index="' + optionIndex + '"]').first();
+      if (!$scope.length) return;
+      $scope.find(".grt-variant-pill").removeClass("is-active");
+      var $found = $scope.find('.grt-variant-pill[data-option-value="' + cssEscape(optionValue) + '"]').first();
+      if ($found.length) $found.addClass("is-active");
+    }
+
+    function updateButtonsAndPrice($form, variant) {
+      var $addBtn = $form.find(".grt-product-modal__add-button").first();
+      var $details = $form.closest(".grt-product-modal__details");
+      var $priceEl = $details.find(".grt-product-modal__price").first();
+      var $compareEl = $details.find(".grt-product-modal__compare-price").first();
+
+      var available = !!(variant && variant.available);
+      if ($addBtn.length) $addBtn.prop("disabled", !available);
+
+      if (variant && $priceEl.length) $priceEl.html(formatMoney(variant.price));
+
+      if ($compareEl.length) {
+        var c = variant ? variant.compare_at_price : null;
+        if (c && Number(c) > Number(variant.price)) {
+          $compareEl.css("display", "").html(formatMoney(c));
+        } else {
+          $compareEl.css("display", "none");
+        }
+      }
+    }
+
+    function updateModalHeadlinePrice($dlg, priceCents, compareCents) {
+      if (!$dlg.length) return;
+      var $details = $dlg.find(".grt-product-modal__details").first();
+      if (!$details.length) return;
+
+      var $priceEl = $details.find(".grt-product-modal__price").first();
+      var $compareEl = $details.find(".grt-product-modal__compare-price").first();
+
+      var priceValue = parseInt(priceCents || "0", 10);
+      if (!isNaN(priceValue) && priceValue > 0 && $priceEl.length) {
+        $priceEl.html(formatMoney(priceValue));
+      }
+
+      var compareValue = parseInt(compareCents || "0", 10);
+      if ($compareEl.length) {
+        if (!isNaN(compareValue) && compareValue > priceValue) {
+          $compareEl.css("display", "").html(formatMoney(compareValue));
+        } else {
+          $compareEl.css("display", "none");
+        }
+      }
+    }
+
+    function updateModalImage($form, variant) {
+      if (!variant || !variant.image) return;
+      var $dlg = $form.closest("dialog.grt-product-modal");
+      if (!$dlg.length) return;
+      var $img = $dlg.find("[data-modal-image]").first();
+      if ($img.length) $img.attr("src", variant.image);
+    }
+
+    function setVariantOnForm($form, variant) {
+      if (!$form.length || !variant) return;
+
+      // source of truth for our code
+      $form.attr("data-variant-id", String(variant.id));
+
+      // keep hidden input aligned
+      var $hidden = $form.find("[data-variant-input],[name='id']").first();
+      if ($hidden.length) $hidden.val(variant.id);
+
+      updateButtonsAndPrice($form, variant);
+      updateModalImage($form, variant);
+    }
+
+    function isValuePossible(variants, selected, optionIndex, testValue) {
+      for (var i = 0; i < variants.length; i++) {
+        var vr = variants[i];
+        if (!vr.available) continue;
+
+        var ok = true;
+        for (var j = 0; j < selected.length; j++) {
+          var key = "option" + (j + 1);
+          if (j === optionIndex) {
+            if ((vr[key] || "") !== testValue) { ok = false; break; }
+          } else {
+            if (selected[j] == null) continue;
+            if ((vr[key] || "") !== selected[j]) { ok = false; break; }
+          }
+        }
+        if (ok) return true;
+      }
+      return false;
+    }
+
+    function refreshDisabledStates($block) {
+      var variantFlow = String($block.attr("data-variant-flow") || "").trim();
+      var variants = getVariantsFromBlock($block);
+      var selected = getSelectedOptions($block);
+      var optionCount = parseInt($block.attr("data-option-count") || "0", 10);
+      var lastOptionIndex = optionCount > 0 ? optionCount - 1 : -1;
+
+      $block.find(".grt-variant-pill").each(function () {
+        var $btn = $(this);
+        var idx = parseInt($btn.attr("data-option-index"), 10);
+        if (isNaN(idx)) return;
+
+        if (variantFlow === "normal" && idx !== lastOptionIndex) {
+          $btn.prop("disabled", false);
+          $btn.removeClass("is-disabled");
+          return;
+        }
+
+        var val = $btn.attr("data-option-value");
+        var possible = isValuePossible(variants, selected, idx, val);
+        $btn.prop("disabled", !possible);
+        $btn.toggleClass("is-disabled", !possible);
+      });
+      scheduleColorRowsLimit($block);
+      schedulePdpColorRowsLimit($block);
+    }
+
+    function ensureDefaults($block) {
+      $block.find(".grt-opt__pills").each(function () {
+        var $wrap = $(this);
+        if ($wrap.find(".grt-variant-pill.is-active:not(:disabled)").length) return;
+        $wrap.find(".grt-variant-pill.is-active").removeClass("is-active");
+        var $first = $wrap.find(".grt-variant-pill:not(:disabled)").first();
+        if (!$first.length) $first = $wrap.find(".grt-variant-pill").first();
+        if ($first.length) $first.addClass("is-active");
+      });
+    }
+
+    function syncVariantFromSelection($block) {
+      var variants = getVariantsFromBlock($block);
+      var selected = getSelectedOptions($block);
+      var $form = $block.closest("form.grt-product-modal__form");
+      if (!$form.length) return;
+
+      if (selected.some(function (v) { return v == null; })) {
+        ensureDefaults($block);
+        selected = getSelectedOptions($block);
+      }
+
+      refreshDisabledStates($block);
+      ensureDefaults($block);
+      selected = getSelectedOptions($block);
+
+      var match = findMatchingVariant(variants, selected);
+      if (!match) {
+        updateButtonsAndPrice($form, null);
+        var $dlgNoMatch = $block.closest("dialog.grt-product-modal");
+        if ($dlgNoMatch.length) buildSizeQtyGrid($dlgNoMatch);
+        return;
+      }
+      setVariantOnForm($form, match);
+      var $dlg = $block.closest("dialog.grt-product-modal");
+      if ($dlg.length) buildSizeQtyGrid($dlg);
+    }
+
+    function applyVariantIdToModal($dlg, variantId) {
+      var $block = $dlg.find("[data-variant-options]").first();
+      var $form = $dlg.find("form.grt-product-modal__form").first();
+      if (!$block.length || !$form.length) return;
+
+      var variants = getVariantsFromBlock($block);
+      var vr = findVariantById(variants, variantId);
+      if (!vr) { syncVariantFromSelection($block); return; }
+
+      var count = parseInt($block.attr("data-option-count") || "0", 10);
+      for (var i = 0; i < count; i++) {
+        var key = "option" + (i + 1);
+        if (vr[key] != null) setActivePill($block, i, vr[key]);
+      }
+
+      refreshDisabledStates($block);
+      setVariantOnForm($form, vr);
+      buildSizeQtyGrid($dlg);
+    }
+
+    // CSS.escape fallback for attribute selector safety
+    function cssEscape(val) {
+      val = String(val == null ? "" : val);
+      // minimal escape for quotes and backslashes (enough for your values)
+      return val.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    }
+
+    function normalizeSwatchHex(hex) {
+      var value = String(hex || "").trim();
+      if (!value || value === "0") return "";
+      if (value.charAt(0) !== "#") value = "#" + value;
+      return value;
+    }
+
+    function getColorMapFromBlock($block) {
+      var $jsonEl = $block.find("[data-color-map-json]").first();
+      if (!$jsonEl.length) return {};
+      try {
+        var parsed = JSON.parse($jsonEl.text() || "{}");
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    // ---------------------------
+    // Swatch mask helpers (hard-cut edges, dynamic per scroll position)
+    // ---------------------------
+    var MASK_SIZE = 20; // px — roughly half a 36px swatch
+    function updateSwatchMask(el) {
+      var atStart = el.scrollLeft <= 1;
+      var atEnd   = el.scrollLeft >= el.scrollWidth - el.clientWidth - 1;
+      var noScroll = el.scrollWidth <= el.clientWidth + 2;
+      var mask;
+      if (noScroll) {
+        mask = 'none';
+      } else if (atStart) {
+        // Only right hard-cut — show half of next swatch
+        mask = 'linear-gradient(to right, black calc(100% - ' + MASK_SIZE + 'px), transparent calc(100% - ' + MASK_SIZE + 'px))';
+      } else if (atEnd) {
+        // Only left hard-cut — last swatch fully visible on right
+        mask = 'linear-gradient(to right, transparent ' + MASK_SIZE + 'px, black ' + MASK_SIZE + 'px)';
+      } else {
+        // Both edges — cut on left and right
+        mask = 'linear-gradient(to right, transparent ' + MASK_SIZE + 'px, black ' + MASK_SIZE + 'px, black calc(100% - ' + MASK_SIZE + 'px), transparent calc(100% - ' + MASK_SIZE + 'px))';
+      }
+      el.style.webkitMaskImage = mask;
+      el.style.maskImage = mask;
+    }
+
+    function initSwatchMask(el) {
+      if (!el || el.__grtMaskBound) return;
+      el.__grtMaskBound = true;
+      updateSwatchMask(el);
+      el.addEventListener('scroll', function () { updateSwatchMask(el); }, { passive: true });
+    }
+
+    function applyColorSwatches($block) {
+      if (!$block.length) return;
+      var swatchIndex = parseInt($block.attr("data-swatch-option-index") || "", 10);
+      if (isNaN(swatchIndex) || swatchIndex < 0) return;
+
+      var colorMap = getColorMapFromBlock($block);
+      if (!colorMap || typeof colorMap !== "object") return;
+
+      var $pills = $block.find('.grt-variant-pill[data-option-index="' + swatchIndex + '"]');
+      if (!$pills.length) return;
+
+      $pills.each(function () {
+        var $pill = $(this);
+        var optionValue = ($pill.attr("data-option-value") || "").toString().trim();
+        var optionKey = optionValue.toLowerCase();
+        var swatchHex = normalizeSwatchHex(colorMap[optionKey]);
+        if (!swatchHex) return;
+
+        $pill.addClass("is-swatch");
+        $pill.attr("data-swatch", swatchHex);
+        $pill.css("--swatch", swatchHex);
+        $pill.attr("aria-label", optionValue);
+
+        if (!$pill.find(".grt-swatch").length) {
+          $pill.empty().append('<span class="grt-swatch"></span>');
+        }
+      });
+
+      $block.find('.grt-opt__pills[data-option-index="' + swatchIndex + '"]').addClass("grt-swatch-pills");
+      updateSelectedColorName($block);
+    }
+
+    function updateSelectedColorName($block) {
+      if (!$block.length) return;
+      var colorName = "";
+
+      if ($block.attr("data-use-pdp-color-flow") === "1") {
+        // Parent-child flow: read from the label element or block attribute
+        colorName = String($block.find("[data-pdp-selected-color-text]").first().text() || "").trim();
+        if (!colorName) colorName = String($block.attr("data-pdp-selected-color-key") || "").trim();
+        // Show the built-in text element
+        $block.find("[data-pdp-selected-color-text]").show();
+      } else {
+        // Normal flow: read from the active swatch pill
+        var $activePill = $block.find(".grt-variant-pill.is-swatch.is-active").first();
+        if (!$activePill.length) $activePill = $block.find(".grt-variant-pill.is-swatch").first();
+        colorName = String($activePill.attr("data-option-value") || $activePill.attr("aria-label") || "").trim();
+        // Update or create the inline color name span in the label
+        var $opt = $activePill.closest(".grt-opt");
+        var $label = $opt.find(".grt-product-modal__label").first();
+        if ($label.length) {
+          var $nameSpan = $label.find(".grt-selected-color-name");
+          if (!$nameSpan.length) {
+            $nameSpan = $('<span class="grt-selected-color-name"></span>');
+            $label.append($nameSpan);
+          }
+          $nameSpan.text(colorName);
+        }
+      }
+    }
+
+    function getRequest(url) {
+      return fetch(url, { credentials: "same-origin" }).then(function (response) {
+        if (!response.ok) {
+          throw new Error("Request failed: " + response.status);
+        }
+        return response.json();
+      });
+    }
+
+    function getPdpColorRequestKey(handle, colorValue, colorOptionValueId) {
+      return (
+        String(handle || "").trim() +
+        "::" +
+        String(colorValue || "").trim() +
+        "::" +
+        String(colorOptionValueId || "").trim()
+      );
+    }
+
+    function requestPdpColorData(handle, colorValue, options) {
+      options = options || {};
+      var colorOptionValueId = String(options.colorOptionValueId || "").trim();
+      var key = getPdpColorRequestKey(handle, colorValue, colorOptionValueId);
+      if (!key || key === "::") {
+        return Promise.reject(new Error("Missing parent-child request key"));
+      }
+
+      if (pdpColorDataRequests[key]) {
+        return pdpColorDataRequests[key];
+      }
+
+      var url =
+        "/products/" +
+        handle +
+        "?view=get_handle__modal&_ts=" +
+        Date.now() +
+        "&variant=" +
+        encodeURIComponent(colorValue);
+      if (colorOptionValueId) {
+        url += "&option_values=" + encodeURIComponent(colorOptionValueId);
+      }
+      pdpColorDataRequests[key] = getRequest(url)
+        .then(function (data) {
+          delete pdpColorDataRequests[key];
+          return data || {};
+        })
+        .catch(function (error) {
+          delete pdpColorDataRequests[key];
+          throw error;
+        });
+
+      return pdpColorDataRequests[key];
+    }
+
+    function normalizePdpHex(hex) {
+      var value = String(hex || "").trim();
+      if (!value) return "";
+      if (value.charAt(0) !== "#") value = "#" + value;
+      return value;
+    }
+
+    function pdpHsl(hex) {
+      try {
+        var clean = normalizePdpHex(hex);
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(clean);
+        if (!result) return [0, 0, 0];
+
+        var r = parseInt(result[1], 16) / 255;
+        var g = parseInt(result[2], 16) / 255;
+        var b = parseInt(result[3], 16) / 255;
+        var max = Math.max(r, g, b);
+        var min = Math.min(r, g, b);
+        var h = 0;
+        var s = 0;
+        var l = (max + min) / 2;
+
+        if (max !== min) {
+          var d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            default: h = (r - g) / d + 4; break;
+          }
+          h /= 6;
+        }
+
+        return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+      } catch (e) {
+        return [0, 0, 0];
+      }
+    }
+
+    function getPdpColorCategory(hue, saturation) {
+      // Match apparel-variant-color-picker behavior (threshold is 0.2 on a 0-100 saturation scale).
+      if (saturation < 0.2) return "grayscale";
+      if ((hue >= 330 && hue <= 360) || (hue >= 0 && hue <= 16)) return "red";
+      if (hue > 16 && hue <= 42) return "orange";
+      if (hue > 42 && hue <= 65) return "yellow";
+      if (hue > 65 && hue <= 165) return "green";
+      if (hue > 165 && hue <= 190) return "cyan";
+      if (hue > 190 && hue <= 255) return "blue";
+      if (hue > 255 && hue <= 295) return "violet";
+      if (hue > 295 && hue < 330) return "magenta";
+      return "other";
+    }
+
+    function sortPdpColorPills($block) {
+      if (!$block.length) return;
+      var $wrap = $block.find("[data-pdp-color-options]").first();
+      if (!$wrap.length) return;
+
+      var colors = [];
+
+      $wrap.find("[data-pdp-color-key]").each(function () {
+        var $el = $(this);
+        var hex = normalizePdpHex($el.attr("data-pdp-color-hex"));
+        var hsl = pdpHsl(hex);
+
+        colors.push({
+          $el: $el.detach(),
+          hex: hex,
+          h: hsl[0],
+          s: hsl[1] / 100,
+          l: hsl[2]
+        });
+      });
+
+      colors.sort(function (a, b) {
+        var colA = a.s < 0.15 ? 0 : Math.floor(a.h / 24) + 1;
+        var colB = b.s < 0.15 ? 0 : Math.floor(b.h / 24) + 1;
+
+        if (colA !== colB) return colA - colB;
+        return b.l - a.l;
+      });
+
+      colors.forEach(function (color) {
+        $wrap.append(color.$el);
+      });
+    }
+
+    function buildMobileColorDropdown($block) {
+      var $list = $block.find("[data-mobile-cp-list]").first();
+      if (!$list.length) return;
+
+      // Collect colors from pills (already hue-sorted by sortPdpColorPills)
+      var colors = [];
+      $block.find(".grt-pdp-color-pill").each(function () {
+        var $p = $(this);
+        var chipStyle = $p[0].style.getPropertyValue("--grt-pdp-color-chip") || "";
+        colors.push({
+          key: String($p.attr("data-pdp-color-key") || ""),
+          name: String($p.attr("data-pdp-color-name") || ""),
+          chipStyle: chipStyle
+        });
+      });
+
+      // Sort alphabetically by color name
+      colors.sort(function (a, b) { return a.name.localeCompare(b.name); });
+
+      // Update count badge
+      var count = colors.length;
+      $block.find("[data-color-count-badge]").text(count + " colors");
+
+      // Active key
+      var activeKey = String($block.attr("data-pdp-selected-color-key") || "").toLowerCase();
+
+      // Build full-screen overlay HTML: header + scrollable list
+      var itemsHtml = "";
+      for (var i = 0; i < colors.length; i++) {
+        var c = colors[i];
+        var isActive = (c.key === activeKey);
+        itemsHtml += '<button type="button" class="grt-mobile-cp-item' + (isActive ? " is-active" : "") + '"'
+          + ' data-mobile-cp-item-key="' + htmlEscape(c.key) + '">'
+          + '<span class="grt-mobile-cp-item__chip" style="--grt-mobile-cp-item-chip:' + c.chipStyle + '"></span>'
+          + '<span>' + htmlEscape(c.name) + '</span>'
+          + '</button>';
+      }
+      var html = '<div class="grt-mobile-cp-list__header">'
+        + '<span>Select Color</span>'
+        + '<button type="button" class="grt-mobile-cp-list__close" data-mobile-cp-close aria-label="Close">'
+        + '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+        + '</button>'
+        + '</div>'
+        + '<div class="grt-mobile-cp-list__scroll">' + itemsHtml + '</div>';
+      $list.html(html);
+    }
+
+    function updateMobileColorTrigger($block, colorName, chipValue) {
+      var $trigger = $block.find("[data-mobile-cp-trigger]").first();
+      if (!$trigger.length) return;
+      var $chip = $trigger.find("[data-mobile-cp-chip]").first();
+      var $name = $trigger.find("[data-mobile-cp-name]").first();
+      if ($name.length) $name.text(String(colorName || "").toLowerCase() || "select color");
+      if ($chip.length && chipValue) {
+        $chip[0].style.setProperty("--grt-mobile-cp-chip", chipValue);
+      }
+      // Sync active state in the dropdown list
+      var activeKey = String(colorName || "").toLowerCase();
+      $block.find(".grt-mobile-cp-item").each(function () {
+        var $item = $(this);
+        $item.toggleClass("is-active", $item.attr("data-mobile-cp-item-key") === activeKey);
+      });
+    }
+
+    function sortPdpColorPills__old($block) {
+      if (!$block.length) return;
+      var $wrap = $block.find("[data-pdp-color-options]").first();
+      if (!$wrap.length) return;
+
+      var groups = {
+        grayscale: [],
+        red: [],
+        orange: [],
+        yellow: [],
+        green: [],
+        cyan: [],
+        blue: [],
+        violet: [],
+        magenta: [],
+        other: []
+      };
+
+      $wrap.find("[data-pdp-color-key]").each(function () {
+        var $el = $(this);
+        var hex = normalizePdpHex($el.attr("data-pdp-color-hex"));
+        var hsl = pdpHsl(hex);
+        var category = getPdpColorCategory(hsl[0], hsl[1]);
+        groups[category].push({
+          $el: $el.detach(),
+          lightness: hsl[2]
+        });
+      });
+
+      Object.keys(groups).forEach(function (key) {
+        groups[key].sort(function (a, b) {
+          return b.lightness - a.lightness;
+        });
+      });
+
+      console.log("Grouped color pills by category and sorted by lightness within each category");
+      console.log(groups);
+      var order = ["grayscale", "red", "orange", "yellow", "green", "cyan", "blue", "violet", "magenta", "other"];
+      order.forEach(function (key) {
+        groups[key].forEach(function (row) {
+          $wrap.append(row.$el);
+        });
+      });
+
+      console.log("Sorted color pills in category order with lightness sorting within each category");
+      console.log(groups);
+    }
+
+    function setPdpColorButtonState($block, $pill) {
+      $block
+        .find("[data-pdp-color-key]")
+        .removeClass("is-active")
+        .attr("aria-pressed", "false");
+      $pill.addClass("is-active").attr("aria-pressed", "true");
+    }
+
+    function getPdpColorMaxRows() {
+      var maxRows = 2;
+      if (window.matchMedia && window.matchMedia("(max-width: 749px)").matches) {
+        maxRows = 4;
+      }
+      return maxRows;
+    }
+
+    function isPdpColorBeyondRowLimit($block, $pill) {
+      if (!$block.length || !$pill.length) return false;
+      var $wrap = $block.find("[data-pdp-color-options]").first();
+      if (!$wrap.length) return false;
+
+      var maxRows = getPdpColorMaxRows();
+      var rowTops = [];
+      var selectedRow = -1;
+      var $pills = $wrap.find(".grt-pdp-color-pill:visible");
+
+      $pills.each(function () {
+        var top = Math.round($(this).position().top || 0);
+        var rowIndex = -1;
+        for (var i = 0; i < rowTops.length; i++) {
+          if (Math.abs(rowTops[i] - top) <= 2) {
+            rowIndex = i;
+            break;
+          }
+        }
+        if (rowIndex === -1) {
+          rowTops.push(top);
+          rowIndex = rowTops.length - 1;
+        }
+        if (this === $pill[0]) {
+          selectedRow = rowIndex + 1;
+        }
+      });
+
+      if (selectedRow < 0) return false;
+      return selectedRow > maxRows;
+    }
+
+    function buildPdpSizeSkeletonHtml(count) {
+      count = count || 8;
+      var cards = '';
+      for (var i = 0; i < count; i++) {
+        cards += '<div class="grt-size-skel__card">' +
+          '<div class="grt-size-skel__bar grt-size-skel__lbl"></div>' +
+          '<div class="grt-size-skel__bar grt-size-skel__inp"></div>' +
+          '<div class="grt-size-skel__bar grt-size-skel__pr"></div>' +
+          '<div class="grt-size-skel__bar grt-size-skel__pr"></div>' +
+          '</div>';
+      }
+      return '<div class="grt-size-skel">' + cards + '</div>';
+    }
+
+    function renderPdpColorSizes($block, payload) {
+      var $dlg = $block.closest("dialog.grt-product-modal");
+      if (!$dlg.length) return;
+      var $form = $block.closest("form.grt-product-modal__form");
+      var $sizeParentLabel = $dlg.find("[data-size-qty-parent-label]").first();
+      var $sizeGrid = $dlg.find("[data-size-qty-grid]").first();
+      var $pdpGrid = $dlg.find("[data-pdp-size-grid]").first();
+      var $qtyWrap = $dlg.find("[data-qty-wrap]").first();
+      var $sizeOption = $();
+      var sizeOptionIndex = parseInt($block.attr("data-size-option-index") || "", 10);
+      if (!isNaN(sizeOptionIndex) && sizeOptionIndex >= 0) {
+        $sizeOption = $block.find('.grt-opt__pills[data-option-index="' + sizeOptionIndex + '"]').closest(".grt-opt");
+      }
+
+      if ($sizeGrid.length) $sizeGrid.empty().hide();
+      if ($qtyWrap.length) $qtyWrap.hide();
+      if ($sizeOption.length) $sizeOption.hide();
+      if ($sizeParentLabel.length) $sizeParentLabel.text("Choose Size(s)").show();
+
+      if (!$pdpGrid.length) return;
+      var sizesHtml = payload && payload.sizes ? String(payload.sizes) : "";
+      var $parsed = $("<div>" + sizesHtml + "</div>");
+      var rows = [];
+      var seenRowKeys = {};
+
+      $parsed.find(".flex-item > .variant-price-2").each(function () {
+        var $card = $(this);
+        var sizeLabel = $.trim($card.find("label").first().text());
+        var $inp = $card.find(".itemQuantity").first();
+        var itemId = "";
+        var max = 0;
+        var basePrice = 0;
+        var tierPricing = "";
+        var isOut = false;
+        var rowKey = "";
+
+        if ($inp.length) {
+          itemId = String($inp.attr("data-id") || "").trim();
+          max = parseInt($inp.attr("data-max") || "0", 10);
+          if (isNaN(max)) max = 0;
+          basePrice = parseInt($inp.attr("data-price") || "0", 10);
+          if (isNaN(basePrice) || basePrice < 0) basePrice = 0;
+          tierPricing = String($inp.attr("data-tiers") || "").trim();
+          if (!sizeLabel) {
+            var inputLabel = String($inp.attr("data-label") || "").trim();
+            if (inputLabel) {
+              var parts = inputLabel.split("/");
+              sizeLabel = $.trim(parts[parts.length - 1] || inputLabel);
+            }
+          }
+        } else {
+          isOut = $card.text().toUpperCase().indexOf("OUT") > -1;
+          // Ignore non-size helper nodes that don't carry qty input or explicit OUT state.
+          if (!isOut) return;
+        }
+
+        if (!sizeLabel) sizeLabel = "Size";
+        rowKey = (itemId ? ("id:" + itemId) : ("size:" + sizeLabel.toLowerCase()));
+        if (seenRowKeys[rowKey]) return;
+        seenRowKeys[rowKey] = true;
+
+        rows.push({
+          id: itemId,
+          size: sizeLabel,
+          basePrice: basePrice,
+          tierPricing: tierPricing,
+          max: max,
+          isOut: isOut
+        });
+      });
+
+      if (!rows.length) {
+        $parsed.find(".itemQuantity").each(function () {
+          var $inp = $(this);
+          var itemId = String($inp.attr("data-id") || "").trim();
+          if (!itemId || seenRowKeys["id:" + itemId]) return;
+          seenRowKeys["id:" + itemId] = true;
+
+          var max = parseInt($inp.attr("data-max") || "0", 10);
+          if (isNaN(max)) max = 0;
+
+          var basePrice = parseInt($inp.attr("data-price") || "0", 10);
+          if (isNaN(basePrice) || basePrice < 0) basePrice = 0;
+
+          var tierPricing = String($inp.attr("data-tiers") || "").trim();
+          var sizeLabel = $.trim($inp.closest(".variant-price-2").find("label").first().text());
+          if (!sizeLabel) sizeLabel = "Size";
+
+          rows.push({
+            id: itemId,
+            size: sizeLabel,
+            basePrice: basePrice,
+            tierPricing: tierPricing,
+            max: max,
+            isOut: false
+          });
+        });
+      }
+
+      var html = "";
+      var hasPurchasableRows = false;
+      var lowestBasePrice = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var hasInput = !row.isOut && !!row.id;
+        var retailPrice = Math.round(row.basePrice * RETAIL_PRICE_MULTIPLIER);
+        if (hasInput && row.basePrice > 0 && (!lowestBasePrice || row.basePrice < lowestBasePrice)) {
+          lowestBasePrice = row.basePrice;
+        }
+        html += '<div class="grt-size-qty-row grt-size-qty-row--pdp' + (hasInput ? "" : " is-out") + '" data-size-row data-base-price="' + row.basePrice + '" data-tier-pricing="' + htmlEscape(row.tierPricing) + '">';
+        html += '<div class="grt-size-qty-row__size"><span class="grt-size-qty-row__v">' + htmlEscape(row.size) + '</span></div>';
+        html += '<div class="grt-size-qty-row__qty">';
+        if (hasInput) {
+          html += '<div class="grt-size-qty-wrap"><input class="grt-size-qty-input grt-pdp-size-qty-input" data-pdp-size-qty-input type="number" min="0" max="' + row.max + '" value="" data-id="' + row.id + '" data-base-price="' + row.basePrice + '" data-tier-pricing="' + htmlEscape(row.tierPricing) + '" data-max="' + row.max + '" aria-label="Quantity for size ' + htmlEscape(row.size) + '"><div class="grt-size-qty-spinners"><button type="button" class="grt-size-qty-spin grt-size-qty-spin--up" tabindex="-1" aria-label="Increase quantity">&#9650;</button><button type="button" class="grt-size-qty-spin grt-size-qty-spin--dn" tabindex="-1" aria-label="Decrease quantity">&#9660;</button></div></div>';
+          hasPurchasableRows = true;
+        } else {
+          html += '<div class="grt-size-qty-row__out">OUT</div>';
+        }
+        html += '</div>';
+        if (hasInput) {
+          html += '<div class="grt-size-qty-row__price-wrap"><div class="grt-size-qty-row__compare" data-size-compare-price>' + formatMoney(retailPrice) + '</div><div class="grt-size-qty-row__price" data-size-unit-price>' + formatMoney(row.basePrice) + '</div></div>';
+        } else {
+          html += '<div class="grt-size-qty-row__price-wrap"></div>';
+        }
+        html += "</div>";
+      }
+
+      $pdpGrid.css("min-height", ""); // Release height lock now that real content is ready
+      $pdpGrid.html(html);
+      var hasRows = rows.length > 0;
+      if (hasRows) {
+        $pdpGrid.show();
+        if (lowestBasePrice > 0) {
+          updateModalHeadlinePrice($dlg, lowestBasePrice, Math.round(lowestBasePrice * RETAIL_PRICE_MULTIPLIER));
+        }
+        schedulePdpSizeGridPriceRefresh($dlg);
+      } else {
+        $pdpGrid.hide();
+      }
+
+      if ($form.length) {
+        var $addBtn = $form.find(".grt-product-modal__add-button").first();
+        if ($addBtn.length) $addBtn.prop("disabled", !hasPurchasableRows);
+      }
+
+      var selectedVariantId = String($block.attr("data-selected-pdp-color-variant-id") || "").trim();
+      if (selectedVariantId) {
+        fetchPdpVariantImage($block, selectedVariantId);
+      } else if (payload && payload.mainImgs && payload.mainImgs.length) {
+        try {
+          var firstSlide = payload.mainImgs[0];
+          var slideHtml = firstSlide && firstSlide.slide ? String(firstSlide.slide) : "";
+          var $imgEl = $("<div>" + slideHtml + "</div>").find("img").first();
+          var src = $imgEl.attr("src");
+          if (src) {
+            $dlg.find("[data-modal-image]").first().attr("src", src);
+          }
+        } catch (e) {}
+      }
+    }
+
+    function fetchPdpColorData($block, colorValue) {
+      if (!$block.length || !colorValue) return Promise.resolve(null);
+      var handle = String($block.attr("data-pdp-product-handle") || "").trim();
+      if (!handle) return Promise.resolve(null);
+
+      var requestId = String(Date.now()) + "-" + Math.random().toString(36).slice(2);
+      $block.attr("data-pdp-request-id", requestId);
+
+      var $dlg = $block.closest("dialog.grt-product-modal");
+      var $form = $block.closest("form.grt-product-modal__form");
+      var $pdpGrid = $dlg.find("[data-pdp-size-grid]").first();
+      if ($pdpGrid.length) {
+        // Lock current height before skeleton swap so modal doesn't reflow/flicker
+        if ($pdpGrid.is(":visible")) {
+          $pdpGrid.css("min-height", $pdpGrid.outerHeight() + "px");
+        }
+        $pdpGrid.html(buildPdpSizeSkeletonHtml()).show();
+      }
+      if ($form.length) {
+        var $addBtn = $form.find(".grt-product-modal__add-button").first();
+        if ($addBtn.length) $addBtn.prop("disabled", true);
+      }
+
+      var colorOptionValueId = String($block.attr("data-selected-pdp-color-option-value-id") || "").trim();
+      return requestPdpColorData(handle, colorValue, { colorOptionValueId: colorOptionValueId })
+        .then(function (data) {
+          if ($block.attr("data-pdp-request-id") !== requestId) return;
+          renderPdpColorSizes($block, data || {});
+          return data || {};
+        })
+        .catch(function (error) {
+          if ($block.attr("data-pdp-request-id") !== requestId) return;
+          var $sizeGrid = $dlg.find("[data-pdp-size-grid]").first();
+          if ($sizeGrid.length) $sizeGrid.hide().empty();
+          if ($form.length) {
+            var $addBtn = $form.find(".grt-product-modal__add-button").first();
+            if ($addBtn.length) $addBtn.prop("disabled", true);
+          }
+          throw error;
+        });
+    }
+
+    function getInitialPdpColorPill($block) {
+      if (!$block.length) return $();
+      var selectedKey = String($block.attr("data-pdp-selected-color-key") || "").trim().toLowerCase();
+      var $selected = $();
+      if (selectedKey) {
+        $selected = $block.find('[data-pdp-color-key="' + cssEscape(selectedKey) + '"]').first();
+      }
+      if (!$selected.length) {
+        $selected = $block.find("[data-pdp-color-key]").first();
+      }
+      return $selected;
+    }
+
+    function getPdpColorFetchValue($pill) {
+      if (!$pill || !$pill.length) return "";
+      var colorName = String($pill.attr("data-pdp-color-name") || "").trim();
+      var colorQuery = String($pill.attr("data-pdp-color-query") || "").trim();
+      var colorVariantId = String($pill.attr("data-pdp-color-variant-id") || "").trim();
+      if (!colorQuery) colorQuery = colorName;
+      if (!colorQuery) return "";
+      if (colorVariantId) return colorQuery + "_" + colorVariantId;
+      return colorQuery;
+    }
+
+    function prefetchInitialPdpColorData($block) {
+      return;
+    }
+
+    function fetchPdpVariantImage($block, variantId) {
+      if (!$block.length || !variantId) return;
+      var cleanVariantId = String(variantId || "").trim();
+      if (!cleanVariantId) return;
+
+      var imageRequestId = String(Date.now()) + "-" + Math.random().toString(36).slice(2);
+      $block.attr("data-pdp-image-request-id", imageRequestId);
+
+      var imageUrl = "/variants/" + encodeURIComponent(cleanVariantId) + ".js";
+      getRequest(imageUrl)
+        .then(function (data) {
+          if ($block.attr("data-pdp-image-request-id") !== imageRequestId) return;
+          if (!data) return;
+
+          var src = "";
+          if (data.featured_image && data.featured_image.src) {
+            src = String(data.featured_image.src);
+          } else if (
+            data.featured_media &&
+            data.featured_media.preview_image &&
+            data.featured_media.preview_image.src
+          ) {
+            src = String(data.featured_media.preview_image.src);
+          }
+          if (!src) return;
+
+          var $dlg = $block.closest("dialog.grt-product-modal");
+          if (!$dlg.length) return;
+          var $img = $dlg.find("[data-modal-image]").first();
+          if ($img.length) {
+            $img.attr("src", src);
+          }
+        })
+        .catch(function () {});
+    }
+
+    function setPdpSelectedColorLabel($block, colorName, chipValue) {
+      if (!$block.length) return;
+      var $selectedColorLabel = $block.find("[data-pdp-selected-color-label]").first();
+      if (!$selectedColorLabel.length) return;
+      var displayColor = String(colorName || "").trim();
+      var $selectedColorChip = $selectedColorLabel.find("[data-pdp-selected-color-chip]").first();
+      if ($selectedColorChip.length) {
+        var resolvedChipValue = String(chipValue || "").trim();
+        if (resolvedChipValue) {
+          $selectedColorChip.css("--grt-pdp-selected-color-chip", resolvedChipValue).addClass("is-visible");
+        } else {
+          $selectedColorChip.css("--grt-pdp-selected-color-chip", "").removeClass("is-visible");
+        }
+      }
+      var labelText = displayColor ? displayColor.toLowerCase() : "-";
+      var $selectedColorText = $selectedColorLabel.find("[data-pdp-selected-color-text]").first();
+      if ($selectedColorText.length) {
+        $selectedColorText.text(labelText);
+      } else {
+        $selectedColorLabel.append(document.createTextNode(labelText));
+      }
+      // Keep mobile trigger in sync
+      updateMobileColorTrigger($block, displayColor, String(chipValue || "").trim());
+    }
+
+    function restorePdpSelectedColorLabel($block) {
+      if (!$block.length) return;
+      var selectedColor = String($block.attr("data-selected-pdp-color") || "").trim();
+      var $selectedPill = getInitialPdpColorPill($block);
+      var selectedChipValue = "";
+      if ($selectedPill.length) {
+        selectedChipValue = String($selectedPill[0].style.getPropertyValue("--grt-pdp-color-chip") || "").trim();
+      }
+      setPdpSelectedColorLabel($block, selectedColor, selectedChipValue);
+    }
+
+    function applyPdpColorSelection($block, $pill) {
+      if (!$block.length || !$pill.length) return;
+      if ($block.attr("data-use-pdp-color-flow") !== "1") return;
+
+      var colorKey = String($pill.attr("data-pdp-color-key") || "").trim().toLowerCase();
+      var colorName = String($pill.attr("data-pdp-color-name") || "").trim();
+      var colorQuery = String($pill.attr("data-pdp-color-query") || "").trim();
+      var colorOptionValueId = String($pill.attr("data-pdp-color-option-value-id") || "").trim();
+      var colorVariantId = String($pill.attr("data-pdp-color-variant-id") || "").trim();
+      if (!colorQuery) colorQuery = colorName;
+      if (!colorKey || !colorName) return;
+
+      $block.attr("data-pdp-selected-color-key", colorKey);
+      $block.attr("data-selected-pdp-color", colorName);
+      $block.attr("data-selected-pdp-color-query", colorQuery);
+      if (colorOptionValueId) {
+        $block.attr("data-selected-pdp-color-option-value-id", colorOptionValueId);
+      } else {
+        $block.removeAttr("data-selected-pdp-color-option-value-id");
+      }
+      if (colorVariantId) {
+        $block.attr("data-selected-pdp-color-variant-id", colorVariantId);
+      } else {
+        $block.removeAttr("data-selected-pdp-color-variant-id");
+      }
+      var selectedChipValue = String($pill[0].style.getPropertyValue("--grt-pdp-color-chip") || "").trim();
+      setPdpSelectedColorLabel($block, colorName, selectedChipValue);
+      var $form = $block.closest("form.grt-product-modal__form");
+      if ($form.length) {
+        $form.attr("data-selected-color", colorName);
+      }
+
+      setPdpColorButtonState($block, $pill);
+      var fetchColorValue = colorQuery;
+      if (colorVariantId) {
+        fetchColorValue = colorQuery + "_" + colorVariantId;
+        fetchPdpVariantImage($block, colorVariantId);
+      }
+      var fetchPromise = fetchPdpColorData($block, fetchColorValue);
+      schedulePdpColorRowsLimit($block);
+      return fetchPromise;
+    }
+
+    function initPdpColorFlow($block) {
+      if (!$block.length) return Promise.resolve(null);
+      if ($block.attr("data-use-pdp-color-flow") !== "1") return Promise.resolve(null);
+
+      sortPdpColorPills($block);
+      buildMobileColorDropdown($block);
+
+      var $selected = getInitialPdpColorPill($block);
+      if (!$selected.length) return Promise.resolve(null);
+
+      return applyPdpColorSelection($block, $selected);
+    }
+
+    function resetInitialPdpColorSelection($block) {
+      if (!$block.length) return;
+      var initialColorKey = String($block.attr("data-pdp-initial-color-key") || "").trim();
+      var initialColorName = String($block.attr("data-pdp-initial-color-name") || "").trim();
+      if (initialColorKey) $block.attr("data-pdp-selected-color-key", initialColorKey);
+      if (initialColorName) {
+        $block.attr("data-selected-pdp-color", initialColorName);
+      } else {
+        $block.removeAttr("data-selected-pdp-color");
+      }
+    }
+
+    function finalizeUpsellModalOpen($dlg, $btn, options) {
+      var dlg = $dlg[0];
+      if (!dlg || !dlg.showModal) return;
+      options = options || {};
+
+      lockPageScroll();
+      dlg.showModal();
+      if (!options.keepOpeningState) {
+        $dlg.removeClass("is-opening");
+      }
+
+      var $qty = $dlg.find("[data-qty-input]").first();
+      if ($qty.length) $qty.val(1);
+
+      var $variantBlock = $dlg.find("[data-variant-options]").first();
+      if ($variantBlock.length) {
+        if ($variantBlock.attr("data-use-pdp-color-flow") === "1") {
+          if (!options.parentChildReady && !options.deferParentChildInit) {
+            resetInitialPdpColorSelection($variantBlock);
+            initPdpColorFlow($variantBlock).then(function () {
+              updateSelectedColorName($variantBlock);
+              setTimeout(function () {
+                $dlg.find(".grt-swatch-pills, .grt-opt__pills--pdp-colors").each(function () { initSwatchMask(this); });
+              }, 60);
+            });
+          }
+          if (!options.deferParentChildInit) {
+            buildSizeQtyGrid($dlg);
+            schedulePdpColorRowsLimit($variantBlock);
+          }
+        } else {
+          applyColorSwatches($variantBlock);
+          scheduleColorRowsLimit($variantBlock);
+          buildSizeQtyGrid($dlg);
+          setTimeout(function () {
+            $dlg.find(".grt-swatch-pills, .grt-opt__pills--pdp-colors").each(function () { initSwatchMask(this); });
+          }, 60);
+        }
+      }
+
+      setTimeout(function () {
+        var $f = $dlg.find(".grt-product-modal__form");
+        if ($f.find("#bcpo").length) $f.find("#bcpo").remove();
+      }, 250);
+
+      setTimeout(function () {
+        var $form = $dlg.find("form.grt-product-modal__form").first();
+        var startVid =
+          ($btn.attr("data-vid") || "").trim() ||
+          ($dlg.attr("data-default-vid") || "").trim() ||
+          ($form.attr("data-initial-variant") || "").trim();
+
+        var $block = $dlg.find("[data-variant-options]").first();
+        if (!$block.length) return;
+        if ($block.attr("data-use-pdp-color-flow") === "1") {
+          if ($form.length) $form.removeAttr("data-variant-id");
+        } else {
+          if ($form.length && startVid) $form.attr("data-variant-id", String(startVid));
+          if (startVid) applyVariantIdToModal($dlg, startVid);
+          else syncVariantFromSelection($block);
+        }
+      }, 0);
+    }
+
+    function applyPdpColorRowsLimit($block) {
+      if (!$block.length) return;
+      if ($block.attr("data-use-pdp-color-flow") !== "1") return;
+
+      var $wrap = $block.find("[data-pdp-color-options]").first();
+      if (!$wrap.length) return;
+
+      var $opt = $wrap.closest(".grt-opt");
+      $opt.find("[data-grt-pdp-color-toggle]").remove();
+      $opt.removeClass("is-color-expanded");
+      $wrap.find(".grt-pdp-color-pill-hidden").removeClass("grt-pdp-color-pill-hidden");
+    }
+
+    function schedulePdpColorRowsLimit($block) {
+      if (!$block || !$block.length) return;
+      setTimeout(function () {
+        applyPdpColorRowsLimit($block);
+      }, 0);
+    }
+
+    function getColorOptionIndex($block) {
+      var idx = parseInt(
+        $block.attr("data-color-option-index") ||
+        $block.attr("data-swatch-option-index") ||
+        "",
+        10
+      );
+      return isNaN(idx) ? -1 : idx;
+    }
+
+    function applyColorRowsLimit($block) {
+      if (!$block.length) return;
+      var colorOptionIndex = getColorOptionIndex($block);
+      if (colorOptionIndex < 0) return;
+
+      var $wrap = $block.find('.grt-opt__pills[data-option-index="' + colorOptionIndex + '"]').first();
+      if (!$wrap.length) return;
+
+      var $opt = $wrap.closest(".grt-opt");
+      $opt.find("[data-grt-color-toggle]").remove();
+      $opt.removeClass("is-color-expanded");
+      $wrap.find(".grt-color-pill-hidden").removeClass("grt-color-pill-hidden");
+
+      var $pills = $wrap.find(".grt-variant-pill:visible");
+      var totalColors = $pills.length;
+      if (!totalColors) return;
+
+      var maxRows = 2;
+      if (window.matchMedia && window.matchMedia("(max-width: 749px)").matches) {
+        maxRows = 4;
+      }
+
+      var rowTops = [];
+      var hiddenStartTop = null;
+
+      $pills.each(function () {
+        var top = Math.round($(this).position().top || 0);
+        var exists = false;
+        for (var i = 0; i < rowTops.length; i++) {
+          if (Math.abs(rowTops[i] - top) <= 2) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) {
+          rowTops.push(top);
+          if (rowTops.length === (maxRows + 1)) {
+            hiddenStartTop = top;
+            return false;
+          }
+        }
+      });
+
+      if (hiddenStartTop == null) return;
+
+      var hiddenCount = 0;
+      $pills.each(function () {
+        var top = Math.round($(this).position().top || 0);
+        if (top >= hiddenStartTop - 1) {
+          $(this).addClass("grt-color-pill-hidden");
+          hiddenCount++;
+        }
+      });
+
+      if (hiddenCount > 0) {
+        $opt.append(
+          '<button type="button" class="grt-color-see-all button" data-grt-color-toggle data-total-colors="' + totalColors + '">' +
+            'See all ' + totalColors + ' colors' +
+          '</button>'
+        );
+      }
+    }
+
+    function scheduleColorRowsLimit($block) {
+      if (!$block || !$block.length) return;
+      setTimeout(function () {
+        //applyColorRowsLimit($block);
+      }, 0);
+    }
+
+    var RETAIL_PRICE_MULTIPLIER = 1.96;
+    var FIXED_SAVE_PERCENT = 49;
+    var sizeGridRefreshTimer = null;
+    var toastTimer = null;
+
+    function htmlEscape(str) {
+      return String(str == null ? "" : str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function getOptionKeyFromIndex(optionIndex) {
+      return "option" + (optionIndex + 1);
+    }
+
+    function getSelectedOptionValue($block, optionIndex) {
+      var $pill = $block.find('.grt-variant-pill.is-active[data-option-index="' + optionIndex + '"]').first();
+      if (!$pill.length) return "";
+      return ($pill.attr("data-option-value") || "").toString().trim();
+    }
+
+    function getTierLevel(virtualTotal) {
+      if (virtualTotal >= 3800) return 7;
+      if (virtualTotal >= 1750) return 6;
+      if (virtualTotal >= 1000) return 5;
+      if (virtualTotal >= 500) return 4;
+      if (virtualTotal >= 250) return 3;
+      if (virtualTotal >= 150) return 2;
+      if (virtualTotal >= 99) return 1;
+      return 0;
+    }
+
+    function parseTierPricing(tierPricingRaw) {
+      if (!tierPricingRaw) return [];
+      var tierBreaks = [99, 150, 250, 500, 1000, 1750, 3800];
+
+      function normalize(values) {
+        if (!values || !values.length) return [];
+        return values
+          .map(function (v) { return parseInt(String(v).trim(), 10); })
+          .filter(function (n) { return !isNaN(n) && n > 0; });
+      }
+
+      if (Array.isArray(tierPricingRaw)) {
+        return normalize(tierPricingRaw);
+      }
+
+      if (typeof tierPricingRaw === "object") {
+        var objectTiers = [];
+        for (var i = 0; i < tierBreaks.length; i++) {
+          var key = String(tierBreaks[i]);
+          if (tierPricingRaw[key] != null) objectTiers.push(tierPricingRaw[key]);
+        }
+        if (objectTiers.length) return normalize(objectTiers);
+        return normalize(Object.keys(tierPricingRaw).map(function (k) { return tierPricingRaw[k]; }));
+      }
+
+      var raw = String(tierPricingRaw).trim();
+      if (!raw) return [];
+
+      try {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return normalize(parsed);
+        if (parsed && typeof parsed === "object") {
+          var parsedTiers = [];
+          for (var j = 0; j < tierBreaks.length; j++) {
+            var parsedKey = String(tierBreaks[j]);
+            if (parsed[parsedKey] != null) parsedTiers.push(parsed[parsedKey]);
+          }
+          if (parsedTiers.length) return normalize(parsedTiers);
+          return normalize(Object.keys(parsed).map(function (k) { return parsed[k]; }));
+        }
+      } catch (e) {}
+
+      if (raw.indexOf(":") > -1) {
+        var valueMatches = raw.match(/:\s*"?([0-9]+)"?/g) || [];
+        if (valueMatches.length) {
+          return normalize(
+            valueMatches.map(function (chunk) {
+              var parts = chunk.split(":");
+              return parts.length > 1 ? parts[1].replace(/"/g, "").trim() : "";
+            })
+          );
+        }
+      }
+
+      return normalize(raw.split(","));
+    }
+
+    function getTierPrice(basePrice, tierPricingRaw, tierLevel) {
+      var tiers = parseTierPricing(tierPricingRaw);
+      if (tierLevel > 0 && tiers.length >= tierLevel) return tiers[tierLevel - 1];
+      return basePrice;
+    }
+
+    function getCartTotalPrice() {
+      return fetch("/cart.js")
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+          var total = parseInt((data && data.total_price) || 0, 10);
+          return isNaN(total) ? 0 : total;
+        })
+        .catch(function () { return 0; });
+    }
+
+    function buildSizeQtyGrid($dlg) {
+      if (!$dlg.length) return;
+
+      var $variantBlock = $dlg.find("[data-variant-options]").first();
+      var $sizeParentLabel = $dlg.find("[data-size-qty-parent-label]").first();
+      var $pdpSizeGrid = $dlg.find("[data-pdp-size-grid]").first();
+      var $sizeGrid = $dlg.find("[data-size-qty-grid]").first();
+      var $qtyWrap = $dlg.find("[data-qty-wrap]").first();
+      if (!$variantBlock.length || !$sizeGrid.length) return;
+
+      var variantFlow = String($variantBlock.attr("data-variant-flow") || "").trim();
+      var sizeOptionIndex = parseInt($variantBlock.attr("data-size-option-index") || "", 10);
+      var $sizeOpt = $();
+      if (!isNaN(sizeOptionIndex) && sizeOptionIndex >= 0) {
+        $sizeOpt = $variantBlock.find('.grt-opt__pills[data-option-index="' + sizeOptionIndex + '"]').closest(".grt-opt");
+      }
+
+      if (variantFlow === "normal") {
+        if ($pdpSizeGrid.length) $pdpSizeGrid.hide().empty();
+        if ($sizeGrid.length) $sizeGrid.empty().hide();
+        if ($sizeOpt.length) $sizeOpt.show();
+        if ($sizeParentLabel.length) $sizeParentLabel.hide();
+        if ($qtyWrap.length) $qtyWrap.show();
+        return;
+      }
+
+      if ($variantBlock.attr("data-use-pdp-color-flow") === "1") {
+        if (!isNaN(sizeOptionIndex) && sizeOptionIndex >= 0) {
+          $variantBlock
+            .find('.grt-opt__pills[data-option-index="' + sizeOptionIndex + '"]')
+            .closest(".grt-opt")
+            .hide();
+        }
+        if ($sizeGrid.length) $sizeGrid.empty().hide();
+        if ($qtyWrap.length) $qtyWrap.hide();
+        if ($sizeParentLabel.length) $sizeParentLabel.text("Choose Size(s)").show();
+        if (
+          $pdpSizeGrid.length &&
+          (
+            $pdpSizeGrid.find("[data-pdp-size-qty-input]").length ||
+            $pdpSizeGrid.find("[data-size-row]").length ||
+            $pdpSizeGrid.find(".itemQuantity").length
+          )
+        ) {
+          $pdpSizeGrid.show();
+        }
+        return;
+      }
+
+      if ($pdpSizeGrid.length) {
+        $pdpSizeGrid.hide().empty();
+      }
+
+      if (isNaN(sizeOptionIndex) || sizeOptionIndex < 0) {
+        if ($sizeOpt.length) $sizeOpt.show();
+        if ($sizeParentLabel.length) $sizeParentLabel.hide();
+        $sizeGrid.empty().hide();
+        if ($qtyWrap.length) $qtyWrap.show();
+        return;
+      }
+
+      var colorOptionIndex = parseInt($variantBlock.attr("data-color-option-index") || "", 10);
+      var selectedColor = "";
+      if (!isNaN(colorOptionIndex) && colorOptionIndex >= 0) {
+        selectedColor = getSelectedOptionValue($variantBlock, colorOptionIndex);
+      }
+      if (!selectedColor) {
+        selectedColor = String($variantBlock.attr("data-selected-pdp-color") || "").trim();
+      }
+
+      var variants = getVariantsFromBlock($variantBlock);
+      var sizeKey = getOptionKeyFromIndex(sizeOptionIndex);
+      var colorKey = getOptionKeyFromIndex(colorOptionIndex);
+      var seenSizes = {};
+      var rows = [];
+
+      for (var i = 0; i < variants.length; i++) {
+        var vr = variants[i];
+        if (!vr || !vr.available) continue;
+
+        if (selectedColor && !isNaN(colorOptionIndex) && colorOptionIndex >= 0) {
+          if (String(vr[colorKey] || "") !== selectedColor) continue;
+        }
+
+        var sizeLabel = String(vr[sizeKey] || "").trim();
+        if (!sizeLabel || seenSizes[sizeLabel]) continue;
+        seenSizes[sizeLabel] = true;
+
+        var inventory = parseInt(vr.inventory || "0", 10);
+        if (isNaN(inventory)) inventory = 0;
+
+        rows.push({
+          id: String(vr.id),
+          size: sizeLabel,
+          basePrice: parseInt(vr.price || "0", 10) || 0,
+          tierPricing: String(vr.tier_pricing || ""),
+          inventory: inventory
+        });
+      }
+
+      if (!rows.length) {
+        if ($sizeOpt.length) $sizeOpt.show();
+        if ($sizeParentLabel.length) $sizeParentLabel.hide();
+        $sizeGrid.empty().hide();
+        if ($qtyWrap.length) $qtyWrap.show();
+        return;
+      }
+
+      if ($sizeOpt.length) $sizeOpt.hide();
+      if ($sizeParentLabel.length) {
+        var parentLabelText = $.trim($sizeOpt.find(".grt-product-modal__label").first().text()) || "Variant";
+        $sizeParentLabel.text(parentLabelText).show();
+      }
+
+      var html = '';
+      var lowestBasePrice = 0;
+
+      for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var retailPrice = Math.round(row.basePrice * RETAIL_PRICE_MULTIPLIER);
+        if (row.basePrice > 0 && (!lowestBasePrice || row.basePrice < lowestBasePrice)) {
+          lowestBasePrice = row.basePrice;
+        }
+        html += '<div class="grt-size-qty-row" data-size-row data-base-price="' + row.basePrice + '" data-tier-pricing="' + htmlEscape(row.tierPricing) + '">';
+        html += '<div class="grt-size-qty-row__size"><span class="grt-size-qty-row__v">' + htmlEscape(row.size) + '</span></div>';
+        html += '<div class="grt-size-qty-row__qty">';
+        html += '<div class="grt-size-qty-wrap"><input class="grt-size-qty-input" data-size-qty-input type="number" min="0" max="' + row.inventory + '" value="" data-id="' + row.id + '" data-base-price="' + row.basePrice + '" data-tier-pricing="' + htmlEscape(row.tierPricing) + '" data-max="' + row.inventory + '" aria-label="Quantity for size ' + htmlEscape(row.size) + '"><div class="grt-size-qty-spinners"><button type="button" class="grt-size-qty-spin grt-size-qty-spin--up" tabindex="-1" aria-label="Increase quantity">&#9650;</button><button type="button" class="grt-size-qty-spin grt-size-qty-spin--dn" tabindex="-1" aria-label="Decrease quantity">&#9660;</button></div></div>';
+        html += '</div>';
+        html += '<div class="grt-size-qty-row__price-wrap"><div class="grt-size-qty-row__compare" data-size-compare-price>' + formatMoney(retailPrice) + '</div><div class="grt-size-qty-row__price" data-size-unit-price>' + formatMoney(row.basePrice) + '</div></div>';
+        //html += '<div class="grt-size-qty-row__save-wrap"><div class="grt-size-qty-row__save" data-size-save>' + FIXED_SAVE_PERCENT + '% off</div></div>';
+        html += '</div>';
+      }
+
+      $sizeGrid.html(html).show();
+      if ($qtyWrap.length) $qtyWrap.hide();
+      if (lowestBasePrice > 0) {
+        updateModalHeadlinePrice($dlg, lowestBasePrice, Math.round(lowestBasePrice * RETAIL_PRICE_MULTIPLIER));
+      }
+      updateAddButtonLabel($dlg, 0, 0);
+      scheduleSizeGridPriceRefresh($dlg);
+    }
+
+    function refreshSizeGridPrices($dlg) {
+      if (!$dlg.length) return;
+      var $sizeGrid = $dlg.find("[data-size-qty-grid]:visible").first();
+      if (!$sizeGrid.length) return;
+
+      getCartTotalPrice().then(function (cartTotal) {
+        var formTotalOriginal = 0;
+        var lowestUnitPrice = 0;
+        $sizeGrid.find("[data-size-qty-input]").each(function () {
+          var $inp = $(this);
+          var qty = parseInt($inp.val() || "0", 10);
+          if (isNaN(qty) || qty < 1) return;
+          var base = parseInt($inp.attr("data-base-price") || "0", 10);
+          if (!isNaN(base) && base > 0) formTotalOriginal += base * qty;
+        });
+
+        var virtualTotal = (cartTotal + formTotalOriginal) / 100;
+        var tierLevel = getTierLevel(virtualTotal);
+
+        $sizeGrid.find("[data-size-row]").each(function () {
+          var $row = $(this);
+          var basePrice = parseInt($row.attr("data-base-price") || "0", 10);
+          var tierPricing = $row.attr("data-tier-pricing") || "";
+          if (isNaN(basePrice) || basePrice <= 0) return;
+
+          var unitPrice = getTierPrice(basePrice, tierPricing, tierLevel);
+          var retailPrice = Math.round(unitPrice * RETAIL_PRICE_MULTIPLIER);
+          if (!lowestUnitPrice || unitPrice < lowestUnitPrice) {
+            lowestUnitPrice = unitPrice;
+          }
+          $row.attr("data-current-unit-price", unitPrice);
+          $row.find("[data-size-compare-price]").html(formatMoney(retailPrice));
+          $row.find("[data-size-unit-price]").html(formatMoney(unitPrice));
+          $row.find("[data-size-save]").text(FIXED_SAVE_PERCENT + "% off");
+        });
+
+        if (lowestUnitPrice > 0) {
+          updateModalHeadlinePrice($dlg, lowestUnitPrice, Math.round(lowestUnitPrice * RETAIL_PRICE_MULTIPLIER));
+        }
+
+        // Update Add button label with current selection total
+        var selTotal = 0; var selQty = 0;
+        $sizeGrid.find("[data-size-qty-input]").each(function () {
+          var qty = parseInt($(this).val() || "0", 10);
+          if (isNaN(qty) || qty < 1) return;
+          var up = parseInt($(this).closest("[data-size-row]").attr("data-current-unit-price") || "0", 10);
+          selTotal += up * qty; selQty += qty;
+        });
+        updateAddButtonLabel($dlg, selQty, selTotal);
+      });
+    }
+
+    function scheduleSizeGridPriceRefresh($dlg) {
+      if (sizeGridRefreshTimer) clearTimeout(sizeGridRefreshTimer);
+      sizeGridRefreshTimer = setTimeout(function () {
+        refreshSizeGridPrices($dlg);
+      }, 80);
+    }
+
+    function refreshPdpSizeGridPrices($dlg) {
+      if (!$dlg.length) return;
+      var $sizeGrid = $dlg.find("[data-pdp-size-grid]:visible").first();
+      if (!$sizeGrid.length) return;
+      if (!$sizeGrid.find("[data-size-row]").length) return;
+
+      getCartTotalPrice().then(function (cartTotal) {
+        var formTotalOriginal = 0;
+        var lowestUnitPrice = 0;
+        $sizeGrid.find("[data-pdp-size-qty-input]").each(function () {
+          var $inp = $(this);
+          var qty = parseInt($inp.val() || "0", 10);
+          if (isNaN(qty) || qty < 1) return;
+          var base = parseInt($inp.attr("data-base-price") || "0", 10);
+          if (!isNaN(base) && base > 0) formTotalOriginal += base * qty;
+        });
+
+        var virtualTotal = (cartTotal + formTotalOriginal) / 100;
+        var tierLevel = getTierLevel(virtualTotal);
+
+        $sizeGrid.find("[data-size-row]").each(function () {
+          var $row = $(this);
+          var basePrice = parseInt($row.attr("data-base-price") || "0", 10);
+          var tierPricing = $row.attr("data-tier-pricing") || "";
+          if (isNaN(basePrice) || basePrice <= 0) return;
+
+          var unitPrice = getTierPrice(basePrice, tierPricing, tierLevel);
+          var retailPrice = Math.round(unitPrice * RETAIL_PRICE_MULTIPLIER);
+          if (!lowestUnitPrice || unitPrice < lowestUnitPrice) {
+            lowestUnitPrice = unitPrice;
+          }
+          $row.attr("data-current-unit-price", unitPrice);
+          $row.find("[data-size-compare-price]").html(formatMoney(retailPrice));
+          $row.find("[data-size-unit-price]").html(formatMoney(unitPrice));
+        });
+
+        if (lowestUnitPrice > 0) {
+          updateModalHeadlinePrice($dlg, lowestUnitPrice, Math.round(lowestUnitPrice * RETAIL_PRICE_MULTIPLIER));
+        }
+
+        // Update Add button label with current selection total
+        var selTotal = 0; var selQty = 0;
+        $sizeGrid.find("[data-pdp-size-qty-input]").each(function () {
+          var qty = parseInt($(this).val() || "0", 10);
+          if (isNaN(qty) || qty < 1) return;
+          var up = parseInt($(this).closest("[data-size-row]").attr("data-current-unit-price") || "0", 10);
+          selTotal += up * qty; selQty += qty;
+        });
+        updateAddButtonLabel($dlg, selQty, selTotal);
+      });
+    }
+
+    function schedulePdpSizeGridPriceRefresh($dlg) {
+      if (sizeGridRefreshTimer) clearTimeout(sizeGridRefreshTimer);
+      sizeGridRefreshTimer = setTimeout(function () {
+        refreshPdpSizeGridPrices($dlg);
+      }, 80);
+    }
+
+    function updateAddButtonLabel($dlg, totalQty, totalPriceCents) {
+      var $btn = $dlg.find(".grt-product-modal__add-button").first();
+      if (!$btn.length) return;
+      if ($btn.hasClass("grt-btn--success")) return; // never overwrite green success state
+      if (totalQty > 0) {
+        var itemWord = totalQty === 1 ? "Item" : "Items";
+        $btn.html("Add " + totalQty + " " + itemWord + " \u2013 " + formatMoney(totalPriceCents));
+      } else {
+        $btn.html("Add to cart");
+      }
+    }
+
+    function getUpsellToastEl() {
+      var toastId = "grt-upsell-toast-{{ uid }}";
+      var $toast = $("#" + toastId);
+      if ($toast.length) return $toast;
+      $toast = $(
+        '<div id="' + toastId + '" class="grt-upsell-toast" role="status" aria-live="polite" aria-atomic="true">' +
+          '<span class="grt-upsell-toast__icon" aria-hidden="true">✓</span>' +
+          '<span class="grt-upsell-toast__message"></span>' +
+          '<button type="button" class="grt-upsell-toast__close" aria-label="Close notification">×</button>' +
+        '</div>'
+      );
+      $("body").append($toast);
+      return $toast;
+    }
+
+    function showUpsellToast(message, isError) {
+      var $toast = getUpsellToastEl();
+      $toast
+        .find(".grt-upsell-toast__message")
+        .text(message || "Product successfully added to your cart");
+      $toast
+        .toggleClass("is-error", !!isError)
+        .addClass("is-visible");
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () {
+        $toast.removeClass("is-visible");
+      }, 2000);
+    }
+
+    $(document).on("click", ".grt-upsell-toast__close", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (toastTimer) clearTimeout(toastTimer);
+      $(this).closest(".grt-upsell-toast").removeClass("is-visible");
+    });
+
+    function lockPageScroll() {
+      if ($("html").hasClass("grt-modal-open")) return;
+      var scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+      var scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      $("html").addClass("grt-modal-open");
+    }
+
+    function unlockPageScroll() {
+      if ($("dialog.grt-product-modal[open]").length) return;
+      var scrollTop = parseInt($("body").attr("data-grt-scroll-y") || "0", 10);
+      $("html").removeClass("grt-modal-open");
+    }
+
+    function syncPageScrollLock() {
+      if ($("dialog.grt-product-modal[open]").length) {
+        lockPageScroll();
+      } else {
+        unlockPageScroll();
+      }
+    }
+
+    $root.find("dialog.grt-product-modal").each(function () {
+      if (this.__grtCloseBound === true) return;
+      this.__grtCloseBound = true;
+      this.addEventListener("close", syncPageScrollLock);
+    });
+
+    // ---------------------------
+    // Swatch carousel: horizontal touch-scroll with momentum on mobile.
+    // We use {passive:false} on touchmove so we can preventDefault() for
+    // horizontal swipes (stops the parent modal from stealing the gesture).
+    // On touchend we apply velocity-based deceleration via rAF so the
+    // scroll coasts naturally like native inertia scrolling.
+    // ---------------------------
+    (function () {
+      var rootEl = $root[0];
+      if (!rootEl) return;
+
+      rootEl.addEventListener("touchstart", function (e) {
+        var target = e.target;
+        var pills = target.closest
+          ? target.closest(".grt-swatch-pills, .grt-opt__pills--pdp-colors")
+          : null;
+        if (!pills) return;
+
+        // Ensure mask is initialised (lazy safety-net for dynamic pill builds)
+        initSwatchMask(pills);
+
+        // Cancel any in-progress momentum animation on this element
+        if (pills.__grtRaf) {
+          cancelAnimationFrame(pills.__grtRaf);
+          pills.__grtRaf = null;
+        }
+
+        var startX      = e.touches[0].clientX;
+        var startY      = e.touches[0].clientY;
+        var startScroll = pills.scrollLeft;
+        var direction   = null;
+        var prevX       = startX;
+        var prevTime    = Date.now();
+        var velX        = 0; // px / ms at last tracked frame
+
+        function onMove(e2) {
+          var cx = e2.touches[0].clientX;
+          var cy = e2.touches[0].clientY;
+          var dx = cx - startX;
+          var dy = cy - startY;
+
+          // Determine scroll direction once we have enough movement
+          if (!direction && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+            direction = Math.abs(dx) >= Math.abs(dy) ? "h" : "v";
+          }
+
+          if (direction === "h") {
+            e2.preventDefault();
+
+            // Clamp to valid scroll range
+            var maxScroll = pills.scrollWidth - pills.clientWidth;
+            pills.scrollLeft = Math.max(0, Math.min(maxScroll, startScroll - dx));
+
+            // Track instantaneous velocity (px/ms, positive = scrolling right)
+            var now = Date.now();
+            var dt  = now - prevTime;
+            if (dt > 0) velX = (prevX - cx) / dt;
+            prevX    = cx;
+            prevTime = now;
+          }
+        }
+
+        function onEnd() {
+          pills.removeEventListener("touchmove",   onMove);
+          pills.removeEventListener("touchend",    onEnd);
+          pills.removeEventListener("touchcancel", onEnd);
+
+          if (direction !== "h") return;
+
+          // Convert px/ms velocity → px/frame (~60fps) and apply friction
+          var v        = velX * 16;
+          var friction = 0.92; // ~92% retained per frame → natural coast
+
+          function step() {
+            v *= friction;
+            if (Math.abs(v) < 0.5) { pills.__grtRaf = null; return; }
+            var maxScroll = pills.scrollWidth - pills.clientWidth;
+            var next = pills.scrollLeft + v;
+            if (next <= 0 || next >= maxScroll) { pills.scrollLeft = Math.max(0, Math.min(maxScroll, next)); pills.__grtRaf = null; return; }
+            pills.scrollLeft = next;
+            pills.__grtRaf = requestAnimationFrame(step);
+          }
+
+          if (Math.abs(v) > 1) {
+            pills.__grtRaf = requestAnimationFrame(step);
+          }
+        }
+
+        pills.addEventListener("touchmove",   onMove, { passive: false });
+        pills.addEventListener("touchend",    onEnd,  { passive: true });
+        pills.addEventListener("touchcancel", onEnd,  { passive: true });
+      }, { passive: true });
+    }());
+
+    $root.find("[data-variant-options][data-use-pdp-color-flow='1']").each(function (index) {
+      var blockNode = this;
+      var prefetch = function () {
+        prefetchInitialPdpColorData($(blockNode));
+      };
+
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(prefetch, { timeout: 1200 + (index * 150) });
+      } else {
+        setTimeout(prefetch, 200 + (index * 120));
+      }
+    });
+
+    $root.on("mouseenter focusin", ".grt-qv-btn", function () {
+      var openId = $(this).attr("data-open-modal");
+      if (!openId) return;
+      var $dlg = $("#" + openId);
+      if (!$dlg.length) return;
+      var $variantBlock = $dlg.find("[data-variant-options]").first();
+      if (!$variantBlock.length) return;
+      prefetchInitialPdpColorData($variantBlock);
+    });
+
+    // ---------------------------
+    // Build card swatch strip from modal's pre-rendered color data
+    // ---------------------------
+    function buildCardSwatchesFromModal($item) {
+      var $dlg = $item.find("dialog.grt-product-modal").first();
+      // Dialog may not be rendered yet (lazy) — that's fine; embedded JSON doesn't need it
+      var $variantBlock = $dlg.length ? $dlg.find("[data-variant-options]").first() : $();
+      var isPdpFlow = $variantBlock.length && $variantBlock.attr("data-use-pdp-color-flow") === "1";
+      var colors = [];
+
+      // First try: embedded color JSON (reliable for parent-child flow products)
+      var $cardColorJson = $item.find("[data-card-color-json]").first();
+      if ($cardColorJson.length) {
+        try {
+          var parsedColors = JSON.parse($cardColorJson.text() || "[]");
+          if (Array.isArray(parsedColors)) {
+            var seenCardKeys = {};
+            parsedColors.forEach(function (c) {
+              var key  = String(c.key  || "").toLowerCase().trim();
+              var name = String(c.name || "").trim();
+              var hex  = String(c.hex  || "").trim();
+              if (!key || !name || seenCardKeys[key]) return;
+              seenCardKeys[key] = true;
+              if (!hex || hex === "0") hex = "#888888";
+              if (hex.charAt(0) !== "#") hex = "#" + hex;
+              colors.push({ key: key, name: name, hex: hex,
+                vid: String(c.vid || ""),
+                img: c.img ? String(c.img) : "",
+                price: c.price || 0,
+                compare: c.compare || 0 });
+            });
+          }
+        } catch (e) {}
+      }
+
+      // Second try: for pdp flow, read pre-rendered [data-pdp-color-key] pills
+      if (colors.length < 2 && isPdpFlow) {
+        $dlg.find("[data-pdp-color-key]").each(function () {
+          var $pill = $(this);
+          var key  = ($pill.attr("data-pdp-color-key") || "").toLowerCase().trim();
+          var name = ($pill.attr("data-pdp-color-name") || "").trim();
+          var hex  = ($pill.attr("data-pdp-color-hex") || "").trim();
+          var vid  = ($pill.attr("data-pdp-color-variant-id") || "").trim();
+          if (!key || !name) return;
+          if (!hex || hex === "0") hex = "#888888";
+          if (hex.charAt(0) !== "#") hex = "#" + hex;
+          colors.push({ key: key, name: name, hex: hex, vid: vid, img: "", price: 0, compare: 0 });
+        });
+      }
+
+      // Third try: normal flow — read from [data-variants-json] + [data-color-map-json]
+      // Only runs when a swatch option index is explicitly set (prevents size-only products from showing fake swatches)
+      if (colors.length < 2 && !isPdpFlow && $variantBlock.length) {
+        var swatchIdx = parseInt($variantBlock.attr("data-swatch-option-index") || "-1", 10);
+        if (swatchIdx < 0) { /* no designated color option — skip card swatch rendering */ }
+        else {
+        var variantsData = [];
+        var $varJson = $dlg.find("[data-variants-json]").first();
+        if ($varJson.length) { try { variantsData = JSON.parse($varJson.text()); } catch (e) {} }
+        var optKey = "option" + (swatchIdx + 1);
+        // Read hex directly from color-map-json (available at page load without applyColorSwatches)
+        var colorMap = getColorMapFromBlock($variantBlock);
+        var seenKeys = {};
+        variantsData.forEach(function (vr) {
+          var name = String(vr[optKey] || "").trim();
+          var key  = name.toLowerCase();
+          if (!key || seenKeys[key]) return;
+          seenKeys[key] = true;
+          var hex = String(colorMap[key] || "").trim();
+          if (!hex || hex === "0") hex = "#888888";
+          if (hex.charAt(0) !== "#") hex = "#" + hex;
+          colors.push({ key: key, name: name, hex: hex, vid: String(vr.id || ""), img: String(vr.image || ""), price: vr.price || 0, compare: vr.compare_at_price || 0 });
+        });
+        } // end else (swatchIdx >= 0)
+      }
+
+      if (colors.length < 2) return;
+
+      // Sort in the same HSL hue order as the modal's sortPdpColorPills
+      colors.forEach(function (c) {
+        var hsl = pdpHsl(c.hex || "#888888");
+        c._h = hsl[0]; c._s = hsl[1] / 100; c._l = hsl[2];
+      });
+      colors.sort(function (a, b) {
+        var gA = a._s < 0.15 ? 0 : Math.floor(a._h / 24) + 1;
+        var gB = b._s < 0.15 ? 0 : Math.floor(b._h / 24) + 1;
+        if (gA !== gB) return gA - gB;
+        return b._l - a._l;
+      });
+
+      var $wrap = $item.find("[data-card-swatches]").first();
+      $wrap.empty();
+
+      var MAX = 8;
+      var shown = Math.min(colors.length, MAX);
+      // Use the server-side total (all colors incl. out-of-stock) for accurate +X count
+      var totalColors = parseInt($cardColorJson.attr("data-card-color-total") || "0", 10) || colors.length;
+      var remaining = totalColors - shown;
+
+      for (var i = 0; i < shown; i++) {
+        var c = colors[i];
+        var $btn = $('<button class="grt-card-swatch" type="button"></button>');
+        if (i === 0) $btn.addClass("is-active");
+        $btn.attr({ "data-swatch-key": c.key, "data-swatch-name": c.name, "data-swatch-hex": c.hex,
+          "data-swatch-vid": c.vid, "data-swatch-price": String(c.price), "data-swatch-compare": String(c.compare),
+          "data-swatch-img": c.img, "title": c.name });
+        $btn[0].style.setProperty("--swatch-color", c.hex);
+        $wrap.append($btn);
+      }
+      if (remaining > 0) {
+        $wrap.append($('<span class="grt-card-swatch-more">+' + remaining + '</span>'));
+      }
+      $wrap.show();
+    }
+
+    // Build swatches for all cards on init
+    $root.find("[data-upsell-item]").each(function () {
+      buildCardSwatchesFromModal($(this));
+    });
+
+    // Wrap Yotpo review count in parens and strip "Reviews" word — e.g. "1089 Reviews" → "(1089)"
+    function stripYotpoReviewsWord() {
+      $root.find(".yotpo-sr-bottom-line-text--right-panel").each(function () {
+        var $el = $(this);
+        var txt = $el.text().trim();
+        if (!txt) return; // not rendered yet
+        // Strip existing parens and "Reviews" word to get the raw number
+        var num = txt.replace(/[()]/g, "").replace(/\s*[Rr]eview[s]?/g, "").trim();
+        if (!num) return;
+        var target = "(" + num + ")";
+        if (txt !== target) {
+          $el.text(target);
+        }
+      });
+    }
+    // Poll for up to 8s to catch async Yotpo rendering and re-renders
+    var _yotpoStripTimer = setInterval(stripYotpoReviewsWord, 400);
+    setTimeout(function() { clearInterval(_yotpoStripTimer); }, 8000);
+
+    // ---------------------------
+    // Card color swatch strip
+    // ---------------------------
+    $root.on("click", ".grt-card-swatch", function (e) {
+      e.preventDefault();
+      e.stopPropagation(); // prevent card click from opening modal
+
+      var $swatch = $(this);
+      var $item   = $swatch.closest("[data-upsell-item]");
+      if (!$item.length) return;
+
+      // Mark active
+      $item.find(".grt-card-swatch").removeClass("is-active");
+      $swatch.addClass("is-active");
+
+      var vid     = $swatch.attr("data-swatch-vid");
+      var img     = $swatch.attr("data-swatch-img");
+      var price   = parseInt($swatch.attr("data-swatch-price")   || "0", 10);
+      var compare = parseInt($swatch.attr("data-swatch-compare") || "0", 10);
+      var colorKey  = $swatch.attr("data-swatch-key");
+      var colorName = $swatch.attr("data-swatch-name");
+
+      // Update preview image on card
+      var $cardImg = $item.find(".grt-product-card__main-image img");
+      if (img && $cardImg.length) {
+        // Image URL baked into swatch data — clear srcset so browser actually uses new src
+        $cardImg.removeAttr("srcset").removeAttr("sizes").attr("src", img);
+      } else if ($cardImg.length) {
+        // No baked image — fetch via the same API the modal uses
+        var pdpHandle = ($item.attr("data-card-pdp-handle") || "").trim();
+        var cacheKey  = pdpHandle + "::" + colorName;
+        if (cardImageCache[cacheKey]) {
+          $cardImg.removeAttr("srcset").removeAttr("sizes").attr("src", cardImageCache[cacheKey]);
+        } else if (pdpHandle && colorName) {
+          var $imgTarget = $cardImg;
+          requestPdpColorData(pdpHandle, colorName)
+            .then(function (payload) {
+              if (!payload) return;
+              var src = "";
+              // Try mainImgs (same as modal image update path)
+              if (payload.mainImgs && payload.mainImgs.length) {
+                try {
+                  var slideHtml = (payload.mainImgs[0].slide || "");
+                  var $si = $("<div>" + slideHtml + "</div>").find("img").first();
+                  src = $si.attr("src") || "";
+                } catch (e) {}
+              }
+              if (src) {
+                cardImageCache[cacheKey] = src;
+                $imgTarget.removeAttr("srcset").removeAttr("sizes").attr("src", src);
+              }
+            })
+            .catch(function () {});
+        }
+      }
+
+      // Update price on card — use .html() because formatMoney may return HTML (e.g. <span class=money>)
+      $item.find(".grt-product-card__price-now").html(formatMoney(price));
+      var $cmp = $item.find(".grt-product-card__price-compare");
+      if (compare && compare > price) {
+        if ($cmp.length) $cmp.html(formatMoney(compare)).show();
+        else $item.find(".grt-product-card__price-now").after('<span class="grt-product-card__price-compare">' + formatMoney(compare) + '</span>');
+      } else {
+        $cmp.hide();
+      }
+
+      // Store selected variant + color so modal opens to correct color
+      $item.find("[data-open-modal]").attr("data-vid", vid);
+      $item.attr("data-selected-card-color-key", colorKey);
+      $item.attr("data-selected-card-color-name", colorName);
+    });
+
+    // ---------------------------
+    // OPEN modal (ONLY .grt-qv-btn)
+    // ---------------------------
+    $root.on("click", ".grt-qv-btn", function (e) {
+      console.log(" grt-qv-btn============")
+      e.preventDefault();
+      e.stopPropagation();
+
+      var $btn = $(this);
+      var openId = $btn.attr("data-open-modal");
+      if (!openId) return;
+
+      var $dlg = $("#" + openId);
+      var dlg = $dlg[0];
+      if (!dlg || !dlg.showModal) return;
+      $dlg.addClass("is-opening");
+
+      // Read any color pre-selected from the card swatch strip
+      var $cardItem = $btn.closest("[data-upsell-item]");
+      var cardColorKey = ($cardItem.attr("data-selected-card-color-key") || "").trim();
+
+      var $variantBlock = $dlg.find("[data-variant-options]").first();
+      if ($variantBlock.length) {
+        if ($variantBlock.attr("data-use-pdp-color-flow") === "1") {
+          resetInitialPdpColorSelection($variantBlock);
+          // Override with card-selected color if user picked one
+          if (cardColorKey) $variantBlock.attr("data-pdp-selected-color-key", cardColorKey);
+          finalizeUpsellModalOpen($dlg, $btn, { deferParentChildInit: true, keepOpeningState: true });
+          $btn.prop("disabled", true).attr("is-loading", "true");
+          initPdpColorFlow($variantBlock)
+            .then(function () {
+              buildSizeQtyGrid($dlg);
+              schedulePdpColorRowsLimit($variantBlock);
+              $dlg.removeClass("is-opening");
+            })
+            .catch(function () {
+              $dlg.removeClass("is-opening");
+              var dlgNode = $dlg[0];
+              if (dlgNode && dlgNode.close) dlgNode.close();
+              syncPageScrollLock();
+              showUpsellToast("Unable to load options", true);
+            })
+            .finally(function () {
+              $btn.prop("disabled", false).attr("is-loading", "false");
+            });
+          return;
+        }
+      }
+
+      finalizeUpsellModalOpen($dlg, $btn);
+    });
+
+    $root.on("click", "[data-close-modal]", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var dlg = $(this).closest("dialog.grt-product-modal")[0];
+      if (dlg && dlg.close) dlg.close();
+      syncPageScrollLock();
+    });
+
+    // clicking backdrop (dialog itself)
+    $root.on("click", "dialog.grt-product-modal", function (e) {
+      if (e.target !== this) return;
+      if (this.close) this.close();
+      syncPageScrollLock();
+    });
+
+    // ---------------------------
+    // Variant pill clicks (ONLY inside modal)
+    // ---------------------------
+    $root.on("click", ".grt-variant-pill", function (e) {
+      var $btn = $(this);
+      var $dlg = $btn.closest("dialog.grt-product-modal");
+      if (!$dlg.length) return; // only modal pills
+      var $block = $btn.closest("[data-variant-options]");
+      if (!$block.length || $btn.prop("disabled")) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      setActivePill($block, $btn.attr("data-option-index"), $btn.attr("data-option-value"));
+      syncVariantFromSelection($block);
+      buildSizeQtyGrid($dlg);
+      updateSelectedColorName($block);
+    });
+
+    $root.on("click", "[data-pdp-color-key]", function (e) {
+      var $pill = $(this);
+      var $dlg = $pill.closest("dialog.grt-product-modal");
+      if (!$dlg.length) return;
+      var $block = $pill.closest("[data-variant-options]");
+      if (!$block.length) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      applyPdpColorSelection($block, $pill);
+      updateSelectedColorName($block);
+    });
+
+    // Mobile full-screen color picker: close button
+    $root.on("click", "[data-mobile-cp-close]", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var $block = $(this).closest("[data-variant-options]");
+      $block.find("[data-mobile-cp-list]").removeClass("is-open");
+      $block.find("[data-mobile-cp-trigger]").removeClass("is-open");
+    });
+
+    // Mobile color dropdown: toggle open/close
+    $root.on("click", "[data-mobile-cp-trigger]", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var $trigger = $(this);
+      var $block = $trigger.closest("[data-variant-options]");
+      var $list = $block.find("[data-mobile-cp-list]").first();
+      var isOpen = $list.hasClass("is-open");
+      $list.toggleClass("is-open", !isOpen);
+      $trigger.toggleClass("is-open", !isOpen);
+    });
+
+    // Mobile color dropdown: select a color
+    $root.on("click", "[data-mobile-cp-item-key]", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var $item = $(this);
+      var $block = $item.closest("[data-variant-options]");
+      var $dlg = $block.closest("dialog.grt-product-modal");
+      var colorKey = $item.attr("data-mobile-cp-item-key");
+
+      // Find the matching hidden swatch pill and apply selection
+      var $pill = $block.find('[data-pdp-color-key="' + colorKey + '"]').first();
+      if ($pill.length) {
+        applyPdpColorSelection($block, $pill);
+        if ($dlg.length) buildSizeQtyGrid($dlg);
+        updateSelectedColorName($block);
+      }
+
+      // Close dropdown
+      $block.find("[data-mobile-cp-list]").removeClass("is-open");
+      $block.find("[data-mobile-cp-trigger]").removeClass("is-open");
+    });
+
+    // Close desktop color dropdown when clicking outside the label row
+    $(document).on("click.grtColorPicker", function (e) {
+      if (!$(e.target).closest("[data-mobile-cp-trigger], [data-mobile-cp-list], [data-mobile-cp-close]").length) {
+        $root.find("[data-mobile-cp-list].is-open").each(function () {
+          var $block = $(this).closest("[data-variant-options]");
+          $(this).removeClass("is-open");
+          $block.find("[data-mobile-cp-trigger]").removeClass("is-open");
+        });
+      }
+    });
+
+    $root.on("mouseenter", "[data-pdp-color-key]", function () {
+      var $pill = $(this);
+      var $block = $pill.closest("[data-variant-options]");
+      if (!$block.length || $block.attr("data-use-pdp-color-flow") !== "1") return;
+      var colorName = String($pill.attr("data-pdp-color-name") || "").trim();
+      var chipValue = String($pill[0].style.getPropertyValue("--grt-pdp-color-chip") || "").trim();
+      if (!colorName) return;
+      setPdpSelectedColorLabel($block, colorName, chipValue);
+    });
+
+    $root.on("mouseleave", "[data-pdp-color-key]", function () {
+      var $pill = $(this);
+      if ($pill.hasClass("is-active")) return;
+      var $block = $pill.closest("[data-variant-options]");
+      if (!$block.length || $block.attr("data-use-pdp-color-flow") !== "1") return;
+      restorePdpSelectedColorLabel($block);
+    });
+
+    $root.on("click", "[data-grt-color-toggle]", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      var $btn = $(this);
+      var $opt = $btn.closest(".grt-opt");
+      var $block = $btn.closest("[data-variant-options]");
+      if (!$opt.length || !$block.length) return;
+
+      if ($opt.hasClass("is-color-expanded")) {
+        applyColorRowsLimit($block);
+        return;
+      }
+
+      $opt.addClass("is-color-expanded");
+      $opt.find(".grt-color-pill-hidden").removeClass("grt-color-pill-hidden");
+      $btn.text("Show less");
+    });
+
+    $root.on("click", "[data-grt-pdp-color-toggle]", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var $btn = $(this);
+      var $block = $btn.closest("[data-variant-options]");
+      if (!$block.length) return;
+      applyPdpColorRowsLimit($block);
+    });
+
+    // Spinner up/down buttons for size qty inputs
+    $root.on("click", ".grt-size-qty-spin--up", function () {
+      var $input = $(this).closest(".grt-size-qty-wrap").find(".grt-size-qty-input");
+      var max = parseInt($input.attr("data-max") || "9999", 10);
+      var val = parseInt($input.val() || "0", 10);
+      if (isNaN(val)) val = 0;
+      if (val < max) { $input.val(val + 1).trigger("input"); }
+    });
+    $root.on("click", ".grt-size-qty-spin--dn", function () {
+      var $input = $(this).closest(".grt-size-qty-wrap").find(".grt-size-qty-input");
+      var val = parseInt($input.val() || "0", 10);
+      if (isNaN(val) || val <= 0) return;
+      $input.val(val - 1).trigger("input");
+    });
+
+    // After typing in any qty input on mobile, reset viewport zoom back to 100%
+    $root.on("blur", ".grt-size-qty-input, .grt-qty__input", function () {
+      var $meta = $('meta[name="viewport"]');
+      if (!$meta.length) return;
+      var original = $meta.attr("content");
+      // Briefly set maximum-scale=1 to snap zoom back, then restore original
+      $meta.attr("content", original.replace(/,?\s*maximum-scale=[^,]*/i, "") + ", maximum-scale=1");
+      setTimeout(function () { $meta.attr("content", original); }, 300);
+    });
+
+    $root.on("input", "[data-size-qty-input]", function () {
+      var $inp = $(this);
+      var max = parseInt($inp.attr("data-max") || "0", 10);
+      var value = $inp.val();
+      if (value === "") {
+        scheduleSizeGridPriceRefresh($inp.closest("dialog.grt-product-modal"));
+        return;
+      }
+
+      var qty = parseInt(value, 10);
+      if (isNaN(qty) || qty < 0) qty = 0;
+      if (!isNaN(max) && max > 0 && qty > max) qty = max;
+      $inp.val(qty);
+      scheduleSizeGridPriceRefresh($inp.closest("dialog.grt-product-modal"));
+    });
+
+    $root.on("input", "[data-pdp-size-grid] .itemQuantity", function () {
+      var $inp = $(this);
+      var value = String($inp.val() || "").trim();
+      if (value === "") return;
+
+      var qty = parseInt(value, 10);
+      if (isNaN(qty) || qty < 0) qty = 0;
+      var max = parseInt($inp.attr("data-max") || "0", 10);
+      if (!isNaN(max) && max > 0 && qty > max) qty = max;
+      $inp.val(qty);
+    });
+
+    $root.on("input", "[data-pdp-size-grid] [data-pdp-size-qty-input]", function () {
+      var $inp = $(this);
+      var value = String($inp.val() || "").trim();
+      if (value === "") {
+        schedulePdpSizeGridPriceRefresh($inp.closest("dialog.grt-product-modal"));
+        return;
+      }
+
+      var qty = parseInt(value, 10);
+      if (isNaN(qty) || qty < 0) qty = 0;
+      var max = parseInt($inp.attr("data-max") || "0", 10);
+      if (!isNaN(max) && max > 0 && qty > max) qty = max;
+      $inp.val(qty);
+      schedulePdpSizeGridPriceRefresh($inp.closest("dialog.grt-product-modal"));
+    });
+
+    // ---------------------------
+    // Qty +/- (ONLY inside modal)
+    // ---------------------------
+    $root.on("click", "[data-qty-plus],[data-qty-minus]", function (e) {
+      var $t = $(e.target);
+      var $dlg = $t.closest("dialog.grt-product-modal");
+      if (!$dlg.length) return; // only modal
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      var $wrap = $t.closest(".grt-qty");
+      if (!$wrap.length) return;
+
+      var $input = $wrap.find("[data-qty-input]").first();
+      if (!$input.length) return;
+
+      var qty = parseInt($input.val() || "1", 10);
+      if (isNaN(qty) || qty < 1) qty = 1;
+
+      if ($t.closest("[data-qty-plus]").length) qty = qty + 1;
+      if ($t.closest("[data-qty-minus]").length) qty = Math.max(1, qty - 1);
+
+      $input.val(qty);
+    });
+
+    $root.on("input", "[data-qty-input]", function () {
+      var $inp = $(this);
+      var $dlg = $inp.closest("dialog.grt-product-modal");
+      if (!$dlg.length) return; // only modal
+      var qty = parseInt($inp.val() || "1", 10);
+      if (isNaN(qty) || qty < 1) qty = 1;
+      $inp.val(qty);
+    });
+
+    // ---------------------------
+    // AJAX Add to cart (ONLY modal add button)
+    // ---------------------------
+    $root.on("click", ".grt-product-modal__add-button", function (e) {
+      var $btn = $(this);
+      var $dlg = $btn.closest("dialog.grt-product-modal");
+      if (!$dlg.length) return;
+
+      var $form = $dlg.find("form.grt-product-modal__form").first();
+      if (!$form.length) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      if ($btn.prop("disabled")) return;
+
+      var originalHtml = $btn.html();
+      var $sizeGrid = $form.find("[data-size-qty-grid]:visible").first();
+      var $variantBlock = $form.find("[data-variant-options]").first();
+      var isPdpServerFlow = $variantBlock.length && $variantBlock.attr("data-use-pdp-color-flow") === "1";
+      var $pdpSizeGrid = $form.find("[data-pdp-size-grid]:visible").first();
+      var itemsToAdd = [];
+      var selectedColor = "";
+
+      if ($variantBlock.length) {
+        var colorOptionIndex = parseInt(
+          ($variantBlock.attr("data-color-option-index") ||
+            $variantBlock.attr("data-swatch-option-index") ||
+            ""),
+          10
+        );
+        if (!isNaN(colorOptionIndex) && colorOptionIndex >= 0) {
+          selectedColor = getSelectedOptionValue($variantBlock, colorOptionIndex);
+        }
+        if (!selectedColor) {
+          selectedColor = String($variantBlock.attr("data-selected-pdp-color") || "").trim();
+        }
+      }
+      if (!selectedColor) {
+        selectedColor = String($form.attr("data-selected-color") || "").trim();
+      }
+
+      if (isPdpServerFlow) {
+        if (!$pdpSizeGrid.length) {
+          $btn.html("Choose color");
+          setTimeout(function () { $btn.html(originalHtml); }, 1200);
+          return;
+        }
+
+        var $pdpInputs = $pdpSizeGrid.find("[data-pdp-size-qty-input]");
+        if ($pdpInputs.length) {
+          $pdpInputs.each(function () {
+            var $inp = $(this);
+            var qty = parseInt($inp.val() || "0", 10);
+            if (isNaN(qty) || qty < 1) return;
+
+            var max = parseInt($inp.attr("data-max") || "0", 10);
+            if (!isNaN(max) && max > 0 && qty > max) {
+              qty = max;
+              $inp.val(max);
+            }
+
+            var itemId = String($inp.attr("data-id") || "").trim();
+            if (!itemId) return;
+
+            var item = { id: itemId, quantity: qty };
+            var properties = {};
+            if (selectedColor) properties.Color = selectedColor;
+            if (Object.keys(properties).length) item.properties = properties;
+            itemsToAdd.push(item);
+          });
+        } else {
+          $pdpSizeGrid.find(".itemQuantity").each(function () {
+            var $inp = $(this);
+            var qty = parseInt($inp.val() || "0", 10);
+            if (isNaN(qty) || qty < 1) return;
+
+            var max = parseInt($inp.attr("data-max") || "0", 10);
+            if (!isNaN(max) && max > 0 && qty > max) {
+              qty = max;
+              $inp.val(max);
+            }
+
+            var itemId = String($inp.attr("data-id") || "").trim();
+            if (!itemId) return;
+
+            var item = { id: itemId, quantity: qty };
+            var properties = {};
+            if (selectedColor) properties.Color = selectedColor;
+            if (Object.keys(properties).length) item.properties = properties;
+            itemsToAdd.push(item);
+          });
+        }
+
+        if (!itemsToAdd.length) {
+          $btn.html("Choose qty");
+          setTimeout(function () { $btn.html(originalHtml); }, 1200);
+          return;
+        }
+      } else if ($sizeGrid.length) {
+
+        $sizeGrid.find("[data-size-qty-input]").each(function () {
+          var $inp = $(this);
+          var qty = parseInt($inp.val() || "0", 10);
+          if (isNaN(qty) || qty < 1) return;
+
+          var max = parseInt($inp.attr("data-max") || "0", 10);
+          if (!isNaN(max) && max > 0 && qty > max) {
+            qty = max;
+            $inp.val(max);
+          }
+
+          var itemId = String($inp.attr("data-id") || "").trim();
+          if (!itemId) return;
+
+          var item = { id: itemId, quantity: qty };
+          var properties = {};
+          if (selectedColor) properties.Color = selectedColor;
+          if (Object.keys(properties).length) item.properties = properties;
+          itemsToAdd.push(item);
+        });
+
+        if (!itemsToAdd.length) {
+          $btn.html("Choose qty");
+          setTimeout(function () { $btn.html(originalHtml); }, 1200);
+          return;
+        }
+      } else {
+        var $qtyEl = $form.find('[name="quantity"],[data-qty-input]').first();
+        var qty = $qtyEl.length ? parseInt($qtyEl.val() || "1", 10) : 1;
+        if (isNaN(qty) || qty < 1) qty = 1;
+
+        var variantId = ($form.attr("data-variant-id") || "").trim();
+        if (!variantId) {
+          var $idEl = $form.find('[data-variant-input],[name="id"]').first();
+          variantId = ($idEl.val() || "").toString().trim();
+        }
+        if (!variantId) return;
+
+        itemsToAdd.push({ id: variantId, quantity: qty });
+      }
+
+      // Tally total quantity being added
+      var totalQtyAdded = 0;
+      for (var _ai = 0; _ai < itemsToAdd.length; _ai++) { totalQtyAdded += (itemsToAdd[_ai].quantity || 0); }
+      if (totalQtyAdded < 1) totalQtyAdded = 1;
+
+      // Show spinner while request is in flight
+      $btn.prop("disabled", true).html('<span class="grt-btn-spinner"></span>');
+
+      $.ajax({
+        url: "/cart/add.js",
+        method: "POST",
+        dataType: "json",
+        contentType: "application/json; charset=utf-8",
+        data: JSON.stringify({ items: itemsToAdd })
+      }).done(function () {
+        // Green success state with item count
+        var successLabel = totalQtyAdded + (totalQtyAdded === 1 ? " Item Added to Cart!" : " Items Added to Cart!");
+        $btn.addClass("grt-btn--success").html(successLabel);
+
+        if (isPdpServerFlow && $pdpSizeGrid.length) {
+          if ($pdpSizeGrid.find("[data-pdp-size-qty-input]").length) {
+            $pdpSizeGrid.find("[data-pdp-size-qty-input]").val("");
+            schedulePdpSizeGridPriceRefresh($dlg);
+          } else {
+            $pdpSizeGrid.find(".itemQuantity").val("");
+          }
+        } else if ($sizeGrid.length) {
+          $sizeGrid.find("[data-size-qty-input]").val("");
+          scheduleSizeGridPriceRefresh($dlg);
+        } else {
+          var $qtyInput = $form.find("[data-qty-input]").first();
+          if ($qtyInput.length) $qtyInput.val(1);
+        }
+        showUpsellToast("Product successfully added to your cart");
+        if (typeof window.refreshCart === "function") {
+          window.refreshCart("notOpen");
+        } else {
+          document.dispatchEvent(new Event("cart:updated"));
+        }
+        document.dispatchEvent(new CustomEvent("grt-upsell:added", { detail: { source: "grt-upsell" } }));
+
+        setTimeout(function () {
+          $btn.prop("disabled", false).removeClass("grt-btn--success").html("Add to cart");
+        }, 3000);
+      }).fail(function (xhr) {
+        console.error("[GRT Upsell] add error:", xhr);
+        showUpsellToast("Unable to add to cart", true);
+        $btn.prop("disabled", false).html(originalHtml);
+        setTimeout(function () { $btn.html(originalHtml); }, 2000);
+      });
+    });
+
+    $(document).on("click",".showfullcta",function(){
+      $(this).parents(".grt-modal__description-wrapper").addClass("showfull");
+    })
+    $(document).on("click",".hidefullcta",function(){
+      $(this).parents(".grt-modal__description-wrapper").removeClass("showfull");
+    })
+
+  }
+    // ---------------------------
+    // Width calc (scoped)
+    // ---------------------------
+    {% if request.page_type == 'cart' %}
+      var __cartUpsellServerVisible = {{ show_cart_upsell | json }};
+
+      function shouldShowCartUpsell() {
+        var cartHolderEl = document.querySelector("#AjaxCartForm .cart-holder");
+        if (cartHolderEl) {
+          var cartItemsCount = parseInt(cartHolderEl.getAttribute("data-items"), 10);
+          if (!isNaN(cartItemsCount)) return cartItemsCount > 0;
+        }
+        return __cartUpsellServerVisible;
+      }
+
+      function syncCartUpsellVisibility() {
+        var $root = $("#grt-upsell-{{ uid }}");
+        if (!$root.length) return false;
+        var $box = $root.find(".grt-product-upsell").first();
+        if (!$box.length) return false;
+
+        var shouldShow = shouldShowCartUpsell();
+        console.log("shouldShowCartUpsell: ", shouldShow);
+        if (shouldShow) {
+          $box.addClass("active_productupsell")//.css("display", "block");
+        } else {
+          $box.removeClass("active_productupsell").css("display", "none");
+        }
+        return shouldShow;
+      }
+    {% else %}
+      function syncCartUpsellVisibility() {
+        return true;
+      }
+    {% endif %}
+
+    function setWidth() {
+      var $root = $("#grt-upsell-{{ uid }}");
+      if (!$root.length || !$root[0]) return;
+      if (!syncCartUpsellVisibility()) return;
+      var rootEl = $root[0];
+      // 1) pick the "real" container (best → fallback)
+      var parent =
+      rootEl.closest(".product-text") ||
+      rootEl.parentElement;
+
+      var $box = $root.find(".grt-product-upsell").first();
+      if (!parent) return;
+      var containerWidth = parent.getBoundingClientRect().width;
+      console.log(parent," =================parent: ",containerWidth,$box.css("display"));
+      if ($box.length) $box.css("display", "block");
+      $root[0].style.setProperty("--grt-container-w", containerWidth + "px");
+      
+      enable_swiper("#grt-upsell-{{ uid }} .grt-swiper");
+      grt____upsell();
+      // Center arrows on image height, not full card height
+      setTimeout(function() {
+        var imgH = $root.find(".grt-product-card__main-image").first().outerHeight();
+        if (imgH) {
+          $root.find(".grt-upsell-prev, .grt-upsell-next").css("top", Math.round(imgH / 2) + "px");
+        }
+      }, 100);
+    }
+
+    function refreshCurrentGRTUpsellBlock() {
+      var $root = $("#grt-upsell-{{ uid }}");
+      if (!$root.length) return;
+
+      if ($root.attr("data-grt-upsell-resize") !== "1") {
+        $root.attr("data-grt-upsell-resize", "1");
+        $(window).on("resize", function () {
+          setWidth();
+        });
+      }
+
+      {% if request.page_type == 'cart' %}
+        if ($root.attr("data-grt-upsell-cart-watch") !== "1") {
+          $root.attr("data-grt-upsell-cart-watch", "1");
+
+          document.addEventListener("cart:updated", function () {
+            setTimeout(setWidth, 0);
+            setTimeout(setWidth, 200);
+          });
+
+          var cartFormEl = document.querySelector("cart-form");
+          if (cartFormEl) {
+            cartFormEl.addEventListener("cart-updated", function () {
+              setTimeout(setWidth, 0);
+              setTimeout(setWidth, 200);
+            });
+          }
+        }
+      {% endif %}
+
+      console.log("=========================setWidth");
+      setTimeout(setWidth, 0);
+      setTimeout(setWidth, 250);
+    }
+
+    window.__grtUpsellAfterUploadRegistry = window.__grtUpsellAfterUploadRegistry || {};
+    window.__grtUpsellAfterUploadFns = window.__grtUpsellAfterUploadFns || [];
+
+    if (!window.__grtUpsellAfterUploadRegistry["{{ uid }}"]) {
+      window.__grtUpsellAfterUploadRegistry["{{ uid }}"] = true;
+      window.__grtUpsellAfterUploadFns.push(refreshCurrentGRTUpsellBlock);
+    }
+
+    if (typeof window.refreshGRTUpsellBlocks !== "function") {
+      window.refreshGRTUpsellBlocks = function () {
+        var fnList = window.__grtUpsellAfterUploadFns || [];
+        for (var i = 0; i < fnList.length; i++) {
+          try { fnList[i](); } catch (e) {}
+        }
+      };
+    }
+
+    $(function(){
+      {% if block.settings.upsell_pageload == true %}
+        setTimeout(setWidth, 250);
+      {% endif %}
+      // Always center arrows on image height regardless of pageload setting
+      setTimeout(function() {
+        var $r = $("#grt-upsell-{{ uid }}");
+        var imgH = $r.find(".grt-product-card__main-image").first().outerHeight();
+        if (imgH) {
+          $r.find(".grt-upsell-prev, .grt-upsell-next").css("top", Math.round(imgH / 2) + "px");
+        }
+      }, 400);
+    })
+  
+</script>
+
+
+<style>
+  .grt-product-upsell{display:none;}
+  .grt-product-upsell.active_productupsell{width:100%;}
+  .grt-upsell__wrap{width: var(--grt-container-w);}
+  .grt-upsell__head { margin-bottom: 12px; margin-top: 24px; }
+  .grt-upsell__title { margin: 0; font-size: 18px; font-weight: 800; }
+  .grt-upsell__sub { margin: 6px 0 0; opacity: .7; }
+  .grt-upsell__meta { display:flex; flex-wrap:wrap; gap:16px; margin-top:12px; }
+  .grt-upsell__meta-item { display:inline-flex; align-items:center; gap:8px; font-size:14px; font-weight:500; line-height:1.3; }
+  .grt-upsell__meta-icon { width:20px; height:20px; object-fit:contain; display:block; }
+  .grt-upsell__wrap { position: relative; display: flex; align-items: center; gap: 10px; }
+  .grt-upsell__track { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-left:-8px;}
+  .{% comment %} grt-upsell .grt-upsell__track { width:100%; display:flex; overflow:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; gap:16px; padding:2px; } {% endcomment %}
+  .grt-upsell .grt-upsell__track::-webkit-scrollbar { display:none; }
+  .grt-upsell .grt-upsell__item { scroll-snap-align:start; flex:0 0 auto; width:200px; {% comment %} calc(var(--grt-container-w)/3) {% endcomment %} }
+
+
+  /* Card */
+  .grt-product-layout { display:flex; width:100%; }
+  .grt-upsell-cardlink { display:block; color:inherit; text-decoration:none; width:100%; }
+  .grt-product-card { width:100%; background:#fff; display:flex; flex-direction:column; gap:1em; margin-right:8px;}
+  .grt-product-card__container { display:flex; flex-direction:column; box-sizing:border-box;}
+  .grt-product-card__media {background: #F5F5F5; display:flex; flex-direction:column; align-items:center; width:200px; border-radius:8px;}
+  .grt-product-card__main-image{width:200px; height:200px; background: #F5F5F5; overflow:hidden;border-radius:8px; display: flex; align-items: center; justify-content: center;}
+  .grt-product-card__main-image img{border-radius:8px; max-width:100%; height:auto !important; width:auto !important; display:block; max-height:100%; mix-blend-mode: multiply;}
+  .grt-product-card__img-placeholder{width:100%; aspect-ratio:1/1; background:rgba(0,0,0,.06); border-radius:.5rem; }
+
+  .grt-product-card__details { display:flex; flex-direction:column; gap:2px; width:100%; margin-top:2px; }
+  .grt-product-card__info { display:flex; flex-direction:column; gap:1px; }
+  .grt-product-card__title { font-size:14px; font-weight:600; line-height:20px; margin:0; }
+  .grt-product-card__price-row { display:flex; align-items:baseline; gap:4px; }
+  .grt-product-card__starting { font-size:12px; line-height:18px; white-space:nowrap; }
+  .grt-product-card__price { display:flex; gap:.5rem; align-items:baseline; font-size:14px; color:#3eaeff; font-weight:600; }
+  .grt-product-card__price-compare { text-decoration:line-through; color:#999; opacity:1; font-weight:500; }
+
+  /* Card color swatch strip */
+  .grt-card-swatches {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 4px 8px 5px;
+    background: #fff;
+  }
+  .grt-card-swatch {
+    width: 16px; height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    background-color: var(--swatch-color, #ccc);
+    border: 1px solid rgba(0,0,0,.18);
+    padding: 0; cursor: pointer;
+    transition: box-shadow .1s;
+  }
+  .grt-card-swatch:hover { box-shadow: 0 0 0 1.5px #fff, 0 0 0 3px rgba(0,0,0,.4); }
+  .grt-card-swatch.is-active { box-shadow: 0 0 0 1.5px #fff, 0 0 0 3px rgba(0,0,0,.65); }
+  .grt-card-swatch-more { font-size: 10px !important; font-weight: 600; color: #333; white-space: nowrap; margin-left: 2px; }
+  .grt-product-card__yotpo .yotpo-widget-instance { position:relative; min-height:14px; }
+  .grt-product-card__yotpo .yotpo-widget-instance::after { position:absolute; content:""; inset:0; background-color:transparent; z-index:1; }
+  .grt-product-card__yotpo .yotpo-widget-instance svg { width:10px; height:10px; }
+  .grt-product-card__yotpo .yotpo-widget-instance .star-container { margin-right:2px !important; }
+  .grt-product-card__yotpo .yotpo-star-rating-reviews-summary-link { display:none !important; }
+  .grt-product-card__yotpo .yotpo-sr-bottom-line-summary { flex-direction:row !important; gap:2px !important; align-items:center !important; }
+  .grt-product-card__yotpo .yotpo-sr-bottom-line-text { font-size:10px !important; }
+  .grt-product-card__yotpo .yotpo-sr-bottom-line-button .yotpo-sr-bottom-line-text { font-size:10px !important; }
+
+  .grt-product-card__view-button {
+    background:#000; color:#fff; border-radius:.75rem; padding:1rem;
+    font-size:.875rem; font-weight:700; text-transform:uppercase;
+    transition: background-color .3s ease, color .3s ease;
+    border:2px solid #000; cursor:pointer;
+  }
+  .grt-product-card__view-button:hover { background:#fff; color:#000; }
+
+  /* Quick buy hover bar */
+  .grtproductcard{position:relative;}
+  .grt-card-overlay{position:absolute; top:0; bottom:0; left:0; right:0; z-index:2;}
+  .grt-qv-wrap{position:absolute;bottom:0;left:0;right:0;opacity:0;visibility:hidden;transition:opacity .15s ease,visibility .15s ease;z-index:3;pointer-events:none;border-radius:0 0 8px 8px;overflow:hidden;}
+  .grt-qv-wrap .grtqvbtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;background:rgba(0,0,0,0.82);color:#fff !important;border:none;border-radius:0;padding:10px 0;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;}
+  .grt-qv-wrap .grtqvbtn:hover{background:rgba(0,0,0,0.95);}
+  .grt-upsell__item:hover .grt-qv-wrap{opacity:1;visibility:visible;pointer-events:auto;}
+
+
+  /* Modal */
+  html.grt-modal-open, body.grt-modal-open { overflow:hidden; overscroll-behavior:none; }
+  /* Make dialog full-viewport so clicking outside the content closes it */
+  .grt-product-modal { position:fixed !important; inset:0 !important; width:100% !important; height:100% !important; max-width:100% !important; max-height:100% !important; padding:12px; box-sizing:border-box; background:rgba(0,0,0,.7); border:0; border-radius:0; box-shadow:none; align-items:center; justify-content:center; overflow:visible; }
+  .grt-product-modal[open] { display:flex !important; }
+  .grt-product-modal::backdrop { display:none; }
+  .grt-product-modal.is-opening .grt-product-modal__content { opacity:0; pointer-events:none; }
+  .grt-product-modal.is-opening .grt-product-modal__loading { opacity:1; }
+  .grt-product-modal__container { position:relative; overflow-x:hidden;}
+  .grt-product-modal__loading {
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    background:rgba(255,255,255,.96);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .15s ease;
+    z-index:2;
+  }
+  .grt-product-modal__container,
+  .grt-product-modal__content {
+    min-height: unset;
+  }
+  .grt-product-modal__loading-spinner {
+    width:32px;
+    height:32px;
+    border:3px solid rgba(3,64,108,.18);
+    border-top-color:#03406C;
+    border-radius:50%;
+    animation:grtModalSpin .7s linear infinite;
+  }
+  .grt-product-modal__loading-text {
+    font-size:14px;
+    font-weight:700;
+    color:#03406C;
+  }
+  .grt-product-modal__media,.grt-product-modal__details{ padding:1.4rem;}
+  .grt-product-modal__close-container { display:grid; justify-items:end; margin-left:1.4rem; padding-bottom:0.7rem; }
+  .grt-product-modal__close,.grt-product-modal__close:hover,.grt-product-modal__close:focus { width:64px; height:64px; border:0; cursor:pointer; outline:none; display:flex; align-items:center; justify-content:center; background:transparent; }
+  .grt-product-modal__content { position:relative; width:100%; background:#fff; border-radius:.75rem; box-shadow:0 25px 50px -12px rgba(0,0,0,.25); max-width:1014px; min-width:320px; max-height:calc(100vh - 48px); overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
+  .grt-product-modal__layout { display:flex; flex-direction:column; gap:1rem; }
+
+  .grt-product-modal__media { display:flex; flex-direction:column; align-items:center; width:100%; justify-content:center; background:#F5F5F5;}
+  .grt-product-modal__media img { border-radius:.25rem; width:100%; height:auto; display:block; mix-blend-mode:multiply;}
+  .grt-product-modal__details { display:flex; flex-direction:column; gap:14px; width:100%; }
+  .grt-product-modal__price,.grt-product-modal__details a{color:#3eaeff;}
+  .grt-product-modal__title { font-size:18px; font-weight:700; margin:0; margin-top:6px; line-height:26px; }
+  .grt-product-modal__full-details { margin-top:4px;}
+  .grt-product-modal__full-details a { font-size:12px; font-weight:600; text-decoration:none; }
+  .grt-product-modal__price-container { display:flex; gap:2px; font-weight:650; font-size:20px; align-items:flex-start; margin-top:4px; flex-direction:column; }
+  .grt-product-modal__compare-price { text-decoration:line-through; color:#999; opacity:1; }
+  .grt-product-modal__label { display:flex; align-items:center; gap:8px; font-weight:650; margin-bottom:4px; font-size:15px; }
+  .grt-product-modal__starting-at{ font-size:12px; font-weight:700; }
+
+  .grt-product-modal__buttons { position:sticky; bottom:0; z-index:10; display:flex; flex-direction:column; gap:4px; background:#fff; padding:1.4rem; box-shadow:0 -4px 12px rgba(0,0,0,.06); margin-left:-1.4rem; margin-right:-1.4rem; margin-bottom:-1.4rem; }
+  .grt-product-modal__buttons button {
+    font-size:16px; font-weight:700; transition: background-color .3s ease, color .3s ease;
+    cursor:pointer; text-transform:capitalize; padding:17px 10px; border-radius:.75rem;
+  }
+  .grt-product-modal__add-button { background:rgba(63, 177, 250, 1); color:#fff; transition:background 0.2s ease; }
+  .grt-product-modal__add-button:hover { background:#0180c2; color:#fff; }
+  .grt-product-modal__add-button:disabled { opacity:.65; cursor:not-allowed; }
+  .grt-product-modal__add-button.grt-btn--success { background:#22A614 !important; color:#fff; }
+  @keyframes grt-spin { to { transform:rotate(360deg); } }
+  .grt-btn-spinner { display:inline-block; width:22px; height:22px; border:2.5px solid rgba(255,255,255,0.35); border-top-color:#fff; border-radius:50%; animation:grt-spin 0.65s linear infinite; vertical-align:middle; }
+
+  .grt-product-modal__description-text {font-weight:450; color:#717171; letter-spacing:.02em; font-size:.9rem;}
+  .grt-product-modal__more a { display:inline-block; margin-top:8px; text-decoration:underline; }
+
+  .grt-variant-options{display:grid; gap:13px;}
+  .grt-opt { display:grid; gap:6px; }
+  .grt__pdp-selected-color-label{text-transform:capitalize; display:inline-flex; align-items:center; gap:8px; }
+  .grt__pdp-selected-color-chip{
+    width:32px;
+    height:32px;
+    border-radius:4px;
+    border:1px solid rgba(0,0,0,.25);
+    background:var(--grt-pdp-selected-color-chip, transparent);
+    display:none;
+    flex:0 0 32px;
+  }
+  .grt__pdp-selected-color-chip.is-visible{ display:inline-block; }
+
+  /* Color label row — flex with count badge pushed to far right */
+  .grt-color-label-row{ flex-wrap:nowrap !important; gap:6px !important; }
+  .grt-color-count-badge{ margin-left:auto; font-size:11px; font-weight:600; color:#fff; white-space:nowrap; flex-shrink:0; background:#111; border:1px solid #111; border-radius:20px; padding:3px 10px; cursor:default; }
+
+  /* Color picker trigger — no border box, just inline chip + name + caret */
+  .grt-mobile-cp-trigger{ display:none; align-items:center; gap:8px; background:none; border:none; padding:0; cursor:pointer; font-size:14px; font-weight:600; color:#111; }
+  .grt-mobile-cp-chip{ width:24px; height:24px; border-radius:4px; border:1px solid rgba(0,0,0,.25); background:var(--grt-mobile-cp-chip, #ccc); flex:0 0 24px; display:block; }
+  .grt-mobile-cp-name{ text-transform:capitalize; }
+  .grt-mobile-cp-caret{ transition:transform .15s ease; flex-shrink:0; }
+  .grt-mobile-cp-trigger.is-open .grt-mobile-cp-caret{ transform:rotate(180deg); }
+
+  /* Color picker list — default: contained dropdown (desktop) */
+  .grt-mobile-cp-list{ display:none; }
+  .grt-color-label-row{ position:relative; }
+  .grt-mobile-cp-list.is-open{
+    display:block;
+    position:absolute; top:calc(100% + 4px); left:0; right:0;
+    z-index:200; background:#fff;
+    border:1px solid #E0E0E0; border-radius:8px;
+    box-shadow:0 6px 24px rgba(0,0,0,.12);
+    max-height:300px; overflow-y:auto;
+  }
+  .grt-mobile-cp-list__header{ display:none; } /* header only shown on mobile full-screen */
+  .grt-mobile-cp-list__scroll{ display:contents; } /* transparent wrapper on desktop */
+  .grt-mobile-cp-item{ display:flex; align-items:center; gap:12px; padding:10px 14px; width:100%; background:none; border:none; border-bottom:1px solid #F0F0F0; cursor:pointer; font-size:13px; color:#111; text-align:left; }
+  .grt-mobile-cp-item:last-child{ border-bottom:none; }
+  .grt-mobile-cp-item.is-active{ background:#F0F7FF; font-weight:700; }
+  .grt-mobile-cp-item__chip{ width:24px; height:24px; border-radius:4px; border:1px solid rgba(0,0,0,.2); background:var(--grt-mobile-cp-item-chip, #ccc); flex:0 0 24px; display:block; }
+
+  /* Both breakpoints: show trigger */
+  .grt-mobile-cp-trigger{ display:inline-flex; }
+
+  /* Desktop: hide desktop-only static label; keep swatch grid */
+  @media (min-width: 768px){
+    .grt-pdp-color-desktop-label{ display:none !important; }
+  }
+  /* Mobile: full-screen overlay instead of dropdown; hide static label */
+  @media (max-width: 767px){
+    .grt-pdp-color-desktop-label{ display:none !important; }
+    .grt-mobile-cp-list.is-open{
+      display:flex; flex-direction:column;
+      position:fixed; inset:0; top:0; left:0; right:0; bottom:0;
+      z-index:99999; background:#fff;
+      border:none; border-radius:0; box-shadow:none;
+      max-height:none; overflow:hidden;
+    }
+    .grt-mobile-cp-list__header{ display:flex; align-items:center; justify-content:space-between; padding:18px 20px 14px; border-bottom:1px solid #E8E8E8; font-size:18px; font-weight:700; color:#111; flex-shrink:0; }
+    .grt-mobile-cp-list__close{ width:36px; height:36px; border-radius:50%; background:#F2F2F2; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#555; flex-shrink:0; }
+    .grt-mobile-cp-list__scroll{ display:block; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .grt-mobile-cp-item{ padding:14px 20px; font-size:15px; gap:14px; }
+    .grt-mobile-cp-item__chip{ width:36px; height:36px; border-radius:6px; flex:0 0 36px; }
+  }
+
+  .grt-opt__pills { display:flex; flex-wrap:wrap; gap:8px; }
+  .grt-variant-pill { padding:10px 14px; border-radius:8px; background:#EDEDED; border-color:transparent; cursor:pointer; font-size:.85rem; font-weight:700; transition:all .2s ease; height:44px; }
+  .grt-variant-pill.is-active { background:#000; color:#fff; }
+  .grt-variant-pill.is-disabled { opacity:.35; cursor:not-allowed; }
+
+  /* swatch pills */
+  .grt-variant-pill.is-swatch{ padding:0; width:33px; height:33px; min-width:33px; min-height:33px; display:inline-flex; align-items:center; justify-content:center; position:relative; border-width:0; }
+  .grt-variant-pill.is-swatch .grt-swatch{ width:100%; height:100%; border-radius:6px; background:var(--swatch, transparent); border:1px solid rgba(0,0,0,.35); display:inline-block; }
+  .grt-variant-pill.is-swatch.is-active .grt-swatch{ outline:2px solid #000; outline-offset:2px; }
+  .grt-opt__pills--pdp-colors{ gap:6px 0px;}
+  .grt-pdp-color-pill,
+  .grt-pdp-color-pill:hover,
+  .grt-pdp-color-pill:focus,
+  .grt-pdp-color-pill:active{
+    width:24px;
+    height:24px;
+    padding:0;
+    min-width:30px;
+    border:0 !important;
+    border-radius:6px;
+    background:transparent !important;
+    box-shadow:none !important;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    outline-color:transparent;
+  }
+  .grt-pdp-color-pill__chip{width:24px; height:24px; border-radius:3px; border:1px solid rgba(0,0,0,.35); background:var(--grt-pdp-color-chip, transparent); display:block;}
+  .grt-pdp-color-pill__chip{outline-color:transparent;}
+  .grt-pdp-color-pill.is-active .grt-pdp-color-pill__chip{outline:2px solid #3eaeff; outline-offset:2px;}
+  .grt-pdp-color-pill:hover .grt-pdp-color-pill__chip{outline:2px solid rgba(0,0,0,.35); outline-offset:2px;}
+  
+  @keyframes grtModalSpin {
+    to { transform:rotate(360deg); }
+  }
+  .grt-product-card__yotpo{margin-bottom:2px;}
+  .grt-pdp-color-pill-hidden{ display:none !important; }
+  .grt-color-pill-hidden{ display:none !important; }
+  .grt-color-see-all{padding:0; border:0; background:none; color:#3eaeff; text-decoration:underline; font-size:14px; font-weight:700; line-height:1.2; cursor:pointer; justify-self:start; padding-top:10px;}
+
+  /* Quantity */
+  .grt-product-modal__qty { display:grid; gap:8px; margin-top:16px;}
+  .grt-qty{ display:inline-flex; align-items:center; gap:10px; }
+  .grt-qty__btn,.grt-qty__input{ border:none; }
+  .grt-qty-box-wrapper{ display:inline-flex; border:2px solid rgba(0,0,0,.2); gap:5px; border-radius:12px; overflow:hidden; }
+  .grt-qty__btn{ width:44px; height:44px; background:#fff; cursor:pointer; font-size:22px; font-weight:850; line-height:1; display:inline-flex; align-items:center; justify-content:center; user-select:none; }
+  .grt-qty__input{ width:48px; height:44px; text-align:center; font-size:16px; font-weight:750; padding:0 8px; box-sizing:border-box; }
+  .grt-size-qty-parent-label{ margin-top:12px; }
+  .grt-pdp-size-grid{ margin-top:12px; display: flex; flex-flow: row wrap; align-items:flex-start;}
+
+  /* Size skeleton loader */
+  @keyframes grt-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  .grt-size-skel { display:flex; flex-wrap:wrap; gap:7px; }
+  .grt-size-skel__card { flex:0 0 56px; width:56px; box-sizing:border-box; display:grid; gap:4px; border-radius:8px; padding:4px; background:#fff; }
+  .grt-size-skel__bar { border-radius:4px; background:linear-gradient(90deg,#efefef 25%,#e2e2e2 50%,#efefef 75%); background-size:200% 100%; animation:grt-shimmer 1.4s ease-in-out infinite; }
+  .grt-size-skel__lbl { height:20px; }
+  .grt-size-skel__inp { height:37px; }
+  .grt-size-skel__pr  { height:11px; }
+  .grt-size-qty-grid{ margin-top:6px; display:flex; flex-wrap:wrap; gap:7px; overflow:hidden; }
+  .grt-size-qty-row{ flex:1 1 0; min-width:0; width:auto; box-sizing:border-box; display:grid; gap:4px; border-radius:8px; padding:4px; background:#fff; text-align:center; }
+  .grt-size-qty-row.is-out{ background:#f8f8f8; }
+  .grt-size-qty-row__size,.grt-size-qty-row__qty,.grt-size-qty-row__price-wrap,.grt-size-qty-row__save-wrap{ display:grid; gap:4px; }
+  .grt-size-qty-row__k{ font-size:10px; font-weight:700; letter-spacing:.02em; color:#666; text-transform:uppercase; line-height:1; }
+  .grt-size-qty-row__v{ font-weight:700; font-size:12px; color:rgba(0, 0, 0, 0.6); line-height:20px; }
+  .grt-size-qty-row__compare{ font-size:12px; color:rgba(0, 0, 0, 0.6); line-height:1.2; text-decoration:line-through; }
+  .grt-size-qty-row__price{ font-weight:700; font-size:13px; color:rgba(0, 65, 112, 1); line-height:1.2; }
+  .grt-size-qty-row__save{ font-weight:700; font-size:12px; color:#2E7D32; line-height:1.2; }
+  .grt-size-qty-row__out{
+    width:100%;
+    height:37px;
+    border:1px solid #e0e0e0;
+    border-radius:6px;
+    background:#e1e1e1;
+    color:#000;
+    font-size:12px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  /* Input + spinners side-by-side (flex, not absolute overlay) */
+  .grt-size-qty-wrap { display:flex; align-items:stretch; height:37px; border:1px solid #E0E0E0; border-radius:6px; overflow:hidden; box-sizing:border-box; background:#fff; transition:border-color 0.15s ease; }
+  .grt-size-qty-wrap:focus-within { border-color:#aaa; box-shadow:0 0 0 2px rgba(0,0,0,0.08); }
+  .grt-size-qty-input{ flex:1; min-width:0; height:100%; border:none; border-radius:0; text-align:center; font-weight:700; font-size:14px; padding:0; box-sizing:border-box; background:#fff; outline:none; }
+  .grt-size-qty-input::-webkit-outer-spin-button,
+  .grt-size-qty-input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  .grt-size-qty-input[type=number] { -moz-appearance:textfield; }
+  .grt-size-qty-spinners { display:flex; flex-direction:column; width:16px; flex-shrink:0; border-left:1px solid #E0E0E0; }
+  .grt-size-qty-spin { flex:1; border:none; background:transparent; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; color:#666; line-height:1; font-size:6px; }
+  .grt-size-qty-spin:hover { background:#f0f0f0; }
+  .grt-size-qty-spin--up { border-bottom:1px solid #E0E0E0; }
+  /* Desktop only: single row, no min-width so all sizes fit; cap at 100px for few-size products */
+  @media (min-width: 768px) {
+    .grt-size-qty-grid { flex-wrap:nowrap; }
+    .grt-size-qty-row { min-width:0; max-width:100px; }
+  }
+  /* Mobile: CSS grid forces exactly 5 equal columns; row 2 items align to same column widths */
+  @media (max-width: 767px) {
+    .grt-size-qty-grid, .grt-pdp-size-grid { display:grid; grid-template-columns:repeat(5, 1fr); }
+    .grt-size-qty-row { flex:unset; max-width:none; width:auto; }
+    .grt-size-qty-spinners { display:none; }
+    /* Prevent iOS auto-zoom: font-size must be >=16px on focused inputs */
+    .grt-size-qty-input { font-size:16px !important; }
+    .grt-qty__input { font-size:16px !important; }
+  }
+
+  .grt-upsell-toast{
+    position:fixed;
+    top:24px;
+    right:24px;
+    transform:translateX(20px);
+    opacity:0;
+    pointer-events:none;
+    z-index:2147483647;
+    background:#cffca6;
+    color:#000;
+    border-radius:10px;
+    padding:12px 16px;
+    font-size:14px;
+    font-weight:700;
+    line-height:1.2;
+    box-shadow:0 10px 26px rgba(0,0,0,.24);
+    transition:opacity .2s ease, transform .2s ease;
+    max-width:min(92vw, 320px);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .grt-upsell-toast.is-visible{ opacity:1; transform:translateX(0); pointer-events:auto; }
+  .grt-upsell-toast__icon{ color:#000; font-size:16px; font-weight:900; line-height:1; flex:0 0 auto; }
+  .grt-upsell-toast__message{ flex:1 1 auto; min-width:0; }
+  .grt-upsell-toast__close{
+    flex:0 0 auto;
+    border:0;
+    background:none;
+    color:#000;
+    font-size:18px;
+    font-weight:700;
+    line-height:1;
+    padding:0;
+    cursor:pointer;
+  }
+  .grt-upsell-toast.is-error{ background:#B42318; color:#fff; border-color:#7A271A; }
+  .grt-upsell-toast.is-error .grt-upsell-toast__icon,
+  .grt-upsell-toast.is-error .grt-upsell-toast__close{ color:#fff; }
+
+  .grt-qty__input::-webkit-outer-spin-button,
+  .grt-qty__input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  .grt-qty__input[type=number] { -moz-appearance:textfield; }
+  .grt-variant-pill.is-disabled,.grt-product-modal__form #bcpo{display:none !important;}
+
+  .grt-upsell__track .slick-arrow,.grt-upsell-prev,.grt-upsell-next{z-index: 1; width:48px; height:48px; background:#8A8A8A; margin-top:0; transform:translateY(-50%) !important;}
+  .grt-upsell__track [aria-disabled=true]{opacity:0.5; pointer-events:none;}
+  .grt-upsell__track .slick-prev,.grt-upsell-prev,.swiper-button-prev.grt-upsell-prev{left: 0px; border-top-right-radius:8px; border-bottom-right-radius:8px;}
+  .grt-upsell__track .slick-prev::after,.grt-upsell-prev:after{width: 12px; height: 12px; content: ""; border-left: solid 2px #fff; border-bottom: solid 2px #fff; display: block; transform: rotate(45deg); left: 50%; position: absolute; margin-left: -4px;}
+  .grt-upsell__track .slick-next::after,.grt-upsell-next:after{width: 12px; height: 12px; content: ""; border-right: solid 2px #fff; border-top: solid 2px #fff; display: block; transform: rotate(45deg); left: 50%; position: absolute; margin-top: -6px; margin-left: -8px;x}
+  .grt-upsell__track .slick-next,.swiper-button-next.grt-upsell-next,.grt-upsell-next{right: 0px; border-top-left-radius:8px; border-bottom-left-radius:8px;}
+  .grt-upsell__track .slick-prev::before,.grt-upsell__track .slick-next::before{content:none;}
+  .grt-upsell__track .slick-track{touch-action:pan-y;}
+
+  .grt-upsell__wrap{position:relative;}
+  .grt-upsell__track_{display:flex;}
+  .grt-swiper{overflow:hidden;}
+  .grt-swiper .swiper-slide{width:200px;flex:0 0 auto;}
+  .grt-qv-btn{cursor:pointer;}
+  .swiper-button-next.swiper-button-disabled, .swiper-button-prev.swiper-button-disabled{display:none;}
+  .grt-modal__close{position: absolute; right: 0; top: 0; border-radius: 0 0.75rem 0 12px; z-index:100;}
+
+  .grt-product-modal__label { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; font-weight:700; font-size:14px; color:#111; margin-bottom:4px; }
+  /* Inline selected color name — shown next to the label text */
+  .grt-selected-color-name {
+    font-weight:400; font-size:14px; color:#555; text-transform:capitalize;
+  }
+
+  .showfull .half__description,.full__description{display:none}
+  .showfull .full__description{display:block;}
+  .grt-product-modal__description{overflow:hidden; overflow-y:auto; margin-top:24px;}
+  .grt-product-card__yotpo .yotpo-sr-bottom-line-summary{height:22px; overflow:hidden; }
+
+  @media(max-width: 749px){
+    .grt-qv-wrap{ opacity:1; visibility:visible; pointer-events:auto; transform:none; display:block !important;}
+  }
+  @media (min-width: 768px) {
+    .grt-product-modal__container,
+    .grt-product-modal__content {
+      min-height: unset;
+      display: flex;
+      flex-flow: column;
+    }
+    .grt-product-modal__layout { flex-direction:row; flex: 1 1 auto; min-height: 100%; gap:0; }
+    .grt-product-modal__media { flex: 0 0 37.5%; width: 37.5%; }
+    .grt-product-modal__details { flex: 1 1 auto; width: auto; }
+    .grt-size-qty-parent-label{ margin-top:12px; }
+  }
+
+  /* Mobile modal adjustments */
+  @media (max-width: 767px) {
+    .grt-product-modal .grt-product-modal__media img { width:52.5%; margin:0 auto; }
+    /* Price inline with "Starting at" on mobile to reduce vertical height */
+    .grt-product-modal .grt-product-modal__price-container { flex-flow: row wrap; align-items:baseline; }
+    /* Tighten vertical spacing between content blocks so size options are more in view */
+    .grt-product-modal .grt-product-modal__details { gap: 10px; }
+    /* Close gap between image and details, halve the top padding — pulls stars up */
+    .grt-product-modal .grt-product-modal__layout { gap: 0; }
+    .grt-product-modal .grt-product-modal__details { padding-top: 0.7rem; }
+  }
+
+  /* Mobile carousel for color swatches — modal only */
+  @media (max-width: 767px) {
+    .grt-product-modal .grt-swatch-pills,
+    .grt-product-modal .grt-opt__pills--pdp-colors {
+      flex-wrap: nowrap;
+      overflow-x: scroll;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      /* Prevent grid-item min-width:auto from expanding to fit all pills */
+      min-width: 0;
+      width: 100%;
+      /* Extra vertical padding so finger has room to scroll without touching adjacent rows */
+      padding: 12px 0 12px 4px;
+      /* Mask is controlled dynamically by JS (updateSwatchMask) */
+    }
+    .grt-product-modal .grt-swatch-pills::-webkit-scrollbar,
+    .grt-product-modal .grt-opt__pills--pdp-colors::-webkit-scrollbar { display: none; }
+    .grt-product-modal .grt-swatch-pills,
+    .grt-product-modal .grt-opt__pills--pdp-colors {
+      gap: 6px;
+    }
+    .grt-product-modal .grt-swatch-pills .grt-variant-pill,
+    .grt-product-modal .grt-opt__pills--pdp-colors .grt-pdp-color-pill {
+      flex-shrink: 0;
+    }
+    /* 36×36 swatches on mobile */
+    .grt-product-modal .grt-swatch-pills .grt-variant-pill.is-swatch {
+      width: 36px; height: 36px; min-width: 36px; min-height: 36px;
+    }
+    .grt-product-modal .grt-opt__pills--pdp-colors .grt-pdp-color-pill {
+      width: 36px; height: 36px; min-width: 36px;
+    }
+    .grt-product-modal .grt-opt__pills--pdp-colors .grt-pdp-color-pill__chip {
+      width: 36px; height: 36px;
+    }
+
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+
+<script>
+  function enable_swiper(root){
+    var el = document.querySelector(root);
+    if(!el) return;
+
+    // must be the container that has .swiper class
+    if(el.swiper){ el.swiper.update(); return; }
+
+    var nextBtn = el.querySelector('.swiper-button-next');
+    var prevBtn = el.querySelector('.swiper-button-prev');
+
+    var sw = new Swiper(el, {
+      slidesPerView: 'auto',
+      spaceBetween: 16,
+      speed: 250,
+      watchOverflow: true,
+      navigation: { nextEl: nextBtn, prevEl: prevBtn },
+      observer: true,
+      observeParents: true
+    });
+
+    // webview/font/image safety updates
+    setTimeout(function(){ sw.update(); }, 0);
+    setTimeout(function(){ sw.update(); }, 300);
+  }
+</script>
+{%- endif -%}

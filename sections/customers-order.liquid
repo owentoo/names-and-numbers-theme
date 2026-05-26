@@ -1,0 +1,419 @@
+{{ 'section-account.css' | asset_url | stylesheet_tag }}
+<script>
+  function loadFallback(obj){
+    $(obj).parents(".imgbox").removeClass("reorder_img");
+    var _img = "https://cdn.shopify.com/s/files/1/0558/0265/8899/files/no_image-design-300424.svg?crop=center&height=120&v=1686517377&width=120";
+    var _count = parseInt($(obj).attr("data-loadcount"));
+    $(obj).attr("data-loadcount",++_count);
+    if(_count < 3){
+      $(".reorder_box_wrap").hide()
+    }else{
+      $(".reorder_box_wrap").hide()
+    }
+  }
+</script>
+{%- render 'breadcrumb', container: 'compact', vertical_space: 'vertical-space-xsmall', style: 'breadcrumb-main--margin' -%}
+
+<div class="container--compact container--vertical-space-small">
+
+	<h1 class="heading-size--page-title gutter-bottom--small">{{ 'customers.orders_page.title' | t }}</h1>
+
+  <a class="text-link--has-icon" href="{{ routes.account_url }}">
+		{% render 'theme-symbols' icon: 'arrow-left' %}
+		<span>{{ 'customers.addresses_page.return' | t }}</span>
+	</a>
+
+	<hr class="account-divider gutter-top--large" />
+
+	<h3 class="heading-size--xsmall gutter-top--large">{{ 'customers.account_page.orders_table.order' | t }} {{ order.name }}</h3>
+
+	<p class="text-size--small">{{ 'customers.orders_page.placed_order' | t }} {{ order.created_at | date: "%B %d, %Y %I:%M%p" }}</p>
+
+  <div class="account-layout gutter-top--regular">
+
+    <main class="gutter-bottom--regular">
+
+      {% if order.cancelled %}
+        <div class="errors">
+          {% assign cancelled_at = order.cancelled_at | date: "%B %d, %Y %I:%M%p" %}
+          <strong>{{ 'customers.orders_page.cancelled' | t: date: cancelled_at }}</strong>
+          <p>{{ 'customers.orders_page.cancelled_reason' | t: reason: order.cancel_reason }}</p>
+        </div>
+      {% endif %}
+
+    	<div class="account-table account-order-detail">
+              <div class="thead">
+                  <div class="tr order">
+                      <span class="th d-block d-sm-none">Details</span>
+                      <span class="th d-none d-sm-block">{{ 'customers.orders_page.orders_table.product' | t }}</span>
+                      <span class="th d-none d-sm-block">{{ 'customers.orders_page.orders_table.price' | t }}</span>
+                      <span class="th d-none d-sm-block">{{ 'customers.orders_page.orders_table.qty' | t }}</span>
+                      <span class="th d-none d-sm-block">{{ 'customers.orders_page.orders_table.total' | t }}</span>
+                  </div>
+              </div>
+              <div class="account-widget__body">
+                <div class="tbody">
+        
+                  {% for line_item in order.line_items %}
+        
+                    <div class="tr order" id="{{ line_item.id }}">
+        
+                      <div class="td">
+        
+                        <span class="label">{{ 'customers.orders_page.orders_table.product' | t }}</span>
+                        {{ line_item.title | link_to: line_item.product.url }}
+        
+                        {%- if line_item.selling_plan_allocation -%}
+                          <div class="note">
+                            <span style=" font-size: 90%; margin-top: 0px; display: block;">
+                              {{ line_item.selling_plan_allocation.selling_plan.name }}
+                            </span>
+                          </div>
+                        {%- endif -%}
+        
+                        {%- assign property_size = line_item.properties | size -%}
+                        {%- if property_size != 0 -%}
+                          <div class="note">
+                            {% assign order_pic = "" %}
+                            {% assign isimgix = false %}
+                            {%- for property in line_item.properties -%}
+                              {% assign pfirst = property.first | downcase %}
+                              {%- if pfirst == 'upload (vector files preferred)' -%}
+                                  {% assign _line_prop = property.last %}
+                                  {% if _line_prop contains "ninjauploads-production.imgix.net" %}
+                                    {% assign isimgix = true %}
+                                  {% endif %}
+                              {%- endif -%}
+                              {% assign property_first_char = property.first | slice: 0 %}
+                              {%- if property.last != blank and property_first_char != '_' -%}
+                                <div class="text-size--small">
+                                  <strong>{{ property.first }}:</strong>
+                                  <span>
+                                    {%- if property.last contains '/uploads/' -%}
+                                      {% assign order_pic = property.last %}
+                                      <a href="{{ property.last }}">{{ property.last | split: '/' | last }}</a>
+                                    {%- else -%}
+                                      {{ property.last }}
+                                    {%- endif -%}
+                                  </span>
+                                </div>
+                              {%- endif -%}
+                            {%- endfor -%}
+                          </div>
+                        {%- endif -%}
+                                    
+                        {% if line_item.fulfillment %}
+                          <div class="note" style="margin-top:1em">
+                            {% assign fulfilled_at = line_item.fulfillment.created_at | date: "%B %d, %Y %I:%M%p" %}
+                            {{ 'customers.orders_page.orders_table.fulfilled_at' | t: date: fulfilled_at }}
+                            {% if line_item.fulfillment.tracking_number %}
+                              <br /><a style="font-weight: bold" href="{{ line_item.fulfillment.tracking_url }}">{{ line_item.fulfillment.tracking_company }} #{{ line_item.fulfillment.tracking_number }}</a>
+                            {% endif %}
+                          </div>
+                        {% endif %}
+        
+        								{% unless line_item.sku == blank %} 
+                          <span class="label">{{ 'customers.orders_page.orders_table.sku' | t }}</span>
+                          {{ line_item.sku }}
+                      	{% endunless %}
+                        <div style="visibility:hidden;" data-_line_prop="{{ _line_prop }}" data-isimgix="{{ isimgix }}">
+                          <img src="{{ _line_prop }}" class="_imgelement" style="width:10px; height:10px;" onerror="loadFallback(this)" />
+                        </div>
+                      </div>
+        
+                      <div class="td">
+        
+                        <span class="label">{{ 'customers.orders_page.orders_table.price' | t }}</span>
+                        {{ line_item.final_price | money }} 
+                        {% if line_item.original_line_price > line_item.final_line_price %} 
+                          <del>{{ line_item.original_price | money }}</del> 
+                        {% endif %}
+        
+                        {%- if line_item.unit_price_measurement -%}
+                          <span class="unit-price text-size--small text-color--opacity">
+                            {{ line_item.unit_price | money }} / 
+                            {% if line_item.unit_price_measurement.reference_value != 1 %}
+                              {{ line_item.unit_price_measurement.reference_value }}
+                            {% endif %}
+                            {{ line_item.unit_price_measurement.reference_unit }}
+                          </span>
+                        {%- endif -%}
+                        
+                      </div>
+        
+                      <div class="td">
+                        <span class="label">{{ 'customers.orders_page.orders_table.qty' | t }}</span>
+                        {{ line_item.quantity }}
+        							</div>
+        
+                      <div class="td">
+                        <span class="label">{{ 'customers.orders_page.orders_table.total' | t }}</span>
+                        {{ line_item.final_line_price | money }}
+        
+        								{% if line_item.line_level_discount_allocations.size > 0 %}
+                        {% for discount_allocation in line_item.line_level_discount_allocations %}
+        									<span class="label">{{ 'customers.orders_page.orders_table.discount' | t }}</span>
+        									<small class="discount text-size--small text-color--opacity">{{ discount_allocation.discount_application.title }} (-{{ discount_allocation.amount | money }})</small>
+                        {% endfor %}
+                      {% endif %}
+        							</div>
+        
+                    </div>
+        
+                  {% endfor %}
+        
+        				</div>
+        
+                <div class="tfoot">
+        
+                  <div>
+        						{{ 'customers.orders_page.orders_table.subtotal' | t }} {{ order.line_items_subtotal_price | money }}
+        					</div>
+                  
+                  {% if order.cart_level_discount_applications != blank %} 
+                    {% for discount_application in order.cart_level_discount_applications %}
+                      <div>
+                        {{ 'cart.discounts' | t }}<span>{{ discount_application.title }} ( -{{ discount_application.total_allocated_amount | money }} )</span>
+        							</div>
+                    {% endfor %}
+                  {% endif %}
+        
+                  {% for shipping_method in order.shipping_methods %}
+                  <div>
+                    {{ 'customers.orders_page.orders_table.shipping' | t }} ({{ shipping_method.title }}) {{ shipping_method.price | money }}
+        					</div>
+                  {% endfor %}
+        
+                  {% for tax_line in order.tax_lines %}
+                    <div>
+                      {{ 'customers.orders_page.orders_table.tax' | t }} ({{ tax_line.title }} {{ tax_line.rate | times: 100 }}%){{ tax_line.price | money }}
+        						</div>
+                  {% endfor %}
+        
+                  <div class="text-size--xlarge gutter-top--small">
+                  	{{ 'customers.orders_page.orders_table.total' | t }}  <strong>{{ order.total_price | money }} {{ order.currency }}</strong>
+        					</div>
+                </div>
+              </div>
+      </div>
+
+<!-- Redorder Code by Hari -->
+		<aside>
+          <div class="grid reorder_box_wrap" style="display:none">
+              
+              {% render "ninja_reorder" order:order %}
+              
+            </div>
+        </aside>
+    <!-- ./Redorder Code by Hari -->
+    </main>
+		<aside>
+      <div class="grid grid-2 grid--layout grid-lap-1">
+        <div class="account-widget">
+
+          <div class="account-widget__head">
+            {{ 'customers.orders_page.billing_title' | t }}
+          </div>
+
+          <div class="account-widget__body remove-empty-space">
+            <p><strong>{{ 'customers.orders_page.billing_status' | t }}</strong> {{ order.financial_status_label }}</p>
+            <strong>{{ order.billing_address.name }}</strong>
+            {{ order.billing_address | format_address }}
+          </div>
+
+        </div>
+
+        <div class="account-widget">
+
+          <div class="account-widget__head">
+            {{ 'customers.orders_page.shipping_title' | t }}
+          </div>
+
+          <div class="account-widget__body remove-empty-space">
+            <p><strong>{{ 'customers.orders_page.shipping_status' | t }}</strong> {{ order.fulfillment_status_label }}</p>
+            <strong>{{ order.shipping_address.name }}</strong>
+            {{ order.shipping_address | format_address }}
+          </div>
+
+        </div>
+      </div>
+		</aside>
+
+  </div>
+
+</div> 
+
+{% schema %}
+  {
+    "name": "t:sections.local-extra-words.sections.customers.order.name",
+    "class": "section--remove-bottom-margin-after"
+  }
+{% endschema %}
+
+<script>
+  (function($) {
+  
+  
+  // stx reorder 
+  this.reorder = new function(){
+    var self = this;
+
+    this.pushQueue = function(i, data, el){
+      var __note_val = "";// "reorder of order #" + el.attr('data-corder-id');
+      //LOW STOCK -- add as many as possible if stock is below requested ammount
+      if(data[i].check_inventory){
+        data[i].quantity = Math.min(parseInt(data[i].inventory), parseInt(data[i].quantity));
+      }
+      //console.log(data,"Ajax data")
+      //return;
+      $.ajax({
+        url: '/cart/add.js',
+        method: 'POST',
+        data: {
+          quantity: data[i].quantity,
+          id: data[i].id,
+          properties : data[i].properties
+        },
+        complete: function(res){
+          if(i >= data.length - 1){
+            //products from queue are now added to the cart -> stop loading signal and go to cart
+            el.removeClass('loading');
+            //window.location.href = '/cart';
+            window.refreshCart()
+            return;
+          }else{
+            // Calls are async as required by Shopify Docs
+               self.pushQueue(i+1, data, el);
+          }
+        }
+      });
+    }
+
+    this.listen = function(){
+      var el = $(this);
+      var pNode = el.parents(".reorder_box_wrap");
+      
+      var note = "of order #" + el.attr('data-corder-id');
+      var ids = el.attr('data-variant-ids').split(',');
+      var lineids = el.attr('data-lineitem-ids').split(',');
+      var quantities = el.attr('data-variant-quantities').split(',');
+      var inventories = el.attr('data-variant-inventories').split(',');
+      var inventory_policies = el.attr('data-variant-inventory-policies').split(',');
+      var inventory_trackers = el.attr('data-variant-inventory-trackers').split(',');
+      
+      
+      ids.splice(-1, 1);
+      quantities.splice(-1, 1);
+      inventories.splice(-1, 1);
+      inventory_policies.splice(-1, 1);
+      inventory_trackers.splice(-1, 1);
+
+      var data = [];
+      var propitems = pNode.find(".propitems");
+      for(var i=0; i<ids.length; i++){
+        var order_properties =  $.trim($(propitems[i]).val());
+        var _json_prop = {};
+        if(order_properties != ""){
+          _json_prop = JSON.parse(order_properties);
+          $.each(_json_prop, function(key, value) {
+              if(value.indexOf("https%3A%2F%2F") > -1){
+                _json_prop[key] = decodeURIComponent(value);
+              }else{
+                _json_prop[key] = value.replaceAll("+", " ");
+              }
+          });
+        }
+        _json_prop["reorder"] = note  + " / " + lineids[i];
+        data.push({
+          id: ids[i],
+          quantity: quantities[i],
+          inventory: inventories[i],
+          properties : _json_prop ,
+          check_inventory: (inventory_policies[i] == "deny" && inventory_trackers[i] != "")
+        });
+      }
+      
+      el.addClass('loading');
+      self.pushQueue(0, data, el);
+    }
+
+    this.init = function(){
+      $('.reorder-btn').on('click', self.listen);
+    }
+  }
+
+  $(reorder.init);
+ 
+  
+})(jQuery)
+</script>
+
+<style>
+  /* reorder style */
+@-webkit-keyframes rotating{
+    from{
+        -webkit-transform:rotate(0deg);
+        -o-transform:rotate(0deg);
+        transform:rotate(0deg)
+    }
+    to{
+        -webkit-transform:rotate(360deg);
+        -o-transform:rotate(360deg);
+        transform:rotate(360deg)
+    }
+}
+@keyframes rotating{
+    from{
+        -ms-transform:rotate(0deg);
+        -moz-transform:rotate(0deg);
+        -webkit-transform:rotate(0deg);
+        -o-transform:rotate(0deg);
+        transform:rotate(0deg)
+    }
+    to{
+        -ms-transform:rotate(360deg);
+        -moz-transform:rotate(360deg);
+        -webkit-transform:rotate(360deg);
+        -o-transform:rotate(360deg);
+        transform:rotate(360deg)
+    }
+}
+.pt-spinner {
+    -webkit-animation: rotating .5s linear infinite;
+    animation: rotating .5s linear infinite;
+    height: 100%;
+  
+}
+.pt-spinner-container{
+  display: none;
+  height: 22px;
+  margin-top: -4px;
+}
+.reorder-btn{
+  text-align: center;
+    padding: var(--button-padding);
+    display: inline-block;
+    border-style: solid;
+    border-radius: var(--border-radius-buttons);
+    font-weight: var(--font-weight-buttons);
+    line-height: 1.25;
+    cursor: pointer;
+    border-width: var(--border-width-buttons);
+    background: #42a9de !important;
+    border-color: transparent;
+    color: #fff !important;
+    transition: all 175ms linear;
+  -webkit-transition: background-color 0.2s ease-out;
+  -moz-transition: background-color 0.2s ease-out;
+  -ms-transition: background-color 0.2s ease-out;
+  -o-transition: background-color 0.2s ease-out;
+  transition: background-color 0.2s ease-out;
+}
+.reorder-btn.loading .pt-spinner-container{
+  display: inline-block;
+}
+.reorder-btn.loading .pt-reorder-text{
+  display: none;
+}
+/* reorder style end */
+</style>

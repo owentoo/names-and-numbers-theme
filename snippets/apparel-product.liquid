@@ -1,0 +1,357 @@
+<input type="hidden" id="hf_productStyle" value="{{ product.metafields.specs.shirt_style }}" />
+<input type="hidden" id="hf_productColor" value="{{ product.metafields.specs.shirt_color }}" />
+
+{%-for block in section.blocks -%}
+  {%- case block.type -%}
+            {%- when '@app' -%}
+              {% render block %}
+
+            {%- when 'text' -%}
+              <p
+                class="product__text{% if block.settings.text_style == 'uppercase' %} caption-with-letter-spacing{% elsif block.settings.text_style == 'subtitle' %} subtitle{% endif %}"
+                {{ block.shopify_attributes }}
+              >
+                {{- block.settings.text -}}
+              </p>
+
+            {%- when 'title' -%}
+              <div class="product__title" {{ block.shopify_attributes }}>
+                <h1>{{ product.title | escape }}</h1>
+                <a href="{{ product.url }}" class="product__title">
+                  <h2 class="h1">
+                    {{ product.title | escape }}
+                  </h2>
+                </a>
+              </div>
+                  <div class="customReviews">
+                <div class="yotpo bottomLine"
+                  data-appkey="7gQsCepCsDtU2sOHeiB0fwWYqfwurVUt00GQ5Pp5"
+                  data-domain="{{shop.permanent_domain | escape }}"
+                  data-product-id="{{ reviewProduct.id }}"
+                  data-product-models="{{ reviewProduct.id }}"
+                  data-name="{{ reviewProduct.title | escape }}"
+                  data-url="{{ shop.url }}{{ reviewProduct.url }}"
+                  data-image-url="{{ reviewProduct.featured_image | product_img_url: 'large' |replace: '?', '%3F' | replace: '&','%26'}}"
+                  data-description="{{ reviewProduct.description | escape }}"
+                  data-bread-crumbs="{% for tag in reviewProduct.tags %}{{ tag | escape }};{% endfor %}">
+                </div>
+              </div>
+            {%- when 'description' -%}
+              {%- if product.description != blank -%}
+                <div class="product__description rte quick-add-hidden" {{ block.shopify_attributes }}>
+                  {{ product.description }}
+                </div>
+              {%- endif -%}
+            
+  {%-endcase %}
+{%-endfor %}
+
+<h5 style="font-size:1.3em;font-weight:700;" class="">Select Color</h5>
+<div id="color-picker" style="margin-bottom:50px;">
+  <div class="wrapper-dropdown">
+  	<span @click="toggleDropdown()" v-html="selector"></span>
+  	<ul class="dropdown" v-show="active">
+  		<li v-for="color in colors" @click="setColor(color.hex, color.name, color.url)"><span class="swatchItem" :style="{background: color.hex}"></span> {{'{{'}}color.name}}<span style="font-weight:bold;color:#ff0000;">{{'{{'}}color.out}}</span></li>
+  	</ul>
+  </div>
+</div>
+
+<h5 style="font-size:1.3em;font-weight:700;" class="">Enter Quantities</h5>
+<div class="flex-bar">
+{% for variant in product.variants %}
+  <div class="flex-item text-center">
+    <div class="variant-price-2" style="display:block;width:50px;">
+      <label class="font-size--down-2 line-height--up-1 large--line-height--down-1 large--font-size--down-1 padding-top--down-3 large--padding-top--down-1 padding-bottom--down-3 font-bold" style="font-weight: 700;">{{ variant.title }}</label>
+      {% if variant.inventory_quantity <= 0 %}
+        <div style="border-radius: 4px;display:block;border: 1px solid #e0e0e0;width:100%;color: #000000;padding-top:4px;padding-bottom:4px;background-color: #e1e1e1;">
+          <label>OUT</label>
+        </div>        
+      {% else %}
+      <input class="text-center itemQuantity" type="number" min="0" data-id="{{ variant.id }}" data-tp="{{ variant.metafields.custom.tier_pricing | base64_encode }}" data-label="{{ variant.title }}" data-gtin="{{ variant.sku }}" data-max="{{ variant.inventory_quantity }}" placeholder="" value="" style="border-radius: 4px;display:block;padding-top: 1rem;padding-bottom: 1rem; border: 1px solid #e0e0e0;width:100%;">
+      {% endif %}
+      <label class="font-size--down-2 line-height--up-1 large--line-height--down-1 large--font-size--down-1 padding-top--down-5 large--padding-top--down-0 font-bold">
+        <small data-variant-id="32449812529212" class="font-size--down-3 large--font-size--down-2 font-bold text-primary variant-price-2 padding-bottom--down-1" style="color: #12b257;font-weight:700;">{{ variant.price | money }}</small>
+      </label>      
+    </div>
+  </div>
+{% endfor %}
+</div>
+
+<div class="errorMessages" style="display:none;color:#ff0000;">
+  <div style="font-weight:700;">Unable to add items to cart:</div>
+  <ul class="errorList" style="margin-top:0px;">    
+  </ul>
+</div>
+
+<div class="product-form__buttons" another-transfer="" style="margin-top:30px;">
+  <div class="addToCartSection">
+    <button type="submit" onclick="addToCart();" name="add" class="addToCartButton product-form__submit button button--full-width button--secondary" aria-haspopup="dialog">
+      <span>              
+          Add To Cart              
+      </span>
+      <div class="loading-overlay__spinner hidden">
+        <svg aria-hidden="true" focusable="false" class="spinner" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+          <circle class="path" fill="none" stroke-width="6" stroke="#42a9de" cx="33" cy="33" r="30"></circle>
+        </svg>
+      </div>
+    </button>
+  </div>
+</div>
+
+<style type="text/css">
+  .flex-bar {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -moz-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    -webkit-align-items: center;
+    -moz-align-items: center;
+    align-items: center;
+    margin-left: -0.75019rem;
+    flex-wrap: wrap;
+  }
+
+  .flex-item {
+    margin:5px;
+  }
+
+  .text-center {
+    text-align:center;
+  }
+
+  * {
+	box-sizing: border-box;
+	font-family: "Arial";
+  }
+  .wrapper-dropdown {
+      position: relative;
+      width: 300px;
+      background: #FFF;
+      color: #2e2e2e;
+      outline: none;
+      cursor: pointer;
+  }
+  .wrapper-dropdown > span {
+  	width: 100%;
+  	display: block;
+  	border: 1px solid #ababab;
+  	padding: 5px;
+  }
+  .wrapper-dropdown > span > span {
+    padding: 0 12px;
+    margin-right: 5px;
+  }
+  .wrapper-dropdown > span:after {
+      content: "";
+      width: 0;
+      height: 0;
+      position: absolute;
+      right: 16px;
+      top: calc(50% + 4px);
+      margin-top: -6px;
+  	  border-width: 6px 6px 0 6px;
+      border-style: solid;
+  	  border-color: #2e2e2e transparent;
+  }
+  
+  .wrapper-dropdown .dropdown {
+      position: absolute;
+  	  z-index: 10;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      font-weight: normal;
+  	  list-style-type: none;
+  	  padding-left: 0;
+  	  margin: 0;
+  	  border: 1px solid #ababab;
+  	  border-top: 0;
+      max-height:300px;
+      overflow-y:auto;
+  }
+  
+  .wrapper-dropdown .dropdown li {
+      display: block;
+      text-decoration: none;
+      color: #2e2e2e;
+  	  padding: 5px;
+  	  cursor: pointer;
+  }
+  
+  .wrapper-dropdown .dropdown li > span {
+    padding: 0 12px;
+    margin-right: 5px;
+  }
+  
+  .wrapper-dropdown .dropdown li:hover {
+      background: #eee;
+  	  cursor: pointer;
+  }
+
+  .swatchItem {
+    border:1px solid #000;
+  }
+
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+
+</style>
+
+<script>
+  let lastAddToCartTime = 0;
+  function addToCart () {
+    const curTime = new Date().getTime();
+    console.log("AddToCartDetails: lastAddToCartTime=" + lastAddToCartTime + ", curTime=" + curTime + ", diff=" + (curTime - lastAddToCartTime))
+    if (lastAddToCartTime > 0 && (curTime - lastAddToCartTime) <= 1000) {
+      console.log("addtoCart DISALLOWED")
+      return; // prevent multiple AddToCarts from being called within x ms
+    }
+    lastAddToCartTime = curTime;
+    
+    console.log("addToCart called")
+    $(".errorMessages").hide();
+    const itemsToAdd = [];
+    const errorMessages = [];
+    $(".itemQuantity").each(function () {
+      var id = $(this).attr("data-id");
+      var label = $(this).attr("data-label");
+      var quantity = parseInt($(this).val());
+      var quantityMax = parseInt($(this).attr("data-max"));
+      const properties = {
+        'Color': $("#hf_productColor").val()
+      }
+      $(this).css("border","1px solid #e0e0e0")
+      if (quantity > 0) {
+        if (quantity > quantityMax) {          
+          errorMessages.push(`Size ${label} only has ${quantityMax} items in stock.`)
+          $(this).css("border","2px solid #ff0000")
+        }
+        else {
+          itemsToAdd.push({ id, quantity, properties });
+        }
+      }      
+    });
+
+    if (errorMessages.length == 0 && itemsToAdd.length == 0) {
+      errorMessages.push("No quantities chosen")
+    }
+
+    if (errorMessages.length) {
+      $(".errorMessages").show();
+      $(".errorMessages .errorList").html("<li>"+errorMessages.join("</li><li>")+"</li>");
+    }
+    else if (itemsToAdd.length) {
+      console.log("Adding items to cart: " + JSON.stringify(itemsToAdd))
+      $(".addToCartButton").addClass("loading");
+      $(".addToCartSection span").addClass("hidden");
+      $(".addToCartSection .loading-overlay__spinner").removeClass("hidden");
+
+      function showCartDrawer () {
+        $.get('/cart?view=ajax', function ( r ) {
+          console.log("cart view response: " + r)
+          $( `cart-drawer.drawer` )
+            .removeClass( `is-empty` )
+            .find( `.drawer__inner` )
+            .html( r );
+
+          $( `cart-drawer.drawer` ).addClass( `active` );
+
+          $(".addToCartSection span").removeClass("hidden");
+          $(".addToCartSection .loading-overlay__spinner").addClass("hidden");     
+          $(".addToCartButton").removeClass("loading");
+          $(".itemQuantity").val("")
+          _saving_update();
+        });        
+      }
+
+      $.ajax({
+        type: "POST",
+        url: '/cart/add.js',
+        data: { items: itemsToAdd },
+        dataType: 'json',
+        success: function (response) {
+          showCartDrawer();
+        },
+        error: function (response) {
+          console.log("Could not add items: " + response);
+          $(".errorMessages").show();
+          $(".errorMessages .errorList").html("<li>An error has occurred.  Please try again.</li>");
+        }
+      });
+    }
+  }
+
+  function initColors () {
+    {% assign style_category = 'style-' | append: product.metafields.specs.shirt_style %}
+    {% assign collection = product.collections | where: "handle", style_category | first %}
+    
+    {% paginate collection.products by 1000 %}
+    {% assign sortedColors = collection.products | sort: "url"  %}
+    {% endpaginate %}
+    // {{ style_category }}
+  {%  for collection in product.collections %}
+    // {{ collection.title }}
+  {%  endfor %}
+    
+    var colors = [];
+  {% for style_product in sortedColors %} 
+    // shirt_prim_hex: {{ style_product.metafields.specs.shirt_prim_hex }}
+    {% assign inventoryTotal=0 %}
+    {% for variant in style_product.variants %}
+    {% assign inventoryTotal = inventoryTotal | plus:variant.inventory_quantity %}
+    {% endfor %}
+  
+    {% if style_product.metafields.specs.shirt_prim_hex %}
+      {% if inventoryTotal > 0  %}
+        colors.push({ hex: '#{{ style_product.metafields.specs.shirt_prim_hex }}', name: '{{style_product.metafields.specs.shirt_color}}', out: '', url: '{{ style_product.url }}' })
+      {% else %}
+        colors.push({ hex: '#{{ style_product.metafields.specs.shirt_prim_hex }}', name: '{{style_product.metafields.specs.shirt_color}}', out: '(OUT)', url: '{{ style_product.url }}' })
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+    
+    new Vue({
+    	el: '#color-picker',
+    	data: {
+    		active: false,
+    		selectedColor: '#{{ product.metafields.specs.shirt_prim_hex }}',
+    		selectedColorName: '{{ product.metafields.specs.shirt_color }}',
+    		colors: colors
+    	},
+    	computed: {
+    		selector: function() {
+    			if(!this.selectedColor) {
+    				return 'Color';
+    			}
+    			else {
+    				return '<span class="swatchItem" style="background: ' + this.selectedColor + '"></span> ' + this.selectedColorName;
+    			}
+    		}
+    	},
+    	methods: {
+    		setColor: function(color, colorName, url) {
+    			this.selectedColor = color;
+    			this.selectedColorName = colorName;
+    			this.active = false;
+                window.history.replaceState(null, null, url + "/" + document.location.search);
+                location.reload();
+    		},
+    		toggleDropdown: function() {
+    			this.active = !this.active;
+    		},
+    	}
+    });
+  }
+
+  initColors()
+</script>

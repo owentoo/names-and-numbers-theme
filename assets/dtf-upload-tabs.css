@@ -1,0 +1,1391 @@
+/* =========================================================
+   DTF Upload Tabs — Tailwind blue skin
+   (design_handoff_dtf_upload_tabs/README.md spec)
+   All styles scoped under .dtfut to avoid colliding with
+   existing upload box / modal / AI styles on the PDP.
+   ========================================================= */
+
+.dtfut {
+  --dtfut-blue: #2563eb;
+  --dtfut-blue-dark: #1d4ed8;
+  --dtfut-panel: #ffffff;
+  --dtfut-panel-border: #bcd9ee;
+  --dtfut-page: #F5F6F8;
+  --dtfut-tab-inactive: #eef2f7;
+  --dtfut-tab-inactive-hover: #e6efff;
+  --dtfut-tab-border: #d5dbe3;
+  --dtfut-grey-500: #6b7280;
+  --dtfut-grey-700: #374151;
+  --dtfut-grey-900: #111827;
+  --dtfut-radius: 12px;
+  --dtfut-radius-md: 8px;
+  --dtfut-radius-sm: 6px;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: var(--dtfut-grey-900);
+  box-sizing: border-box;
+  width: 100%;
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.06)) drop-shadow(0 4px 12px rgba(15, 23, 42, 0.08));
+}
+
+/* Fixed spacer between the tabs modal and whatever comes next on the
+   page (promo banner / Price Calculator trigger). A margin-bottom on
+   .dtfut was being eaten by the promo insertion / margin collapse, so
+   use an explicit sibling block with guaranteed height instead. */
+.dtfut-spacer {
+  display: block;
+  width: 100%;
+  height: 50px;
+  pointer-events: none;
+}
+.dtfut *,
+.dtfut *::before,
+.dtfut *::after { box-sizing: border-box; }
+
+/* ---------- Header row (title left, pill tabs right) ---------- */
+.dtfut__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: nowrap;
+  padding: 2px 4px 12px;
+}
+.dtfut__header-title {
+  margin: 0;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dtfut-grey-900);
+  letter-spacing: -0.1px;
+  line-height: 1.2;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.dtfut__header-divider {
+  height: 1px;
+  background: #eef0f4;
+  margin: 0 -4px 16px;
+}
+
+/* ---------- Tab strip (pill-style) ---------- */
+.dtfut__tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+  z-index: 2;
+  flex-wrap: nowrap;
+}
+.dtfut__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dtfut-grey-500);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color .15s ease, background-color .15s ease;
+  white-space: nowrap;
+  position: relative;
+  line-height: 1.1;
+  margin: 0;
+  border-radius: 999px;
+  text-decoration: none;
+  min-height: 30px;
+}
+.dtfut__tab.is-active {
+  background: #e6f1ff;
+  color: var(--dtfut-blue);
+}
+.dtfut__tab[data-dtfut-tab="ai"].is-active {
+  color: #b520f0;
+  background: #fbe7f7;
+}
+/* Wrap :hover in @media (hover: hover) so touch devices (iOS Safari in
+   particular) don't leave the last-tapped tab stuck in its hover state.
+   Without this guard, tapping "Create with AI" leaves it purple even
+   after switching to another tab. */
+@media (hover: hover) {
+  .dtfut__tab:hover { color: var(--dtfut-blue); background: var(--dtfut-tab-inactive-hover); }
+  .dtfut__tab[data-dtfut-tab="ai"]:hover {
+    color: #b520f0;
+    background: #fbe7f7;
+  }
+}
+.dtfut__tab svg { width: 14px; height: 14px; flex: none; }
+/* New external-image tab icons (Upload_DS / Design_studio /
+   Create_with_AI / Previous_designs) — sized to match the inline
+   SVGs they replaced. The icons are full-color PNG/SVG so they
+   don't inherit currentColor from the active/inactive tab; design
+   intent is for the icon glyph itself to remain its own color
+   regardless of tab state. */
+.dtfut__tab-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  object-fit: contain;
+  display: block;
+}
+.dtfut__tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 6px;
+  background: var(--dtfut-blue);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  margin-left: 2px;
+}
+.dtfut__tab-count[hidden] { display: none; }
+.dtfut__tab-label-short { display: none; }
+
+/* ---------- Panel ---------- */
+.dtfut__panel-wrap {
+  background: var(--dtfut-panel);
+  border: 1px solid var(--dtfut-panel-border);
+  border-radius: var(--dtfut-radius);
+  padding: 16px 20px;
+  position: relative;
+  z-index: 1;
+}
+.dtfut__panel { display: none; }
+.dtfut__panel.is-active { display: block; }
+
+/* ---------- Compact mode (segmented bar, icon-above-label) ----------
+   Triggered by JS (.is-compact) as soon as the desktop row layout
+   collides with itself. The pill-tab strip becomes a segmented
+   control: light grey container with a white "active" tile. Falls
+   back to a viewport media query below for no-JS / pre-measurement. */
+.dtfut.is-compact .dtfut__header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.dtfut.is-compact .dtfut__tabs {
+  width: 100%;
+  gap: 4px;
+  background: #f3f4f7;
+  border-radius: 12px;
+  padding: 6px;
+}
+.dtfut.is-compact .dtfut__tab {
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 6px;
+  font-size: 12.5px;
+  text-align: center;
+  min-height: 0;
+  border-radius: 10px;
+  position: relative;
+  background: transparent;
+}
+@media (hover: hover) {
+  .dtfut.is-compact .dtfut__tab:hover {
+    background: rgba(255, 255, 255, 0.55);
+  }
+}
+.dtfut.is-compact .dtfut__tab.is-active {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.10), 0 1px 1px rgba(15, 23, 42, 0.04);
+}
+.dtfut.is-compact .dtfut__tab[data-dtfut-tab="ai"].is-active {
+  background: #ffffff;
+  color: #b520f0;
+}
+.dtfut.is-compact .dtfut__tab svg,
+.dtfut.is-compact .dtfut__tab-icon {
+  width: 18px;
+  height: 18px;
+}
+.dtfut.is-compact .dtfut__tab-count {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  margin-left: 0;
+}
+
+/* ---------- Narrow mode ----------
+   Previously swapped to short labels (.is-narrow .dtfut__tab-label
+   { display:none }). Disabled — keep full labels ("Previous Designs",
+   "Create with AI") at every width so mobile doesn't get a label-text
+   flash on load when JS removes .is-narrow after measurement. The strip
+   scrolls horizontally or wraps if it truly can't fit. */
+.dtfut.is-narrow .dtfut__tab-label { display: inline; }
+.dtfut.is-narrow .dtfut__tab-label-short { display: none; }
+
+/* No-JS / pre-measurement fallback. JS will refine this on viewports
+   wider than 720px where collisions can still happen inside narrow
+   product columns. */
+@media (max-width: 720px) {
+  .dtfut:not(.is-measured) .dtfut__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .dtfut:not(.is-measured) .dtfut__tabs {
+    width: 100%;
+    gap: 4px;
+    background: #f3f4f7;
+    border-radius: 12px;
+    padding: 6px;
+  }
+  .dtfut:not(.is-measured) .dtfut__tab {
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 6px;
+    font-size: 12.5px;
+    text-align: center;
+    border-radius: 10px;
+    position: relative;
+    background: transparent;
+  }
+  .dtfut:not(.is-measured) .dtfut__tab.is-active {
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.10), 0 1px 1px rgba(15, 23, 42, 0.04);
+  }
+  .dtfut:not(.is-measured) .dtfut__tab svg,
+  .dtfut:not(.is-measured) .dtfut__tab-icon { width: 18px; height: 18px; }
+  .dtfut:not(.is-measured) .dtfut__tab-count {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    margin-left: 0;
+  }
+}
+
+/* Previously: at ≤480px we painted short labels (Upload / Previous /
+   Create) on first render, then JS measured and swapped to the full
+   labels — which produced a visible flash on every mobile load. Now
+   removed: full labels render from the start at every width, matching
+   the post-measurement state. */
+
+/* Note: previously had `.dtfut:not(.is-measured) .dtfut__header { visibility: hidden }`
+   here to avoid the row→compact→narrow text-shuffle flash at load. Removed because
+   it made the PDP feel slow to load — users would rather see the tabs immediately
+   and accept the small reflow than stare at a blank header for the JS measurement
+   delay. Layout space stays reserved by the markup itself (header height/flex). */
+
+/* ---------- Tab 1 — Upload ---------- */
+/* Render the native upload markup transparently — no wrapper bg. */
+.dtfut__upload-host {
+  display: block;
+}
+/* Hide the inline "Choose a previous design" / login link in the
+   PRE-upload area — Tab 2 owns that flow there. Scoped to .dtfut
+   so legacy PDPs without tabs keep their link.
+   Re-enabled inside .secondDropZone so the post-upload "Add another
+   design" zone exposes the same shortcut as non-tabbed PDPs. */
+.dtfut .access_old_data { display: none !important; }
+.dtfut .secondDropZone .access_old_data { display: block !important; }
+
+/* Let the native upload area breathe inside the panel */
+.dtfut__upload-host .upload__info,
+.dtfut__upload-host #dropZoon,
+.dtfut__upload-host master-upload {
+  width: 100%;
+}
+
+/* Scale down the native dropzone content so the Upload panel stays compact. */
+.dtfut__upload-host #dropZoon {
+  zoom: 0.85;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0;
+}
+/* The native master-upload has asymmetric padding (20px top, 0 bottom)
+   and its button has margin-bottom: 10px — which pushes content below
+   the visual center of the blue dropzone. Normalize both so the
+   content sits truly centered. */
+.dtfut__upload-host master-upload {
+  padding-top: 0 !important;
+}
+.dtfut__upload-host #dropZoon > button {
+  margin-bottom: 0 !important;
+}
+
+/* "OR IMPORT FROM" divider row + the source pill buttons (Drive,
+   Dropbox, Canva) — both hidden on the by-size-tabs page per design.
+   Markup is kept in DOM so dtf-upload-tabs.js's `wireSources` handlers
+   stay bound, but the row never shows. */
+.dtfut__src-row,
+.dtfut__src-btns {
+  display: none !important;
+}
+/* Original layout left below for reference / future re-enable. */
+.dtfut__src-row {
+  align-items: center;
+  gap: 12px;
+  max-width: 440px;
+  margin: 14px auto 10px;
+}
+.dtfut__src-divider {
+  flex: 1;
+  height: 1px;
+  background: var(--dtfut-panel-border);
+}
+.dtfut__src-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dtfut-grey-500);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Source pill buttons */
+.dtfut__src-btns {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+.dtfut__src-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: #fff;
+  border: 1px solid var(--dtfut-tab-border);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--dtfut-grey-900);
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1;
+}
+.dtfut__src-btn:hover {
+  border-color: var(--dtfut-blue);
+  box-shadow: 0 2px 8px rgba(37,99,235,.12);
+  transform: translateY(-1px);
+}
+.dtfut__src-btn svg { width: 14px; height: 14px; flex: none; }
+
+/* ---------- Tab 2 — Recent Designs ---------- */
+/* Logged-out state */
+.dtfut__recent-login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  min-height: 280px;
+  padding: 20px;
+  color: var(--dtfut-grey-700);
+}
+.dtfut__recent-login svg {
+  width: 48px;
+  height: 48px;
+  color: var(--dtfut-panel-border);
+  margin-bottom: 4px;
+}
+.dtfut__recent-login h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--dtfut-grey-900);
+}
+.dtfut__recent-login p {
+  font-size: 13px;
+  margin: 0;
+  max-width: 360px;
+  color: var(--dtfut-grey-500);
+}
+.dtfut__recent-login-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 22px;
+  background: #42a9de;
+  color: #fff;
+  border: 0;
+  border-radius: var(--dtfut-radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  margin-top: 6px;
+  transition: background-color .15s ease;
+}
+.dtfut__recent-login-btn:hover {
+  background: #2790c5;
+  color: #fff;
+}
+
+/* Let my-designs-panel render without the stock page padding */
+.dtfut__panel[data-dtfut-panel="recent"] .my-designs-page,
+.dtfut__panel[data-dtfut-panel="recent"] .md-page {
+  padding: 0;
+  margin: 0;
+}
+
+/* Compact toolbar: filter pills on the left, search on the right, one row. */
+.dtfut__panel[data-dtfut-panel="recent"] .md-header { display: none; }
+.dtfut__panel[data-dtfut-panel="recent"] .md-filters { margin-bottom: 10px; }
+.dtfut__panel[data-dtfut-panel="recent"] .md-filters__row {
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .md-filters__groups {
+  width: auto;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .md-filters__group {
+  padding: 2px;
+  gap: 1px;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .md-tab {
+  padding: 4px 9px;
+  font-size: 11.5px;
+  gap: 4px;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .md-tab__count {
+  font-size: 10px;
+  padding: 0 5px;
+  min-width: 16px;
+  line-height: 14px;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .md-filters__search {
+  min-width: 0;
+  width: 200px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .md-search-input {
+  padding: 5px 28px 5px 30px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .md-search-icon {
+  left: 9px;
+  width: 13px;
+  height: 13px;
+}
+
+/* Taller scrollable grid with an internal scrollbar. */
+.dtfut__panel[data-dtfut-panel="recent"] .md-grid {
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dtfut-panel-border) transparent;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .md-grid::-webkit-scrollbar { width: 8px; }
+.dtfut__panel[data-dtfut-panel="recent"] .md-grid::-webkit-scrollbar-track { background: transparent; }
+.dtfut__panel[data-dtfut-panel="recent"] .md-grid::-webkit-scrollbar-thumb {
+  background: var(--dtfut-panel-border);
+  border-radius: 999px;
+}
+
+/* Hide the per-card badge ("BY SIZE"), file name, and "Uploaded x ago"
+   meta row — we want an image-only grid here. */
+.dtfut__panel[data-dtfut-panel="recent"] .md-card__badge,
+.dtfut__panel[data-dtfut-panel="recent"] .md-card__name,
+.dtfut__panel[data-dtfut-panel="recent"] .md-card__meta {
+  display: none !important;
+}
+/* The body wraps name + meta — collapse its padding so the thumb owns the card. */
+.dtfut__panel[data-dtfut-panel="recent"] .md-card__body {
+  display: none !important;
+}
+
+/* Per-row count picker, right-aligned above the grid.
+   Desktop picker shows 3/4/5. Mobile picker shows 1/2/3 (JS swaps default). */
+.dtfut__panel[data-dtfut-panel="recent"] .dtfut__cols {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  margin: 0 0 10px;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .dtfut__cols--mobile { display: none; }
+@media (max-width: 749px) {
+  .dtfut__panel[data-dtfut-panel="recent"] .dtfut__cols--desktop { display: none; }
+  .dtfut__panel[data-dtfut-panel="recent"] .dtfut__cols--mobile { display: flex; }
+}
+.dtfut__cols-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dtfut-grey-500);
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dtfut__cols-btn {
+  appearance: none;
+  border: 1px solid var(--dtfut-tab-border);
+  background: #fff;
+  color: var(--dtfut-grey-700);
+  font: 600 12px/1 'DM Sans', system-ui, sans-serif;
+  width: 28px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s;
+}
+.dtfut__cols-btn:hover { border-color: #019AFF; color: #019AFF; }
+.dtfut__cols-btn.is-active {
+  background: #019AFF;
+  border-color: #019AFF;
+  color: #fff !important;
+  box-shadow: 0 1px 3px rgba(1,154,255,0.3);
+}
+
+/* Compact "no results" empty state inside the Recent Designs panel. */
+.dtfut__panel[data-dtfut-panel="recent"] .md-empty {
+  padding: 32px 20px;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .md-empty svg {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 10px;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .md-empty__title {
+  font-size: 15px;
+  margin: 0 0 4px;
+}
+.dtfut__panel[data-dtfut-panel="recent"] .md-empty__sub {
+  font-size: 12px;
+}
+
+/* Scoped "No matching designs" message for picker mode.
+   Native .md-empty never fires here because getUploadCardsHtml() always
+   returns markup (the tiles are CSS-hidden in picker, not removed from the
+   grid), so we drive a custom empty via :has() when the search input has
+   a value and the grid has no .md-card children. */
+.dtfut__no-results {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+  color: #6b7280;
+}
+.dtfut__no-results svg { color: #cbd5e1; margin-bottom: 10px; }
+.dtfut__no-results-title { font-size: 15px; font-weight: 600; color: #374151; margin: 0 0 4px; }
+.dtfut__no-results-sub { font-size: 12px; color: #9ca3af; margin: 0; }
+.dtfut__panel[data-dtfut-panel="recent"][data-dtfut-empty-search="true"] .dtfut__no-results {
+  display: flex;
+}
+
+/* Column count overrides, driven by data-cols on the panel. */
+.dtfut__panel[data-dtfut-panel="recent"][data-cols="1"] .md-grid { grid-template-columns: 1fr; }
+.dtfut__panel[data-dtfut-panel="recent"][data-cols="2"] .md-grid { grid-template-columns: repeat(2, 1fr); }
+.dtfut__panel[data-dtfut-panel="recent"][data-cols="3"] .md-grid { grid-template-columns: repeat(3, 1fr); }
+.dtfut__panel[data-dtfut-panel="recent"][data-cols="4"] .md-grid { grid-template-columns: repeat(4, 1fr); }
+.dtfut__panel[data-dtfut-panel="recent"][data-cols="5"] .md-grid { grid-template-columns: repeat(5, 1fr); }
+
+/* Mobile restructure: search + per-row on top (same row), filter pills
+   centered on the second row, no count badges. JS relocates
+   .dtfut__cols--mobile into .md-filters__row at mount so all three items
+   live in the same flex container. */
+@media (max-width: 749px) {
+  .dtfut__panel[data-dtfut-panel="recent"] .md-filters__row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+  }
+  .dtfut__panel[data-dtfut-panel="recent"] .md-filters__search {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    order: 0;
+  }
+  .dtfut__panel[data-dtfut-panel="recent"] .md-filters__row .dtfut__cols--mobile {
+    order: 1;
+    flex: 0 0 auto;
+    margin: 0;
+    justify-content: flex-end;
+  }
+  .dtfut__panel[data-dtfut-panel="recent"] .md-filters__groups {
+    order: 2;
+    flex: 0 0 100%;
+    flex-direction: row;
+    justify-content: center;
+    width: 100%;
+    gap: 8px;
+  }
+  .dtfut__panel[data-dtfut-panel="recent"] .md-filters__group {
+    width: auto;
+  }
+  .dtfut__panel[data-dtfut-panel="recent"] .md-filters__group .md-tab {
+    flex: 0 0 auto;
+  }
+  .dtfut__panel[data-dtfut-panel="recent"] .md-tab__count {
+    display: none !important;
+  }
+  /* Tighten the per-row label on mobile so it fits on one line. */
+  .dtfut__panel[data-dtfut-panel="recent"] .dtfut__cols--mobile .dtfut__cols-label {
+    font-size: 10px;
+    margin-right: 2px;
+  }
+}
+
+/* ---------- Tab 3 — Create with AI ---------- */
+/* Fixed-height host so the inner .ai-chat (sandbox-derived) can use
+   `height: 100%` for its flex column without collapsing. Mirrors the
+   sandbox cell size. */
+.dtfut__ai-host {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  /* Cap at the Previous Designs panel total height (586px = 460px
+     md-grid + filter/search row + paddings) so all three tabs end at
+     the same vertical position when full. max-height (not height) so
+     the panel shrinks to its content when Recently Generated is
+     collapsed/empty — avoids dead whitespace below the composer. */
+  max-height: 586px;
+  max-width: 880px;
+  margin: 0 auto;
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.dtfut__ai-host > .ai-chat {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+/* When the AI prompt guide overlay opens, grow the panel so the full
+   guide (Example Prompt + Example Output) fits without cropping. */
+.dtfut__panel[data-dtfut-panel="ai"]:has(.dtfut-ai-guide.is-open) {
+  min-height: 560px;
+}
+.dtfut__ai-host:has(.dtfut-ai-guide.is-open) {
+  max-height: none;
+  min-height: 560px;
+}
+@media (max-width: 749px) {
+  .dtfut__ai-host { max-height: 600px; }
+}
+
+/* Strip the hidden #generativeAiStart button's extra spacing */
+.dtfut__ai-host #generativeAiStart {
+  display: none !important;
+}
+
+/* Hide the pink CTA promo — the dialog renders inline instead. */
+.dtfut__ai-host .generative-ai-area {
+  display: none !important;
+}
+
+/* Render the AI dialog inline inside the tab instead of as a modal.
+   Override the modal-positioning from generative-ai-image.css so it
+   flows naturally in the tab panel. Scoped to :not([open]) so showModal()
+   from the legacy "Create with AI" link still gets a real modal. */
+.dtfut__ai-host #generative-ai-dialog:not([open]),
+#generative-ai-dialog.dtfut-inline:not([open]) {
+  display: block !important;
+  position: static !important;
+  transform: none !important;
+  top: auto !important;
+  left: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  z-index: auto !important;
+}
+/* The dialog's header + form are now fully replaced by our hero UI;
+   we drive the form programmatically so keep it in the DOM but hide it. */
+.dtfut__ai-host #generative-ai-dialog > header,
+.dtfut__ai-host #generative-ai-dialog > form {
+  display: none !important;
+}
+
+/* Hide the in-tab Example Prompt / Output tips; they live in a modal
+   that opens via the "AI prompt guide" link below. */
+.dtfut__ai-host #generative-ai-tips {
+  display: none !important;
+}
+
+/* The native #generative-ai-images stays in the dialog for the jQuery
+   handler to populate, but the sandbox-derived chat UI in
+   ai-chat-sandbox.js reads {url, fileName} off those figures and renders
+   its own tiles, so hide the native container entirely. */
+.dtfut__ai-host #generative-ai-images,
+.dtfut__ai-host #generative-ai-generating,
+.dtfut__ai-host #generative-ai-dialog-loader,
+.dtfut__ai-host #generative-ai-dialog-loader.show {
+  display: none !important;
+}
+
+/* Centered "AI prompt guide" link under the AI form */
+.dtfut__ai-host .dtfut__ai-guide-link,
+button.dtfut__ai-guide-link {
+  display: block;
+  margin: 14px auto 0;
+  padding: 4px 8px;
+  background: none !important;
+  border: 0 !important;
+  color: #46aae3 !important;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+  box-shadow: none !important;
+}
+.dtfut__ai-host .dtfut__ai-guide-link:hover,
+button.dtfut__ai-guide-link:hover { color: #005192 !important; }
+
+/* AI prompt guide overlay — covers the Ninja AI Image Creator view
+   within the AI tab panel. */
+.dtfut-ai-guide {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  border-radius: inherit;
+  z-index: 10;
+  padding: 0;
+  overflow-y: auto;
+  display: none;
+}
+.dtfut-ai-guide.is-open { display: block; }
+.dtfut-ai-guide[hidden] { display: none !important; }
+.dtfut-ai-guide.is-open[hidden] { display: block !important; }
+.dtfut-ai-guide__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  color: var(--dtfut-grey-900);
+  z-index: 2;
+}
+.dtfut-ai-guide__close svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.5;
+}
+.dtfut-ai-guide__close:hover { color: #000; }
+.dtfut-ai-guide__body {
+  padding: 14px 12px 12px;
+}
+.dtfut-ai-guide__body .generativeAItips,
+.dtfut-ai-guide__body > section {
+  display: block !important;
+}
+.dtfut-ai-guide__body header {
+  color: #000 !important;
+  font-weight: 700 !important;
+}
+
+/* ---------- Mobile "go full screen" splash ----------
+   Shown on small viewports inside the Create-a-Design panel instead of the
+   cramped inline studio. Desktop hides it entirely — desktop opens the studio
+   inline as before. */
+.mobile-fs-prompt { display: none; }
+@media (max-width: 749px) {
+  /* Only show this prompt before the studio has been lifted into the panel.
+     Once .dtfut__panel--studio-open is set, the studio is in control. */
+  .dtfut__panel--studio-open .mobile-fs-prompt { display: none; }
+  .mobile-fs-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 32px 24px 20px;
+    background: #f5f7fa;
+    border-radius: 14px;
+    margin: 12px auto;
+    max-width: 520px;
+  }
+  /* Mobile inline studio is replaced by the splash — hide the intro cards too. */
+  .mobile-fs-prompt + .dtfut__create { display: none; }
+}
+.mobile-fs-icon-wrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.mobile-fs-icon-ring {
+  position: absolute;
+  border-radius: 28px;
+  border: 1px solid rgba(7, 167, 242, 0.25);
+  background: rgba(255, 255, 255, 0.4);
+}
+.mobile-fs-icon-ring--outer { inset: 0; }
+.mobile-fs-icon-ring--inner { inset: 24px; border-radius: 24px; }
+.mobile-fs-icon {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 20px;
+  background: #07A7F2;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(7, 167, 242, 0.35);
+}
+.mobile-fs-icon svg { width: 40px; height: 40px; }
+.mobile-fs-title {
+  margin: 4px 0 8px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #111;
+}
+.mobile-fs-sub {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.45;
+  max-width: 360px;
+}
+.mobile-fs-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 360px;
+  padding: 14px 20px;
+  background: #07A7F2;
+  color: #fff !important;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(7, 167, 242, 0.28);
+  transition: filter 0.15s ease, transform 0.05s ease;
+}
+.mobile-fs-cta:hover:not(:disabled) { filter: brightness(1.05); }
+.mobile-fs-cta:active { transform: translateY(1px); }
+
+/* ---------- Tab 4 — Create a Design ---------- */
+.dtfut__create {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 4px 0 0;
+}
+.dtfut__create-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--dtfut-grey-900);
+  line-height: 1.2;
+}
+.dtfut__create-sub {
+  font-size: 13px;
+  color: var(--dtfut-grey-500);
+  margin: 0 0 12px;
+  max-width: 480px;
+  line-height: 1.4;
+}
+.dtfut__create-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 240px));
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+}
+.dtfut__create-option {
+  appearance: none;
+  background: #fff;
+  border: 1px solid var(--dtfut-tab-border);
+  border-radius: var(--dtfut-radius-md);
+  padding: 12px 14px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.dtfut__create-option:hover {
+  border-color: var(--dtfut-blue);
+  box-shadow: 0 6px 16px rgba(37,99,235,.12);
+  transform: translateY(-2px);
+}
+.dtfut__create-option h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dtfut-grey-900);
+}
+.dtfut__create-option small {
+  display: block;
+  font-size: 12px;
+  color: var(--dtfut-grey-500);
+  line-height: 1.4;
+}
+.dtfut__create-icon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--dtfut-panel);
+  color: var(--dtfut-blue);
+  font-weight: 800;
+  font-size: 18px;
+}
+.dtfut__create-icon svg { width: 22px; height: 22px; }
+.dtfut__create-icon--ai {
+  background: linear-gradient(135deg, #ff6b9d, #c64cff);
+  color: #fff;
+}
+.dtfut__create-icon--upload { background: #dbeafe; color: var(--dtfut-blue); }
+.dtfut__create-icon--text { background: #fef3c7; color: #b45309; }
+
+.dtfut__create-skip {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dtfut-blue);
+  text-decoration: none;
+}
+.dtfut__create-skip:hover {
+  color: var(--dtfut-blue-dark);
+  text-decoration: underline;
+}
+
+/* ---------- Design Studio modal ---------- */
+.dtfut-ds-modal {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: #0f172a;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  position: fixed;
+  inset: 0;
+}
+.dtfut-ds-modal::backdrop { background: rgba(0,0,0,.6); }
+.dtfut-ds-modal[open] { display: block; }
+.dtfut-ds-modal__frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+.dtfut-ds-modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,.92);
+  color: var(--dtfut-grey-900);
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,.25);
+  z-index: 2;
+  transition: background-color .15s ease, transform .15s ease;
+}
+.dtfut-ds-modal__close:hover { background: #fff; transform: scale(1.05); }
+
+/* Hide the legacy "Need text in your design? — Try our Ninja Design
+   Studio" CTA block; Tab 4 "Create a Design" replaces it. This
+   stylesheet only loads when tabs are enabled, so non-tab PDPs
+   keep the block untouched. */
+.printReadyBlock,
+.delivery-block.print-ready-box { display: none !important; }
+
+/* ---------- Blanks promo (sibling between tabs and price calc) ---------- */
+.dtfut + .promo.dtfut-promo,
+.dtfut + .dtfut-promo {
+  display: block !important;
+  margin: 16px auto !important;
+  max-width: 100%;
+}
+/* Neutralize the template's unscoped rule that collapses master-upload
+   bottom margin — we want the normal spacing back inside the panel. */
+.dtfut__upload-host .upload-area,
+.dtfut__upload-host master-upload,
+.dtfut__upload-host upload-controls,
+.dtfut__upload-host .file-upload-overlay-1 {
+  margin-bottom: initial;
+  padding-bottom: initial;
+}
+
+/* ---------- Post-upload state ---------- */
+/* After an image is uploaded, a recent design is picked, or an AI
+   design is generated — all 3 paths converge on the native post-
+   upload form rendering inside <upload-controls><next-element>
+   (multiupload flow) or .fileupload_custom (legacy flow).
+   In either case, strip ALL tabs chrome so the page looks exactly
+   like the original pre-tabs PDP: no blue panel, no border, no tab
+   strip, no source buttons, no panel padding. */
+.dtfut.is-upload-active .dtfut__header,
+.dtfut.is-upload-active .dtfut__header-title,
+.dtfut.is-upload-active .dtfut__header-divider,
+.dtfut.is-upload-active .dtfut__tabs,
+.dtfut.is-upload-active .dtfut__src-row,
+.dtfut.is-upload-active .dtfut__src-btns { display: none !important; }
+
+/* Drop the wrapper drop-shadow once the upload finishes — the shadow was meant
+   for the tabs card, but in upload-active mode the .dtfut wrapper passes through
+   the post-upload UI (preview, dimensions, Remove BG pill, Print Type, Qty,
+   Add another design) and `filter: drop-shadow` cascades visually onto all
+   children, making each look like it has its own shadow. */
+.dtfut.is-upload-active {
+  filter: none !important;
+}
+.dtfut.is-upload-active .dtfut__panel-wrap {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+}
+
+/* Only the Upload panel's content (which contains <upload-controls>
+   or legacy #uploadArea) should stay rendered. Hide the other tab
+   panels entirely. */
+.dtfut.is-upload-active .dtfut__panel:not([data-dtfut-panel="upload"]) {
+  display: none !important;
+}
+.dtfut.is-upload-active .dtfut__panel[data-dtfut-panel="upload"] {
+  display: block !important;
+  padding: 0 !important;
+}
+.dtfut.is-upload-active .dtfut__upload-host { display: block; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 640px) {
+  .dtfut__panel-wrap { padding: 14px; }
+  .dtfut__src-btns { flex-wrap: wrap; }
+  .dtfut__src-btn { font-size: 10px; padding: 6px 10px; }
+  .dtfut__create-options { grid-template-columns: 1fr; }
+}
+
+/* ---------- v2 PDP: skip the segmented-bar intermediate state ----------
+   The JS adds `.is-compact` whenever the title + tabs row collides at
+   narrow desktop column widths (≤720px is its own media-query rule).
+   On the v2 PDP we want only TWO visual states: desktop pill row and
+   mobile pill row — no segmented bar in between. Keep the title-above-
+   tabs stacking (it's a legitimate space-saver) but force the tab strip
+   itself to stay pill-style, with horizontal scroll if it overflows. */
+.dtfut--v2.is-compact .dtfut__tabs {
+  width: auto;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  gap: 2px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.dtfut--v2.is-compact .dtfut__tabs::-webkit-scrollbar { display: none; }
+.dtfut--v2.is-compact .dtfut__tab {
+  flex: 0 0 auto;
+  flex-direction: row;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  min-height: 30px;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+@media (hover: hover) {
+  .dtfut--v2.is-compact .dtfut__tab:hover {
+    background: var(--dtfut-tab-inactive-hover);
+  }
+}
+.dtfut--v2.is-compact .dtfut__tab.is-active {
+  background: #e6f1ff;
+  color: var(--dtfut-blue);
+  box-shadow: none;
+}
+
+/* v2: active pill label stays dark like the inactive tabs (matches the
+   desktop reference where label + icon both read black). Applied at every
+   width including full desktop, so all four pills look identical when active. */
+.dtfut--v2 .dtfut__tab.is-active,
+.dtfut--v2.is-compact .dtfut__tab.is-active {
+  color: var(--dtfut-grey-900);
+}
+.dtfut--v2 .dtfut__tab[data-dtfut-tab="ai"].is-active,
+.dtfut--v2.is-compact .dtfut__tab[data-dtfut-tab="ai"].is-active {
+  color: var(--dtfut-grey-900);
+}
+.dtfut--v2.is-compact .dtfut__tab[data-dtfut-tab="ai"].is-active {
+  background: #fbe7f7;
+  color: #b520f0;
+}
+.dtfut--v2.is-compact .dtfut__tab svg,
+.dtfut--v2.is-compact .dtfut__tab-icon {
+  width: 14px;
+  height: 14px;
+}
+.dtfut--v2.is-compact .dtfut__tab-count {
+  position: static;
+  top: auto;
+  right: auto;
+  margin-left: 4px;
+}
+
+/* v2 never uses the short labels — keep the full label at every width and
+   let the strip scroll horizontally if it truly can't fit. The JS still
+   adds .is-narrow at narrow widths; this just overrides its display swap. */
+.dtfut--v2.is-narrow .dtfut__tab-label,
+.dtfut--v2 .dtfut__tab-label { display: inline; }
+.dtfut--v2.is-narrow .dtfut__tab-label-short,
+.dtfut--v2 .dtfut__tab-label-short { display: none; }
+
+/* ---------- Mobile tabs: pill style, text only, no icons (ALL templates) ----
+   Overrides the segmented (.is-compact / pre-measurement) card-with-icon
+   layout on every PDP that hosts dtfut so the mobile tab row uses the same
+   text-only pills the v2 / dtf-transfers PDP uses — light-blue active fill,
+   transparent inactive. The Studio-tab hide is kept v2-specific (legacy
+   behavior) so non-v2 PDPs (puff, glitter, spangle, magnets, keychains,
+   stickers, etc.) still show whatever tabs they were configured to show. */
+@media (max-width: 720px) {
+  .dtfut:not(.is-measured) .dtfut__tabs,
+  .dtfut.is-compact .dtfut__tabs {
+    width: 100%;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    gap: 2px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .dtfut:not(.is-measured) .dtfut__tabs::-webkit-scrollbar,
+  .dtfut.is-compact .dtfut__tabs::-webkit-scrollbar { display: none; }
+
+  .dtfut:not(.is-measured) .dtfut__tab,
+  .dtfut.is-compact .dtfut__tab {
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: 4px;
+    padding: 7px 12px;
+    font-size: 13px;
+    min-height: 32px;
+    border-radius: 999px;
+    background: transparent;
+    box-shadow: none;
+    text-align: center;
+  }
+  .dtfut:not(.is-measured) .dtfut__tab.is-active,
+  .dtfut.is-compact .dtfut__tab.is-active {
+    background: #e6f1ff;
+    color: var(--dtfut-grey-900);
+    box-shadow: none;
+  }
+  .dtfut:not(.is-measured) .dtfut__tab[data-dtfut-tab="ai"].is-active,
+  .dtfut.is-compact .dtfut__tab[data-dtfut-tab="ai"].is-active {
+    background: #fbe7f7;
+    color: var(--dtfut-grey-900);
+  }
+
+  /* Mobile: hide icons across every dtfut variant. */
+  .dtfut .dtfut__tab svg,
+  .dtfut .dtfut__tab-icon { display: none; }
+
+  /* Mobile: hide the Design Studio tab on EVERY dtfut variant. Mobile real
+     estate is too tight for four pills, and Studio is the lowest-traffic
+     entry point — Upload / Previous / AI cover the main flows. Non-v2
+     templates (puff, glitter, spangle, magnets, keychains, stickers, etc.)
+     that previously showed Studio on mobile now hide it too. */
+  .dtfut .dtfut__tab[data-dtfut-tab="create"] { display: none; }
+
+  /* Mobile: force the full text labels ("Previous Designs", "Create with
+     AI") instead of the short variants ("Previous", "Create AI"). The JS
+     adds `.is-narrow` at narrow widths which would otherwise swap to the
+     short labels — `!important` overrides that since `.dtfut.is-narrow`
+     has equal specificity to `.dtfut`. */
+  .dtfut .dtfut__tab-label,
+  .dtfut.is-narrow .dtfut__tab-label { display: inline !important; }
+  .dtfut .dtfut__tab-label-short,
+  .dtfut.is-narrow .dtfut__tab-label-short { display: none !important; }
+
+  .dtfut:not(.is-measured) .dtfut__tab-count,
+  .dtfut.is-compact .dtfut__tab-count {
+    position: static;
+    top: auto;
+    right: auto;
+    margin-left: 4px;
+  }
+}
+
+/* ---------- Gang sheet upload-error visibility fix ----------
+   The deployed theme has `.dtfut ~ .file-upload-overlay-1 { display: none }`
+   to hide the duplicate <master-upload> that lives inside
+   .file-upload-overlay-1 on gang-sheet pages (the dtfut tabs render
+   their own upload box, so the old one would otherwise show as a
+   duplicate). But hiding the entire .file-upload-overlay-1 ALSO hides
+   the .uploadError "Incorrect File Width" warning sitting inside it.
+
+   Strategy: keep .file-upload-overlay-1 hidden by default (no duplicate
+   upload box), but un-hide it AND hide just the inner <master-upload>
+   when the warning needs to show — i.e. when .uploadError doesn't have
+   its .hidden class. */
+body.template-product-dtf-gang-sheet .dtfut ~ .file-upload-overlay-1,
+body.template-product-uv-gang-sheet .dtfut ~ .file-upload-overlay-1 {
+  display: none !important;
+}
+body.template-product-dtf-gang-sheet .dtfut ~ .file-upload-overlay-1:has(.uploadError:not(.hidden)),
+body.template-product-uv-gang-sheet .dtfut ~ .file-upload-overlay-1:has(.uploadError:not(.hidden)) {
+  display: block !important;
+}
+body.template-product-dtf-gang-sheet .dtfut ~ .file-upload-overlay-1:has(.uploadError:not(.hidden)) master-upload,
+body.template-product-uv-gang-sheet .dtfut ~ .file-upload-overlay-1:has(.uploadError:not(.hidden)) master-upload {
+  display: none !important;
+}
+
+/* Gang sheet only accepts ONE file per upload, so hide the "(s)"
+   pluralizer spans in the "Upload your file(s)" / "Drag and drop
+   file(s)" copy. The new design markup wraps the (s) in
+   <span class="ismultiFile">(s)</span> precisely so it can be hidden
+   per template. */
+body.template-product-dtf-gang-sheet .ismultiFile,
+body.template-product-uv-gang-sheet .ismultiFile {
+  display: none !important;
+}
+
+/* Mobile only: hide the variant product carousel on gang sheet
+   templates after upload. The uploaded design preview takes the full
+   width on mobile, so the pre-upload variant carousel above it is
+   just dead scroll. Matches the same `body.image-uploaded
+   .gallery_position` rule used on bySizeNew tab templates. */
+@media (max-width: 767px) {
+  body.template-product-dtf-gang-sheet.image-uploaded .gallery_position,
+  body.template-product-uv-gang-sheet.image-uploaded .gallery_position {
+    display: none !important;
+  }
+}
+
+/* Gang sheet upload box — match the design spec layout (per user
+   screenshot 2026-05-22):
+   1) ONE cloud icon (~80px), centered above the text
+   2) "Upload your file(s)" title  — ~22px bold
+   3) "Drag and drop file(s) here or click to browse" subtitle — ~14px
+   4) Dark-navy "Browse" button, ~14px solid pill
+   5) Comfortable vertical spacing between rows
+
+   The HTML emits a `.upload__icon` div with the cloud PNG and a
+   `#dropZoon` block with the text + button. Gang sheet templates don't
+   set the `newdesign=""` attribute on <master-upload>, so the existing
+   `master-upload[newdesign] …` rules in custom-fileupload.liquid don't
+   apply here. The block below is a self-contained gang-sheet-only
+   restyle. */
+body.template-product-dtf-gang-sheet .upload__icon,
+body.template-product-uv-gang-sheet .upload__icon {
+  width: 80px;
+  height: 80px;
+  margin: 18px auto 14px;
+}
+body.template-product-dtf-gang-sheet .upload__icon img,
+body.template-product-uv-gang-sheet .upload__icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+body.template-product-dtf-gang-sheet master-upload .drop-zoon__paragraph,
+body.template-product-uv-gang-sheet master-upload .drop-zoon__paragraph {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 6px 0 8px;
+  line-height: 1.2;
+}
+body.template-product-dtf-gang-sheet master-upload ._or,
+body.template-product-uv-gang-sheet master-upload ._or {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0 0 18px;
+  display: block;
+}
+body.template-product-dtf-gang-sheet master-upload #dropZoon > button,
+body.template-product-uv-gang-sheet master-upload #dropZoon > button {
+  background-color: #42a9de;
+  border: 0;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 32px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+/* Both `button:hover` and `master-upload:hover` (section hover) drive
+   the button to the darker brand navy. !important + specificity above
+   the existing `master-upload:hover #dropZoon > button { #005192 }` rule
+   in custom-fileupload.liquid ensures the dark color sticks for both
+   triggers. */
+body.template-product-dtf-gang-sheet master-upload #dropZoon > button:hover,
+body.template-product-uv-gang-sheet master-upload #dropZoon > button:hover,
+body.template-product-dtf-gang-sheet master-upload:hover #dropZoon > button,
+body.template-product-uv-gang-sheet master-upload:hover #dropZoon > button {
+  background-color: #005192 !important;
+  color: #fff !important;
+}
+
+/* Suppress the duplicate-cloud ::before pseudo added inline by
+   main-product-gangsheet.liquid / main-product-uv-gangsheet.liquid.
+   That rule was a workaround for when `.upload__icon` was hidden — now
+   that we render `.upload__icon` (the top cloud) directly, the ::before
+   produces a second smaller cloud above the "Upload your file" text. */
+body.template-product-dtf-gang-sheet .upload-area > .upload-area__drop-zoon::before,
+body.template-product-uv-gang-sheet .upload-area > .upload-area__drop-zoon::before {
+  content: none !important;
+  display: none !important;
+  background-image: none !important;
+}

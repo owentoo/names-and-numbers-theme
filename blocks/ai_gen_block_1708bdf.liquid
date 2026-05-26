@@ -1,0 +1,636 @@
+{% doc %}
+  @prompt
+    Create a responsive mobile-friendly section for a product highlight block similar to a pricing card.
+    
+    Design details:
+    
+    White background, rounded corners, subtle drop shadow.
+    
+    On mobile, stack elements vertically with centered alignment.
+    
+    Placeholder gray image area (1:1 ratio, square) on top — width 100% of container.
+    
+    Below the image, show:
+    
+    Star rating (5 empty stars in light gray).
+    
+    “17,320 Reviews” in medium gray text next to the stars.
+    
+    Bold headline: DTF Transfers By Size in large black text.
+    
+    Subheading text: “As low as” in smaller black text.
+    
+    Bold price text: $0.02 per square inch. — use blue color (#004b8d) and slightly larger font.
+    
+    Add a right-pointing blue arrow icon (#2196f3) at the bottom-right corner or inline with the title for navigation.
+    
+    Include generous padding (16–20px) around all content.
+    
+    Make sure all text scales well for mobile readability (no overflow).
+    
+    Behavior:
+    
+    Image should shrink proportionally for smaller screens.
+    
+    Whole card should be tappable (linkable).
+    
+    Stars, text, and button should align neatly and stay centered on small screens., image should be to the left of all text and text should all be left aligned , get rid of arrow and give me size and weight options for all text , need setting for space from image to text. and all text needs space below option, need top and bottom padding, add additional line of text under price, make all text optional. get rid of shadow and any bg color , make all mobile and desktop rules the same, make all sections optional with a toggle excpect the photo, remove Space between text elements and add padding below each element
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-product-highlight-{{ ai_gen_id }} {
+    background-color: transparent;
+    border-radius: {{ block.settings.border_radius }}px;
+    padding: {{ block.settings.padding_top }}px {{ block.settings.padding_horizontal }}px {{ block.settings.padding_bottom }}px;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    max-width: 100%;
+  }
+
+  .ai-product-highlight-content-{{ ai_gen_id }} {
+    display: flex;
+    align-items: flex-start;
+    gap: {{ block.settings.image_text_gap }}px;
+  }
+
+  .ai-product-highlight-image-wrapper-{{ ai_gen_id }} {
+    flex-shrink: 0;
+    width: {{ block.settings.image_width }}px;
+    height: {{ block.settings.image_width }}px;
+    background-color: #f4f4f4;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .ai-product-highlight-image-wrapper-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-product-highlight-image-wrapper-{{ ai_gen_id }} svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-product-highlight-text-{{ ai_gen_id }} {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+  }
+
+  .ai-product-highlight-reviews-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: {{ block.settings.reviews_padding_bottom }}px;
+  }
+
+  .ai-product-highlight-stars-{{ ai_gen_id }} {
+    display: flex;
+    gap: 2px;
+  }
+
+  .ai-product-highlight-star-{{ ai_gen_id }} {
+    width: {{ block.settings.star_size }}px;
+    height: {{ block.settings.star_size }}px;
+    color: {{ block.settings.star_color }};
+  }
+
+  .ai-product-highlight-reviews-text-{{ ai_gen_id }} {
+    font-size: {{ block.settings.reviews_text_size }}px;
+    font-weight: {{ block.settings.reviews_text_weight }};
+    color: {{ block.settings.reviews_text_color }};
+  }
+
+  .ai-product-highlight-headline-{{ ai_gen_id }} {
+    font-size: {{ block.settings.headline_size }}px;
+    font-weight: {{ block.settings.headline_weight }};
+    color: {{ block.settings.headline_color }};
+    margin: 0;
+    padding-bottom: {{ block.settings.headline_padding_bottom }}px;
+  }
+
+  .ai-product-highlight-subheading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.subheading_size }}px;
+    font-weight: {{ block.settings.subheading_weight }};
+    color: {{ block.settings.subheading_color }};
+    padding-bottom: {{ block.settings.subheading_padding_bottom }}px;
+  }
+
+  .ai-product-highlight-price-{{ ai_gen_id }} {
+    font-size: {{ block.settings.price_size }}px;
+    font-weight: {{ block.settings.price_weight }};
+    color: {{ block.settings.price_color }};
+    padding-bottom: {{ block.settings.price_padding_bottom }}px;
+  }
+
+  .ai-product-highlight-additional-{{ ai_gen_id }} {
+    font-size: {{ block.settings.additional_text_size }}px;
+    font-weight: {{ block.settings.additional_text_weight }};
+    color: {{ block.settings.additional_text_color }};
+    padding-bottom: {{ block.settings.additional_text_padding_bottom }}px;
+  }
+{% endstyle %}
+
+<a
+  href="{{ block.settings.card_link }}"
+  class="ai-product-highlight-{{ ai_gen_id }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="ai-product-highlight-content-{{ ai_gen_id }}">
+    <div class="ai-product-highlight-image-wrapper-{{ ai_gen_id }}">
+      {% if block.settings.image %}
+        <img
+          src="{{ block.settings.image | image_url: width: 400 }}"
+          alt="{{ block.settings.image.alt | escape }}"
+          loading="lazy"
+          width="400"
+          height="400"
+        >
+      {% else %}
+        {{ 'image' | placeholder_svg_tag }}
+      {% endif %}
+    </div>
+
+    <div class="ai-product-highlight-text-{{ ai_gen_id }}">
+      {% if block.settings.show_reviews and block.settings.reviews_text != blank %}
+        <div class="ai-product-highlight-reviews-{{ ai_gen_id }}">
+          <div class="ai-product-highlight-stars-{{ ai_gen_id }}">
+            {% for i in (1..5) %}
+              <svg
+                class="ai-product-highlight-star-{{ ai_gen_id }}"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            {% endfor %}
+          </div>
+          <span class="ai-product-highlight-reviews-text-{{ ai_gen_id }}">{{ block.settings.reviews_text }}</span>
+        </div>
+      {% endif %}
+
+      {% if block.settings.show_headline and block.settings.headline != blank %}
+        <h3 class="ai-product-highlight-headline-{{ ai_gen_id }}">{{ block.settings.headline }}</h3>
+      {% endif %}
+
+      {% if block.settings.show_subheading and block.settings.subheading != blank %}
+        <div class="ai-product-highlight-subheading-{{ ai_gen_id }}">{{ block.settings.subheading }}</div>
+      {% endif %}
+
+      {% if block.settings.show_price and block.settings.price != blank %}
+        <div class="ai-product-highlight-price-{{ ai_gen_id }}">{{ block.settings.price }}</div>
+      {% endif %}
+
+      {% if block.settings.show_additional_text and block.settings.additional_text != blank %}
+        <div class="ai-product-highlight-additional-{{ ai_gen_id }}">{{ block.settings.additional_text }}</div>
+      {% endif %}
+    </div>
+  </div>
+</a>
+
+{% schema %}
+{
+  "name": "Product highlight card",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Card"
+    },
+    {
+      "type": "url",
+      "id": "card_link",
+      "label": "Card link"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Top padding",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom padding",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "padding_horizontal",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Horizontal padding",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Image"
+    },
+    {
+      "type": "range",
+      "id": "image_width",
+      "min": 60,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Image width",
+      "default": 120
+    },
+    {
+      "type": "range",
+      "id": "image_text_gap",
+      "min": 8,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Space from image to text",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Reviews"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_reviews",
+      "label": "Show reviews",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "reviews_text",
+      "label": "Reviews text",
+      "default": "17,320 Reviews"
+    },
+    {
+      "type": "range",
+      "id": "reviews_text_size",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Reviews text size",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "reviews_text_weight",
+      "label": "Reviews text weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "500"
+    },
+    {
+      "type": "color",
+      "id": "reviews_text_color",
+      "label": "Reviews text color",
+      "default": "#757575"
+    },
+    {
+      "type": "range",
+      "id": "star_size",
+      "min": 12,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Star size",
+      "default": 16
+    },
+    {
+      "type": "color",
+      "id": "star_color",
+      "label": "Star color",
+      "default": "#d3d3d3"
+    },
+    {
+      "type": "range",
+      "id": "reviews_padding_bottom",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding below reviews",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Headline"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_headline",
+      "label": "Show headline",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "headline",
+      "label": "Headline",
+      "default": "DTF Transfers By Size"
+    },
+    {
+      "type": "range",
+      "id": "headline_size",
+      "min": 14,
+      "max": 36,
+      "step": 2,
+      "unit": "px",
+      "label": "Headline size",
+      "default": 20
+    },
+    {
+      "type": "select",
+      "id": "headline_weight",
+      "label": "Headline weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "color",
+      "id": "headline_color",
+      "label": "Headline color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "headline_padding_bottom",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding below headline",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Subheading"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_subheading",
+      "label": "Show subheading",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "As low as"
+    },
+    {
+      "type": "range",
+      "id": "subheading_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Subheading size",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "subheading_weight",
+      "label": "Subheading weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "color",
+      "id": "subheading_color",
+      "label": "Subheading color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "subheading_padding_bottom",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding below subheading",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Price"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_price",
+      "label": "Show price",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "price",
+      "label": "Price",
+      "default": "$0.02 per square inch"
+    },
+    {
+      "type": "range",
+      "id": "price_size",
+      "min": 14,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Price size",
+      "default": 18
+    },
+    {
+      "type": "select",
+      "id": "price_weight",
+      "label": "Price weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "color",
+      "id": "price_color",
+      "label": "Price color",
+      "default": "#004b8d"
+    },
+    {
+      "type": "range",
+      "id": "price_padding_bottom",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding below price",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Additional text"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_additional_text",
+      "label": "Show additional text",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "additional_text",
+      "label": "Additional text"
+    },
+    {
+      "type": "range",
+      "id": "additional_text_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Additional text size",
+      "default": 13
+    },
+    {
+      "type": "select",
+      "id": "additional_text_weight",
+      "label": "Additional text weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "color",
+      "id": "additional_text_color",
+      "label": "Additional text color",
+      "default": "#757575"
+    },
+    {
+      "type": "range",
+      "id": "additional_text_padding_bottom",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding below additional text",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product highlight card"
+    }
+  ]
+}
+{% endschema %}

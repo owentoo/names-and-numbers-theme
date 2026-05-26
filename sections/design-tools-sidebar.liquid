@@ -1,0 +1,889 @@
+{%- comment -%}
+  Design Tools Sidebar
+  --------------------------------------------------
+  Members-portal-style left rail nav + content pane on the
+  right. Click a nav item → AJAX-fetch its URL, extract the
+  main-content portion, inject into the right pane. Same
+  pattern (and mostly the same code) as members-portal.
+
+  Why AJAX and not iframe: Shopify storefront pages send
+  `Content-Security-Policy: frame-ancestors 'none'` which
+  blocks iframe embedding from any origin. Members-portal
+  works around it the same way — fetch the HTML, parse, and
+  inject just the inner content.
+
+  URL never changes when clicking tabs (matches members-portal
+  pattern). Visitors who land on a tool URL like
+  /pages/background-remover are bounced here by the companion
+  "Design Tools Redirect" section, which stashes the slug in
+  sessionStorage; we read it on load and pre-select the
+  matching tab without dirtying the URL.
+{%- endcomment -%}
+
+{%- liquid
+  assign sidebar_width = section.settings.sidebar_width | default: 240
+  assign accent = section.settings.accent_color | default: '#019AFF'
+  assign content_min_height = section.settings.content_min_height | default: 720
+  assign max_width = section.settings.max_width | default: 1400
+-%}
+
+{%- comment -%}
+  Early-fire pending-tool flag — runs during HTML parse, BEFORE the
+  post-portal sections (Main + cards) render. If sessionStorage has a
+  pending tool stashed by the redirect script, set a flag on <html> so the
+  CSS below hides those sections from the start. Avoids the brief Home
+  flash before init() swaps to the target tab pane.
+{%- endcomment -%}
+<script>
+  (function () {
+    try {
+      if (window.sessionStorage && window.sessionStorage.getItem('dts-pending-tool')) {
+        document.documentElement.setAttribute('data-dts-pending', '1');
+      }
+    } catch (e) {}
+  })();
+</script>
+
+<style>
+  /* Match the .container--large width used by the rest of the page so
+     the sidebar lines up with the Ninja logo + header content. */
+  .dts-portal {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: {{ sidebar_width }}px 1fr;
+    gap: 20px;
+    max-width: {{ max_width }}px;
+    margin: 24px auto;
+    padding: 0 20px;
+    font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  .dts-portal *, .dts-portal *::before, .dts-portal *::after { box-sizing: border-box; }
+
+  .dts-sidebar {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+    padding: 12px 10px 18px;
+    align-self: start;
+    position: sticky;
+    top: 100px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+
+  .dts-content {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+    /* Lock the pane to a viewport-relative height. overflow:hidden so the
+       studio (or any taller-than-pane content) doesn't introduce a pane
+       scrollbar — non-studio tools that need scrolling get it via the
+       inner pane (.dts-pane { overflow: auto } below). Matches the portal
+       (members-portal-layout: .members-portal min-height calc(100vh - 160px))
+       so AI Image Generator height feels the same on /pages/free-design-tools
+       and /pages/welcome. */
+    overflow: hidden;
+    height: calc(100vh - 160px);
+    min-height: 400px;
+    position: relative;
+  }
+  .dts-pane {
+    height: 100%;
+    overflow: auto;
+  }
+  /* Studio pane: no internal scroll either — canvas pan is handled by the
+     studio's own hand tool. Match by URL via attribute selector. */
+  .dts-pane[data-url*="ninja-design-studio"] {
+    overflow: hidden;
+  }
+  /* Pending-tool: redirect script bounced the user to the portal with a
+     specific tab pre-selected. Hide everything after the portal section
+     (the Home-pane content) and show a loading state in the right pane
+     until init() swaps in the target tab. */
+  html[data-dts-pending] .shopify-section:has(.dts-portal) ~ .shopify-section:not(.shopify-section-group-footer-group) {
+    display: none !important;
+  }
+  html[data-dts-pending] .dts-content-empty {
+    visibility: hidden;
+  }
+
+  .dts-content--loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(2px);
+    z-index: 5;
+  }
+  .dts-content--loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 32px;
+    height: 32px;
+    margin: -16px 0 0 -16px;
+    border: 3px solid {{ accent | color_modify: 'alpha', 0.2 }};
+    border-top-color: {{ accent }};
+    border-radius: 50%;
+    animation: dts-spin 0.7s linear infinite;
+    z-index: 6;
+  }
+  @keyframes dts-spin { to { transform: rotate(360deg); } }
+  .dts-content-empty,
+  .dts-content-error {
+    display: grid;
+    place-items: center;
+    min-height: {{ content_min_height }}px;
+    color: #9ca3af;
+    font-size: 14px;
+    text-align: center;
+    padding: 40px 24px;
+  }
+  .dts-content-error { color: #ef4444; }
+
+  /* Mobile header (picker) — hidden on desktop, shown on mobile.
+     Mirrors members-portal's "MEMBERS AREA / Dashboard ▼" pattern. */
+  .dts-mobile-header { display: none; }
+
+  @media (max-width: 900px) {
+    .dts-mobile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #111;
+      color: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .dts-mobile-picker {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 4px 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      min-height: 44px;
+      justify-content: center;
+      text-align: left;
+    }
+    .dts-mobile-picker__label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      line-height: 1;
+    }
+    .dts-mobile-picker__current {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+    }
+    .dts-mobile-picker__caret { flex-shrink: 0; opacity: 0.85; }
+
+    .dts-portal {
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding: 0;
+      margin: 0;
+    }
+    /* Sidebar becomes a slide-in drawer */
+    .dts-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 280px;
+      height: 100%;
+      z-index: 999999;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      border: none;
+      border-radius: 0;
+      box-shadow: 4px 0 24px rgba(15, 23, 42, 0.18);
+      max-height: none;
+      padding: 12px 0;
+      overflow-y: auto;
+    }
+    .dts-sidebar--open { transform: translateX(0); }
+    .dts-sidebar-overlay {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999998;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .dts-sidebar-overlay--visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    /* Restore vertical nav inside the drawer (override the previous mobile horizontal-scroll) */
+    .dts-nav { flex-direction: column; gap: 0; overflow-x: visible; }
+    .dts-nav__group { display: block; font-size: 11px; padding: 18px 12px 8px; }
+    .dts-nav__link {
+      flex: initial;
+      white-space: normal;
+      padding: 12px 14px !important;
+      margin: 0 !important;
+      min-height: 44px;
+    }
+    .dts-nav__badge { display: inline-flex; font-size: 12px; }
+
+    /* Content fills viewport below the mobile header */
+    .dts-content {
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      height: calc(100vh - 60px);
+      min-height: 0;
+    }
+  }
+
+  .dts-nav { display: flex; flex-direction: column; }
+  .dts-nav__group {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9ca3af;
+    padding: 14px 12px 6px;
+  }
+  .dts-nav__group:first-child { padding-top: 4px; }
+
+  .dts-nav__link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: #4b5563;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: background 0.18s ease, color 0.18s ease;
+    margin-bottom: 2px;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+  }
+  .dts-nav__link:hover {
+    background: #f3f4f6;
+    color: #111827;
+    text-decoration: none;
+  }
+  .dts-nav__link--active {
+    background: {{ accent | color_modify: 'alpha', 0.08 }};
+    color: {{ accent }};
+  }
+  .dts-nav__link--active:hover {
+    background: {{ accent | color_modify: 'alpha', 0.12 }};
+    color: {{ accent }};
+  }
+  .dts-nav__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: opacity 0.18s;
+  }
+  .dts-nav__link:hover .dts-nav__icon { opacity: 0.85; }
+  .dts-nav__link--active .dts-nav__icon { opacity: 1; color: {{ accent }}; }
+  .dts-nav__label { flex: 1; }
+  .dts-nav__badge {
+    background: {{ accent | color_modify: 'alpha', 0.1 }};
+    color: {{ accent }};
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    line-height: 1.4;
+  }
+
+  /* ---------- Design Studio AJAX-load scoping (ported from members-portal) ----------
+     The studio's own CSS/JS aggressively takes over the viewport when its
+     page is loaded standalone. When we AJAX-inject it into the portal,
+     those rules can hide the parent page's header/footer and force
+     position:fixed overlays. The rules below re-assert page chrome and
+     scope the studio's editor to our content pane.
+     Mirrors members-portal-layout.liquid lines 1417-1480. */
+
+  /* Re-assert site header + footer visibility on desktop. Mobile lets
+     the studio take over edge-to-edge, matching the standalone studio
+     mobile UX. */
+  @media (min-width: 769px) {
+    body:has(.dts-portal) .shopify-section-group-header-group.site-header-container,
+    body:has(.dts-portal) .shopify-section-group-header-group.mount-announcement-bar,
+    body:has(.dts-portal) .shopify-section-group-footer-group,
+    body:has(.dts-portal) .shopify-section-group-footer-group .site-footer,
+    body:has(.dts-portal) footer.site-footer {
+      display: block !important;
+      opacity: 1 !important;
+      height: auto !important;
+      pointer-events: auto !important;
+    }
+    body:has(.dts-portal) .header-container.header-container--top {
+      opacity: 1 !important;
+      height: auto !important;
+      pointer-events: auto !important;
+    }
+    /* Keep the studio's overlay container in normal flow so it stays
+       inside the portal pane instead of going position:fixed fullscreen.
+       Cap .editor-container so the canvas-area auto-fits the canvas
+       square inside the available height — selector chains
+       .customTabelPopup__overlay-editor to outrank the studio's own
+       `.customTabelPopup__overlay-editor .editor-container { height:
+       100dvh !important }` rule (the studio CSS loads later via AJAX
+       and would otherwise win on equal specificity). */
+    .dts-content .customTabelPopup__overlay-editor {
+      position: static !important;
+    }
+    .dts-content .customTabelPopup__overlay-editor .editor-container {
+      height: calc(100vh - 280px) !important;
+    }
+  }
+  /* Mobile: let the studio's own position:fixed inset:0 z-index:9999
+     overlay fill the viewport (don't clip it inside the content pane). */
+  @media (max-width: 768px) {
+    .dts-content {
+      overflow: visible !important;
+    }
+  }
+
+  /* Hide the legacy "Create a design with Ninja AI" pink box that the
+     studio renders below the canvas — the studio's own AI panel handles
+     that flow now. Same rule as members-portal applies. */
+  .dts-content .generative-ai-area {
+    display: none !important;
+  }
+
+  /* Hide the studio's ninja logo and (on desktop only) the "× Exit"
+     toggle when loaded inside the portal — desktop has the sidebar
+     "exit" affordance, so the X is redundant. On mobile the studio
+     fills the viewport and the user needs the X to bounce back to
+     /pages/free-design-tools (handled by the inline script below).
+     Selector includes .fs-toggle to beat the studio's own
+     `#fullscreen-toggle-btn.fs-toggle { display: inline-flex !important }`
+     rule on equal-specificity load-order ties. */
+  .dts-content .studio-logo {
+    display: none !important;
+  }
+  @media (min-width: 769px) {
+    .dts-content #fullscreen-toggle-btn.fs-toggle {
+      display: none !important;
+    }
+  }
+</style>
+
+<div class="dts-mobile-header">
+  <button class="dts-mobile-picker" type="button" aria-label="Open design tools menu" data-dts-picker>
+    <span class="dts-mobile-picker__label">{{ section.settings.heading | default: 'DESIGN TOOLS' }}</span>
+    <span class="dts-mobile-picker__current">
+      <svg class="dts-mobile-picker__caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      <span class="dts-mobile-picker__page" data-dts-picker-page>Design Tools Home</span>
+    </span>
+  </button>
+</div>
+<div class="dts-sidebar-overlay"></div>
+<div class="dts-portal">
+  <aside class="dts-sidebar" aria-label="{{ section.settings.aria_label | default: 'Design tools navigation' | escape }}">
+    <nav class="dts-nav">
+      {%- if section.settings.heading != blank -%}
+        <div class="dts-nav__group">{{ section.settings.heading }}</div>
+      {%- endif -%}
+
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'group_header' -%}
+          <div class="dts-nav__group" {{ block.shopify_attributes }}>{{ block.settings.label }}</div>
+        {%- elsif block.type == 'nav_link' -%}
+          {%- assign slug = block.settings.label | handle -%}
+          {%- assign link_type = block.settings.link_type | default: 'ajax' -%}
+          <a href="{{ block.settings.url }}"
+             class="dts-nav__link"
+             data-url="{{ block.settings.url }}"
+             data-slug="{{ slug }}"
+             data-link-type="{{ link_type }}"
+             {%- if link_type == 'new_tab' %} target="_blank" rel="noopener"{% endif -%}
+             {{ block.shopify_attributes }}>
+            <span class="dts-nav__icon">
+              {%- case block.settings.icon -%}
+                {%- when 'paintbrush' -%}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.37 2.63L14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3z"/><path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"/><path d="M14.5 17.5L4.5 15"/></svg>
+                {%- when 'aigen' -%}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 17v4"/><path d="M17 19h4"/></svg>
+                {%- when 'bgremover' -%}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 2"/><circle cx="12" cy="10" r="3"/><path d="M6 18c1-3 3.5-4 6-4s5 1 6 4"/></svg>
+                {%- when 'search' -%}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                {%- when 'mockup' -%}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 1 .84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.14a1 1 0 0 0 1-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+                {%- when 'designs' -%}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                {%- when 'wand' -%}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="m3 21 9-9"/><path d="M12.2 6.2 11 5"/></svg>
+                {%- when 'crop' -%}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
+                {%- when 'home' -%}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                {%- when 'tools' -%}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                {%- else -%}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
+              {%- endcase -%}
+            </span>
+            <span class="dts-nav__label">{{ block.settings.label }}</span>
+            {%- if block.settings.badge_text != blank -%}
+              <span class="dts-nav__badge">{{ block.settings.badge_text }}</span>
+            {%- endif -%}
+          </a>
+        {%- endif -%}
+      {%- endfor -%}
+    </nav>
+  </aside>
+
+  <main class="dts-content" data-dts-content>
+    <div class="dts-content-empty" data-dts-empty>Loading…</div>
+  </main>
+</div>
+
+<script>
+  /* Mobile-only override: when the Design Studio is loaded inside the
+     portal AJAX pane and the user taps the "× Exit" toggle, redirect
+     back to the portal page instead of running the studio's default
+     fullscreen-toggle behavior. Capture-phase listener so we beat the
+     studio's own click handler. Mirrors members-portal pattern. */
+  (function () {
+    if (window.__dtsStudioExitInit) return;
+    window.__dtsStudioExitInit = true;
+    document.addEventListener('click', function (e) {
+      if (window.innerWidth > 768) return;
+      var btn = e.target && e.target.closest && e.target.closest('#fullscreen-toggle-btn');
+      if (!btn) return;
+      if (!btn.closest('.dts-content')) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      window.location.href = '/pages/free-design-tools';
+    }, true);
+  })();
+</script>
+
+<script>
+  (function () {
+    var portal = document.currentScript.previousElementSibling;
+    while (portal && !portal.classList.contains('dts-portal')) portal = portal.previousElementSibling;
+    if (!portal) portal = document.querySelector('.dts-portal');
+    if (!portal) return;
+
+    var contentEl = portal.querySelector('[data-dts-content]');
+    var links     = portal.querySelectorAll('.dts-nav__link');
+    // Mobile picker + drawer overlay live as siblings of .dts-portal inside
+    // the section wrapper. Scope queries to the section so they stay tied
+    // to this instance (multiple sections on a page would still resolve
+    // independently).
+    var sectionEl = portal.parentElement || document;
+    var picker     = sectionEl.querySelector('[data-dts-picker]');
+    var pickerPage = sectionEl.querySelector('[data-dts-picker-page]');
+    var overlay    = sectionEl.querySelector('.dts-sidebar-overlay');
+    var sidebarEl  = portal.querySelector('.dts-sidebar');
+
+    function setPickerLabel(link) {
+      if (!pickerPage || !link) return;
+      var labelEl = link.querySelector('.dts-nav__label');
+      var label = labelEl ? labelEl.textContent.trim() : (link.textContent || '').trim();
+      if (label) pickerPage.textContent = label;
+    }
+
+    function closeDrawer() {
+      if (sidebarEl) sidebarEl.classList.remove('dts-sidebar--open');
+      if (overlay) overlay.classList.remove('dts-sidebar-overlay--visible');
+      document.body.style.overflow = '';
+    }
+
+    if (picker && sidebarEl && overlay) {
+      picker.addEventListener('click', function () {
+        var opening = !sidebarEl.classList.contains('dts-sidebar--open');
+        sidebarEl.classList.toggle('dts-sidebar--open');
+        overlay.classList.toggle('dts-sidebar-overlay--visible');
+        document.body.style.overflow = opening ? 'hidden' : '';
+      });
+      overlay.addEventListener('click', closeDrawer);
+    }
+    // Each tab's rendered DOM lives inside its own pane. We toggle
+    // visibility instead of re-injecting innerHTML, so each tool's
+    // scripts (Fabric.js, studio editor, etc.) only run ONCE per tab.
+    // Re-running these complex apps on every tab switch was triggering
+    // "Failed to load required libraries" alerts.
+    var panes = {};   // url -> pane element
+    var currentUrl = '';
+
+    function showPane(url) {
+      Object.keys(panes).forEach(function (k) {
+        panes[k].style.display = (k === url) ? '' : 'none';
+      });
+    }
+
+    // <script> tags inserted via innerHTML don't execute. Clone+replace
+    // (scoped to a pane element) so the freshly-injected tool scripts run
+    // when the pane first appears. Force async=false on external scripts
+    // so e.g. v0-script.js waits for fabric.min.js — dynamically-inserted
+    // <script src> defaults to async, which races and trips the studio's
+    // "Failed to load required libraries" guard.
+    function runScriptsIn(paneEl) {
+      var scripts = paneEl.querySelectorAll('script');
+      scripts.forEach(function (s) {
+        var clone = document.createElement('script');
+        for (var i = 0; i < s.attributes.length; i++) {
+          clone.setAttribute(s.attributes[i].name, s.attributes[i].value);
+        }
+        if (clone.src) clone.async = false;
+        clone.textContent = s.textContent;
+        s.parentNode.replaceChild(clone, s);
+      });
+    }
+
+    // Override the studio's default 90% zoom to 65% inside the portal.
+    // The studio's own DEFAULT_ZOOM script (design-tool-widget.liquid:646)
+    // polls for setStudioZoom and applies 90 once available. We poll the
+    // same way but with a small initial delay so we land *after* the
+    // studio's call and end up on top.
+    function applyPortalZoomDefault(url) {
+      if (url.indexOf('ninja-design-studio') === -1) return;
+      var attempts = 0;
+      function tick() {
+        attempts++;
+        if (typeof window.setStudioZoom === 'function') {
+          try { window.setStudioZoom(65); } catch (_) {}
+          return;
+        }
+        if (attempts < 60) setTimeout(tick, 100);
+      }
+      setTimeout(tick, 700);
+    }
+
+    function loadAjax(url) {
+      if (!url || !contentEl) return;
+      if (currentUrl === url && panes[url]) return;
+      currentUrl = url;
+
+      if (panes[url]) {
+        // Already loaded once — just show its pane. No re-injection,
+        // no re-running of scripts, so the studio (or any complex JS
+        // app) keeps the state it had last time.
+        showPane(url);
+        return;
+      }
+
+      contentEl.classList.add('dts-content--loading');
+
+      fetch(url, { credentials: 'same-origin' })
+        .then(function (r) { return r.text(); })
+        .then(function (html) {
+          var doc = new DOMParser().parseFromString(html, 'text/html');
+          var content = doc.querySelector('#MainContent')
+                     || doc.querySelector('main')
+                     || doc.querySelector('[role="main"]')
+                     || doc.querySelector('.main-content')
+                     || doc.body;
+          var pane = document.createElement('div');
+          pane.className = 'dts-pane';
+          pane.dataset.url = url;
+          if (content) pane.innerHTML = content.innerHTML;
+          contentEl.appendChild(pane);
+          panes[url] = pane;
+          showPane(url);
+          // Hide the empty placeholder once we have at least one pane.
+          var emptyEl = contentEl.querySelector('[data-dts-empty]');
+          if (emptyEl) emptyEl.style.display = 'none';
+          contentEl.classList.remove('dts-content--loading');
+          runScriptsIn(pane);
+          applyPortalZoomDefault(url);
+        })
+        .catch(function () {
+          var pane = document.createElement('div');
+          pane.className = 'dts-pane dts-content-error';
+          pane.textContent = "Couldn't load this tool. Please try again.";
+          pane.dataset.url = url;
+          contentEl.appendChild(pane);
+          panes[url] = pane;
+          showPane(url);
+          contentEl.classList.remove('dts-content--loading');
+        });
+    }
+
+    // Build the "home" pane by moving any sections rendered after the
+    // portal's own .shopify-section into a pane inside the content area.
+    // The Design Tools Home tab toggles this pane's visibility, hiding
+    // the cards/header sections when the user is on a tool tab.
+    // Must run AFTER the rest of MainContent has parsed — this script
+    // sits inside the design-tools-sidebar section, which is BEFORE the
+    // post-portal sections in document order, so at script-execution
+    // time those sections don't exist yet. Defer to DOMContentLoaded.
+    function buildHomePane() {
+      var portalSection = portal.closest('.shopify-section');
+      if (!portalSection) return null;
+      var pane = document.createElement('div');
+      pane.className = 'dts-pane dts-pane--home';
+      pane.dataset.url = '__home__';
+      var sib = portalSection.nextElementSibling;
+      while (sib) {
+        var next = sib.nextElementSibling;
+        if (sib.classList && sib.classList.contains('shopify-section') &&
+            !sib.classList.contains('shopify-section-group-footer-group')) {
+          pane.appendChild(sib);
+        }
+        sib = next;
+      }
+      if (pane.children.length === 0) return null;
+      contentEl.appendChild(pane);
+      panes['__home__'] = pane;
+      // Re-route any link inside the home pane that points to a tool the
+      // sidebar already hosts (e.g. the "Create Design" button → studio
+      // tab). Stops the user from being kicked out of the portal to the
+      // standalone tool page.
+      pane.addEventListener('click', function (e) {
+        var a = e.target && e.target.closest && e.target.closest('a[href]');
+        if (!a) return;
+        var href = a.getAttribute('href');
+        if (!href) return;
+        var hrefPath;
+        try { hrefPath = new URL(href, window.location.origin).pathname; } catch (_) { return; }
+        var match = null;
+        links.forEach(function (l) {
+          if (match) return;
+          var lUrl = l.dataset.url || '';
+          if (!lUrl) return;
+          try {
+            var lPath = new URL(lUrl, window.location.origin).pathname;
+            if (lPath === hrefPath) match = l;
+          } catch (_) {}
+        });
+        if (match) {
+          e.preventDefault();
+          activate(match);
+        }
+      });
+      return pane;
+    }
+
+    function activate(link) {
+      links.forEach(function (l) { l.classList.remove('dts-nav__link--active'); });
+      link.classList.add('dts-nav__link--active');
+      setPickerLabel(link);
+      closeDrawer();
+      var url = link.dataset.url;
+      var type = link.dataset.linkType || 'ajax';
+      if (type === 'home') {
+        if (panes['__home__']) {
+          showPane('__home__');
+          var emptyEl = contentEl.querySelector('[data-dts-empty]');
+          if (emptyEl) emptyEl.style.display = 'none';
+          contentEl.classList.remove('dts-content--loading');
+          currentUrl = '__home__';
+        }
+        return;
+      }
+      if (type === 'ajax') loadAjax(url);
+    }
+
+    // Click handler — for ajax/home, swap pane in place and keep URL.
+    // For "link"/"new_tab" let the browser navigate normally. Attach
+    // immediately so clicks work even before DOMContentLoaded.
+    links.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        var type = link.dataset.linkType || 'ajax';
+        if (type === 'ajax' || type === 'home') {
+          e.preventDefault();
+          activate(link);
+        }
+      });
+    });
+
+    // Defer init until the rest of MainContent has parsed — buildHomePane
+    // walks document siblings of this section, which only exist once the
+    // browser has parsed past this script.
+    function init() {
+      var pending = '';
+      try { pending = window.sessionStorage.getItem('dts-pending-tool') || ''; } catch (e) {}
+
+      buildHomePane();
+
+      // Pending tool: hide the home pane immediately so it never flashes
+      // before activate() swaps in the target tab pane. Show the spinner
+      // in the right pane while we fetch.
+      if (pending && panes['__home__']) {
+        panes['__home__'].style.display = 'none';
+        contentEl.classList.add('dts-content--loading');
+      }
+
+      var initial = null;
+      if (pending) {
+        try { window.sessionStorage.removeItem('dts-pending-tool'); } catch (e) {}
+        links.forEach(function (l) {
+          if (!initial && l.dataset.slug === pending) initial = l;
+        });
+      }
+      if (!initial && links.length) initial = links[0];
+      if (initial) activate(initial);
+
+      // Clear the pre-render flag once activate() has kicked off — the
+      // sections it referenced have either been moved into the home pane
+      // (so the CSS no longer matches) or were correctly hidden during
+      // the brief pending window.
+      document.documentElement.removeAttribute('data-dts-pending');
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Design Tools Sidebar",
+  "tag": "section",
+  "class": "design-tools-sidebar-section",
+  "settings": [
+    { "type": "header", "content": "Layout" },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Sidebar heading",
+      "default": "DESIGN TOOLS",
+      "info": "Shown above the menu items. Leave blank to hide."
+    },
+    {
+      "type": "range",
+      "id": "sidebar_width",
+      "label": "Sidebar width (px)",
+      "min": 200,
+      "max": 320,
+      "step": 5,
+      "default": 240
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max content width (px)",
+      "min": 1000,
+      "max": 1600,
+      "step": 20,
+      "default": 1400,
+      "info": "Match the page's main container width so the sidebar lines up with the header logo."
+    },
+    {
+      "type": "range",
+      "id": "content_min_height",
+      "label": "Content pane minimum height (px)",
+      "min": 400,
+      "max": 1200,
+      "step": 20,
+      "default": 720
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Active item color",
+      "default": "#019AFF"
+    },
+    {
+      "type": "text",
+      "id": "aria_label",
+      "label": "Accessible label (aria-label)",
+      "default": "Design tools navigation"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "group_header",
+      "name": "Group header",
+      "settings": [
+        { "type": "text", "id": "label", "label": "Group label", "default": "TOOLS" }
+      ]
+    },
+    {
+      "type": "nav_link",
+      "name": "Menu item",
+      "settings": [
+        { "type": "text", "id": "label", "label": "Menu name", "default": "Tool" },
+        {
+          "type": "url",
+          "id": "url",
+          "label": "URL",
+          "info": "URL to load in the right-side content pane. Each menu item can have its own URL."
+        },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "default": "paintbrush",
+          "options": [
+            { "value": "paintbrush", "label": "Paint brush" },
+            { "value": "aigen", "label": "AI / Sparkles" },
+            { "value": "bgremover", "label": "Background remover" },
+            { "value": "search", "label": "Magnifying glass" },
+            { "value": "mockup", "label": "T-shirt / Mockup" },
+            { "value": "designs", "label": "Photo / Designs" },
+            { "value": "wand", "label": "Magic wand" },
+            { "value": "crop", "label": "Crop" },
+            { "value": "home", "label": "Home" },
+            { "value": "tools", "label": "Tools / Wrench" }
+          ]
+        },
+        {
+          "type": "select",
+          "id": "link_type",
+          "label": "Behavior",
+          "default": "ajax",
+          "options": [
+            { "value": "ajax", "label": "Load in portal" },
+            { "value": "home", "label": "Show landing content" },
+            { "value": "link", "label": "Navigate to URL" },
+            { "value": "new_tab", "label": "Open in new tab" }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "badge_text",
+          "label": "Badge text (optional)",
+          "info": "Small pill on the right (e.g. \"NEW\", \"BETA\")."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Design Tools Sidebar",
+      "blocks": [
+        { "type": "nav_link", "settings": { "label": "Design Tools Home", "url": "", "icon": "tools", "link_type": "home" } },
+        { "type": "nav_link", "settings": { "label": "Ninja Design Studio", "url": "/pages/ninja-design-studio", "icon": "paintbrush" } },
+        { "type": "nav_link", "settings": { "label": "AI Image Generator", "url": "/pages/ai-image-generator", "icon": "aigen" } },
+        { "type": "nav_link", "settings": { "label": "Background Remover", "url": "/pages/background-remover", "icon": "bgremover" } },
+        { "type": "nav_link", "settings": { "label": "Upscaler", "url": "/pages/upscale", "icon": "search" } },
+        { "type": "nav_link", "settings": { "label": "Mockup Creator", "url": "/pages/ninja-mockup-creator", "icon": "mockup" } }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "templates": ["page"]
+  }
+}
+{% endschema %}

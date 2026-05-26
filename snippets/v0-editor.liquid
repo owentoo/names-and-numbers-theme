@@ -1,0 +1,1544 @@
+<link rel="stylesheet" href="{{ 'v0-styles.css' | asset_url }}">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
+
+<style>
+  /* While the Studio export/upload is in flight (.is-processing toggled by
+     v0-script.js' #save-aws-btn click handler), disable every interactive
+     control inside the editor so the user can't mutate the canvas — adding
+     text, uploading an image, swapping a color, etc. — mid-export. Excludes
+     #save-aws-btn so its own loader/disabled state still renders. */
+  .editor-container.is-processing button:not(#save-aws-btn),
+  .editor-container.is-processing input,
+  .editor-container.is-processing select,
+  .editor-container.is-processing textarea,
+  .editor-container.is-processing label,
+  .editor-container.is-processing a,
+  .editor-container.is-processing [role="button"],
+  .editor-container.is-processing [contenteditable] {
+    pointer-events: none !important;
+    opacity: 0.55 !important;
+  }
+  /* Disable Fabric canvas interactions too — clicks would otherwise still hit
+     the canvas element and modify the design while the export is running. */
+  .editor-container.is-processing canvas {
+    pointer-events: none !important;
+  }
+  /* Re-enable the "Choose The Product" chooser overlays that appear AFTER
+     the upload completes. They live inside .editor-container so the rule
+     above would otherwise keep them disabled and the user can't pick a
+     destination product. Higher specificity wins over the disable rule. */
+  .editor-container.is-processing .design-transfer-overlay-container,
+  .editor-container.is-processing .design-transfer-overlay-container *,
+  .editor-container.is-processing .design-transfer-overlay-container-2,
+  .editor-container.is-processing .design-transfer-overlay-container-2 * {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+  }
+</style>
+
+{% capture all_standard_colors %}
+     <button class="text-fill-swatch color-swatch" data-color="#000b3d" style="background-color: #000b3d;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#00167a" style="background-color: #00167a;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#0025cc" style="background-color: #0025cc;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#1f48ff" style="background-color: #1f48ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#5271ff" style="background-color: #5271ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#99acff" style="background-color: #99acff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#c2cdff" style="background-color: #c2cdff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#020c45" style="background-color: #020c45;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#2c0a71" style="background-color: #2c0a71;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#4910bc" style="background-color: #4910bc;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#5e17eb" style="background-color: #5e17eb;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#8c52ff" style="background-color: #8c52ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#bea1f7" style="background-color: #bea1f7;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#d8c7fa" style="background-color: #d8c7fa;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#200934" style="background-color: #200934;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#401268" style="background-color: #401268;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#6b1fad" style="background-color: #6b1fad;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#9440dd" style="background-color: #9440dd;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#b174e7" style="background-color: #b174e7;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#cea8f0" style="background-color: #cea8f0;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#e2cbf6" style="background-color: #e2cbf6;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#2b0934" style="background-color: #2b0934;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#561269" style="background-color: #561269;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#8f1eae" style="background-color: #8f1eae;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#bc3fde" style="background-color: #bc3fde;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#cb6ce6" style="background-color: #cb6ce6;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#e1a8f0" style="background-color: #e1a8f0;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#edcbf6" style="background-color: #edcbf6;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#3d0026" style="background-color: #3d0026;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#7a004b" style="background-color: #7a004b;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#cc007e" style="background-color: #cc007e;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff1fa9" style="background-color: #ff1fa9;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff66c4" style="background-color: #ff66c4;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff99d8" style="background-color: #ff99d8;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffc2e8" style="background-color: #ffc2e8;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#330a0a" style="background-color: #330a0a;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#661414" style="background-color: #661414;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff2828" style="background-color: #ff2828;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff3a3a" style="background-color: #ff3a3a;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff5050" style="background-color: #ff5050;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffadad" style="background-color: #ffadad;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffd6d6" style="background-color: #ffd6d6;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#3d0000" style="background-color: #3d0000;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#7a0000" style="background-color: #7a0000;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#cc0000" style="background-color: #cc0000;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff3131" style="background-color: #ff3131;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff5757" style="background-color: #ff5757;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff9999" style="background-color: #ff9999;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffc2c2" style="background-color: #ffc2c2;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#3d1700" style="background-color: #3d1700;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#7a2f00" style="background-color: #7a2f00;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#cc4e00" style="background-color: #cc4e00;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff751f" style="background-color: #ff751f;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff914d" style="background-color: #ff914d;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffc099" style="background-color: #ffc099;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffd9c2" style="background-color: #ffd9c2;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#3d2500" style="background-color: #3d2500;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#7a4900" style="background-color: #7a4900;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#cc7a00" style="background-color: #cc7a00;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffa51f" style="background-color: #ffa51f;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffbd59" style="background-color: #ffbd59;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffd699" style="background-color: #ffd699;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffe7c2" style="background-color: #ffe7c2;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#3d3100" style="background-color: #3d3100;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#7a6200" style="background-color: #7a6200;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#cca300" style="background-color: #cca300;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffd21f" style="background-color: #ffd21f;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffde59" style="background-color: #ffde59;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffeb99" style="background-color: #ffeb99;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#fff3c2" style="background-color: #fff3c2;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#233d00" style="background-color: #233d00;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#457a00" style="background-color: #457a00;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#74cc00" style="background-color: #74cc00;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#9eff1f" style="background-color: #9eff1f;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#c1ff72" style="background-color: #c1ff72;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#d3ff99" style="background-color: #d3ff99;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#e4ffc2" style="background-color: #e4ffc2;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#17320b" style="background-color: #17320b;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#2e6417" style="background-color: #2e6417;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#4ca626" style="background-color: #4ca626;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#7ed957" style="background-color: #7ed957;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#99e17a" style="background-color: #99e17a;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#bfecac" style="background-color: #bfecac;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#d9f4cd" style="background-color: #d9f4cd;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#003d20" style="background-color: #003d20;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#007a3f" style="background-color: #007a3f;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#00bf63" style="background-color: #00bf63;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#1fff93" style="background-color: #1fff93;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#5cffb0" style="background-color: #5cffb0;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#99ffce" style="background-color: #99ffce;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#c2ffe1" style="background-color: #c2ffe1;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#053827" style="background-color: #053827;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#0a714e" style="background-color: #0a714e;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#10bb82" style="background-color: #10bb82;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#31edae" style="background-color: #31edae;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#69f2c4" style="background-color: #69f2c4;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#a1f7da" style="background-color: #a1f7da;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#c7fae9" style="background-color: #c7fae9;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#083335" style="background-color: #083335;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#11676a" style="background-color: #11676a;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#1cabb0" style="background-color: #1cabb0;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#3ddbe1" style="background-color: #3ddbe1;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#5ce1e6" style="background-color: #5ce1e6;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#a7eff1" style="background-color: #a7eff1;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#caf5f7" style="background-color: #caf5f7;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#00343d" style="background-color: #00343d;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#00687a" style="background-color: #00687a;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#0097b2" style="background-color: #0097b2;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#0cc0df" style="background-color: #0cc0df;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#5ce7ff" style="background-color: #5ce7ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#99f0ff" style="background-color: #99f0ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#c2f6ff" style="background-color: #c2f6ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#00273d" style="background-color: #00273d;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#004e7a" style="background-color: #004e7a;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#0081cc" style="background-color: #0081cc;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#38b6ff" style="background-color: #38b6ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#70cbff" style="background-color: #70cbff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#99daff" style="background-color: #99daff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#c2e9ff" style="background-color: #c2e9ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#001b3d" style="background-color: #001b3d;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#00357a" style="background-color: #00357a;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#004aad" style="background-color: #004aad;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#1f80ff" style="background-color: #1f80ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#5ca3ff" style="background-color: #5ca3ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#99c5ff" style="background-color: #99c5ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#c2dcff" style="background-color: #c2dcff;"></button>
+                             
+{% endcapture %}    
+{% capture standard_colors %}
+
+    <button class="text-fill-swatch color-swatch" data-color="#000000" style="background-color:#000000;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#545454" style="background-color:#545454;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#737373" style="background-color:#737373;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#a6a6a6" style="background-color:#a6a6a6;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#b4b4b4" style="background-color:#b4b4b4;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#d9d9d9" style="background-color:#d9d9d9;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffffff" style="background-color:#ffffff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff3131" style="background-color:#ff3131;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff5757" style="background-color:#ff5757;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff66c4" style="background-color:#ff66c4;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#e2a9f1" style="background-color:#e2a9f1;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#cb6ce6" style="background-color:#cb6ce6;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#8c52ff" style="background-color:#8c52ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#5e17eb" style="background-color:#5e17eb;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#0097b2" style="background-color:#0097b2;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#0cc0df" style="background-color:#0cc0df;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#5ce1e6" style="background-color:#5ce1e6;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#38b6ff" style="background-color:#38b6ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#5170ff" style="background-color:#5170ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#004aad" style="background-color:#004aad;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#1800ad" style="background-color:#1800ad;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#00bf63" style="background-color:#00bf63;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#7ed957" style="background-color:#7ed957;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#c1ff72" style="background-color:#c1ff72;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffde59" style="background-color:#ffde59;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffbd59" style="background-color:#ffbd59;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff914d" style="background-color:#ff914d;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff751f" style="background-color:#ff751f;"></button>
+
+{% endcapture %}     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
+   <div class="customTabelPopup__overlay-editor nj-popup pricing-table w3_bg {% if page.id != 105050734675 and page.id != 113190830163 %} outside-studio {% endif %} studio-embedded {% if template.suffix == 'multiupload_vividpopular' or template.suffix == 'custom-stickers-2' %}studio-overlay-only{% endif %}" style="display:none;">
+  <div class="customTabelPopup">
+    <div class="editor-container">
+        <!-- Top Toolbar -->
+        <div class="toolbar" style="gap: 10px;">  
+            <div class="toolbar-left">
+                  {% if page.id == 105050734675 or page.id == 113190830163 %}
+                 <a href="{{ routes.root_url }}" class="studio-logo">
+                    <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Ninja_Transfers_Head.svg?v=1756405327" height="70" style="height: 38px;   margin-right: 0px;">
+                 </a>
+                {% endif %}
+                <!-- Fullscreen toggle moved to the front of toolbar-left so it sits at
+                     the far left of the studio toolbar (matches Ghost Light handoff
+                     spec). Each icon is wrapped with its label in a span; the existing
+                     toggle JS (`$btn.find('.icon-expand').toggle(...)`) still finds those
+                     spans by class, so the icon+label hide/show in lockstep without any
+                     JS changes. -->
+                <button id="fullscreen-toggle-btn" class="btn btn-outline btn-transparent fs-toggle" aria-label="Toggle fullscreen">
+                    <span class="icon-expand fs-state">
+                        <span class="tb-icon-img tb-icon-img--enter-fs fs-icon-bracket" aria-hidden="true"></span>
+                        <span class="fs-label">Fullscreen</span>
+                    </span>
+                    <span class="icon-collapse fs-state" style="display:none">
+                        <span class="tb-icon-img tb-icon-img--exit-fs fs-icon-bracket" aria-hidden="true"></span>
+                        <span class="fs-label">Exit Fullscreen</span>
+                        {%- comment -%}
+                          Mobile-only Close glyph + short "Exit" label. CSS
+                          in v0-styles.css hides .fs-icon-bracket + .fs-label
+                          and shows .fs-icon-x + .fs-label-mobile inside
+                          :not(.studio-inline):not(.studio-embedded) on
+                          viewports ≤ 749px so mobile fullscreen reads as
+                          "× Exit" instead of "Exit Fullscreen".
+                        {%- endcomment -%}
+                        <span class="tb-icon-img tb-icon-img--close fs-icon-x" aria-hidden="true"></span>
+                        <span class="fs-label-mobile">Exit</span>
+                    </span>
+                </button>
+            </div>
+				 <div class="toolbar-center toolbar-actions">
+                <!-- Primary actions — white pill with a colored icon chip on the left.
+                     Each chip carries its own stroke color so the button itself can stay
+                     a uniform white/grey-outline (see .editor-container .toolbar .btn rules
+                     in v0-styles.css). Centered between the fullscreen toggle (left) and
+                     Use Design (right) via .toolbar-actions flex rules. -->
+                <button id="add-text-btn" class="btn btn-outline tb-action">
+                    <span class="tb-icon-chip tb-icon-chip--text" aria-hidden="true">
+                        <span class="tb-icon-img tb-icon-img--text" aria-hidden="true"></span>
+                    </span>
+                    Text
+                </button>
+                <button id="add-image-btn" class="btn btn-outline tb-action">
+                    <span class="tb-icon-chip tb-icon-chip--upload" aria-hidden="true">
+                        <span class="tb-icon-img tb-icon-img--upload" aria-hidden="true"></span>
+                    </span>
+                    Upload
+                </button>
+                <button id="ai-panel-btn" class="ai__btn tb-action">
+                    <span class="tb-icon-chip tb-icon-chip--ai" aria-hidden="true">
+                        <span class="tb-icon-img tb-icon-img--ai" aria-hidden="true"></span>
+                    </span>
+                    <span class="tb-action-label">Create with AI</span>
+                    <span class="tb-action-label-short">Create w/ AI</span>
+                </button>
+            </div>
+
+            <div class="toolbar-right">
+               
+                <button id="reset-btn" class="btn btn-outline" style="display:none;">
+                    <span>↻</span> Reset
+                </button>
+				 <!-- Panel Toggles -->
+				  <button id="canvas-panel-btn" class="btn btn-outline" style="display:none;">
+                    <span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/canvas.svg" /></span> Canvas
+                </button>
+				
+                <button id="layers-panel-btn" class="btn btn-outline" style="display:none;">
+                    <span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/layers.svg" /></span> Layers
+                </button>
+                 <button id="export-btn" class="btn btn-outline" style="border-color: #27aafa;color:#27aafa;display:none;">Download</button>
+                 <button id="save-aws-btn" class="btn btn-primary" disabled>
+                     <span class="btn-text">Use Design</span>
+                      <span class="btn-loader" style="display:none; margin-left:8px;">
+                        <span class="spinner" style="
+                            border: 2px solid rgba(255,255,255,0.3);
+                            border-top: 2px solid white;
+                            border-radius: 50%;
+                            width: 14px;
+                            height: 14px;
+                            display: inline-block;
+                            animation: spin 0.6s linear infinite;
+                        "></span>
+                    </span>
+                </button>
+            </div>
+        </div>
+  
+  
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Canvas Area -->
+            <div class="canvas-area w3_bg">  
+                <div id="ruler-container" style="position:relative; width:fit-content; height:fit-content;">
+                   <div class="ruler"></div>
+                    <div class="canvas-wrapper w3_bg transparent-background">
+                        <canvas id="fabric-canvas"></canvas>
+                    </div>
+                 </div>  
+                  
+                <div class="floating_tools">
+                            <!-- Undo/Redo. The .ft-btn-label spans render
+                                 the text under the icon on desktop and are
+                                 hidden via CSS on mobile (icon-only there). -->
+                            <button id="undo-btn" class="btn btn-outline btn-transparent ft-btn--labeled" disabled aria-label="Undo">
+                                <span class="ft-btn-icon"><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/undo.svg" /></span>
+                                <span class="ft-btn-label">Undo</span>
+                            </button>
+                            <button id="redo-btn" class="btn btn-outline btn-transparent ft-btn--labeled" disabled aria-label="Redo">
+                                <span class="ft-btn-icon"><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/redo.svg" /></span>
+                                <span class="ft-btn-label">Redo</span>
+                            </button>
+
+                            <div class="separator"></div>
+
+                            <!-- Zoom Controls -->
+                            <button id="zoom-out-btn" class="btn btn-outline btn-transparent"><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/minus-sign.svg" /></button>
+                            <span id="zoom-display" class="zoom-display">100%</span>
+                            <button id="zoom-in-btn" class="btn btn-outline btn-transparent"><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/plus-sign.svg" /></button>
+
+                            <div class="separator"></div>
+
+                            <!-- Pan tool (hand) — toggle to drag the canvas view when zoomed in -->
+                            <button id="pan-btn" class="btn btn-outline btn-transparent" aria-label="Pan" title="Pan (hold to drag the canvas)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V6a1.5 1.5 0 0 1 3 0v4.5M10 11V4.5a1.5 1.5 0 0 1 3 0V11M13 11V6a1.5 1.5 0 0 1 3 0v8M16 8a1.5 1.5 0 0 1 3 0v7a6 6 0 0 1-6 6h-2a7 7 0 0 1-6-3.5L3 15a1.5 1.5 0 0 1 2.5-2L7 14.5V8"/></svg>
+                            </button>
+                </div>
+                
+            </div>
+            <button id="ai-edit-trigger" class="button">
+                                <span>Edit with</span>
+                                <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/editWithAI_c3302daf-3fd0-4731-a169-d7e8f7e5eee7.png?auto=format,compress&amp;v=1766579573">
+
+                            </button>
+
+            <!-- Floating pill toolbar moved inside .canvas-area via JS on page load so
+                 position:absolute anchors it to the top of the canvas-area. -->
+            <div id="text-float-toolbar" class="tft" style="display:none" aria-hidden="true">
+                <div class="tft-bar">
+                    <!-- TEXT-only controls -->
+                    <button class="tft-btn tft-btn--text tft-font" type="button" aria-label="Font" data-tft-open="font">
+                        <span class="tft-font-name">Poppins</span>
+                        <svg viewBox="0 0 20 20" fill="none" class="tft-chev"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <button class="tft-btn tft-btn--text tft-size" type="button" aria-label="Size" data-tft-open="size">
+                        <span class="tft-size-val">40</span>
+                        <svg viewBox="0 0 20 20" fill="none" class="tft-chev"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="tft-sep tft-btn--text"></div>
+                    <button class="tft-btn tft-btn--text tft-color" type="button" aria-label="Color" data-tft-open="color">
+                        <span class="tft-color-swatch" style="background:#000"></span>
+                    </button>
+                    <button class="tft-btn tft-btn--text tft-bold" type="button" aria-label="Bold"><b>B</b></button>
+                    <button class="tft-btn tft-btn--text tft-italic" type="button" aria-label="Italic"><i>I</i></button>
+                    <button class="tft-btn tft-btn--text tft-align" type="button" aria-label="Align">
+                        <svg viewBox="0 0 20 20" fill="none" class="tft-icon tft-icon-align-left"><path d="M3 5h14M3 9h10M3 13h14M3 17h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                        <svg viewBox="0 0 20 20" fill="none" class="tft-icon tft-icon-align-center" style="display:none"><path d="M3 5h14M5 9h10M3 13h14M5 17h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                        <svg viewBox="0 0 20 20" fill="none" class="tft-icon tft-icon-align-right" style="display:none"><path d="M3 5h14M7 9h10M3 13h14M7 17h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                    </button>
+
+                    <!-- IMAGE-only controls -->
+                    <button class="tft-btn tft-btn--image tft-ai-edit" type="button" aria-label="Edit with AI">
+                        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2l1.5 3.5L15 7l-3.5 1.5L10 12 8.5 8.5 5 7l3.5-1.5L10 2zM16 13l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8.8-1.7z"/></svg>
+                        Edit with AI
+                    </button>
+                    <button class="tft-btn tft-btn--image tft-bg-remove" type="button" aria-label="Remove background" aria-pressed="false">
+                        <span class="tft-toggle" aria-hidden="true"><span class="tft-toggle-knob"></span></span>
+                        <span class="tft-bg-remove-label">BG Remove</span>
+                    </button>
+
+                    <!-- SHARED controls (both text + image) -->
+                    <div class="tft-sep tft-btn--shared"></div>
+                    <button class="tft-btn tft-btn--shared tft-effects" type="button" aria-label="Effects">Effects</button>
+                    <button class="tft-btn tft-btn--shared tft-layer" type="button" aria-label="Layer" data-tft-open="layer">
+                        <svg viewBox="0 0 20 20" fill="currentColor"><circle cx="4" cy="10" r="1.4"/><circle cx="10" cy="10" r="1.4"/><circle cx="16" cy="10" r="1.4"/></svg>
+                    </button>
+                </div>
+
+                <!-- Size popover -->
+                <div class="tft-popover" data-tft-popover="size" hidden>
+                    <div class="tft-pop-row">
+                        <input type="range" min="8" max="200" value="40" id="tft-size-slider" class="tft-pop-slider">
+                        <input type="number" min="8" max="400" value="40" id="tft-size-input" class="tft-pop-number">
+                    </div>
+                </div>
+
+                <!-- Layer popover -->
+                <div class="tft-popover tft-popover--menu" data-tft-popover="layer" hidden>
+                    <button type="button" class="tft-menu-item" data-tft-layer="bring-forward">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4v8M6 8l4-4 4 4"/></svg>
+                        Move layer up
+                    </button>
+                    <button type="button" class="tft-menu-item" data-tft-layer="send-backwards">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 16V8M6 12l4 4 4-4"/></svg>
+                        Move layer down
+                    </button>
+                    <div class="tft-menu-sep"></div>
+                    <button type="button" class="tft-menu-item" data-tft-layer="bring-to-front">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v10M6 7l4-4 4 4M3 17h14"/></svg>
+                        Send to front
+                    </button>
+                    <button type="button" class="tft-menu-item" data-tft-layer="send-to-back">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17V7M6 13l4 4 4-4M3 3h14"/></svg>
+                        Send to back
+                    </button>
+                    <div class="tft-menu-sep"></div>
+                    <button type="button" class="tft-menu-item" data-tft-layer="duplicate">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="10" height="10" rx="2"/><path d="M7 7h10v10H7z"/></svg>
+                        Duplicate
+                    </button>
+                    <button type="button" class="tft-menu-item tft-menu-item--danger" data-tft-layer="delete">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>
+                        Delete
+                    </button>
+                </div>
+
+                <!-- Color popover -->
+                <div class="tft-popover" data-tft-popover="color" hidden>
+                    <div class="tft-pop-row">
+                        <div class="tft-color-grid">
+                            <button type="button" class="tft-swatch" data-color="#000000" style="background:#000000"></button>
+                            <button type="button" class="tft-swatch" data-color="#ffffff" style="background:#ffffff;border-color:#d1d5db"></button>
+                            <button type="button" class="tft-swatch" data-color="#ef4444" style="background:#ef4444"></button>
+                            <button type="button" class="tft-swatch" data-color="#f97316" style="background:#f97316"></button>
+                            <button type="button" class="tft-swatch" data-color="#facc15" style="background:#facc15"></button>
+                            <button type="button" class="tft-swatch" data-color="#22c55e" style="background:#22c55e"></button>
+                            <button type="button" class="tft-swatch" data-color="#06b6d4" style="background:#06b6d4"></button>
+                            <button type="button" class="tft-swatch" data-color="#3b82f6" style="background:#3b82f6"></button>
+                            <button type="button" class="tft-swatch" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+                            <button type="button" class="tft-swatch" data-color="#ec4899" style="background:#ec4899"></button>
+                            <button type="button" class="tft-swatch" data-color="#6b7280" style="background:#6b7280"></button>
+                            <label class="tft-swatch tft-swatch-custom" title="Custom color">
+                                <input type="color" id="tft-color-input" value="#000000">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="right-panel">
+                <div class="mobile_panel">
+                            <span id="panel-text-heading">Create with Ai</span>
+                            <a href="#">
+                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M6.4 19L5 17.6L10.6 12L5 6.4L6.4 5L12 10.6L17.6 5L19 6.4L13.4 12L19 17.6L17.6 19L12 13.4L6.4 19Z" fill="black"/> </svg>
+                             </a>    
+                 </div> 
+                <div class="panel-content"> 
+                      <!-- Canvas Options Panel -->
+                    <div id="ai-panel" class="panel ai-chat ai-chat--narrow" style="display: none;" data-ai-panel data-ai-instance="ds" data-ai-narrow-mode="force">
+                        <div class="ai-chat-thread" id="ai-chat-thread" data-ai-thread>
+                            <!-- Header lives inside the scrollable thread so it slides out of view
+                                 as the conversation grows upward. Sandbox structure verbatim — same
+                                 markup as `dtf-upload-tabs.liquid` tab 3, driven by `ai-chat-sandbox.js`. -->
+                            <div class="ai-chat-header">
+                                <div class="ai-chat-brand">NINJA AI</div>
+                                <h2 class="ai-chat-title">What do you want to make?</h2>
+                                <p class="ai-chat-subtitle">Not sure where to start? Tap an idea below, or describe your own.</p>
+
+                                <div class="ai-chat-pills" data-ai-pills>
+                                    <button type="button" class="ai-chat-pill"
+                                            data-ai-pill-prompt="A modern logo of a bold dumbbell icon in bright electric blue, hot pink, and neon yellow with text that says &quot;Common Ground Athletics&quot; on a pure white background">
+                                        <span class="ai-chat-pill-emoji">&#127947;&#65039;</span>
+                                        <span>Colorful gym logo</span>
+                                    </button>
+                                    <button type="button" class="ai-chat-pill"
+                                            data-ai-pill-prompt="A bold modern design of a large floral bouquet in vivid pink, coral, and sage with text that says &quot;Mama&quot; in chunky serif on a white background">
+                                        <span class="ai-chat-pill-emoji">&#127800;</span>
+                                        <span>Floral mama design</span>
+                                    </button>
+                                    <button type="button" class="ai-chat-pill"
+                                            data-ai-pill-prompt="A vibrant party design of streamers and stars in hot pink, electric orange, neon green, and bright blue with text that says &quot;Let&#39;s Party&quot; in wavy groovy letters on a pure white background">
+                                        <span class="ai-chat-pill-emoji">&#10024;</span>
+                                        <span>Groovy party design</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ai-chat-composer">
+                            <div class="ai-pop-error" id="ai-pop-error" data-ai-error></div>
+                            <div class="ai-chat-input-wrap">
+                                <textarea id="ai-pop-prompt" data-ai-prompt rows="1" placeholder="Tell me what you want"></textarea>
+                                <button type="button" class="ai-chat-send is-empty" id="ai-pop-generate"
+                                        data-ai-generate aria-label="Generate" disabled>
+                                    <svg class="ai-chat-send-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M10 15V5M5 10l5-5 5 5"/>
+                                    </svg>
+                                    <span class="ai-chat-send-label">Generate</span>
+                                    <span class="ai-pop-spin" aria-hidden="true"></span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="ai-chat-history" data-ai-history>
+                            <div class="ai-chat-history-head">
+                                <h3 class="ai-chat-history-title">Recently Generated</h3>
+                                <button type="button" class="ai-chat-history-toggle"
+                                        data-ai-history-toggle
+                                        aria-expanded="true"
+                                        aria-label="Hide recently generated">
+                                    <span class="ai-chat-history-toggle-label" data-ai-history-toggle-label>Hide</span>
+                                    <svg class="ai-chat-history-toggle-chev" viewBox="0 0 16 16" fill="none"
+                                         stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M4 10l4-4 4 4"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="ai-chat-history-grid" data-ai-history-grid></div>
+                            <div class="ai-chat-history-foot">
+                                <button type="button" class="ai-chat-history-clear"
+                                        data-ai-history-clear>Clear all</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Canvas Options Panel -->
+                    <div id="canvas-panel" class="panel" style="display: none;"> 
+                        <div class="panel-section">
+                            <label>Canvas Background</label>
+                            <div class="color-swatches">
+                                <button class="canvas-color-swatch color-swatch  transparent-swatch" data-color="transparent" title="Transparent"></button>
+                                <button class="canvas-color-swatch color-swatch active" data-color="#ffffff" style="background-color: #ffffff;"></button>
+                                <button class="canvas-color-swatch color-swatch" data-color="#f8f9fa" style="background-color: #f8f9fa;"></button>
+                                <button class="canvas-color-swatch color-swatch" data-color="#e9ecef" style="background-color: #e9ecef;"></button>
+                                <button class="canvas-color-swatch color-swatch" data-color="#000000" style="background-color: #000000;"></button>
+                                 <label class="canvas-color-swatch- color-swatch" for="canvas-color-picker">
+                                  <input style="opacity:0;" type="color" id="canvas-color-picker" class="color-picker" value="#ffffff">
+								</label>
+                            </div>
+                        </div>
+                        
+                        <div class="panel-section">
+                            <div class="toggle-section" style="display:none;">
+                                <label>Export with Background</label>
+                                <input type="checkbox" id="export-background-toggle" class="toggle">
+                            </div>
+                            <div class="info-box">
+                                <span id="export-info">Export will have a transparent background</span>
+                            </div>
+                        </div>
+                    </div>
+
+                     <!-- Image Edit Panel -->
+                    <div id="image-edit-panel" class="panel" style="display: none;"> 
+                            <ul>
+                                <li>
+                                    <button id="edit-image-btn" class="btn btn-outline btn-transparent">
+                                        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Asset_2.svg?v=1757434972" />
+                                        <span>Remove Background</span>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button id="image-panel-btn" class="btn btn-outline btn-transparent">
+                                        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Artboard_1_1.svg?v=1757430119" />
+                                        <span>Adjustments &  Filters</span>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button id="btn-hit-duplicate2" class="btn btn-outline btn-transparent">
+                                        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/duplicate_3e551cf6-f828-498b-a6fd-97cc9528d578.svg?v=1758034286" />
+                                        <span>Duplicate</span>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button id="btn-hit-delete2" class="btn btn-outline btn-transparent">
+                                        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Delete_fa73005b-b98c-4e55-b5d7-c0add8bb1158.svg?v=1758034286" />
+                                        <span>Delete</span>
+                                    </button>
+                                </li>
+                            </ul>
+                    </div>
+                    
+                    <!-- Edit Text Panel -->
+                    <div id="text-edit-panel" class="panel" style="display: none;"> 
+                            <ul>
+                                <li>
+                                    <button id="edit-text-btn" class="btn btn-outline btn-transparent">
+                                        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Edit_text.svg?v=1756912358" />
+                                        <span>Edit Text</span>
+                                    </button> 
+                                </li>
+                                <li>
+                                    <button id="text-panel-btn" class="btn btn-outline btn-transparent">
+                                        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Textt_Style.svg?v=1756912357" />
+                                        <span>Text Style</span>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button id="btn-hit-duplicate2" class="btn btn-outline btn-transparent">
+                                        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/duplicate_3e551cf6-f828-498b-a6fd-97cc9528d578.svg?v=1758034286" />
+                                        <span>Duplicate</span>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button id="btn-hit-delete2" class="btn btn-outline btn-transparent">
+                                        <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Delete_fa73005b-b98c-4e55-b5d7-c0add8bb1158.svg?v=1758034286" />
+                                        <span>Delete</span>
+                                    </button>
+                                </li>
+                            </ul>
+                    </div>
+
+                    <div id="font-panel" class="panel" style="display: none;">
+                       <div class="mobile_panel">
+                            <span id="panel-text-heading-2">
+                                 <span id="panel-text-heading-edit-text-2">
+                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.7999 12L15.3999 7.4L13.9999 6L7.9999 12L13.9999 18L15.3999 16.6L10.7999 12Z" fill="black"/>
+</svg>
+                                    Font
+                                </span>
+                            </span>
+                            <a href="#">
+                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M6.4 19L5 17.6L10.6 12L5 6.4L6.4 5L12 10.6L17.6 5L19 6.4L13.4 12L19 17.6L17.6 19L12 13.4L6.4 19Z" fill="black"/> </svg>
+                             </a>    
+                 </div> 
+                         <div class="panel-section">
+                            <div id="font-tabs-container" class="font-tabs"></div>
+  <div id="font-accordion-container" class="font-accordion-container"></div>
+                         </div>   
+                    </div>   
+                    
+                <div id="font-stroke-color-panel" class="panel" style="display: none;">
+                       <div class="mobile_panel">
+                            <span id="panel-text-heading-5">
+                                 <span id="panel-text-heading-edit-text-5">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.7999 12L15.3999 7.4L13.9999 6L7.9999 12L13.9999 18L15.3999 16.6L10.7999 12Z" fill="black"/>
+</svg> 
+                                    Style
+                                </span>
+                            </span>
+                            <a href="#">
+                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M6.4 19L5 17.6L10.6 12L5 6.4L6.4 5L12 10.6L17.6 5L19 6.4L13.4 12L19 17.6L17.6 19L12 13.4L6.4 19Z" fill="black"/> </svg>
+                             </a>    
+                 </div> 
+                         <div class="panel-section"> 
+                            <ul class="style_stroke_container">
+                                <li>
+                                    <input type="radio" name="style_stroke" value="none" class="style_stroke" id="style_stroke_none" checked >
+                                    <label for="style_stroke_none">
+                                        <span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/None.svg?v=1760703473" style="height: 50px;"></span>
+                                        None
+                                    </label>
+                                </li>
+                                <li>
+                                    <input type="radio" name="style_stroke" value="outline" class="style_stroke" id="style_stroke_outline">
+                                    <label for="style_stroke_outline">
+                                        <span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Outline.svg?v=1760703472"  style="height: 50px;"></span>
+                                        Outline
+                                    </label>
+                                </li>
+                                <li style="display:none;">
+                                    <input type="radio" name="style_stroke" value="shadow" class="style_stroke" id="style_stroke_shadow">
+                                    <label for="style_stroke_shadow">
+                                       <span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Shadow.svg?v=1760703472"  style="height: 50px;"></span>
+                                        Shadow
+                                    </label>
+                                </li>
+                                 <li style="display:none;">
+                                    <input type="radio" name="style_stroke" value="raised" class="style_stroke" id="style_stroke_raised">
+                                    <label for="style_stroke_raised">
+                                        <span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Raised.svg?v=1760703473"  style="height: 50px;"></span>
+                                        Raised
+                                    </label>
+                                </li>
+                            </ul>   
+                            
+                              <button type="button" id="font-stroke-color-panel-btn" class="stroke-color-container">
+                                <span><label for="font-stroke-color-panel-btn">Color</label> <div class="stroke-color color-swatch" data-color="#000000" style="background-color: #000000;"></div> <span id="selected_font_stroke_color_name">#000000</span></span> 
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0 7.33l2.829-2.83 9.175 9.339 9.167-9.339 2.829 2.83-11.996 12.17z"/></svg> 
+                              </button>
+                            <div class="stroke-size-container">
+                                <label for="stroke-width">Stroke Width (px)</label>
+                                <div class="slider-container">
+                                    <input type="range" id="stroke-width" class="slider" min="1" max="20" value="1">
+                                    <input type="number" id="stroke-width-display" class="number-input" min="1" max="20" value="1">
+                                </div>
+                           </div>
+                            <div class="shadow-size-container">
+                                <label for="shadow-size">Shadow Size (px)</label>
+                                <div class="slider-container">
+                                    <input type="range" id="shadow-size" class="slider" min="1" max="20" value="1">
+                                    <input type="number" id="shadow-size-display" class="number-input" min="1" max="20" value="1">
+                                </div>
+                           </div>
+                            <div class="direction-container">
+                                <label for="direction-slider">Direction (°)  - <span id="direction-value">0°</span></label>
+                                <div class="slider-container">
+                                    <input type="range" id="direction-slider" class="slider" min="0" max="359" value="0">
+                                    <input type="number" id="direction-slider-display" class="number-input" min="0" max="359" value="0">
+                                </div>
+                           </div>
+                            <div class="distance-container">
+                                <label for="distance">Distance (px)</label>
+                                <div class="slider-container">
+                                    <input type="range" id="distance-slider" class="slider" min="0" max="200" value="0">
+                                    <input type="number" id="distance-slider-display" class="number-input" min="0" max="200" value="0">
+                                </div>
+                           </div>
+                            <div class="panel-subdropdown edge-container">
+                                 <label for="font-family">Edge</label>
+                                <select id="edgeStyle">
+                                    <option value="round" selected="">Curved</option>
+                                    <option value="square">Pointy</option>
+                                </select>
+                            </div>
+
+                            <div class="miter-limit-container" style="display: none;">
+                                                <label for="miterLimit">Miter Limit <span id="miterOut">10</span></label>
+                                                <div class="slider-container">
+                                                    <input type="range" id="miterLimit" class="slider" min="1" max="50" value="10">
+                                                    <input type="number" id="miterLimit-display" class="number-input" min="1" max="50" value="10">
+                                                </div>
+                                            </div>
+
+                         </div>   
+                    </div>     
+
+               <div id="font-color-panel" class="panel" style="display: none;">
+                       <div class="mobile_panel">
+                            <span id="panel-text-heading-3">
+                                 <span id="panel-text-heading-edit-text-3">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.7999 12L15.3999 7.4L13.9999 6L7.9999 12L13.9999 18L15.3999 16.6L10.7999 12Z" fill="black"/>
+</svg> 
+                                    Color
+                                </span>
+                            </span>
+                            <a href="#">
+                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M6.4 19L5 17.6L10.6 12L5 6.4L6.4 5L12 10.6L17.6 5L19 6.4L13.4 12L19 17.6L17.6 19L12 13.4L6.4 19Z" fill="black"/> </svg>
+                             </a>    
+                 </div> 
+                         <div class="panel-section">
+                              <label for="document-colors">Document Colors</label>
+                              <div id="document-colors">
+                                 <label class="text-fill-swatch- color-swatch" for="text-color-picker" style="margin-bottom:0;"> 
+								  <input style="opacity:0;" type="color" id="text-color-picker" class="color-picker" value="#ffffff">
+								</label>
+                                <button class="text-fill-swatch color-swatch" data-color="#000000" style="background-color: #000000;"></button>
+
+                              </div>
+                              <hr/>
+                              <label for="standard-colors">Standard Colors</label>
+                              <div id="standard-colors">
+                                {{ standard_colors }}
+</div>
+                              <p id="see-all-colors" class="see-all-colors"><span>See All Colors <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0 7.33l2.829-2.83 9.175 9.339 9.167-9.339 2.829 2.83-11.996 12.17z"/></svg> </span></p>
+                         </div>   
+                    </div>
+
+
+                   
+
+                      <div id="font-color-all-panel" class="panel" style="display: none;">
+                       <div class="mobile_panel">
+                            <span id="panel-text-heading-4">
+                                 <span id="panel-text-heading-edit-text-4">
+                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.7999 12L15.3999 7.4L13.9999 6L7.9999 12L13.9999 18L15.3999 16.6L10.7999 12Z" fill="black"/>
+</svg>
+                                    All Colors
+                                </span>
+                            </span>
+                            <a href="#">
+                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M6.4 19L5 17.6L10.6 12L5 6.4L6.4 5L12 10.6L17.6 5L19 6.4L13.4 12L19 17.6L17.6 19L12 13.4L6.4 19Z" fill="black"/> </svg>
+                             </a>    
+                 </div> 
+                         <div class="panel-section">
+                             <div id="all-standard-colors">                                 
+                               {{ all_standard_colors }}
+                            </div>
+                         </div>   
+                    </div>
+
+
+                     <div id="font-stroke-color-inner-panel" class="panel" style="display: none;">
+                       <div class="mobile_panel">
+                            <span id="panel-text-heading-6">
+                                 <span id="panel-text-heading-edit-text-6">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.7999 12L15.3999 7.4L13.9999 6L7.9999 12L13.9999 18L15.3999 16.6L10.7999 12Z" fill="black"/>
+</svg> 
+                                    Color
+                                </span>
+                            </span>
+                            <a href="#">
+                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M6.4 19L5 17.6L10.6 12L5 6.4L6.4 5L12 10.6L17.6 5L19 6.4L13.4 12L19 17.6L17.6 19L12 13.4L6.4 19Z" fill="black"/> </svg>
+                             </a>    
+                 </div> 
+                         <div class="panel-section">
+                              <label for="document-stroke-colors">Document Colors</label>
+                              <div id="document-stroke-colors">
+                                 <label class="text-stroke-swatch- color-swatch stroke-color" for="text-stroke-picker" style="margin-bottom:0;"> 
+								  <input style="opacity:0;" type="color" id="text-stroke-picker" class="color-picker" value="#ffffff">
+								</label>
+                                <button class="color-swatch stroke-color" data-color="#000000" style="background-color: #000000;"></button>
+
+                              </div>
+                              <hr/>
+                              <label for="standard-stroke-colors">Standard Colors</label>
+                              <div id="standard-stroke-colors">
+                                {{ standard_colors | replace:"text-fill-swatch color-swatch","color-swatch stroke-color" }}
+</div>
+                              <p id="see-all-stroke-colors" class="see-all-colors"><span>See All Colors <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0 7.33l2.829-2.83 9.175 9.339 9.167-9.339 2.829 2.83-11.996 12.17z"/></svg> </span></p>
+                         </div>   
+                    </div>
+
+           <div id="font-stroke-color-all-panel" class="panel" style="display: none;">
+                       <div class="mobile_panel">
+                            <span id="panel-text-heading-7">
+                                 <span id="panel-text-heading-edit-text-7">
+                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M10.7999 12L15.3999 7.4L13.9999 6L7.9999 12L13.9999 18L15.3999 16.6L10.7999 12Z" fill="black"/>
+</svg>
+                                    All Colors
+                                </span>
+                            </span>
+                            <a href="#">
+                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M6.4 19L5 17.6L10.6 12L5 6.4L6.4 5L12 10.6L17.6 5L19 6.4L13.4 12L19 17.6L17.6 19L12 13.4L6.4 19Z" fill="black"/> </svg>
+                             </a>    
+                 </div> 
+                         <div class="panel-section">
+                             <div id="all-standard-stroke-colors">                                 
+                               {{ all_standard_colors  | replace:"text-fill-swatch color-swatch","color-swatch stroke-color" }}
+                            </div>
+                         </div>   
+                    </div>
+
+                    <!-- Text Panel -->
+                    <div id="text-panel" class="panel" style="display: none;"> 
+                        <!-- Font Family -->
+                        <div class="panel-section">
+                            
+                            <select id="font-family" style="display:none;"></select>
+                           
+                            <button type="button" id="font-panel-btn">
+                                <span><label for="font-family">Font</label> <span id="selected_font_name">Poppins</span></span> 
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0 7.33l2.829-2.83 9.175 9.339 9.167-9.339 2.829 2.83-11.996 12.17z"/></svg> 
+                            </button>
+
+                             <button type="button" id="font-color-panel-btn">
+                                <span><label for="font-family">Color</label> <div class="text-fill-swatch color-swatch" data-color="#000000" style="background-color: #000000;"></div> <span id="selected_font_color_name">#000000</span></span> 
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0 7.33l2.829-2.83 9.175 9.339 9.167-9.339 2.829 2.83-11.996 12.17z"/></svg> 
+                            </button>
+                             
+                        </div>
+                        
+                        <!-- Font Weight -->
+                        <div class="panel-section" style="display:none !important">
+                            <label for="font-weight">Font Weight</label>
+                            <select id="font-weight" class="select">
+                                <option value="300">Light</option>
+                                <option value="400" selected>Regular</option>
+                                <option value="500">Medium</option>
+                                <option value="600">SemiBold</option>
+                                <option value="700">Bold</option>
+                                <option value="800">ExtraBold</option>
+                            </select>
+                        </div>
+                           
+                        <!-- Fill Color -->
+                        <div class="panel-section" style="display:none !important">
+                            <label>Color</label>
+                            <div class="color-swatches">
+                                <button class="text-fill-swatch color-swatch active" data-color="#000000" style="background-color: #000000;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffffff" style="background-color: #ffffff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ff0000" style="background-color: #ff0000;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#00ff00" style="background-color: #00ff00;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#0000ff" style="background-color: #0000ff;"></button>
+                                <button class="text-fill-swatch color-swatch" data-color="#ffff00" style="background-color: #ffff00;"></button>
+                               
+                            </div>
+                        </div> 
+                        
+                        <!-- Font Size -->
+                        <div class="panel-section">
+                            <label for="font-size">Font Size</label>
+                            <div class="slider-container">
+                                <input type="range" id="font-size" class="slider" min="8" max="120" value="40">
+                                <input type="number" id="font-size-input" class="number-input" min="8" max="120" value="40">
+                            </div>
+                        </div>
+                        
+                        <hr style="margin-bottom:0;" />
+                        
+						 
+                        <!-- Text Alignment -->
+                        <div class="panel-section text--align"  style="margin-bottom:0;">
+                            <label>Text Align</label>
+                            <div class="button-group text-align-group">
+                                <button id="align-left" class="btn btn-sm active" data-align="left"><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/align-left.svg" /></button>
+                                <button id="align-center" class="btn btn-sm" data-align="center"><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/align-center.svg" /></button>
+                                <button id="align-right" class="btn btn-sm" data-align="right"><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/align-right.svg" /></button>
+                            </div>                                                                                                          
+                        </div>
+						
+                        <div class="panel-section" >
+                              <button type="button" id="font-stroke-panel-btn">
+                                <span><label for="font-stroke-panel-btn">Style</label> <span id="selected_font_stroke_name">None</span></span> 
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M0 7.33l2.829-2.83 9.175 9.339 9.167-9.339 2.829 2.83-11.996 12.17z"/></svg> 
+                            </button>
+                        </div>    
+                        <!-- Stroke -->
+                        <div class="panel-section" style="display:none;">
+                            <div class="toggle-section">
+                                <label>Stroke</label>
+                                <input type="checkbox" id="stroke-toggle" class="toggle">
+                            </div>
+                            <div id="stroke-controls" class="stroke-controls" style="display: none;">
+                                <div class="panel-subsection">
+                                    <label>Stroke Color</label>
+                                    <div class="color-swatches">  
+                                        <button class="color-swatch stroke-color active" data-color="#000000" style="background-color: #000000;"></button>
+                                        <button class="color-swatch stroke-color" data-color="#ffffff" style="background-color: #ffffff;"></button>
+                                        <button class="color-swatch stroke-color" data-color="#ff0000" style="background-color: #ff0000;"></button>
+                                        <input type="color" id="stroke-color-picker" class="color-picker" value="#000000">
+                                    </div>
+                                </div> 
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <!-- Image Panel -->
+                    <div id="image-panel" class="panel" style="padding-bottom:0;display:none;"> 
+                           <div id="ai-image-edit-panel"  style="display:none">
+                           
+
+                            <div id="ai-edit-form" style="display:none;margin-top:8px">
+                                <textarea id="ai-edit-prompt" placeholder="Enter prompt here"></textarea>
+                                <button id="ai-edit-run" class="btn-primary">
+                                    <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Group_1.svg?v=1767352503" />
+                                </button>
+                                
+                                <button id="ai-edit-stop" class="btn-outline" style="display:none">Stop</button>
+                                <div id="ai-edit-status"></div>
+                            </div>
+                            </div>
+                         <!-- Adjustable Filters -->
+                        <div class="panel-section">
+                            <h4 class="hide-mobile">Background</h4>
+                            <label class="checkbox-button btn hide-mobile" for="bg-remove-toggle">
+                                 <input type="checkbox" id="bg-remove-toggle">
+                                 <div class="checkbox"></div>
+                                            <div>
+                                            <span>Remove Background</span>
+                                            <img src="{{ 'AI_Button.svg' | asset_url }}" style="height: 14px;">
+                                            </div>
+                                        </label>
+                             <br/>
+                            <h4>Adjustable Filters</h4>
+
+                            <!-- Brightness -->
+                            <div class="filter-control">
+                                <div class="toggle-section">
+                                    <label>Brightness</label>
+                                    <input type="checkbox" id="brightness-toggle" class="toggle filter-toggle" data-filter="brightness">
+                                </div>
+                                <div class="filter-slider" id="brightness-slider" style="display: none;">
+                                    <input type="range" id="brightness" class="slider" min="-1" max="1" step="0.01" value="0">
+                                    <span id="brightness-display" class="value-display">0.00</span>
+                                </div>
+                            </div>
+
+                            <!-- Contrast -->
+                            <div class="filter-control">
+                                <div class="toggle-section">
+                                    <label>Contrast</label>
+                                    <input type="checkbox" id="contrast-toggle" class="toggle filter-toggle" data-filter="contrast">
+                                </div>
+                                <div class="filter-slider" id="contrast-slider" style="display: none;">
+                                    <input type="range" id="contrast" class="slider" min="-1" max="1" step="0.01" value="0">
+                                    <span id="contrast-display" class="value-display">0.00</span>
+                                </div>
+                            </div>
+
+                            <!-- Saturation -->
+                            <div class="filter-control">
+                                <div class="toggle-section">
+                                    <label>Saturation</label>
+                                    <input type="checkbox" id="saturation-toggle" class="toggle filter-toggle" data-filter="saturation">
+                                </div>
+                                <div class="filter-slider" id="saturation-slider" style="display: none;">
+                                    <input type="range" id="saturation" class="slider" min="-1" max="1" step="0.01" value="0">
+                                    <span id="saturation-display" class="value-display">0.00</span>
+                                </div>
+                            </div>
+
+                            <!-- Blur -->
+                            <div class="filter-control">
+                                <div class="toggle-section">
+                                    <label>Blur</label>
+                                    <input type="checkbox" id="blur-toggle" class="toggle filter-toggle" data-filter="blur">
+                                </div>
+                                <div class="filter-slider" id="blur-slider" style="display: none;">
+                                    <input type="range" id="blur" class="slider" min="0" max="1" step="0.01" value="0">
+                                    <span id="blur-display" class="value-display">0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        <hr/>
+                        <!-- Color Effects -->
+                        <div class="panel-section"  style="margin-bottom:0;">
+                            <h4>Color Effects</h4>
+                            <div class="filter-buttons color-effects">
+                                <button class="btn  filter-btn checkbox-button " data-filter="grayscale"><div class="checkbox"></div> Grayscale</button>
+                                <button class="btn  filter-btn checkbox-button" data-filter="invert"><div class="checkbox"></div> Invert</button>
+                                <button class="btn  filter-btn checkbox-button" data-filter="sepia"><div class="checkbox"></div> Sepia</button>
+                                <button class="btn  filter-btn checkbox-button" data-filter="vintage"><div class="checkbox"></div> Vintage</button>
+                            </div>
+
+                             <div class="panel-section revert-filters-box" style="margin-top: 24px;border-bottom: solid 1px var(--color-borders-cards);border-top: solid 1px var(--color-borders-cards);">
+                                <button id="reset-filters" class="btn btn-outline btn-full btn-transparent">
+                                <span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/revert.svg" /></span>
+                                Revert to Original</button>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    <div  class="panel" id="global-panel" style="display:none;"> 
+						 <!-- Object Actions -->
+                        <div class="panel-section"> 
+                           <div class="action-buttons">
+                                <button style="display:none" id="text-move-up" class="btn"><span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/move-up.svg" /></span>Move Up</button>
+                                <button  style="display:none" id="text-move-down" class="btn"><span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/move-down.svg" /></span>Move Down</button>
+                                <button id="text-duplicate" class="btn"><span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/duplicate.svg" /></span>Duplicate</button>
+                                <button id="text-delete" class="btn btn-danger"><span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/delete.svg" /></span>Delete</button>
+                            </div>
+                        </div>
+                        <hr/>
+                        <div id="layers-panel" class="panel" style="padding:0;border:0;" >
+                        <h4>Layers</h4>
+                        <div id="layers-list" class="layers-list">
+                            <div class="no-layers">No objects on canvas</div>
+                        </div>
+                    </div>
+                    </div> 
+                     <!-- Default Panel -->
+                    <div id="default-panel" class="panel">  
+                        <div class="default-message">
+                            <p><strong style="color: #000;">Add</strong><br/>
+<span class="sub-text">Choose Add Text or Upload Image from the top menu.</span><br/><br/>
+<strong style="color: #000;">Edit</strong><br/>
+<span class="sub-text">Click an existing object to open its property editor.</span><br/><br/>
+<strong style="color: #000;">Organize</strong><br/>
+<span class="sub-text">Manage element order in Layers and adjust your artboard under Canvas.</span></p> 
+                        </div>
+                    </div>   
+                     
+                </div>
+            </div>
+           </div>  
+            {% if page.id == 105050734675 or page.id == 113190830163 %}
+               <div class="design-transfer-overlay-container">
+                 <div class="design-transfer-overlay">
+                       <button id="close-btn-2" class="btn btn-outline btn-transparent">
+                            <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+                       </button>
+                      <h3>Choose The Product You Want To Use Your Design On</h3>
+                     <ul>
+                        <li>
+                            <a href="/products/dtf-transfers">
+                            <img src="//ninja-transfers-cdn.imgix.net/ninja-fast-dtf-transfersninja-transfers-590685.jpg?auto=format,compress&v=1749225987&w=480">
+                            <p>DTF TRANSFERS BY SIZE</p>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/products/uv-dtf-stickers-decals-by-size">
+                            <img src="//ninja-transfers-cdn.imgix.net/UV-by-size-hero-v4-1.jpg?auto=format,compress&v=1754065953&w=480">
+                            <p>UV DTF PERMASTICKERS BY SIZE</p>
+                            </a>
+                        </li>
+                        {% comment %}
+                        <li>
+                            <a href="/products/vinyl-stickers">
+                            <img src="//ninja-transfers-cdn.imgix.net/custom-vinyl-stickersninja-patches-908980.png?auto=format,compress&v=1750727758&w=480">
+                            <p>VINYL STICKERS</p>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/products/spangle-transfers">
+                            <img src="//ninja-transfers-cdn.imgix.net/spangle-transfers-by-sizeninja-transfers-226336.png?auto=format,compress&v=1749226042&w=480">
+                            <p>SPANGLE TRANSFERS</p>
+                            </a>
+                        </li>
+                        {% endcomment %}
+                      </ul>
+                 </div>
+                </div>
+                {% endif %}
+                <div class="design-transfer-overlay-container-2">     
+                 <div class="design-transfer-overlay-2">
+                       <button id="close-btn-2-2" class="btn btn-outline btn-transparent" onclick="document.querySelector('.design-transfer-overlay-container-2').style.display = 'none'">
+                            <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+                       </button>
+                       <div class="generativeAItips"> 
+                      <h3>Example Prompt</h3>
+                      <div class="examplePrompt w3_bg">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/example.jpg?auto=format,compress&amp;v=1747861546" class="examplePrompt__desktop">
+          <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Group_10.png?auto=format,compress&amp;v=1747925994" class="examplePrompt__mobile">
+        </div>
+        <hr/>
+        <h3>Example Output</h3>
+        <div class="exampleOutput w3_bg">
+          <div class="exampleOutput__item w3_bg" item="1">
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/a-clean-and-modern-logo-illustration-fea_aFuultKgQh-HNvXcKTMAZw_hGGDDkT3QsqQ5SxEV74Nug_0003_Layer_1.jpg?auto=format,compress&amp;v=1747861649">
+          </div>
+          <div class="exampleOutput__item w3_bg" item="2">
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/a-clean-and-modern-logo-illustration-fea_aFuultKgQh-HNvXcKTMAZw_hGGDDkT3QsqQ5SxEV74Nug_0001_a-logo-illustration-of-a-cha.jpg?auto=format,compress&amp;v=1747861649">
+          </div>
+          <div class="exampleOutput__item w3_bg" item="3">
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/a-clean-and-modern-logo-illustration-fea_aFuultKgQh-HNvXcKTMAZw_hGGDDkT3QsqQ5SxEV74Nug_0004_Background.jpg?auto=format,compress&amp;v=1747861649">
+          </div></div>
+               </div>
+                       
+                 </div>
+                </div> 
+                <div class="toolbar _footer">
+                       <div>
+                         <!-- Add Elements -->
+                            <button id="add-text-btn-2" class="btn btn-outline">
+                                <span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Text.svg?v=17555992861" /></span> Add Text
+                            </button>
+                            <button id="add-image-btn-2" class="btn btn-outline">
+                                <span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Upload_3.svg?v=17555993031" /></span> Upload Image
+                            </button>
+                            <button id="ai-panel-btn-2" class="btn btn-outline"> 
+                                <span><img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/verified_user_24dp_E3E3E3_FILL0_wght300_GRAD0_opsz24_1.png?v=1756733656" /></span> Create with AI
+                            </button>
+                       </div>
+                </div>
+       
+    </div>
+</div>    
+</div>  
+
+<div class="customTabelPopup__overlay-modal nj-popup" style="display:none" onclick="if(event.target===this){this.style.display='none';}">
+    <div class="create-wrapper">
+    <h2 class="create-title">What would you like to create?</h2>
+    <p class="create-subtitle">
+     Start your next project by choosing one of the options below, or jump straight into a blank canvas.
+    </p>
+
+    <!-- OPTIONS -->
+    {%- comment -%}
+      Each onclick stops propagation BEFORE invoking the studio toolbar
+      button so the document-level outside-click listener in v0-script.js
+      (initAiPanelClose) doesn't immediately re-toggle the AI panel
+      shut. Same precaution applied to the other cards / skip link for
+      symmetry — keeps the splash dismissal cleanly scoped.
+    {%- endcomment -%}
+    <div class="create-options">
+      <button class="create-card" onclick="event.stopPropagation();document.querySelector('.customTabelPopup__overlay-modal').style.display = 'none';document.querySelector('#ai-panel-btn').click()">
+        <span class="icon">
+            <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Group_4.svg?v=1770738582">
+        </span>
+        <h3>Create with AI</h3>
+        <p>Generate images and design elements using Ninja AI.</p>
+      </button>
+
+      <button class="create-card"  onclick="event.stopPropagation();document.querySelector('.customTabelPopup__overlay-modal').style.display = 'none';document.querySelector('#add-image-btn').click()">
+        <span class="icon">
+             <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Group_5.svg?v=1770738582">
+        </span>
+        <h3>Upload Image</h3>
+        <p>Import your own photos and graphics to start designing.</p>
+      </button>
+
+      <button class="create-card"   onclick="event.stopPropagation();document.querySelector('.customTabelPopup__overlay-modal').style.display = 'none';document.querySelector('#add-text-btn').click()">
+        <span class="icon">
+             <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Group_6.svg?v=1770738582">
+        </span>
+        <h3>Add Text</h3>
+        <p>Begin with text and start your layout from words.</p>
+      </button>
+    </div>
+
+    <a href="javascript:void(0)" class="skip-link" onclick="event.stopPropagation();document.querySelector('.customTabelPopup__overlay-modal').style.display = 'none'">Skip and start from scratch →</a>
+  </div>
+</div>    
+
+<div class="customTabelPopup__overlay-ai-2 nj-popup" style="display: none;">
+<div class="ai-modal">
+  <div class="ai-header">
+  <h3 class="ai-title">Edit with AI</h3>
+  <span class="customTabelPopup__close"
+    onclick="if(typeof window.closeEditWithAIPopup2==='function'){window.closeEditWithAIPopup2()}else{document.querySelector('.customTabelPopup__overlay-12-2-2').style.display='grid'}">
+    ×
+  </span>
+  </div>
+  
+
+  <!-- MAIN PREVIEW WRAPPER -->
+  <div class="ai-preview-box">
+
+    <!-- STATE 1 — ORIGINAL -->
+    <img id="customer_image_preview-2" />
+
+    <!-- STATE 2 — PROCESSING -->
+    <div class="ai-processing">
+      <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/AI_Wizard.gif" />
+      <h4 style="line-height: 1.4;margin-top:40px;margin-bottom:40px;">Transforming your image<br>with AI magic</h4>
+      <p style="font-size:12px;opacity:0.6">As we cannot control the results of AI tools, we disclaim all liability and you assume full responsibility when using this feature in compliance with trademark and copyright law and our terms of service.</p>
+     <button id="ai_stop_processing-2" class="button stop-btn">
+        Stop
+    </button>
+    </div>
+
+    <!-- STATE 3 — AI RESULT -->
+    <img id="ai_image_preview-2" />
+    <div class="black-bg" style="display:none !important;"> 
+    <p  style="background:#333; border-radius:5px;  font-size: 10px; color:#fff;   display: inline-block;   text-align: center;   margin:2px auto;padding:2px 5px;">black background is only for preview, will be removed</p>
+    </div>
+  </div>
+
+
+  <!-- TAB SWITCHER -->
+  <div class="ai-tabs">
+    <button class="ai-tab active" data-tab="ai">AI Edit</button>
+    <button class="ai-tab" data-tab="original">Original</button>
+  </div>
+
+
+  <!-- STATE 1 — PROMPT INPUT -->
+  <div class="ai-prompt-box">
+    <p class="ai-helper-text">
+      Our AI Editor can do ALMOST anything. Describe the changes you’d like to make.
+    </p>
+
+    <textarea onkeyup="$('#ai_generate_image_2-2').prop('disabled',false)" id="ai_prompt_2-2" placeholder="ex. Change the beach scene to a mountain scene&#10;ex. Add text above the design that says Established 2025 in a cursive font&#10;ex. Transform this into a cartoon version for a t-shirt graphic&#10;ex. Remove the text on the side of the boat"></textarea>
+
+    <button id="ai_generate_image_2-2" class="">
+      <img src="https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Group_1.svg?v=1767352503" />
+    </button>
+
+    
+  </div>
+
+
+  <!-- STATE 3 — ACTION CTA -->
+  <div class="ai-action-box">
+    <button id="use_ai_image-2" class="button button-primary">
+      Apply AI Edit
+    </button>
+    <button class="button button-primary use__original" style="display:none;" onclick="document.querySelector('body').classList.remove('lock-page'),document.querySelector('.customTabelPopup__overlay-ai-2').style.display = 'none'">
+      Use Original
+    </button>
+    <p style="font-size:12px;opacity:0.6;text-align:center;margin-bottom:0px">Not quite right?</p>
+    <a class="ai-startover" id="ai_reset_editor-2">Start Over</a>
+  </div>
+
+</div>
+</div>
+
+          <div class="customTabelPopup__overlay-12-2-2 nj-popup" style="display: none;">
+              <div class="customTabelPopup">
+                <span class="customTabelPopup__close" onclick="document.querySelector('.customTabelPopup__overlay-12-2-2').style.display = 'none'" >
+                  <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+                </span>
+                <h4 style="position: absolute;top: 20px;opacity:0">Remove File</h4>
+
+                <h5 style="text-align:center;">Leave the AI Editor?</h5>
+                <p style="text-align:center;padding: 0 20px;">Your AI edits haven't been saved yet. Want to keep working on them?</p>
+                 <div style="display:flex;justify-content:center;gap:10px;flex-direction: column;">
+                      <button type="button" style="border-radius: 18px;" class="button button--solid" onclick="document.querySelector('body').classList.remove('lock-page'),document.querySelector('.customTabelPopup__overlay-ai-2').style.display = 'none',document.querySelector('.customTabelPopup__overlay-12-2-2').style.display = 'none'">Exit</button>
+                      <button type="button"  onclick="document.querySelector('.customTabelPopup__overlay-12-2-2').style.display = 'none'" class="close button button--solid" style="background: #999 !important;border-radius: 18px;">Cancel</button>
+                    </div>
+              </div>
+            </div>
+
+<div class="customTabelPopup__overlay-exit-studio-2 nj-popup" style="display:none">
+              <div class="customTabelPopup">
+                <span class="customTabelPopup__close" onclick="document.querySelector('.customTabelPopup__overlay-exit-studio-2').style.display = 'none'">
+                  <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="#000" stroke-linecap="round"></path><path d="M18 6L6.00001 18" stroke="#000" stroke-linecap="round"></path></svg>
+                </span>
+                <h4 style="position: absolute;top: 20px;opacity:0;">Remove File</h4>
+  
+                <p style="text-align:center;">Changes you made may not be saved.</p>
+                 <div style="display:flex;justify-content:center;gap:10px;flex-direction: column;"> 
+                     <button type="button" class="button button--solid" onclick="document.querySelector('.customTabelPopup__overlay-exit-studio-2').style.display = 'none', document.querySelector('.customTabelPopup__overlay-editor').style.display = 'none',document.body.style.overflow = 'visible'"  >Leave Ninja Studio</button>
+                     <button type="button" onclick="document.querySelector('.customTabelPopup__overlay-exit-studio-2').style.display = 'none'" class="close button button--solid" style="background: #999 !important;">Cancel</button>
+                    </div>
+              </div>
+  </div>
+    <!-- Hidden file input -->
+    <input type="file" id="file-input" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,.png,.jpg,.jpeg,.gif,.webp,.bmp" multiple style="display: none;">
+
+     <script>
+        {% if customer %}
+         const IS_CUSTOMER_LOGGED_IN = true;
+         const STUDIO_CUSTOMER_ID = "{{ customer.id }}";
+        {% else %} 
+         const IS_CUSTOMER_LOGGED_IN = false; 
+         const STUDIO_CUSTOMER_ID = "";  
+        {% endif %}       
+     </script>   
+       
+      <script src="{{ 'v0-script.js' | asset_url }}"></script>
+      <script src="{{ 'ai-chat-sandbox.js' | asset_url }}" defer></script>
+
+      <style>
+        /* Editable zoom display — visible affordance so users know
+           the percentage is clickable. Available everywhere v0-editor
+           renders (standalone DS, by-size-v2 design-studio tab,
+           dtf-transfers Design with Studio overlay). */
+        #zoom-display {
+          cursor: pointer;
+          padding: 2px 6px;
+          border-radius: 6px;
+          transition: background 0.15s ease;
+          user-select: none;
+          min-width: 44px;
+          text-align: center;
+          display: inline-block;
+        }
+        #zoom-display:hover {
+          background: #f3f4f6;
+        }
+        #zoom-display[contenteditable="true"] {
+          background: #f3f4f6;
+          outline: 2px solid #019aff;
+          outline-offset: -2px;
+          cursor: text;
+          user-select: text;
+        }
+        /* Suppress the v0-styles.css click-shield overlay (the grey dim
+           layer that covers the prompt + composer when Recently Generated
+           is open). In the design-studio panel the history sits inline
+           with the rest of the panel, so the dim makes the top half look
+           disabled. Same pattern used in sections/ai-image-creator.liquid. */
+        #ai-panel.ai-chat .ai-chat-history-overlay {
+          display: none !important;
+        }
+      </style>
+
+      {%- comment -%}
+        Click-to-edit zoom percentage. Document-level delegated
+        listeners so this works for every #zoom-display instance
+        across studio entry points and survives any DOM moves
+        (e.g. dtf-upload-tabs.js lifting .floating_tools into the
+        toolbar on by-size-v2). Validation:
+          - Strip "%" if typed.
+          - Parse as int, clamp 1-200 (matches setStudioZoom).
+          - Non-numeric → reset to the value captured on click.
+      {%- endcomment -%}
+      <script>
+        (function () {
+          if (window.__zoomEditableInit) return;
+          window.__zoomEditableInit = true;
+          var prevValue = '100';
+
+          function readDisplayValue(el) {
+            return (el && el.textContent || '').replace(/[^0-9]/g, '') || '100';
+          }
+
+          document.addEventListener('click', function (e) {
+            var el = e.target && e.target.closest && e.target.closest('#zoom-display');
+            if (!el) return;
+            prevValue = readDisplayValue(el);
+            el.contentEditable = 'true';
+            el.textContent = prevValue;
+            el.focus();
+            try {
+              var range = document.createRange();
+              range.selectNodeContents(el);
+              var sel = window.getSelection();
+              sel.removeAllRanges();
+              sel.addRange(range);
+            } catch (_) {}
+          });
+
+          document.addEventListener('keydown', function (e) {
+            if (!e.target || e.target.id !== 'zoom-display') return;
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              e.target.blur();
+            } else if (e.key === 'Escape') {
+              e.target.textContent = prevValue + '%';
+              e.target.contentEditable = 'false';
+              e.target.blur();
+            }
+          });
+
+          document.addEventListener('blur', function (e) {
+            if (!e.target || e.target.id !== 'zoom-display') return;
+            var el = e.target;
+            el.contentEditable = 'false';
+            var raw = (el.textContent || '').trim().replace(/%/g, '');
+            var val = parseInt(raw, 10);
+            if (isNaN(val) || val <= 0 || val > 200 || /[^0-9]/.test(raw)) {
+              el.textContent = prevValue + '%';
+              return;
+            }
+            if (typeof window.setStudioZoom === 'function') {
+              try { window.setStudioZoom(val); } catch (_) {}
+            }
+            el.textContent = val + '%';
+          }, true);
+        })();
+      </script>
+      <script>
+        /* Mobile pinch-to-zoom for the design studio canvas.
+           Replaces the -/+ buttons (hidden via CSS on mobile fullscreen).
+           Uses two-finger touch distance ratio relative to the zoom value
+           captured at touchstart, then drives `window.setStudioZoom` which
+           clamps 10–200 and re-renders fabric. Listener is attached to
+           `.canvas-area` so Fabric's own object selection logic still owns
+           single-finger touches. */
+        (function () {
+          if (window.__dtfStudioPinchInit) return;
+          window.__dtfStudioPinchInit = true;
+
+          function dist(t0, t1) {
+            var dx = t0.clientX - t1.clientX;
+            var dy = t0.clientY - t1.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+          }
+
+          function attach() {
+            var area = document.querySelector('.customTabelPopup__overlay-editor .canvas-area');
+            if (!area) return setTimeout(attach, 250);
+            if (area.__pinchAttached) return;
+            area.__pinchAttached = true;
+
+            var startDist = 0;
+            var startZoom = 100;
+
+            area.addEventListener('touchstart', function (e) {
+              if (e.touches.length !== 2) return;
+              startDist = dist(e.touches[0], e.touches[1]);
+              var disp = document.getElementById('zoom-display');
+              startZoom = disp ? parseInt((disp.textContent || '100').replace('%', ''), 10) : 100;
+              if (!startZoom || isNaN(startZoom)) startZoom = 100;
+            }, { passive: true });
+
+            area.addEventListener('touchmove', function (e) {
+              if (e.touches.length !== 2 || !startDist) return;
+              e.preventDefault();
+              var d = dist(e.touches[0], e.touches[1]);
+              var ratio = d / startDist;
+              var next = Math.round(startZoom * ratio);
+              if (typeof window.setStudioZoom === 'function') {
+                window.setStudioZoom(next);
+              }
+              /* Reset pan on every zoom step so the canvas stays centered
+                 in the canvas-area. setStudioZoom already calls
+                 __studio_resetPan internally, but we re-assert here in
+                 case any drag offsets accumulated mid-pinch. */
+              if (typeof window.__studio_resetPan === 'function') {
+                window.__studio_resetPan();
+              }
+            }, { passive: false });
+
+            area.addEventListener('touchend', function (e) {
+              if (e.touches.length < 2) startDist = 0;
+            }, { passive: true });
+          }
+
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', attach);
+          } else {
+            attach();
+          }
+        })();
+      </script>
+      <script>
+        /* When the studio is in `.studio-overlay-only` mode (rendered from
+           /products/dtf-transfers via the multiupload_vividpopular template),
+           the fullscreen toggle's "Exit" button should CLOSE the overlay
+           rather than fall through to v0-script.js's inline ↔ fullscreen
+           toggle (which has no inline target on this template).
+           Capture-phase listener so it runs before the jQuery click handler
+           in v0-script.js. */
+        (function () {
+          if (window.__dtfOverlayOnlyExitInit) return;
+          window.__dtfOverlayOnlyExitInit = true;
+          document.addEventListener('click', function (e) {
+            if (!e.target || !e.target.closest) return;
+            var btn = e.target.closest('#fullscreen-toggle-btn');
+            if (!btn) return;
+            var overlay = document.querySelector('.customTabelPopup__overlay-editor.studio-overlay-only');
+            if (!overlay) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            overlay.style.display = 'none';
+            document.body.classList.remove('hide-chat');
+            document.body.style.overflow = '';
+            var modal = document.querySelector('.customTabelPopup__overlay-modal');
+            if (modal) modal.style.display = 'none';
+          }, true);
+        })();
+      </script>
+      <button style="display:none" type="button" class="open-v0-editor" onclick="document.querySelector('.customTabelPopup__overlay-modal').style.display = 'grid',document.querySelector('.customTabelPopup__overlay-editor').style.display = 'grid', $('.transparent-swatch.canvas-color-swatch').click(),document.body.classList.add('hide-chat')">Open Editor</button>
+           <script>
+      //  if(window.innerWidth > 1024){
+            $("body").on("click", "a[href$='products/ninja-dtf-transfer-builder'], a[href$='products/uv-dtf-stickers-decals-builder']", function(e){
+            e.preventDefault();
+            if($(this).attr("href").indexOf("/products/uv-dtf") > -1 && location.href.indexOf("/products/uv-dtf-stickers")  > -1 ){
+              document.querySelector('.customTabelPopup__overlay-editor').style.display = 'grid';
+              $('.transparent-swatch.canvas-color-swatch').click();
+              document.body.style.overflow = 'hidden';
+              $(".open-v0-editor").click();
+            } else if($(this).attr("href").indexOf("/products/ninja-dtf-transfer-builder") > -1 && location.href.indexOf("/products/dtf-transfers")  > -1 ){
+              document.querySelector('.customTabelPopup__overlay-editor').style.display = 'grid';
+              $('.transparent-swatch.canvas-color-swatch').click();
+              document.body.style.overflow = 'hidden';
+              $(".open-v0-editor").click();
+            } else{
+                if($(this).attr("href").indexOf("uv-dtf") > -1){
+                 location.href = "/products/uv-dtf-stickers-decals-by-size#studio";
+                }else{
+                 location.href = "/products/dtf-transfers#studio";
+                }
+            }
+            });
+            $(document).ready(function(){
+              if(location.hash == "#studio"){
+                  setTimeout(function(){
+                    $(".open-v0-editor").click();
+                   },1000) 
+              }
+            })
+      // }
+      </script> 
+      <script>
+  function setVH() {
+    // Set --vh to actual innerHeight on load & resize
+    document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+  }
+  setVH();
+  window.addEventListener('resize', setVH);
+</script>

@@ -1,0 +1,401 @@
+{% layout none %}
+
+{%- assign page_url = content_for_header | split:'"pageurl":"' | last | split:'"' | first | split: request.host | last | replace:'\/','/' | replace:'%20',' ' | replace:'\u0026','&' -%}
+
+{%- assign query_string = '' -%}
+{%- assign raw_option_values = '' -%}
+{%- assign legacy_color = '' -%}
+{%- assign legacy_variant = '' -%}
+{%- assign legacy_variant_id = '' -%}
+
+{%- if page_url contains '?' -%}
+  {%- assign query_string = page_url | split:'?' | last -%}
+  {%- assign qry_parts = query_string | split:'&' -%}
+  {%- for part in qry_parts -%}
+    {%- assign key_and_value = part | split:'=' -%}
+    {%- if key_and_value.size > 1 -%}
+      {%- assign q_key = key_and_value[0] -%}
+      {%- assign q_val = key_and_value[1] | url_decode -%}
+      {%- if q_key == 'option_values' -%}
+        {%- assign raw_option_values = q_val -%}
+      {%- elsif q_key == 'color' -%}
+        {%- assign legacy_color = q_val -%}
+      {%- elsif q_key == 'variant' -%}
+        {%- assign legacy_variant = q_val -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+{%- assign color_option = blank -%}
+{%- assign size_option = blank -%}
+{%- assign color_option_index0 = -1 -%}
+{%- assign size_option_index0 = -1 -%}
+{%- for option in product.options_with_values -%}
+  {%- assign option_name_down = option.name | strip | downcase -%}
+  {%- if option_name_down == 'color' and color_option == blank -%}
+    {%- assign color_option = option -%}
+    {%- assign color_option_index0 = forloop.index0 -%}
+  {%- endif -%}
+  {%- if option_name_down == 'size' and size_option == blank -%}
+    {%- assign size_option = option -%}
+    {%- assign size_option_index0 = forloop.index0 -%}
+  {%- endif -%}
+{%- endfor -%}
+
+
+
+{%- assign selected_color_value = '' -%}
+{%- assign selected_color_option_value_id = '' -%}
+{%- assign selected_size_value = '' -%}
+{%- assign selected_size_option_value_id = '' -%}
+{%- assign selected_color_option_object = blank -%}
+{%- assign selected_size_option_object = blank -%}
+
+{%- assign raw_option_value_ids = raw_option_values | split: ',' -%}
+{%- if color_option != blank -%}
+  {%- for raw_option_value_id in raw_option_value_ids -%}
+    {%- assign raw_option_value_id = raw_option_value_id | strip -%}
+    {%- if raw_option_value_id == blank -%}
+      {%- continue -%}
+    {%- endif -%}
+    {%- for color_value in color_option.values -%}
+      {%- assign color_value_id_string = color_value.id | append: '' -%}
+      {%- if color_value_id_string == raw_option_value_id -%}
+        {%- assign selected_color_option_object = color_value -%}
+        {%- assign selected_color_value = color_value.name | default: color_value -%}
+        {%- assign selected_color_option_value_id = color_value.id -%}
+        {%- break -%}
+      {%- endif -%}
+    {%- endfor -%}
+    {%- if selected_color_option_value_id != blank -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+{%- if size_option != blank -%}
+  {%- for raw_option_value_id in raw_option_value_ids -%}
+    {%- assign raw_option_value_id = raw_option_value_id | strip -%}
+    {%- if raw_option_value_id == blank -%}
+      {%- continue -%}
+    {%- endif -%}
+    {%- for size_value in size_option.values -%}
+      {%- assign size_value_id_string = size_value.id | append: '' -%}
+      {%- if size_value_id_string == raw_option_value_id -%}
+        {%- assign selected_size_option_object = size_value -%}
+        {%- assign selected_size_value = size_value.name | default: size_value -%}
+        {%- assign selected_size_option_value_id = size_value.id -%}
+        {%- break -%}
+      {%- endif -%}
+    {%- endfor -%}
+    {%- if selected_size_option_value_id != blank -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+{%- if selected_color_option_object == blank and color_option != blank and color_option.selected_value != blank and raw_option_values == blank -%}
+  {%- assign selected_color_option_object = color_option.selected_value -%}
+  {%- assign selected_color_value = color_option.selected_value.name | default: color_option.selected_value -%}
+  {%- assign selected_color_option_value_id = color_option.selected_value.id -%}
+{%- endif -%}
+
+{%- if selected_size_option_object == blank and size_option != blank and size_option.selected_value != blank and raw_option_values == blank -%}
+  {%- assign selected_size_option_object = size_option.selected_value -%}
+  {%- assign selected_size_value = size_option.selected_value.name | default: size_option.selected_value -%}
+  {%- assign selected_size_option_value_id = size_option.selected_value.id -%}
+{%- endif -%}
+
+{%- if legacy_variant != blank -%}
+  {%- assign legacy_variant_parts = legacy_variant | split:'_' -%}
+  {%- assign legacy_variant_id = legacy_variant_parts | last | strip -%}
+{%- endif -%}
+
+{%- if selected_color_option_value_id == blank and color_option != blank -%}
+  {%- assign legacy_color_normalized = legacy_color | strip | downcase -%}
+
+  {%- if legacy_color_normalized == blank and legacy_variant != blank -%}
+    {%- assign legacy_parts = legacy_variant | split:'_' -%}
+    {%- assign legacy_color_normalized = legacy_parts.first | strip | downcase -%}
+  {%- endif -%}
+
+  {%- if legacy_color_normalized != blank -%}
+    {%- for color_value in color_option.values -%}
+      {%- assign cv_name = color_value.name | default: color_value | strip | downcase -%}
+      {%- if cv_name == legacy_color_normalized -%}
+        {%- assign selected_color_option_object = color_value -%}
+        {%- assign selected_color_value = color_value.name | default: color_value -%}
+        {%- assign selected_color_option_value_id = color_value.id -%}
+        {%- break -%}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endif -%}
+
+{%- if selected_size_option_value_id == blank and raw_option_values == blank and size_option != blank -%}
+  {%- if size_option.selected_value != blank -%}
+    {%- assign selected_size_option_object = size_option.selected_value -%}
+    {%- assign selected_size_value = size_option.selected_value.name | default: size_option.selected_value -%}
+    {%- assign selected_size_option_value_id = size_option.selected_value.id -%}
+  {%- endif -%}
+{%- endif -%}
+
+{%- assign current_variant_obj = blank -%}
+
+{%- if current_variant_obj == blank and selected_size_option_object != blank and selected_size_option_object.variant != blank -%}
+  {%- assign current_variant_obj = selected_size_option_object.variant -%}
+{%- elsif current_variant_obj == blank and selected_color_option_object != blank and selected_color_option_object.variant != blank -%}
+  {%- assign current_variant_obj = selected_color_option_object.variant -%}
+{%- elsif current_variant_obj == blank and product.selected_variant != blank -%}
+  {%- assign current_variant_obj = product.selected_variant -%}
+{%- elsif current_variant_obj == blank and product.selected_or_first_available_variant != blank -%}
+  {%- assign current_variant_obj = product.selected_or_first_available_variant -%}
+{%- endif -%}
+
+{%- if selected_color_option_object != blank -%}
+  {%- assign selected_color_value = selected_color_option_object.name | default: selected_color_option_object -%}
+  {%- assign selected_color_option_value_id = selected_color_option_object.id -%}
+{%- endif -%}
+
+{%- if selected_size_option_object != blank -%}
+  {%- assign selected_size_value = selected_size_option_object.name | default: selected_size_option_object -%}
+  {%- assign selected_size_option_value_id = selected_size_option_object.id -%}
+{%- endif -%}
+
+{% assign selectedProduct = product %}
+
+{%- capture getSizes -%}
+  {%- if size_option != blank -%}
+    {%- for size_value in size_option.values -%}
+      {%- assign variant = size_value.variant -%}
+      {%- if variant == blank -%}
+        {%- continue -%}
+      {%- endif -%}
+      {%- if variant.price == 0 or variant.sku contains '-T' -%}
+        {%- continue -%}
+      {%- endif -%}
+
+      <div class="flex-item text-center">
+        <div class="variant-price-2" style="display:block;width:65px;">
+          <label class="font-size--down-2 line-height--up-1 large--line-height--down-1 large--font-size--down-1 padding-top--down-3 large--padding-top--down-1 padding-bottom--down-3 font-bold" style="font-weight:700;">{{ size_value.name | default: size_value }}</label>
+
+          {% if variant.inventory_quantity <= 0 %}
+            <div style="border-radius:4px;display:block;border:1px solid #e0e0e0;width:100%;color:#000000;padding-top:4px;padding-bottom:4px;background-color:#e1e1e1;height:55px;line-height:45px;">
+              <label>OUT</label>
+            </div>
+          {% else %}
+            <input
+              class="text-center itemQuantity"
+              type="number"
+              min="0"
+              data-id="{{ variant.id }}"
+              data-option-value-id="{{ size_value.id }}"
+              data-price="{{ variant.price }}"
+              data-tiers="{{ variant.metafields.custom.tier_pricing }}"
+              data-tp="{{ variant.metafields.custom.tier_pricing | base64_encode }}"
+              data-label="{{ variant.title }}"
+              data-gtin="{{ variant.sku }}"
+              data-max="{{ variant.inventory_quantity }}"
+              placeholder=""
+              value=""
+              style="border-radius:4px;display:block;padding-top:1rem;padding-bottom:1rem;border:1px solid #e0e0e0;width:100%;margin-bottom:10px;"
+            >
+
+            <label class="font-size--down-2 line-height--up-1 large--line-height--down-1 large--font-size--down-1 padding-top--down-5 large--padding-top--down-0 font-bold">
+              <small
+                data-variant-id="{{ variant.id }}"
+                class="font-size--down-3 large--font-size--down-2 font-bold text-primary variant-price-2 padding-bottom--down-1 label-price;padding-top:10px;"
+                style="color:#03406C;font-size:1.1em;font-weight:700;"
+              >{{ variant.price | money }}</small>
+            </label>
+
+            <div style="font-size:0.8em;">
+              {% if variant.inventory_quantity >= 999 %}
+                <div>999+</div>
+              {% else %}
+                <div>{{ variant.inventory_quantity }}</div>
+              {% endif %}
+              <div>In Stock</div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {%- endfor -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- capture variantMap -%}
+  [
+    {%- assign variant_map_started = false -%}
+    {%- if size_option != blank -%}
+      {%- for size_value in size_option.values -%}
+        {%- assign variant = size_value.variant -%}
+        {%- if variant == blank -%}
+          {%- continue -%}
+        {%- endif -%}
+        {%- if variant.price == 0 or variant.sku contains '-T' -%}
+          {%- continue -%}
+        {%- endif -%}
+        {%- if variant_map_started -%},{%- endif -%}
+        {%- assign variant_map_started = true -%}
+        {
+          "color_option_value_id": {{ selected_color_option_value_id | json }},
+          "color": {{ selected_color_value | json }},
+          "size_option_value_id": {{ size_value.id | json }},
+          "size": {{ size_value.name | default: size_value | json }},
+          "variant_id": {{ variant.id | json }},
+          "variant_title": {{ variant.title | json }},
+          "available": {{ variant.available | json }}
+        }
+      {%- endfor -%}
+    {%- elsif current_variant_obj != blank -%}
+      {%- unless current_variant_obj.price == 0 or current_variant_obj.sku contains '-T' -%}
+        {
+          "color_option_value_id": {{ selected_color_option_value_id | json }},
+          "color": {{ selected_color_value | json }},
+          "size_option_value_id": {{ selected_size_option_value_id | json }},
+          "size": {{ selected_size_value | json }},
+          "variant_id": {{ current_variant_obj.id | json }},
+          "variant_title": {{ current_variant_obj.title | json }},
+          "available": {{ current_variant_obj.available | json }}
+        }
+      {%- endunless -%}
+    {%- endif -%}
+  ]
+{%- endcapture -%}
+
+{%- capture variantRequestMap -%}
+  [
+    {%- assign variant_request_started = false -%}
+    {%- if size_option != blank -%}
+      {%- for size_value in size_option.values -%}
+        {%- if variant_request_started -%},{%- endif -%}
+        {%- assign variant_request_started = true -%}
+        {
+          "color_option_value_id": {{ selected_color_option_value_id | json }},
+          "color": {{ selected_color_value | json }},
+          "size_option_value_id": {{ size_value.id | json }},
+          "size": {{ size_value.name | default: size_value | json }},
+          "product_url": {{ size_value.product_url | json }},
+          "option_values": {{ selected_color_option_value_id | append: ',' | append: size_value.id | json }},
+          "modal_url": {{ selectedProduct.url | append: '?view=get_handle__modal&option_values=' | append: selected_color_option_value_id | append: ',' | append: size_value.id | json }}
+        }
+      {%- endfor -%}
+    {%- endif -%}
+  ]
+{%- endcapture -%}
+
+{%- assign variant_ids_array = '' | split: ',' -%}
+{%- if size_option != blank -%}
+  {%- for size_value in size_option.values -%}
+    {%- assign variant = size_value.variant -%}
+    {%- if variant == blank -%}
+      {%- continue -%}
+    {%- endif -%}
+    {%- if variant.price == 0 or variant.sku contains '-T' -%}
+      {%- continue -%}
+    {%- endif -%}
+    {%- assign variant_id_string = variant.id | append: '' -%}
+    {%- assign variant_ids_array = variant_ids_array | push: variant_id_string -%}
+  {%- endfor -%}
+{%- elsif current_variant_obj != blank -%}
+  {%- unless current_variant_obj.price == 0 or current_variant_obj.sku contains '-T' -%}
+    {%- assign variant_id_string = current_variant_obj.id | append: '' -%}
+    {%- assign variant_ids_array = variant_ids_array | push: variant_id_string -%}
+  {%- endunless -%}
+{%- endif -%}
+{%- assign variant_ids_csv = variant_ids_array | join: ',' -%}
+
+{%- if selected_color_option_object != blank and selected_color_option_object.variant != blank -%}
+  {%- assign current_variant_obj = selected_color_option_object.variant -%}
+{%- endif -%}
+{%- if selected_size_option_object != blank and selected_size_option_object.variant != blank -%}
+  {%- assign current_variant_obj = selected_size_option_object.variant -%}
+{%- endif -%}
+
+{%- if current_variant_obj == blank and product.selected_variant != blank -%}
+  {%- assign current_variant_obj = product.selected_variant -%}
+{%- endif -%}
+{%- if current_variant_obj == blank and product.selected_or_first_available_variant != blank -%}
+  {%- assign current_variant_obj = product.selected_or_first_available_variant -%}
+{%- endif -%}
+
+{%- assign modal_color_image = blank -%}
+
+{%- if current_variant_obj != blank and current_variant_obj.image != blank -%}
+  {%- assign modal_color_image = current_variant_obj.image -%}
+{%- endif -%}
+{%- if modal_color_image == blank and current_variant_obj != blank and current_variant_obj.featured_image != blank -%}
+  {%- assign modal_color_image = current_variant_obj.featured_image -%}
+{%- endif -%}
+{%- if modal_color_image == blank and current_variant_obj != blank and current_variant_obj.featured_media != blank -%}
+  {%- assign modal_color_image = current_variant_obj.featured_media.preview_image -%}
+{%- endif -%}
+
+{%- if modal_color_image == blank and selected_color_option_object != blank and selected_color_option_object.variant != blank -%}
+  {%- assign color_variant = selected_color_option_object.variant -%}
+  {%- if color_variant.image != blank -%}
+    {%- assign modal_color_image = color_variant.image -%}
+  {%- elsif color_variant.featured_image != blank -%}
+    {%- assign modal_color_image = color_variant.featured_image -%}
+  {%- elsif color_variant.featured_media != blank -%}
+    {%- assign modal_color_image = color_variant.featured_media.preview_image -%}
+  {%- endif -%}
+{%- endif -%}
+
+{%- if modal_color_image == blank and selected_color_value != blank -%}
+  {%- assign selected_color_value_down = selected_color_value | strip | downcase -%}
+  {%- for product_media in selectedProduct.media -%}
+    {%- assign media_alt = product_media.alt | default: '' | strip | downcase -%}
+    {%- if media_alt != blank and media_alt contains selected_color_value_down -%}
+      {%- assign modal_color_image = product_media.preview_image -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+{%- if modal_color_image == blank and selectedProduct.featured_image != blank -%}
+  {%- assign modal_color_image = selectedProduct.featured_image -%}
+{%- endif -%}
+{%- if modal_color_image == blank and selectedProduct.media.first != blank -%}
+  {%- assign modal_color_image = selectedProduct.media.first.preview_image -%}
+{%- endif -%}
+
+{%- capture sliderMain -%}
+  {%- if modal_color_image != blank -%}
+    {
+      {%- assign slideImg = modal_color_image | image_url: width: 350 -%}
+      {%- assign slide = '<div class="swiper-slide"><img src="' | append: slideImg | append: '"></div>' -%}
+      "slide": {{ slide | json }}
+    }
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- capture sliderThumb -%}
+  {%- if modal_color_image != blank -%}
+    {
+      {%- assign slideImg = modal_color_image | image_url: width: 50 -%}
+      {%- assign slide = '<div class="swiper-slide"><img src="' | append: slideImg | append: '"></div>' -%}
+      "slide": {{ slide | json }}
+    }
+  {%- endif -%}
+{%- endcapture -%}
+
+{
+  "sizes": {{ getSizes | strip | json }},
+  "product_handle": {{ selectedProduct.handle | json }},
+  "pid": {{ selectedProduct.id | json }},
+  "selected_color": {{ selected_color_value | json }},
+  "selected_color_option_value_id": {{ selected_color_option_value_id | json }},
+  "selected_size": {{ selected_size_value | json }},
+  "selected_size_option_value_id": {{ selected_size_option_value_id | json }},
+  "selected_variant_id": {{ current_variant_obj.id | json }},
+  "selected_variant_available": {{ current_variant_obj.available | json }},
+  "variant_ids": {{ variant_ids_csv | json }},
+  "variant_map": {{ variantMap | strip }},
+  "variant_request_map": {{ variantRequestMap | strip }},
+  "debug_raw_option_values": {{ raw_option_values | json }},
+  "refresh_url": {{ selectedProduct.url | append: '?view=YOUR_VIEW_NAME&option_values=' | append: selected_color_option_value_id | json }},
+  "mainImgs": [{{ sliderMain }}],
+  "thumbnails": [{{ sliderThumb }}]
+}

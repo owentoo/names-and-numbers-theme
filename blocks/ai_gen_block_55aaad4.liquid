@@ -1,0 +1,809 @@
+{% doc %}
+  @prompt
+    i need an faq section with tabs each tab gets its own faq section , the tabs should be pills that are enclosed , all pills should be connected, only active should be full pill. , pills shouldn't have a divider, and active ptall should be full pill 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-faq-tabs-{{ ai_gen_id }} {
+    width: {{ block.settings.desktop_width_percent }}%;
+    max-width: 100%;
+    display: block;
+  }
+
+  .ai-faq-tabs-container-{{ ai_gen_id }} {
+    background-color: {{ block.settings.background_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+    padding: 40px;
+  }
+
+  .ai-faq-tabs-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size }}px;
+    color: {{ block.settings.text_color }};
+    margin: 0 0 30px;
+    text-align: {{ block.settings.heading_alignment }};
+  }
+
+  .ai-faq-tabs-nav-{{ ai_gen_id }} {
+    display: inline-flex;
+    border: 2px solid {{ block.settings.tab_border_color }};
+    border-radius: {{ block.settings.tab_border_radius }}px;
+    overflow: hidden;
+    margin-bottom: 30px;
+  }
+
+  .ai-faq-tab-button-{{ ai_gen_id }} {
+    background-color: transparent;
+    border: none;
+    padding: 12px 24px;
+    font-size: {{ block.settings.tab_font_size }}px;
+    color: {{ block.settings.tab_text_color }};
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .ai-faq-tab-button-{{ ai_gen_id }}:hover {
+    background-color: {{ block.settings.tab_hover_background }};
+    color: {{ block.settings.tab_hover_text_color }};
+  }
+
+  .ai-faq-tab-button-{{ ai_gen_id }}.active {
+    background-color: {{ block.settings.tab_active_background }};
+    color: {{ block.settings.tab_active_text_color }};
+    border-radius: {{ block.settings.tab_border_radius }}px;
+  }
+
+  .ai-faq-tab-content-{{ ai_gen_id }} {
+    display: none;
+  }
+
+  .ai-faq-tab-content-{{ ai_gen_id }}.active {
+    display: block;
+  }
+
+  .ai-faq-item-{{ ai_gen_id }} {
+    border-bottom: 1px solid {{ block.settings.divider_color }};
+  }
+
+  .ai-faq-item-{{ ai_gen_id }}:last-child {
+    border-bottom: none;
+  }
+
+  .ai-faq-question-{{ ai_gen_id }} {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 20px 40px 20px 0;
+    text-align: left;
+    font-size: {{ block.settings.question_font_size }}px;
+    font-weight: 600;
+    color: {{ block.settings.text_color }};
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: color 0.3s ease;
+  }
+
+  .ai-faq-question-{{ ai_gen_id }}:hover {
+    color: {{ block.settings.tab_active_background }};
+  }
+
+  .ai-faq-icon-{{ ai_gen_id }} {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+    color: {{ block.settings.icon_color }};
+  }
+
+  .ai-faq-item-{{ ai_gen_id }}.active .ai-faq-icon-{{ ai_gen_id }} {
+    transform: rotate(180deg);
+  }
+
+  .ai-faq-answer-{{ ai_gen_id }} {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .ai-faq-answer-content-{{ ai_gen_id }} {
+    padding: 0 0 20px 0;
+    font-size: {{ block.settings.answer_font_size }}px;
+    line-height: 1.6;
+    color: {{ block.settings.answer_text_color }};
+  }
+
+  .ai-faq-empty-state-{{ ai_gen_id }} {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+    font-style: italic;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-faq-tabs-container-{{ ai_gen_id }} {
+      padding: 24px;
+    }
+
+    .ai-faq-tabs-nav-{{ ai_gen_id }} {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .ai-faq-tab-button-{{ ai_gen_id }} {
+      padding: 10px 16px;
+      font-size: {{ block.settings.tab_font_size | times: 0.9 }}px;
+    }
+
+    .ai-faq-question-{{ ai_gen_id }} {
+      font-size: {{ block.settings.question_font_size | times: 0.9 }}px;
+    }
+
+    .ai-faq-answer-content-{{ ai_gen_id }} {
+      font-size: {{ block.settings.answer_font_size | times: 0.9 }}px;
+    }
+  }
+{% endstyle %}
+
+<faq-tabs-{{ ai_gen_id }} class="ai-faq-tabs-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-faq-tabs-container-{{ ai_gen_id }}">
+    {% if block.settings.heading != blank %}
+      <h2 class="ai-faq-tabs-heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h2>
+    {% endif %}
+
+    <div class="ai-faq-tabs-nav-{{ ai_gen_id }}">
+      {% if block.settings.tab_1_title != blank %}
+        <button class="ai-faq-tab-button-{{ ai_gen_id }} active" data-tab="tab-1">
+          {{ block.settings.tab_1_title }}
+        </button>
+      {% endif %}
+      {% if block.settings.tab_2_title != blank %}
+        <button class="ai-faq-tab-button-{{ ai_gen_id }}" data-tab="tab-2">
+          {{ block.settings.tab_2_title }}
+        </button>
+      {% endif %}
+      {% if block.settings.tab_3_title != blank %}
+        <button class="ai-faq-tab-button-{{ ai_gen_id }}" data-tab="tab-3">
+          {{ block.settings.tab_3_title }}
+        </button>
+      {% endif %}
+      {% if block.settings.tab_4_title != blank %}
+        <button class="ai-faq-tab-button-{{ ai_gen_id }}" data-tab="tab-4">
+          {{ block.settings.tab_4_title }}
+        </button>
+      {% endif %}
+    </div>
+
+    {% if block.settings.tab_1_title != blank %}
+      <div class="ai-faq-tab-content-{{ ai_gen_id }} active" data-tab-content="tab-1">
+        {% assign has_content = false %}
+        {% for i in (1..5) %}
+          {% liquid
+            assign question_key = 'tab_1_q' | append: i
+            assign answer_key = 'tab_1_a' | append: i
+            assign question = block.settings[question_key]
+            assign answer = block.settings[answer_key]
+          %}
+          {% if question != blank and answer != blank %}
+            {% assign has_content = true %}
+            <div class="ai-faq-item-{{ ai_gen_id }}">
+              <button class="ai-faq-question-{{ ai_gen_id }}" aria-expanded="false">
+                <span>{{ question }}</span>
+                <svg class="ai-faq-icon-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div class="ai-faq-answer-{{ ai_gen_id }}">
+                <div class="ai-faq-answer-content-{{ ai_gen_id }}">{{ answer }}</div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+        {% unless has_content %}
+          <div class="ai-faq-empty-state-{{ ai_gen_id }}">Add questions and answers for this tab</div>
+        {% endunless %}
+      </div>
+    {% endif %}
+
+    {% if block.settings.tab_2_title != blank %}
+      <div class="ai-faq-tab-content-{{ ai_gen_id }}" data-tab-content="tab-2">
+        {% assign has_content = false %}
+        {% for i in (1..5) %}
+          {% liquid
+            assign question_key = 'tab_2_q' | append: i
+            assign answer_key = 'tab_2_a' | append: i
+            assign question = block.settings[question_key]
+            assign answer = block.settings[answer_key]
+          %}
+          {% if question != blank and answer != blank %}
+            {% assign has_content = true %}
+            <div class="ai-faq-item-{{ ai_gen_id }}">
+              <button class="ai-faq-question-{{ ai_gen_id }}" aria-expanded="false">
+                <span>{{ question }}</span>
+                <svg class="ai-faq-icon-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div class="ai-faq-answer-{{ ai_gen_id }}">
+                <div class="ai-faq-answer-content-{{ ai_gen_id }}">{{ answer }}</div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+        {% unless has_content %}
+          <div class="ai-faq-empty-state-{{ ai_gen_id }}">Add questions and answers for this tab</div>
+        {% endunless %}
+      </div>
+    {% endif %}
+
+    {% if block.settings.tab_3_title != blank %}
+      <div class="ai-faq-tab-content-{{ ai_gen_id }}" data-tab-content="tab-3">
+        {% assign has_content = false %}
+        {% for i in (1..5) %}
+          {% liquid
+            assign question_key = 'tab_3_q' | append: i
+            assign answer_key = 'tab_3_a' | append: i
+            assign question = block.settings[question_key]
+            assign answer = block.settings[answer_key]
+          %}
+          {% if question != blank and answer != blank %}
+            {% assign has_content = true %}
+            <div class="ai-faq-item-{{ ai_gen_id }}">
+              <button class="ai-faq-question-{{ ai_gen_id }}" aria-expanded="false">
+                <span>{{ question }}</span>
+                <svg class="ai-faq-icon-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div class="ai-faq-answer-{{ ai_gen_id }}">
+                <div class="ai-faq-answer-content-{{ ai_gen_id }}">{{ answer }}</div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+        {% unless has_content %}
+          <div class="ai-faq-empty-state-{{ ai_gen_id }}">Add questions and answers for this tab</div>
+        {% endunless %}
+      </div>
+    {% endif %}
+
+    {% if block.settings.tab_4_title != blank %}
+      <div class="ai-faq-tab-content-{{ ai_gen_id }}" data-tab-content="tab-4">
+        {% assign has_content = false %}
+        {% for i in (1..5) %}
+          {% liquid
+            assign question_key = 'tab_4_q' | append: i
+            assign answer_key = 'tab_4_a' | append: i
+            assign question = block.settings[question_key]
+            assign answer = block.settings[answer_key]
+          %}
+          {% if question != blank and answer != blank %}
+            {% assign has_content = true %}
+            <div class="ai-faq-item-{{ ai_gen_id }}">
+              <button class="ai-faq-question-{{ ai_gen_id }}" aria-expanded="false">
+                <span>{{ question }}</span>
+                <svg class="ai-faq-icon-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div class="ai-faq-answer-{{ ai_gen_id }}">
+                <div class="ai-faq-answer-content-{{ ai_gen_id }}">{{ answer }}</div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+        {% unless has_content %}
+          <div class="ai-faq-empty-state-{{ ai_gen_id }}">Add questions and answers for this tab</div>
+        {% endunless %}
+      </div>
+    {% endif %}
+  </div>
+</faq-tabs-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class FaqTabs{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.tabButtons = this.querySelectorAll('.ai-faq-tab-button-{{ ai_gen_id }}');
+        this.tabContents = this.querySelectorAll('.ai-faq-tab-content-{{ ai_gen_id }}');
+        this.faqItems = this.querySelectorAll('.ai-faq-item-{{ ai_gen_id }}');
+
+        this.setupTabListeners();
+        this.setupFaqListeners();
+      }
+
+      setupTabListeners() {
+        this.tabButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            const tabId = button.getAttribute('data-tab');
+
+            this.tabButtons.forEach((btn) => btn.classList.remove('active'));
+            this.tabContents.forEach((content) => content.classList.remove('active'));
+
+            button.classList.add('active');
+            const activeContent = this.querySelector(`[data-tab-content="${tabId}"]`);
+            if (activeContent) {
+              activeContent.classList.add('active');
+            }
+
+            this.querySelectorAll('.ai-faq-item-{{ ai_gen_id }}.active').forEach((item) => {
+              item.classList.remove('active');
+              const answer = item.querySelector('.ai-faq-answer-{{ ai_gen_id }}');
+              const question = item.querySelector('.ai-faq-question-{{ ai_gen_id }}');
+              if (answer) answer.style.maxHeight = null;
+              if (question) question.setAttribute('aria-expanded', 'false');
+            });
+          });
+        });
+      }
+
+      setupFaqListeners() {
+        this.faqItems.forEach((item) => {
+          const question = item.querySelector('.ai-faq-question-{{ ai_gen_id }}');
+          const answer = item.querySelector('.ai-faq-answer-{{ ai_gen_id }}');
+
+          if (question && answer) {
+            question.addEventListener('click', () => {
+              const isActive = item.classList.contains('active');
+
+              if (isActive) {
+                item.classList.remove('active');
+                answer.style.maxHeight = null;
+                question.setAttribute('aria-expanded', 'false');
+              } else {
+                item.classList.add('active');
+                answer.style.maxHeight = answer.scrollHeight + 'px';
+                question.setAttribute('aria-expanded', 'true');
+              }
+            });
+          }
+        });
+      }
+    }
+
+    customElements.define('faq-tabs-{{ ai_gen_id }}', FaqTabs{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "FAQ tabs",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "General"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Frequently Asked Questions"
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "label": "Heading alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "desktop_width_percent",
+      "label": "Desktop width",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "answer_text_color",
+      "label": "Answer text",
+      "default": "#666666"
+    },
+    {
+      "type": "color",
+      "id": "divider_color",
+      "label": "Divider",
+      "default": "#e5e5e5"
+    },
+    {
+      "type": "color",
+      "id": "icon_color",
+      "label": "Icon",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Tab style"
+    },
+    {
+      "type": "color",
+      "id": "tab_text_color",
+      "label": "Tab text",
+      "default": "#666666"
+    },
+    {
+      "type": "color",
+      "id": "tab_border_color",
+      "label": "Tab border",
+      "default": "#e5e5e5"
+    },
+    {
+      "type": "color",
+      "id": "tab_hover_background",
+      "label": "Tab hover background",
+      "default": "#f5f5f5"
+    },
+    {
+      "type": "color",
+      "id": "tab_hover_text_color",
+      "label": "Tab hover text",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "tab_active_background",
+      "label": "Tab active background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "tab_active_text_color",
+      "label": "Tab active text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "tab_border_radius",
+      "label": "Tab border radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "label": "Heading size",
+      "min": 20,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "tab_font_size",
+      "label": "Tab font size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "question_font_size",
+      "label": "Question font size",
+      "min": 14,
+      "max": 28,
+      "step": 1,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "answer_font_size",
+      "label": "Answer font size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 15
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Tab 1"
+    },
+    {
+      "type": "text",
+      "id": "tab_1_title",
+      "label": "Tab title",
+      "default": "General"
+    },
+    {
+      "type": "text",
+      "id": "tab_1_q1",
+      "label": "Question 1"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_1_a1",
+      "label": "Answer 1"
+    },
+    {
+      "type": "text",
+      "id": "tab_1_q2",
+      "label": "Question 2"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_1_a2",
+      "label": "Answer 2"
+    },
+    {
+      "type": "text",
+      "id": "tab_1_q3",
+      "label": "Question 3"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_1_a3",
+      "label": "Answer 3"
+    },
+    {
+      "type": "text",
+      "id": "tab_1_q4",
+      "label": "Question 4"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_1_a4",
+      "label": "Answer 4"
+    },
+    {
+      "type": "text",
+      "id": "tab_1_q5",
+      "label": "Question 5"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_1_a5",
+      "label": "Answer 5"
+    },
+    {
+      "type": "header",
+      "content": "Tab 2"
+    },
+    {
+      "type": "text",
+      "id": "tab_2_title",
+      "label": "Tab title",
+      "default": "Shipping"
+    },
+    {
+      "type": "text",
+      "id": "tab_2_q1",
+      "label": "Question 1"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_2_a1",
+      "label": "Answer 1"
+    },
+    {
+      "type": "text",
+      "id": "tab_2_q2",
+      "label": "Question 2"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_2_a2",
+      "label": "Answer 2"
+    },
+    {
+      "type": "text",
+      "id": "tab_2_q3",
+      "label": "Question 3"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_2_a3",
+      "label": "Answer 3"
+    },
+    {
+      "type": "text",
+      "id": "tab_2_q4",
+      "label": "Question 4"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_2_a4",
+      "label": "Answer 4"
+    },
+    {
+      "type": "text",
+      "id": "tab_2_q5",
+      "label": "Question 5"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_2_a5",
+      "label": "Answer 5"
+    },
+    {
+      "type": "header",
+      "content": "Tab 3"
+    },
+    {
+      "type": "text",
+      "id": "tab_3_title",
+      "label": "Tab title",
+      "default": "Returns"
+    },
+    {
+      "type": "text",
+      "id": "tab_3_q1",
+      "label": "Question 1"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_3_a1",
+      "label": "Answer 1"
+    },
+    {
+      "type": "text",
+      "id": "tab_3_q2",
+      "label": "Question 2"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_3_a2",
+      "label": "Answer 2"
+    },
+    {
+      "type": "text",
+      "id": "tab_3_q3",
+      "label": "Question 3"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_3_a3",
+      "label": "Answer 3"
+    },
+    {
+      "type": "text",
+      "id": "tab_3_q4",
+      "label": "Question 4"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_3_a4",
+      "label": "Answer 4"
+    },
+    {
+      "type": "text",
+      "id": "tab_3_q5",
+      "label": "Question 5"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_3_a5",
+      "label": "Answer 5"
+    },
+    {
+      "type": "header",
+      "content": "Tab 4"
+    },
+    {
+      "type": "text",
+      "id": "tab_4_title",
+      "label": "Tab title",
+      "default": "Products"
+    },
+    {
+      "type": "text",
+      "id": "tab_4_q1",
+      "label": "Question 1"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_4_a1",
+      "label": "Answer 1"
+    },
+    {
+      "type": "text",
+      "id": "tab_4_q2",
+      "label": "Question 2"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_4_a2",
+      "label": "Answer 2"
+    },
+    {
+      "type": "text",
+      "id": "tab_4_q3",
+      "label": "Question 3"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_4_a3",
+      "label": "Answer 3"
+    },
+    {
+      "type": "text",
+      "id": "tab_4_q4",
+      "label": "Question 4"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_4_a4",
+      "label": "Answer 4"
+    },
+    {
+      "type": "text",
+      "id": "tab_4_q5",
+      "label": "Question 5"
+    },
+    {
+      "type": "richtext",
+      "id": "tab_4_a5",
+      "label": "Answer 5"
+    }
+  ],
+  "presets": [
+    {
+      "name": "FAQ tabs"
+    }
+  ]
+}
+{% endschema %}

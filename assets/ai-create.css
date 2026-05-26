@@ -1,0 +1,2374 @@
+/* ============================================================================
+   ai-create.css — Single source of truth for the "Create with AI" UI.
+
+   Drives all four surfaces:
+     1. Standalone page  /pages/ai-image-creator           (sections/ai-image-creator.liquid)
+     2. Upload tab       Tab 3 on the by-size widget       (snippets/dtf-upload-tabs.liquid)
+     3. Modal            Pop-over on legacy product pages  (snippets/dtf-ai-modal.liquid)
+     4. Entry card       The "Create with AI" CTA card     (snippets/dtf-create-options-cards.liquid)
+
+   Sections (in order — later overrides earlier where needed):
+     1. AI Chat Panel       — was inline in v0-styles.css
+     2. AI Host + Guide     — was inline in dtf-upload-tabs.css
+     3. Modal shell         — was dtf-ai-modal.css
+     4. Page shell          — was dtf-ai-page.css
+     5. Entry-point card    — was dtf-create-options-cards.css
+     6. Page-specific tweaks — was inline <style> in sections/ai-image-creator.liquid
+
+   Note on the legacy pink-box CSS (generative-ai-image.css): NOT included here
+   because it is also loaded by the members portal and by __multipleSnippets,
+   so duplicating its rules would cause double-loads on AI surfaces.
+   ============================================================================ */
+
+/* ============================================================================
+   1. AI CHAT PANEL  (extracted from v0-styles.css)
+   ============================================================================ */
+/* ==========================================================================
+   AI chat panel — derived 1:1 from .sandbox/create-with-ai/styles.css with
+   the `.editor-container ` prefixes stripped. Drives the Tab 3 "Create with
+   AI" panel inside the DTF upload tabs and the studio's `#ai-panel`. Uses
+   @container (aiPanel) so the wide/narrow breakpoints respond to the panel's
+   own width regardless of viewport size.
+   ========================================================================== */
+
+/* Design tokens (sandbox `:root` ported in scope to avoid leaking globals). */
+.ai-chat,
+#ai-panel.ai-chat {
+  --ink: #111;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --surface: #f9fafb;
+  --bubble-ai: #f3f4f6;
+  --brand-pink: #ec4899;
+  --brand-purple: #7c3aed;
+  --error: #dc2626;
+  --pin-amber: #f59e0b;
+  --ai-chat-gutter-x: 16px;
+}
+
+/* Re-establish the @container scope on `.ai-chat` itself — the sandbox put
+   `container-type: inline-size` on `.editor-container`, which doesn't always
+   wrap the chat in production. `position: relative` so the absolutely-
+   positioned `.ai-chat-history-overlay` (appended inside the panel by JS)
+   anchors to the panel rather than escaping out to a higher ancestor. */
+#ai-panel.ai-chat,
+.ai-chat {
+  position: relative;
+  container-type: inline-size;
+  container-name: aiPanel;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  /* Anchor font-family at the panel root so all descendants (including
+     headings, which the defensive layer at the end of this block forces to
+     `inherit`) resolve to Inter regardless of the theme's body font. */
+  font-family: "Inter", sans-serif;
+}
+
+.ai-chat-header {
+  /* No horizontal padding — the parent .ai-chat-thread already applies the
+     gutter, so header text lines up with the chat bubbles + image grid below. */
+  padding: 12px 0 12px;
+  text-align: center;
+}
+.ai-chat-brand {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--brand-pink);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.ai-chat-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.18;
+  color: var(--ink);
+}
+
+.ai-chat-thread {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;          /* let nested flex items size below their content */
+  overflow-y: auto;
+  overflow-x: hidden;    /* containment for the scrolling pill rail below */
+  /* Thread uses the same horizontal gutter as the composer below, so chat
+     bubbles + image grids line up with the prompt pill. */
+  padding: 8px var(--ai-chat-gutter-x);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ==========================================================================
+   Helper subtitle under the chat title — small muted explainer.
+   ========================================================================== */
+.ai-chat-subtitle {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* ==========================================================================
+   Empty-state prompt pills.
+   Single-line horizontal scroller — scrollbar hidden, right edge fades out
+   so users see there's more to swipe to.
+   ========================================================================== */
+.ai-chat-pills {
+  margin-top: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;        /* IE/Edge legacy */
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 0;
+}
+.ai-chat-pills::-webkit-scrollbar { display: none; }
+.ai-chat-pill {
+  appearance: none;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  /* Gradient outline using two backgrounds: white fill on padding-box,
+     pink→purple gradient on border-box. Border is transparent so the
+     gradient layer shows through. */
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, var(--brand-pink), var(--brand-purple)) border-box;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  color: #0f172a;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  transition: box-shadow 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.ai-chat-pill:hover {
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18);
+}
+.ai-chat-pill:active { transform: translateY(1px); }
+.ai-chat-pill-emoji { font-size: 15px; line-height: 1; }
+[data-ai-pills][hidden] { display: none; }
+
+/* ==========================================================================
+   "Your recent AI creations" — horizontal-scroll history strip below the
+   composer. Hidden by default; the JS toggles `hidden` once localStorage has
+   at least one entry.
+   ========================================================================== */
+.ai-chat-history {
+  flex-shrink: 0;
+  padding: 14px var(--ai-chat-gutter-x);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-chat-history[hidden] { display: none; }
+/* Hide the entire "Recently Generated" section when the grid has no
+   items — header, toggle, footer all collapse together. dtf-ai-history.js
+   populates the grid as users generate images; an empty grid means
+   there's nothing to show. */
+.ai-chat-history:has(.ai-chat-history-grid:empty) {
+  display: none;
+}
+.ai-chat-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Spacing to siblings is provided by the parent's `gap` so we don't pad
+     ourselves when collapsed (no siblings = no extra empty space). */
+}
+.ai-chat-history-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  margin: 0;
+  color: #111827;
+}
+/* Text-only utility buttons — no padding around the click hit, no
+   background, no border-radius. Clear-all stays muted/blue-on-hover;
+   the Recently Generated Hide/Show toggle uses brand blue at rest. */
+.ai-chat-history-clear,
+.ai-chat-history-toggle {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+  border-radius: 0;
+  transition: color .15s ease;
+  display: inline-flex;
+  align-items: center;
+}
+.ai-chat-history-clear:hover,
+.ai-chat-history-toggle:hover {
+  color: #07A7F2;
+}
+/* Hide / Show toggle uses brand blue at idle (per design ask). The
+   color rule applies to both the button container and its inner
+   label span so the chevron + text both pick it up. */
+.ai-chat-history-toggle,
+.ai-chat-history-toggle .ai-chat-history-toggle-label {
+  color: #019AFF;
+}
+.ai-chat-history-toggle:hover,
+.ai-chat-history-toggle:hover .ai-chat-history-toggle-label {
+  color: #019AFF;
+}
+.ai-chat-history-toggle {
+  padding: 4px 0;
+  gap: 4px;
+}
+.ai-chat-history-toggle-label {
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1;
+}
+.ai-chat-history-foot {
+  display: flex;
+  justify-content: flex-start;
+}
+.ai-chat-history-toggle-chev {
+  width: 14px;
+  height: 14px;
+  color: #019AFF;
+  transition: transform .15s ease;
+}
+/* Collapsed state — hide the grid AND the Clear all footer, flip the
+   chevron. Header (title + toggle) stays visible so the user can re-open. */
+.ai-chat-history.is-collapsed .ai-chat-history-grid,
+.ai-chat-history.is-collapsed .ai-chat-history-scroller,
+.ai-chat-history.is-collapsed .ai-chat-history-foot { display: none; }
+.ai-chat-history.is-collapsed .ai-chat-history-toggle-chev {
+  transform: rotate(180deg);
+}
+.ai-chat-history-scroller {
+  position: relative;
+}
+.ai-chat-history-grid {
+  /* Same horizontal-scroll pattern as .ai-chat-pills — single row, scrollbar
+     hidden, right-edge mask fade so users see there's more to swipe to. */
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 0;
+}
+.ai-chat-history-grid::-webkit-scrollbar { display: none; }
+/* Scroll arrows — desktop only (hidden on narrow via container query). */
+.ai-chat-history-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) scale(.9);
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .97);
+  border: 1px solid rgba(15, 23, 42, .12);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .18), 0 1px 3px rgba(15, 23, 42, .08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease, background .15s ease;
+  color: #1f2937;
+  padding: 0;
+}
+.ai-chat-history-arrow.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) scale(1);
+}
+.ai-chat-history-arrow:hover { background: #fff; }
+.ai-chat-history-arrow:active { transform: translateY(-50%) scale(.94); }
+.ai-chat-history-arrow svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.4;
+}
+.ai-chat-history-arrow--left { left: -4px; }
+.ai-chat-history-arrow--right { right: -4px; }
+.ai-chat-history-tile {
+  position: relative;
+  flex: 0 0 96px;
+  width: 96px;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bubble-ai);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+  transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.ai-chat-history-tile:hover {
+  border-color: var(--brand-purple);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18);
+}
+.ai-chat-history-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* Selected tile — soft brand-pink ring + drop shadow. */
+.ai-chat-history-tile.is-selected {
+  border-color: var(--brand-pink) !important;
+  box-shadow:
+    0 0 0 2px rgba(236, 72, 153, .25),
+    0 12px 24px rgba(236, 72, 153, .12);
+}
+
+/* Checkbox-style select button (top-left of each tile). */
+.ai-chat-history-tile-select {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 4;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .96);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: .15s ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+  padding: 0;
+}
+.ai-chat-history-tile-select:hover {
+  border-color: var(--brand-pink);
+}
+.ai-chat-history-tile-select svg {
+  width: 12px;
+  height: 12px;
+  stroke: #fff;
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.ai-chat-history-tile-select.is-selected {
+  border-color: var(--brand-pink);
+  background: var(--brand-pink);
+}
+.ai-chat-history-tile-select.is-selected svg { opacity: 1; }
+
+/* × remove button (top-right, hover only). */
+.ai-chat-history-tile-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity .15s ease, background .15s ease;
+  z-index: 4;
+}
+.ai-chat-history-tile:hover .ai-chat-history-tile-remove,
+.ai-chat-history-tile-remove:focus-visible { opacity: 1; }
+.ai-chat-history-tile-remove:hover { background: rgba(0, 0, 0, .85); }
+/* Mobile: × delete icon is always visible. JS-driven `.ai-chat--narrow` class
+   (toggled by ai-chat-sandbox.js based on panel width or data-ai-narrow-mode) */
+.ai-chat--narrow .ai-chat-history-tile-remove { opacity: 1; }
+/* Hide arrows in NATURAL narrow mode (real mobile / cramped panel) where
+   touch swiping is the primary interaction. Keep them visible when narrow
+   is FORCED (e.g. the Design Studio overlay sidebar panel which is desktop
+   but constrained for layout reasons) — the user expects click arrows there
+   since touch isn't the primary input. */
+.ai-chat--narrow:not([data-ai-narrow-mode="force"]) .ai-chat-history-arrow { display: none; }
+
+/* Inline selection bar — sits at the bottom of `.ai-chat-history`, below
+   the Clear all foot. Hidden by default; appears when ≥1 tile is selected
+   and replaces the Clear all row (foot is hidden via .is-selecting). */
+.ai-chat-history-selection-bar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 18px;
+  background: #111827;
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, .18);
+  white-space: nowrap;
+  font-size: 13px;
+  align-self: stretch;
+  max-width: 100%;
+}
+.ai-chat-history-selection-bar.is-visible { display: flex; }
+/* Hide the Clear all foot when a selection is active — bar takes its place. */
+.ai-chat-history.is-selecting .ai-chat-history-foot { display: none; }
+/* Hide the selection bar when history is collapsed (selections persist in
+   state but the bar tucks away with the rest of the section). */
+.ai-chat-history.is-collapsed .ai-chat-history-selection-bar { display: none; }
+
+/* History sits above neighboring panel content so its tiles + toggle
+   stay clickable when overlapping in stacked layouts. */
+.ai-chat-history { position: relative; z-index: 6; }
+.ai-chat-history-selection-bar__count {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ai-chat-history-selection-bar__clear {
+  background: transparent;
+  color: #cbd5e1;
+  border: 0;
+  cursor: pointer;
+  padding: 4px 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color .15s ease;
+  white-space: nowrap;
+  font: inherit;
+}
+.ai-chat-history-selection-bar__clear:hover { color: #fff; }
+.ai-chat-history-selection-bar__cta {
+  background: #019aff;
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background .15s ease, transform .15s ease;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+  margin-left: auto;
+}
+.ai-chat-history-selection-bar__cta:hover { background: #0079cc; }
+.ai-chat-history-selection-bar__cta:active { transform: scale(.97); }
+
+/* Narrow panels — stacked treatment: full-width blue "Use Designs" CTA on
+   top, "N items selected" caption below, no Deselect link. column-reverse
+   on the bar makes the DOM order [count, deselect, cta] render as
+   [cta, count] (with deselect hidden). JS-driven via .ai-chat--narrow. */
+.ai-chat--narrow .ai-chat-history-selection-bar {
+  flex-direction: column-reverse;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+}
+.ai-chat--narrow .ai-chat-history-selection-bar__count {
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+.ai-chat--narrow .ai-chat-history-selection-bar__clear { display: none; }
+.ai-chat--narrow .ai-chat-history-selection-bar__cta {
+  background: #019aff;
+  color: #fff;
+  margin-left: 0;
+  width: 100%;
+  justify-content: center;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 999px;
+}
+.ai-chat--narrow .ai-chat-history-selection-bar__cta:hover { background: #0079cc; }
+
+.ai-chat-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.ai-chat-msg--user { justify-content: flex-end; }
+.ai-chat-msg--ai { justify-content: flex-start; }
+/* Avatar circles — placeholder solid circles for now. ::before sits at the
+   start of the row (left of AI), ::after at the end (right of user). */
+.ai-chat-msg--ai::before,
+.ai-chat-msg--user::after {
+  content: "";
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex: 0 0 28px;
+}
+.ai-chat-msg--ai::before {
+  background: url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/Ninja_Avatar.png?v=1777387019') center/cover no-repeat;
+}
+.ai-chat-msg--user::after {
+  background: url('https://cdn.shopify.com/s/files/1/0558/0265/8899/files/user_avatar.png?v=1777387802') center/cover no-repeat;
+}
+/* Mobile: hide avatars, restore AI column stack. JS-driven .ai-chat--narrow. */
+.ai-chat--narrow .ai-chat-msg--ai::before,
+.ai-chat--narrow .ai-chat-msg--user::after { display: none; }
+.ai-chat--narrow .ai-chat-msg--ai {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.ai-chat-bubble {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  word-wrap: break-word;
+}
+/* Desktop: tighten bubble cap by 100px so long prompts don't fill the panel.
+   Narrow panels keep the 85% default since 85% - 100px goes too narrow. */
+.ai-chat:not(.ai-chat--narrow) .ai-chat-bubble { max-width: calc(85% - 100px); }
+.ai-chat-msg--user .ai-chat-bubble {
+  background: linear-gradient(135deg, var(--brand-pink) 0%, var(--brand-purple) 100%);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.ai-chat-msg--ai .ai-chat-bubble {
+  background: var(--bubble-ai);
+  color: var(--ink);
+  border-bottom-left-radius: 4px;
+}
+.ai-chat-msg--ai .ai-pop-grid { width: 100%; }
+
+/* Composer */
+.ai-chat-composer {
+  flex-shrink: 0;
+  /* Composer matches the thread's horizontal gutter so the input pill
+     sits flush under the chat content above it. Extra top padding to
+     space the input pill away from the last output bubble/grid. */
+  padding: 24px var(--ai-chat-gutter-x) 16px;
+  /* Divider stays transparent in the idle state — script.js adds
+     `.is-scrolled` to .ai-chat once the thread scrolls away from its
+     bottom anchor, which brings the line back in. */
+  border-top: 1px solid transparent;
+  transition: border-top-color 0.15s ease;
+  background: #fff;
+}
+.ai-chat.is-scrolled .ai-chat-composer {
+  border-top-color: var(--bubble-ai);
+}
+.ai-chat-input-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px 6px 6px 14px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: text;
+  transition: border-color 0.15s ease, border-width 0.15s ease;
+}
+.ai-chat-input-wrap.is-multiline {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 12px 14px;
+  position: relative;
+}
+.ai-chat-input-wrap.is-multiline textarea {
+  flex: none;
+  padding-right: 36px; /* prevent text running under the absolute-positioned X */
+}
+.ai-chat-input-wrap:focus-within,
+.ai-chat-input-wrap.has-text {
+  border: 1.5px solid var(--brand-pink);
+  box-shadow: none;
+}
+.ai-chat-input-wrap textarea {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink);
+  resize: none;
+  padding: 6px 0;
+  line-height: 1.35;
+  min-height: 32px;
+  overflow-y: hidden;
+  cursor: text;
+}
+.ai-chat-input-wrap textarea::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+}
+.ai-chat-input-wrap.is-multiline .ai-chat-send {
+  align-self: flex-end;
+}
+
+/* Actions row — holds clear + send in row mode; in column mode only the send
+   button is in flow (clear becomes absolute). */
+.ai-chat-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.ai-chat-input-wrap.is-multiline .ai-chat-actions {
+  justify-content: flex-end;
+}
+
+/* Clear button */
+.ai-chat-clear {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  color: #9ca3af;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 0;
+  transition: color .15s, background .15s;
+}
+.ai-chat-clear[hidden] { display: none !important; }
+.ai-chat-clear:hover { color: #374151; background: #f3f4f6; }
+.ai-chat-clear svg { width: 12px; height: 12px; }
+
+/* In column mode: pull X out of the actions row and pin it to the top-right
+   corner of the wrap so it floats above the textarea content. */
+.ai-chat-input-wrap.is-multiline .ai-chat-clear {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+}
+
+/* Send button — base shape (also the multiline state). The wide (650)
+   container query below promotes it to a labeled pill; the narrow (260)
+   container query shrinks it to a smaller squareish icon button. */
+.ai-chat-send {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(135deg, var(--brand-pink) 0%, var(--brand-purple) 100%);
+  color: #fff !important;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.ai-chat-send-label {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  display: none; /* hidden by default — wide container query reveals it */
+}
+.ai-chat-send,
+.ai-chat-send * { color: #fff !important; }
+.ai-chat-send:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+.ai-chat-send:disabled { opacity: 0.75; cursor: not-allowed; }
+.ai-chat-send.is-empty,
+.ai-chat-send.is-empty:disabled {
+  background: var(--bubble-ai);
+  border: none;
+  opacity: 1;
+  cursor: default;
+}
+.ai-chat-send.is-empty .ai-chat-send-icon,
+.ai-chat-send.is-empty .ai-chat-send-icon * { color: #374151 !important; }
+.ai-chat-send.is-empty .ai-chat-send-label { display: none; }
+.ai-chat-send-icon { width: 16px; height: 16px; color: #fff; }
+.ai-chat-send .ai-pop-spin {
+  display: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: ai-pop-spin 0.7s linear infinite;
+}
+.ai-chat-send.is-loading .ai-chat-send-icon { display: none; }
+.ai-chat-send.is-loading .ai-pop-spin { display: inline-block; }
+
+.ai-chat-empty {
+  grid-column: 1 / -1;
+  padding: 14px;
+  background: var(--bubble-ai);
+  border-radius: 10px;
+  font-size: 12px;
+  color: #374151;
+}
+.ai-chat-retry-btn {
+  align-self: flex-start;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #e5579a;
+  background: transparent;
+  color: #e5579a;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.ai-chat-retry-btn:hover {
+  background: #e5579a;
+  color: #fff;
+}
+.ai-pop-error {
+  color: var(--error);
+  font-size: 12px;
+}
+/* Reserve space only when there's an actual error message inside, otherwise
+   the empty div was pushing the input pill ~20px below the divider line. */
+.ai-pop-error:not(:empty) {
+  margin-top: 4px;
+  min-height: 16px;
+}
+
+/* Result tile grid + skeletons. Always renders exactly 3 outputs (3-up on
+   wide, stacked on narrow — see the @container blocks at the bottom). */
+.ai-pop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding-bottom: 12px;
+}
+.ai-pop-tile {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border: 0;
+  /* No overflow:hidden — the CTA label sits visually below the rounded image
+     card. The rounded-card styling moved to the <img> so the label can render
+     outside that frame. */
+}
+/* Skeleton box still needs the rounded card look since there's no img inside. */
+.ai-pop-tile.is-skeleton {
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.ai-pop-tile img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  display: block;
+  background: var(--bubble-ai);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+/* Selected state — matches the history-tile treatment so the user sees the
+   same visual feedback as Recently Generated when they click "Use this design". */
+.ai-pop-tile.is-selected img {
+  border-color: #019AFF;
+  box-shadow: 0 0 0 2px #019AFF;
+}
+.ai-pop-tile.is-selected .ai-pop-tile-cta {
+  color: #019AFF;
+}
+/* "Use this design" CTA — right-aligned just under the image card. */
+.ai-pop-tile-cta {
+  display: block;
+  text-align: right;
+  color: #42a9de;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 4px;
+  line-height: 1.2;
+}
+.ai-pop-tile-cta__arrow {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-left: 4px;
+  vertical-align: -1px;
+  flex: none;
+}
+.ai-chat--narrow .ai-pop-tile-cta {
+  font-size: 11px;
+}
+.ai-chat--narrow .ai-pop-tile-cta__arrow {
+  width: 10px;
+  height: 10px;
+}
+.ai-pop-tile.is-skeleton {
+  background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+  background-size: 200% 100%;
+  animation: ai-pop-shimmer 1.2s ease-in-out infinite;
+  cursor: default;
+}
+.ai-pop-tile.is-loading {
+  pointer-events: none;
+  cursor: progress;
+}
+.ai-pop-tile.is-loading img {
+  opacity: 0.55;
+  filter: grayscale(0.2);
+}
+.ai-pop-tile.is-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  border-top-color: var(--brand-purple);
+  border-radius: 50%;
+  animation: ai-pop-spin 0.7s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes ai-pop-spin    { to { transform: rotate(360deg); } }
+@keyframes ai-pop-shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ==========================================================================
+   Size-specific rules — write these inside @container blocks so they apply
+   per-instance regardless of the viewport. The 260 cell will pick up the
+   "narrow" rules; the 650 cell will pick up the "wide" rules.
+
+   When porting back to the studio, translate:
+     @container aiPanel (max-width: 500px)  →  @media (max-width: 749px)
+     (or keep as @container if the studio supports it)
+   ========================================================================== */
+
+/* ---- Narrow ----
+   Single source of truth for narrow styling. JS-driven via `.ai-chat--narrow`
+   class on the panel: ai-chat-sandbox.js toggles it based on the panel's own
+   measured width (< 500px), or honors `data-ai-narrow-mode="force"` for panels
+   that should always be narrow regardless of width (the DS overlay). */
+/* Tighten the gutter for narrow — thread + composer pick this up via the
+   shared --ai-chat-gutter-x variable so they stay aligned. */
+.ai-chat--narrow { --ai-chat-gutter-x: 12px; }
+.ai-chat--narrow .ai-chat-header { padding-top: 16px; padding-bottom: 10px; }
+.ai-chat--narrow .ai-chat-title  { font-size: 19px; letter-spacing: -0.012em; }
+.ai-chat--narrow .ai-chat-subtitle { font-size: 12.5px; }
+.ai-chat--narrow .ai-chat-bubble { font-size: 12.5px; padding: 9px 12px; max-width: 85%; }
+.ai-chat--narrow .ai-chat-msg--user .ai-chat-bubble { max-width: 90%; }
+.ai-chat--narrow .ai-chat-composer { padding-top: 12px; padding-bottom: 12px; }
+.ai-chat--narrow .ai-chat-send-label { display: none; }
+.ai-chat--narrow .ai-pop-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+/* ---- Wide (default) ----
+   Send button promotes to a labeled pill: arrow icon + "Generate" text.
+   Wins over the narrow-mode 36x36 icon-only button via `:not(.ai-chat--narrow)`. */
+.ai-chat:not(.ai-chat--narrow) .ai-chat-send {
+  width: auto;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
+}
+.ai-chat:not(.ai-chat--narrow) .ai-chat-send-label { display: inline; }
+/* Empty state: revert to compact square icon button (label hidden, no pill sizing). */
+.ai-chat:not(.ai-chat--narrow) .ai-chat-send.is-empty {
+  width: 44px;
+  padding: 0;
+}
+.ai-chat:not(.ai-chat--narrow) .ai-chat-send.is-empty .ai-chat-send-label { display: none; }
+
+/* mobile-ds-fix-v3 — version marker so we can verify this build is loaded.
+   v2 only constrained the thread; the actual problem was the .right-panel
+   itself sizing to its content and getting cropped by the existing
+   `bottom: -83px` rule (line ~2635). v3 pins the drawer to 75vh, anchors
+   it to the viewport bottom, and lets #ai-panel grow into it with its
+   thread scrolling so composer + Recently Generated stay visible.
+   Scoped to outside-studio (product pages); in-studio mobile already gets
+   100vh from the existing `:not(.outside-studio) ... ._full` rule. */
+@media (max-width: 768px) {
+  /* Drawer pinned to VIEWPORT bottom at 75vh.
+     Override line ~2636's `position: absolute` (which anchors to .editor-container,
+     and on outside-studio the editor doesn't fill the viewport, so absolute leaves
+     dead space below the drawer). position: fixed pins to the screen.
+     z-index: 2147483647 keeps it above Intercom (z=2147483002) — `position: fixed`
+     creates its own stacking context, so it doesn't inherit the parent overlay's z. */
+  .customTabelPopup__overlay-editor.outside-studio .editor-container .right-panel._active._full {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 75vh;
+    max-height: 75vh;
+    z-index: 2147483647;
+    display: flex;
+    flex-direction: column;
+  }
+  /* panel-content must fill the remaining drawer height for the % chain to work */
+  .customTabelPopup__overlay-editor.outside-studio .editor-container .right-panel._active._full > .panel-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* AI panel fills panel-content */
+  .editor-container .right-panel #ai-panel.ai-chat {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Thread shrinks/scrolls; composer + history pinned to bottom of column */
+  .editor-container .right-panel #ai-panel.ai-chat .ai-chat-thread {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+  }
+}
+
+/* Hide "OR IMPORT FROM" + Google Drive/Dropbox/Canva everywhere (desktop + mobile) */
+.dtfut__src-row,
+.dtfut__src-btns {
+  display: none !important;
+}
+
+/* Standalone AI Image Generator page — gray page bg with a centered white
+   card holding the chat panel. .dtf-ai-page has its own white bg; we
+   transparent it. The card lives on .dtfut__ai-host (already max-width: 880px
+   from dtfut CSS) so we just add `margin: 0 auto` to center within
+   .dtf-ai-page__inner, plus the white background, rounded corners, and shadow. */
+body.template-page-ai-image-creator { background: #f3f4f6; }
+body.template-page-ai-image-creator .dtf-ai-page { background: transparent; }
+body.template-page-ai-image-creator .dtfut__ai-host.dtf-ai-page__host {
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+/* Stack the suggestion pills vertically whenever the AI block is in narrow
+   mode (DS overlay forces this; dtfut tab toggles via ResizeObserver < 500px).
+   Scoped to `.ai-chat--narrow` not viewport, so it works for the force-narrow
+   DS overlay even on a wide-viewport screen. */
+.ai-chat--narrow .ai-chat-pills {
+  flex-direction: column;
+  align-items: flex-start;
+  overflow-x: visible;
+}
+
+/* ============================================================================
+   Defensive cascade — theme.css applies global h2/h3 rules (font-family,
+   line-height, letter-spacing, margin) to every untouched heading on the page.
+   The dtfut Tab-3 panel renders correctly only because the AI block's own
+   .ai-chat-title / .ai-chat-history-title rules out-specify them for font-size
+   + font-weight + color, but font-family/line-height/margin still leak through.
+
+   Force the AI block headings to inherit their typography from .ai-chat so the
+   panel renders consistently in BOTH contexts (product page dtfut tab AND the
+   DS overlay), with the AI block's own rules deciding the specifics.
+   ============================================================================ */
+.ai-chat h2,
+.ai-chat h3 {
+  font-family: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  margin: 0;
+}
+
+
+/* ============================================================================
+   2. AI HOST + GUIDE OVERLAY  (extracted from dtf-upload-tabs.css)
+   --dtfut-grey-900 inlined as #111827 to drop the dependency on dtf-upload-tabs.css.
+   ============================================================================ */
+/* ---------- Tab 3 — Create with AI ---------- */
+/* Self-contained host: fills its parent in width AND height when the
+   parent provides them, otherwise sizes to its content. Drop the host
+   into any container and it just fits. The inner .ai-chat is `flex: 1`
+   so it always fills the available column. */
+.dtfut__ai-host {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.dtfut__ai-host > .ai-chat {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+/* When the AI prompt guide overlay opens, grow the panel so the full
+   guide (Example Prompt + Example Output) fits without cropping. */
+.dtfut__panel[data-dtfut-panel="ai"]:has(.dtfut-ai-guide.is-open) {
+  min-height: 560px;
+}
+.dtfut__ai-host:has(.dtfut-ai-guide.is-open) {
+  height: auto;
+  min-height: 560px;
+}
+/* Strip the hidden #generativeAiStart button's extra spacing */
+.dtfut__ai-host #generativeAiStart {
+  display: none !important;
+}
+
+/* Hide the pink CTA promo — the dialog renders inline instead. */
+.dtfut__ai-host .generative-ai-area {
+  display: none !important;
+}
+
+/* Render the AI dialog inline inside the tab instead of as a modal.
+   Override the modal-positioning from generative-ai-image.css so it
+   flows naturally in the tab panel.
+
+   Scoped to :not([open]) so the dialog still positions correctly as a
+   real modal when something calls .showModal() (e.g. the legacy
+   "Create with AI" link in __multiuploadSnippets.liquid, which fires
+   .generative-ai-area's click handler). Without this guard, showModal
+   stays in the dtfut host's collapsed (display:none) panel and the
+   user sees only the backdrop. */
+.dtfut__ai-host #generative-ai-dialog:not([open]),
+#generative-ai-dialog.dtfut-inline:not([open]) {
+  display: block !important;
+  position: static !important;
+  transform: none !important;
+  top: auto !important;
+  left: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  z-index: auto !important;
+}
+/* The dialog's header + form are now fully replaced by our hero UI;
+   we drive the form programmatically so keep it in the DOM but hide it. */
+.dtfut__ai-host #generative-ai-dialog > header,
+.dtfut__ai-host #generative-ai-dialog > form {
+  display: none !important;
+}
+
+/* Hide the in-tab Example Prompt / Output tips; they live in a modal
+   that opens via the "AI prompt guide" link below. */
+.dtfut__ai-host #generative-ai-tips {
+  display: none !important;
+}
+
+/* The native #generative-ai-images stays in the dialog for the jQuery
+   handler to populate, but the sandbox-derived chat UI in
+   ai-chat-sandbox.js reads {url, fileName} off those figures and renders
+   its own tiles, so hide the native container entirely. */
+.dtfut__ai-host #generative-ai-images,
+.dtfut__ai-host #generative-ai-generating,
+.dtfut__ai-host #generative-ai-dialog-loader,
+.dtfut__ai-host #generative-ai-dialog-loader.show {
+  display: none !important;
+}
+
+/* Centered "AI prompt guide" link under the AI form */
+.dtfut__ai-host .dtfut__ai-guide-link,
+button.dtfut__ai-guide-link {
+  display: block;
+  margin: 14px auto 0;
+  padding: 4px 8px;
+  background: none !important;
+  border: 0 !important;
+  color: #46aae3 !important;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+  box-shadow: none !important;
+}
+.dtfut__ai-host .dtfut__ai-guide-link:hover,
+button.dtfut__ai-guide-link:hover { color: #005192 !important; }
+
+/* AI prompt guide overlay — covers the Ninja AI Image Creator view
+   within the AI tab panel. */
+.dtfut-ai-guide {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  border-radius: inherit;
+  z-index: 10;
+  padding: 0;
+  overflow-y: auto;
+  display: none;
+}
+.dtfut-ai-guide.is-open { display: block; }
+.dtfut-ai-guide[hidden] { display: none !important; }
+.dtfut-ai-guide.is-open[hidden] { display: block !important; }
+.dtfut-ai-guide__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  color: #111827;
+  z-index: 2;
+}
+.dtfut-ai-guide__close svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.5;
+}
+.dtfut-ai-guide__close:hover { color: #000; }
+.dtfut-ai-guide__body {
+  padding: 14px 12px 12px;
+}
+.dtfut-ai-guide__body .generativeAItips,
+.dtfut-ai-guide__body > section {
+  display: block !important;
+}
+.dtfut-ai-guide__body header {
+  color: #000 !important;
+  font-weight: 700 !important;
+}
+
+/* ---------- Mobile "go full screen" splash ----------
+
+/* ============================================================================
+   3. MODAL SHELL  (was dtf-ai-modal.css)
+   ============================================================================ */
+/* =========================================================
+   DTF AI Modal — styles
+   ---------------------------------------------------------
+   Modal shell + Ninja AI Generator hero/chat/history UI for
+   pages that don't use the by-size-tabs template (e.g. the
+   default /products/dtf-transfers DTF product page). The
+   click on the existing pink "Create a design with Ninja AI"
+   box opens this modal instead of the legacy
+   #generative-ai-dialog. The hero markup mirrors the AI tab
+   inside dtf-upload-tabs.liquid so the look matches v2.
+   ========================================================= */
+
+/* ---------------- Modal shell ---------------- */
+.dtf-ai-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.dtf-ai-modal[hidden] { display: none; }
+.dtf-ai-modal.is-open {
+  pointer-events: auto;
+  opacity: 1;
+}
+.dtf-ai-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  cursor: pointer;
+}
+.dtf-ai-modal__panel {
+  position: relative;
+  margin: auto;
+  background: #fff;
+  border-radius: 16px;
+  width: min(960px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(8px);
+  transition: transform 0.2s ease;
+}
+.dtf-ai-modal.is-open .dtf-ai-modal__panel {
+  transform: translateY(0);
+}
+.dtf-ai-modal__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Bump above the in-panel `.ai-chat-history-overlay` (z-index 5)
+     so expanding "Recently Generated" doesn't dim the close button. */
+  z-index: 100;
+  padding: 0;
+  transition: background 0.15s ease;
+}
+.dtf-ai-modal__close:hover { background: rgba(15, 23, 42, 0.14); }
+.dtf-ai-modal__close:focus-visible {
+  outline: 2px solid #019AFF;
+  outline-offset: 2px;
+}
+.dtf-ai-modal__inner {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* 15px horizontal padding so the prompts / input row / history grid have
+     a small breathing margin from the panel rounded corners while still
+     looking edge-to-edge. Centered content (hero title, subtitle) still
+     self-centers within the wider available width. */
+  padding: 36px 15px 28px;
+  display: flex;
+  flex-direction: column;
+  transition: padding-bottom 0.2s ease;
+}
+/* When the in-modal selection bar is visible, give the inner content extra
+   bottom padding so the bar (absolutely positioned at panel bottom: 16px)
+   floats over whitespace instead of covering the last row of tiles. */
+.dtf-ai-modal__inner--has-selection-bar { padding-bottom: 88px; }
+@media (max-width: 749px) {
+  .dtf-ai-modal__panel {
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+  .dtf-ai-modal__inner { padding: 56px 16px 20px; }
+  .dtf-ai-modal__close { top: 8px; right: 8px; }
+}
+
+body.dtf-ai-modal-open { overflow: hidden; }
+
+/* When the modal is open, hide the legacy <dialog> entirely.
+   We drive its <form> programmatically — it stays in the DOM so
+   generative-ai-image-modal.js handlers still fire — but we do
+   not want it visible behind/over our modal. */
+.dtf-ai-modal.is-open ~ #generative-ai-dialog,
+body.dtf-ai-modal-open #generative-ai-dialog {
+  display: none !important;
+}
+
+/* ---------------- AI host scope ---------------- */
+.dtf-ai-modal .dtfut__ai-host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+
+/* The native aiImageGenerator block renders the hidden start button,
+   the pink CTA box and the legacy dialog. We need them in the DOM
+   so the vendor jQuery handlers keep working, but we don't want
+   them visible inside the modal. */
+.dtf-ai-modal .generative-ai-area,
+.dtf-ai-modal #generativeAiStart {
+  display: none !important;
+}
+.dtf-ai-modal #generative-ai-dialog {
+  display: none !important;
+}
+
+/* ---------------- Hero (Ninja AI Generator) ---------------- */
+.dtf-ai-modal .dtfut__ai-hero {
+  /* No max-width: hero spans the full inner width so the input row, prompt
+     chips, chat bubbles and history grid all line up edge-to-edge with the
+     panel. Title/sub still self-center within the wider area. */
+  max-width: none;
+  margin: 0;
+  padding: 8px 0 4px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+.dtf-ai-modal .dtfut__ai-hero-title {
+  font-family: inherit;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  max-width: 450px;
+  margin: 0 auto 10px;
+}
+.dtf-ai-modal .dtfut__ai-hero-sub {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 22px;
+}
+.dtf-ai-modal .dtfut__ai-hero-prompts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 14px;
+  /* No max-width: chips fill the panel-inner width so they line up
+     with the input row's left/right edges below. */
+  max-width: none;
+  /* At-load spacing: 75px more breathing room than before (was 30px) so the
+     describe-your-design input feels less crowded against the preset chips.
+     Once the user starts chatting we collapse it back to 30px below so the
+     chat messages don't sit under a giant empty band. */
+  margin: 0 0 105px;
+  justify-items: stretch;
+}
+.dtf-ai-modal .dtfut__ai-hero:has(.dtfut__ai-chat:not(:empty)) .dtfut__ai-hero-prompts {
+  margin-bottom: 30px;
+}
+.dtf-ai-modal .dtfut__ai-hero-prompt {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 20px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  font: 500 13.5px/1.2 inherit;
+  color: #0f172a;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.dtf-ai-modal .dtfut__ai-hero-prompt:hover {
+  border-color: #019AFF;
+  box-shadow: 0 4px 12px rgba(1, 154, 255, 0.12);
+}
+.dtf-ai-modal .dtfut__ai-hero-prompt:active { transform: translateY(1px); }
+.dtf-ai-modal .dtfut__ai-hero-emoji { font-size: 16px; line-height: 1; }
+
+.dtf-ai-modal .dtfut__ai-hero-input-row {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  /* Edge-to-edge — no max-width cap. Inner has 0 horizontal padding now so
+     this naturally fills the modal panel width. */
+  margin: 0 auto;
+  padding: 5px;
+  border: 1px solid #d8dde5;
+  border-radius: 10px;
+  background: #eef1f4;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  flex: 0 0 auto;
+}
+.dtf-ai-modal .dtfut__ai-hero-input {
+  flex: 1 1 auto;
+  padding: 12px 14px;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  font: 400 13px/1.4 inherit;
+  background: transparent;
+  color: #0f172a;
+  min-width: 0;
+  resize: none;
+  overflow: hidden;
+  height: auto;
+  min-height: 48px;
+  max-height: 180px;
+  display: block;
+}
+.dtf-ai-modal .dtfut__ai-hero-input:focus,
+.dtf-ai-modal .dtfut__ai-hero-input:focus-visible,
+.dtf-ai-modal .dtfut__ai-hero-input:active {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.dtf-ai-modal .dtfut__ai-hero-input::placeholder { color: #64748b; }
+.dtf-ai-modal .dtfut__ai-hero-generate {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-left: 10px;
+  min-width: 128px;
+  padding: 13px 24px;
+  border: none;
+  border-radius: 10px;
+  font: 800 14px/1 inherit;
+  letter-spacing: 0.01em;
+  color: #fff !important;
+  background: linear-gradient(135deg, #ff1fae 0%, #b520f0 100%);
+  box-shadow: 0 4px 14px rgba(181, 32, 240, 0.32);
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms ease-out, box-shadow 200ms ease-out, filter 160ms ease-out, opacity 160ms ease-out;
+}
+.dtf-ai-modal .dtfut__ai-hero-generate > span,
+.dtf-ai-modal .dtfut__ai-hero-generate > svg {
+  color: #fff !important;
+  stroke: #fff !important;
+}
+.dtf-ai-modal .dtfut__ai-hero-generate:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(181, 32, 240, 0.42);
+  filter: brightness(1.04);
+}
+.dtf-ai-modal .dtfut__ai-hero-generate:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+  box-shadow: 0 3px 10px rgba(181, 32, 240, 0.32);
+  filter: brightness(0.98);
+}
+.dtf-ai-modal .dtfut__ai-hero-generate:focus-visible {
+  box-shadow: 0 4px 14px rgba(181, 32, 240, 0.32), 0 0 0 3px rgba(255, 31, 174, 0.35);
+}
+.dtf-ai-modal .dtfut__ai-hero-generate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: saturate(0.85);
+  box-shadow: 0 2px 8px rgba(181, 32, 240, 0.18);
+}
+
+/* ---------------- Saved AI history ---------------- */
+.dtf-ai-modal .dtfut__ai-history {
+  margin: 28px 0 0;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+  /* No max-width cap — history scroller spans the panel inner so its
+     left/right edges line up with the input row above. */
+  max-width: none;
+  width: 100%;
+}
+.dtf-ai-modal .dtfut__ai-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.dtf-ai-modal .dtfut__ai-history-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+.dtf-ai-modal .dtfut__ai-history-meta {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  letter-spacing: 0.01em;
+}
+.dtf-ai-modal .dtfut__ai-history-clear {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.dtf-ai-modal .dtfut__ai-history-clear:hover {
+  color: #019AFF;
+  background: rgba(1, 154, 255, 0.08);
+}
+/* Horizontal single-row scroller. Wrapper added by dtf-ai-history.js so the
+   grid can host left/right arrow overlays without changing the snippet. */
+.dtf-ai-modal .dtfut__ai-history-scroller {
+  position: relative;
+}
+.dtf-ai-modal .dtfut__ai-history-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  /* Padding gives selected-tile box-shadow room without getting clipped. */
+  padding: 6px 2px;
+  margin: -6px 0;
+  /* Hide native scrollbar (arrows + swipe handle navigation). */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.dtf-ai-modal .dtfut__ai-history-grid::-webkit-scrollbar { display: none; }
+/* Edge fade hints — soft gradient so users see there's more to scroll. */
+.dtf-ai-modal .dtfut__ai-history-scroller::before,
+.dtf-ai-modal .dtfut__ai-history-scroller::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 28px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.dtf-ai-modal .dtfut__ai-history-scroller::before {
+  left: 0;
+  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+}
+.dtf-ai-modal .dtfut__ai-history-scroller::after {
+  right: 0;
+  background: linear-gradient(to left, #fff, rgba(255, 255, 255, 0));
+}
+.dtf-ai-modal .dtfut__ai-history-scroller.is-scrolled-start::before { opacity: 1; }
+.dtf-ai-modal .dtfut__ai-history-scroller.is-scrolled-end::after { opacity: 1; }
+/* Arrow buttons — drawn on top of the gradients. */
+.dtf-ai-modal .dtfut__ai-history-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) scale(0.9);
+  width: 32px; height: 32px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18), 0 1px 3px rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  color: #1f2937;
+  padding: 0;
+}
+.dtf-ai-modal .dtfut__ai-history-arrow.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) scale(1);
+}
+.dtf-ai-modal .dtfut__ai-history-arrow:hover { background: #fff; }
+.dtf-ai-modal .dtfut__ai-history-arrow:active { transform: translateY(-50%) scale(0.94); }
+.dtf-ai-modal .dtfut__ai-history-arrow svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+.dtf-ai-modal .dtfut__ai-history-arrow--left { left: -4px; }
+.dtf-ai-modal .dtfut__ai-history-arrow--right { right: -4px; }
+
+.dtf-ai-modal .dtfut__ai-history-tile {
+  position: relative;
+  flex: 0 0 120px;
+  aspect-ratio: 1 / 1;
+  scroll-snap-align: start;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 0;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.dtf-ai-modal .dtfut__ai-history-tile:hover {
+  border-color: #019AFF;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(1, 154, 255, 0.18);
+}
+.dtf-ai-modal .dtfut__ai-history-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dtf-ai-modal .dtfut__ai-history-tile-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16px 8px 6px;
+  font-size: 11px;
+  color: #fff;
+  line-height: 1.3;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0));
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.dtf-ai-modal .dtfut__ai-history-tile-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.dtf-ai-modal .dtfut__ai-history-tile:hover .dtfut__ai-history-tile-remove,
+.dtf-ai-modal .dtfut__ai-history-tile-remove:focus-visible {
+  opacity: 1;
+}
+.dtf-ai-modal .dtfut__ai-history-tile-remove:hover { background: rgba(0, 0, 0, 0.85); }
+
+/* ---------------- Chat (user prompt + tip + image bubbles) ---------------- */
+.dtf-ai-modal .dtfut__ai-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  /* No horizontal padding — content goes edge-to-edge within the
+     panel inner so chat results / history line up with the input row. */
+  padding: 0 0 12px;
+}
+.dtf-ai-modal .dtfut__ai-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 18px 0 0;
+  text-align: left;
+}
+.dtf-ai-modal .dtfut__ai-chat:empty { display: none; }
+.dtf-ai-modal .dtfut__ai-chat-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+.dtf-ai-modal .dtfut__ai-chat-avatar {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  position: relative;
+  z-index: 2;
+}
+.dtf-ai-modal .dtfut__ai-chat-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.dtf-ai-modal .dtfut__ai-chat-bubble {
+  position: relative;
+  flex: 0 1 auto;
+  max-width: 75%;
+  width: fit-content;
+  background: #f3f4f6;
+  border-radius: 18px;
+  padding: 9px 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #0f172a;
+  text-align: left;
+  min-width: 0;
+}
+.dtf-ai-modal .dtfut__ai-chat-bubble::before,
+.dtf-ai-modal .dtfut__ai-chat-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  height: 16px;
+  pointer-events: none;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--tip .dtfut__ai-chat-bubble::before {
+  left: -6px;
+  width: 0;
+  border-left: 16px solid #eef0ff;
+  border-bottom-right-radius: 13px 11px;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--tip .dtfut__ai-chat-bubble::after {
+  left: -10px;
+  width: 10px;
+  background: #fff;
+  border-bottom-right-radius: 8px;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--user .dtfut__ai-chat-bubble::before {
+  right: -6px;
+  width: 0;
+  border-right: 16px solid #019AFF;
+  border-bottom-left-radius: 13px 11px;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--user .dtfut__ai-chat-bubble::after {
+  right: -10px;
+  width: 10px;
+  background: #fff;
+  border-bottom-left-radius: 8px;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--tip .dtfut__ai-chat-bubble {
+  background: #eef0ff;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--user .dtfut__ai-chat-bubble {
+  background: #019AFF;
+  color: #fff;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--user {
+  flex-direction: row-reverse;
+}
+.dtf-ai-modal .dtfut__ai-chat-avatar--user {
+  background: #fff;
+  border: 2px solid #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.dtf-ai-modal .dtfut__ai-chat-avatar--user svg { width: 24px; height: 24px; }
+/* Image-result messages span the full chat width — hide the bot avatar
+   so the 3-image grid lines up edge-to-edge with the input row below
+   instead of being pushed in by the avatar + gap. The "tip" bubble
+   right above already shows the avatar so the conversation context
+   stays clear. */
+.dtf-ai-modal .dtfut__ai-chat-msg--images {
+  align-items: stretch;
+  gap: 0;
+}
+.dtf-ai-modal .dtfut__ai-chat-msg--images > .dtfut__ai-chat-avatar {
+  display: none;
+}
+.dtf-ai-modal .dtfut__ai-chat-images-wrap {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+}
+.dtf-ai-modal .dtfut__ai-chat-tip-head {
+  margin: 0 0 2px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.dtf-ai-modal .dtfut__ai-chat-tip-head strong { font-weight: 700; }
+.dtf-ai-modal .dtfut__ai-chat-tip-sub {
+  margin: 0;
+  color: #374151;
+  line-height: 1.3;
+}
+
+/* Hide native loader/generating text — shimmer + chat convey state. */
+.dtf-ai-modal #generative-ai-generating { display: none !important; }
+.dtf-ai-modal #generative-ai-dialog-loader,
+.dtf-ai-modal #generative-ai-dialog-loader.show {
+  display: none !important;
+}
+
+/* Shimmer skeleton tiles while images generate */
+.dtf-ai-modal .dtfut__shimmer {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  border-radius: 12px;
+  background: linear-gradient(
+    100deg,
+    #e9ecf1 30%,
+    #f7f8fa 50%,
+    #e9ecf1 70%
+  );
+  background-size: 200% 100%;
+  animation: dtf-ai-modal-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes dtf-ai-modal-shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dtf-ai-modal .dtfut__shimmer {
+    animation: none;
+    background: #e9ecf1;
+  }
+}
+
+/* AI result figures — cloned from #generative-ai-images into chat */
+.dtf-ai-modal .dtfut__ai-chat-results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.dtf-ai-modal .dtfut__ai-chat-results > figure {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  margin: 0;
+}
+.dtf-ai-modal .dtfut__ai-chat-results > figure > img {
+  width: 100%;
+  border-radius: 8px;
+  display: block;
+}
+.dtf-ai-modal .dtfut__ai-chat-results > figure > figcaption {
+  color: transparent;
+  font-size: 0;
+  text-align: right;
+  margin-top: 8px;
+  cursor: pointer;
+}
+.dtf-ai-modal .dtfut__ai-chat-results > figure > figcaption::after {
+  content: "Use this design \2192";
+  color: #00a3f5;
+  font-size: 13.6px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.dtf-ai-modal .dtfut__ai-chat-results > figure:hover > figcaption::after {
+  text-decoration: underline;
+}
+
+/* Mobile tweaks */
+@media (max-width: 749px) {
+  .dtf-ai-modal .dtfut__ai-hero-title { font-size: 22px; }
+  .dtf-ai-modal .dtfut__ai-hero-sub { font-size: 13px; margin-bottom: 16px; }
+  .dtf-ai-modal .dtfut__ai-hero-prompts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 100%;
+    gap: 8px;
+  }
+  .dtf-ai-modal .dtfut__ai-hero-prompt {
+    padding: 8px 12px;
+    font-size: 12px;
+    gap: 6px;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .dtf-ai-modal .dtfut__ai-hero-emoji { font-size: 14px; }
+  .dtf-ai-modal .dtfut__ai-hero-prompt:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    max-width: 100%;
+  }
+  .dtf-ai-modal .dtfut__ai-hero-generate {
+    margin-left: 8px;
+    min-width: 110px;
+    padding: 13px 18px;
+    font-size: 14px;
+  }
+  .dtf-ai-modal .dtfut__ai-hero-input { padding: 12px 14px; font-size: 13px; }
+  .dtf-ai-modal .dtfut__ai-history { margin-top: 22px; padding-top: 18px; }
+  .dtf-ai-modal .dtfut__ai-history-title { font-size: 14px; }
+  .dtf-ai-modal .dtfut__ai-history-grid { gap: 8px; }
+  .dtf-ai-modal .dtfut__ai-history-tile { flex-basis: 96px; }
+  .dtf-ai-modal .dtfut__ai-history-tile-remove { opacity: 1; }
+  /* Touch users swipe — no need for arrow buttons. */
+  .dtf-ai-modal .dtfut__ai-history-arrow { display: none; }
+  .dtf-ai-modal .dtfut__ai-chat-bubble {
+    max-width: 85%;
+    padding: 7px 12px;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .dtf-ai-modal .dtfut__ai-chat-avatar { width: 22px; height: 22px; }
+  .dtf-ai-modal .dtfut__ai-chat-avatar--user svg { width: 14px; height: 14px; }
+  .dtf-ai-modal .dtfut__ai-chat-msg { gap: 8px; }
+}
+
+/* ============================================================================
+   4. PAGE SHELL  (was dtf-ai-page.css)
+   ============================================================================ */
+/* dtf-ai-page.css
+   Page-only styles for /pages/ai-image-creator.
+   Sits on top of dtf-upload-tabs.css (which provides the inline
+   .dtfut__ai-host / .dtfut__ai-hero / .dtfut__ai-history rules) and
+   dtf-ai-history.js (which injects the selection-bar styles).
+
+   Goals:
+   - Hide the legacy pink "Create with AI" box. The dialog markup
+     stays in the DOM so the form mechanics keep working, but the
+     page has its own hero so the legacy box would be redundant.
+   - Give the page a centered, breathable layout that works on both
+     desktop and mobile out of the box.
+   - Suppress the upload-tabs sticky elements that have no meaning
+     in a standalone-page context. */
+
+/* Pass height: 100% through Shopify's auto-height .shopify-section
+   wrapper so the flex chain reaches `.dtf-ai-page` from `.dts-pane`
+   (or any other parent that gives the section explicit height). */
+.shopify-section:has(> .dtf-ai-page) {
+  height: 100%;
+}
+.dtf-ai-page {
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  padding: 32px 16px 80px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.dtf-ai-page__inner {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dtf-ai-page__eyebrow {
+  margin: 0 0 8px;
+  font: 700 12px/1 'DM Sans', system-ui, -apple-system, sans-serif;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #019aff;
+  text-align: center;
+}
+.dtf-ai-page__heading {
+  margin: 0 0 12px;
+  font: 800 38px/1.15 'DM Sans', system-ui, -apple-system, sans-serif;
+  color: #0f172a;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+.dtf-ai-page__sub {
+  margin: 0 auto 18px;
+  max-width: 640px;
+  font: 400 15px/1.5 'DM Sans', system-ui, -apple-system, sans-serif;
+  color: #64748b;
+  text-align: center;
+}
+
+/* Hide every visible bit of the legacy aiImageGenerator block while
+   keeping the dialog markup wired up for the programmatic submit
+   flow. The dialog itself only shows when something calls .showModal()
+   on it, which we never do on this page — but we belt-and-suspender
+   that with display:none on the dialog as well, so an accidental
+   open won't render the old UI on top of the new page. */
+.dtf-ai-page__legacy { display: contents; }
+.dtf-ai-page__legacy .generative-ai-area { display: none !important; }
+.dtf-ai-page__legacy #generative-ai-dialog {
+  /* Native <dialog> only renders when [open] is set. Belt-and-suspender:
+     keep it absolutely-positioned offscreen if some script calls
+     .showModal() so the legacy UI never visually replaces the page. */
+  position: fixed;
+  left: -10000px;
+  top: -10000px;
+}
+
+/* The host wrapper inherits dtfut__ai-host styles from
+   dtf-upload-tabs.css; we only need to undo a couple of bits that
+   assume a tab-panel context. */
+.dtf-ai-page__host {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+/* Hero gets a soft card so the page has visual weight without
+   needing a tabs frame around it. The card is bounded to the viewport
+   so a long chat-results stream stays inside its own scroll area
+   instead of pushing the input row off the page. */
+.dtf-ai-page__host .dtfut__ai-hero {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 18px 36px 30px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.04);
+  /* Cap height aggressively so the "Your recent AI creations" row
+     below the card is always in view without scrolling. The reserve
+     accounts for: page eyebrow + heading + sub above (~170px), the
+     32px gap to the history block, the history heading (~32px), and
+     a comfortable peek of the first row of history thumbnails (~220px
+     including page bottom padding). Min-height keeps the card usable
+     on short laptops. */
+  max-height: calc(100vh - 500px);
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+/* Inside the bounded hero, the scroll container takes the remaining
+   space and scrolls; the input row stays anchored at the bottom. */
+.dtf-ai-page__host .dtfut__ai-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.dtf-ai-page__host .dtfut__ai-hero-input-row {
+  flex: 0 0 auto;
+}
+.dtf-ai-page__host .dtfut__ai-hero-title {
+  text-align: center;
+  font-size: 22px;
+  /* Hide on the standalone page — the page already has its own
+     "Create your design with AI" h1 above the card, so the in-card
+     title is redundant here. The modal still shows it. */
+  display: none;
+}
+.dtf-ai-page__host .dtfut__ai-hero-sub {
+  text-align: center;
+}
+.dtf-ai-page__host .dtfut__ai-hero-prompts {
+  /* Match modal at-load spacing — 75px more breathing room before the
+     describe-your-design input so the page doesn't feel cramped. */
+  margin-bottom: 105px;
+}
+.dtf-ai-page__host .dtfut__ai-hero:has(.dtfut__ai-chat:not(:empty)) .dtfut__ai-hero-prompts {
+  margin-bottom: 30px;
+}
+.dtf-ai-page__host .dtfut__ai-hero-input-row {
+  /* Edge-to-edge — kill the 720px cap inherited from upload-tabs so the
+     input fills the hero card on wide screens. */
+  max-width: none;
+}
+
+/* History block sits below the hero card with its own rhythm. */
+.dtf-ai-page__host .dtfut__ai-history {
+  margin-top: 32px;
+}
+
+/* Mobile tweaks. The tabs CSS already does most of the heavy lifting,
+   but the page-level chrome (heading, eyebrow, hero card padding)
+   needs to scale down. */
+@media (max-width: 749px) {
+  .dtf-ai-page { padding: 20px 12px 64px; }
+  .dtf-ai-page__heading { font-size: 26px; }
+  .dtf-ai-page__sub { font-size: 14px; margin-bottom: 12px; }
+  .dtf-ai-page__host .dtfut__ai-hero {
+    padding: 12px 18px 22px;
+    border-radius: 14px;
+    /* Mobile: smaller page chrome + smaller history thumbnails, so we
+       can reserve a little less and still keep history in view. */
+    max-height: calc(100vh - 420px);
+    min-height: 320px;
+  }
+  .dtf-ai-page__host .dtfut__ai-hero-prompts {
+    margin-bottom: 60px;
+  }
+}
+
+/* ============================================================================
+   5. ENTRY-POINT CARD  (was dtf-create-options-cards.css)
+   ============================================================================ */
+/* =========================================================
+   DTF Create Options Cards
+   ---------------------------------------------------------
+   50/50 side-by-side replacement for the legacy pink AI box
+   + grey "Try our Ninja Design Studio" CTA stack on
+   /products/dtf-transfers (variant A templates). The legacy
+   blocks stay in the DOM so their event handlers + dialogs
+   keep working — they're hidden by the CSS in this file.
+   ========================================================= */
+
+/* Hide the legacy widgets when our new cards are present. Using
+   `:has()` so the rules only apply when the new component is
+   actually rendered on the page; falls back gracefully on browsers
+   without :has() support (those keep showing the legacy boxes). */
+.product-page:has(.dtf-create-options) .generative-ai-area,
+.product-page:has(.dtf-create-options) .delivery-block.print-ready-box,
+body:has(.dtf-create-options) .generative-ai-area,
+body:has(.dtf-create-options) .delivery-block.print-ready-box {
+  display: none !important;
+}
+
+/* Hide the new cards once the user has uploaded a file. `.step__2` is the
+   post-upload UI block — it ships with `.hidden` and the upload pipeline
+   removes that class once a file is in. So `.step__2:not(.hidden)` =
+   "user has uploaded" → cards become irrelevant and would just clutter
+   the post-upload screen. Same `:has()` scoping pattern as above. */
+product-page:has(.step__2:not(.hidden)) .dtf-create-options,
+body:has(.step__2:not(.hidden)) .dtf-create-options {
+  display: none !important;
+}
+
+/* Also hide while the upload is IN PROGRESS — `.step__2` only loses its
+   `.hidden` class after the upload pipeline finishes, so during the
+   "We're making sure your upload is perfect for printing" loading state
+   the cards would briefly flash on top of the progress UI. The presence
+   of `.preview-block.image-loading` (set on the placeholder block while
+   the file is processing) is the reliable in-progress signal. */
+product-page:has(preview-block.image-loading) .dtf-create-options,
+body:has(preview-block.image-loading) .dtf-create-options {
+  display: none !important;
+}
+
+.dtf-create-options {
+  margin: 18px 0 24px;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.dtf-create-options__divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 20px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.dtf-create-options__divider-line {
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+.dtf-create-options__divider-text {
+  flex: 0 0 auto;
+}
+
+.dtf-create-options__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dtf-create-card {
+  position: relative;
+  background: #f5f6f8;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px;
+  /* Desktop: explicit 50/50 split so the body and illustration each
+     occupy half the card. Grid handles vertical alignment per column. */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* Body centers vertically; illustration overrides to bottom-right. */
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  min-height: 170px;
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.dtf-create-card:hover {
+  border-color: #c2c7d3;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+.dtf-create-card__body {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.dtf-create-card__heading {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.dtf-create-card__sub {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: #6b7280;
+  line-height: 1.45;
+}
+.dtf-create-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  transition: opacity .15s ease;
+}
+.dtf-create-card__cta:hover {
+  opacity: 0.85;
+}
+/* AI variant — pink/magenta accent matches the AI brand color used
+   in the .ai-chat-brand label and the AI chip border. */
+.dtf-create-card__cta--ai {
+  color: #ec4899;
+}
+/* Studio variant — sky-blue to match Use Design + the Ninja brand. */
+.dtf-create-card__cta--studio {
+  color: #019aff;
+}
+/* Illustration sits in the right grid column on desktop, taking the full
+   50% width with the artwork right-aligned (the asset's composition
+   already includes the bleed/cropping baked in). */
+.dtf-create-card__illust {
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  height: auto;
+}
+.dtf-create-card__illust--desktop {
+  /* Anchor the illustration to the bottom-right of its grid cell so
+     the artwork sits flush against the card's bottom-right corner.
+     Negative margins let it bleed past the card padding on the right
+     and bottom edges, matching the mockup. */
+  align-self: end;
+  justify-self: end;
+  max-height: 170px;
+  object-fit: contain;
+  object-position: right bottom;
+  margin: 0 -18px -18px 0;
+  width: calc(100% + 18px);
+}
+.dtf-create-card__illust--mobile {
+  display: none;
+}
+
+/* Mobile — single column, text stacked above the illustration. The
+   illustration sits at the bottom of the card and bleeds past the right
+   edge to match the design. Switch from grid back to a row-stacked layout
+   so the body sits naturally on top with the illustration below. */
+@media (max-width: 749px) {
+  .dtf-create-options__grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .dtf-create-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 280px;
+    padding: 22px 22px 0 22px;
+    gap: 12px;
+  }
+  .dtf-create-card__body {
+    flex: 0 0 auto;
+    text-align: center;
+    align-items: center;
+  }
+  .dtf-create-card__heading { font-size: 15px; }
+  .dtf-create-card__sub { font-size: 13px; margin-bottom: 14px; }
+  .dtf-create-card__cta { align-self: center; }
+  .dtf-create-card__illust--desktop {
+    display: none;
+  }
+  .dtf-create-card__illust--mobile {
+    display: block;
+    position: relative;
+    flex: 1 1 auto;
+    width: calc(100% + 22px);
+    max-width: none;
+    margin-left: auto;
+    margin-right: -22px;
+    align-self: flex-end;
+    height: auto;
+    max-height: 220px;
+    object-fit: contain;
+    object-position: right bottom;
+  }
+}
+
+/* ============================================================================
+   6. PAGE-SPECIFIC TWEAKS  (was inline <style> in sections/ai-image-creator.liquid)
+   Scoped under [data-dtf-ai-page] / .dtf-ai-page so they only affect the page.
+   ============================================================================ */
+  .dtf-ai-page {
+    padding-bottom: 20px !important;
+  }
+
+  /* ===== AI page Other Ordering Options modal (mirrors my-designs-panel) ===== */
+  .aip-oo-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 99999; padding: 20px; }
+  .aip-oo-overlay.is-open { display: flex; }
+  .aip-oo-modal { background: #fff; border-radius: 14px; max-width: 720px; width: 100%; max-height: 85vh; box-shadow: 0 20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; overflow: hidden; }
+  .aip-oo-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px 8px; }
+  .aip-oo-title { font-size: 18px; font-weight: 700; color: #111; margin: 0; }
+  .aip-oo-close { background: transparent; border: 0; font-size: 28px; line-height: 1; color: #6b7280; cursor: pointer; padding: 4px 8px; }
+  .aip-oo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 12px 24px 24px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .aip-oo-card { display: flex; flex-direction: column; align-items: center; text-decoration: none; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px 10px 14px; transition: border-color 0.15s, box-shadow 0.15s; cursor: pointer; }
+  .aip-oo-card:hover { border-color: #019AFF; box-shadow: 0 2px 12px rgba(1,154,255,0.12); }
+  .aip-oo-card img { width: 80px; height: 80px; object-fit: contain; border-radius: 6px; margin-bottom: 10px; }
+  .aip-oo-card__name { font-size: 12px; font-weight: 600; color: #111; text-align: center; margin-bottom: 4px; }
+  .aip-oo-card__cta { font-size: 11px; font-weight: 600; color: #019AFF; }
+  @media (max-width: 600px) {
+    .aip-oo-overlay { padding: 0; }
+    .aip-oo-modal { max-width: 100%; border-radius: 0; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; }
+    .aip-oo-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Secondary CTA in the AI selection bar — transparent pill next to the
+     primary blue Order as DTF button. Hidden by default; shown only when
+     the .ai-chat panel's instance is "aipage".
+     Box dimensions mirror `.ai-chat-history-selection-bar__cta` exactly
+     (padding/font/line-height/border-radius) so the two pills render the
+     same size. The 1px border is inside via box-sizing: border-box. */
+  .ai-chat-history-selection-bar__cta-secondary {
+    display: none;
+    background: transparent;
+    color: #019AFF;
+    border: 1px solid #019AFF;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    box-sizing: border-box;
+    transition: background 0.12s ease;
+  }
+  .ai-chat-history-selection-bar__cta-secondary:hover {
+    background: rgba(1, 154, 255, 0.08);
+  }
+  .ai-chat [data-ai-instance="aipage"] ~ * .ai-chat-history-selection-bar__cta-secondary,
+  [data-ai-instance="aipage"] .ai-chat-history-selection-bar__cta-secondary {
+    display: inline-flex;
+  }

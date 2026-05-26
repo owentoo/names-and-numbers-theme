@@ -1,0 +1,139 @@
+{%-liquid
+  assign ss = section.settings
+  assign sb = section.blocks
+-%}
+{{ 'hp-global.css' | asset_url | stylesheet_tag }}
+{{ 'hp-badge-bar.css' | asset_url | stylesheet_tag }}
+
+{% if sb.size > 0 %}
+  <div class="container--large">
+    <div class="hpBadgeBar">
+      <div class="hpBadgeBar__wrap">
+        {%- for block in sb -%}
+          {%- assign b = block.settings -%}
+          <div class="hpBadgeBar__item" style="color: {{ b.text_color }};" {{ block.shopify_attributes }}>
+            <span class="hpBadgeBar__icon">
+              {%- if b.custom_icon != blank -%}
+                <img src="{{ b.custom_icon | image_url: width: 40 }}" alt="" loading="lazy">
+              {%- else -%}
+                {{ b.emoji }}
+              {%- endif -%}
+            </span>
+            {{ b.text }}
+          </div>
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+
+  {%- capture getStyles -%}
+    #shopify-section-{{ section.id }} {
+      background-color: {{ ss.bgColor }};
+      border-top: {{ ss.border_width }}px solid {{ ss.border_color }};
+      border-bottom: {{ ss.border_width }}px solid {{ ss.border_color }};
+    }
+    #shopify-section-{{ section.id }} .hpBadgeBar {
+      padding-top: {{ ss.secPaddingTop_desktop | append: 'px' }};
+      padding-bottom: {{ ss.secPaddingBottom_desktop | append: 'px' }};
+    }
+    @media (max-width: 1024px) {
+      #shopify-section-{{ section.id }} .hpBadgeBar {
+        padding-top: {{ ss.secPaddingTop_tab | append: 'px' }};
+        padding-bottom: {{ ss.secPaddingBottom_tab | append: 'px' }};
+      }
+    }
+    @media (max-width: 600px) {
+      #shopify-section-{{ section.id }} .hpBadgeBar {
+        padding-top: {{ ss.secPaddingTop_mobile | append: 'px' }};
+        padding-bottom: {{ ss.secPaddingBottom_mobile | append: 'px' }};
+      }
+    }
+  {%- endcapture -%}
+  <style>{{ getStyles }}</style>
+{% endif %}
+
+{% schema %}
+{
+  "name": "HP - Badge Bar",
+  "class": "hp-section",
+  "settings": [
+    {
+      "type": "color",
+      "id": "bgColor",
+      "label": "Background Color",
+      "default": "#f9f9f9"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border Color",
+      "default": "#e5e5e5"
+    },
+    {
+      "type": "range",
+      "id": "border_width",
+      "label": "Border Width",
+      "min": 0,
+      "max": 3,
+      "step": 1,
+      "unit": "px",
+      "default": 1
+    },
+    { "type": "header", "content": "Desktop Spacing" },
+    { "type": "range", "id": "secPaddingTop_desktop", "label": "Padding Top", "min": 0, "max": 60, "step": 2, "unit": "px", "default": 16 },
+    { "type": "range", "id": "secPaddingBottom_desktop", "label": "Padding Bottom", "min": 0, "max": 60, "step": 2, "unit": "px", "default": 16 },
+    { "type": "header", "content": "Tablet Spacing" },
+    { "type": "range", "id": "secPaddingTop_tab", "label": "Padding Top", "min": 0, "max": 60, "step": 2, "unit": "px", "default": 14 },
+    { "type": "range", "id": "secPaddingBottom_tab", "label": "Padding Bottom", "min": 0, "max": 60, "step": 2, "unit": "px", "default": 14 },
+    { "type": "header", "content": "Mobile Spacing" },
+    { "type": "range", "id": "secPaddingTop_mobile", "label": "Padding Top", "min": 0, "max": 60, "step": 2, "unit": "px", "default": 12 },
+    { "type": "range", "id": "secPaddingBottom_mobile", "label": "Padding Bottom", "min": 0, "max": 60, "step": 2, "unit": "px", "default": 12 }
+  ],
+  "blocks": [
+    {
+      "type": "badge",
+      "name": "Badge",
+      "limit": 8,
+      "settings": [
+        {
+          "type": "text",
+          "id": "emoji",
+          "label": "Emoji icon",
+          "default": "✓",
+          "info": "Used when no custom icon is uploaded"
+        },
+        {
+          "type": "image_picker",
+          "id": "custom_icon",
+          "label": "Custom icon image",
+          "info": "Overrides the emoji if provided"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Badge text",
+          "default": "100% Satisfaction"
+        },
+        {
+          "type": "color",
+          "id": "text_color",
+          "label": "Text color",
+          "default": "#374151"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "HP - Badge Bar",
+      "blocks": [
+        { "type": "badge", "settings": { "emoji": "✓", "text": "100% Satisfaction", "text_color": "#374151" } },
+        { "type": "badge", "settings": { "emoji": "📦", "text": "Free & Fast Shipping", "text_color": "#374151" } },
+        { "type": "badge", "settings": { "emoji": "🚫", "text": "No Minimums", "text_color": "#374151" } },
+        { "type": "badge", "settings": { "emoji": "🏆", "text": "G7 Certified", "text_color": "#374151" } },
+        { "type": "badge", "settings": { "emoji": "⚡", "text": "24hr Turnaround", "text_color": "#374151" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

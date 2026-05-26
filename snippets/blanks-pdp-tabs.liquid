@@ -1,0 +1,122 @@
+{%- assign _btabs_has_breakdown = false -%}
+{%- if product.metafields.specs.customer_metrics -%}
+  {%- assign _btabs_has_breakdown = true -%}
+{%- endif -%}
+
+<div id="blanks-pdp-tabs-wrap" style="max-width:1400px; margin:40px auto 0; padding:0 20px;">
+
+  <!-- Tab bar: scrollable container on mobile -->
+  <div style="overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:0;">
+    <div id="blanks-tab-bar" style="display:flex; border-bottom:2px solid #e0e0e0; position:relative; min-width:max-content;">
+
+      <button data-btab="description"
+        style="padding:12px 20px; font-size:14px; font-weight:600; border:none; border-bottom:3px solid #2d2d2d; background:none; cursor:pointer; color:#2d2d2d; white-space:nowrap; margin-bottom:-2px; position:relative;">
+        Description
+      </button>
+
+      {%- if _btabs_has_breakdown -%}
+      <button data-btab="breakdown"
+        style="padding:12px 20px; font-size:14px; font-weight:600; border:none; border-bottom:3px solid transparent; background:none; cursor:pointer; color:#888; white-space:nowrap; margin-bottom:-2px; position:relative;">
+        Breakdown
+      </button>
+      {%- endif -%}
+
+      <button data-btab="features"
+        style="padding:12px 20px; font-size:14px; font-weight:600; border:none; border-bottom:3px solid transparent; background:none; cursor:pointer; color:#888; white-space:nowrap; margin-bottom:-2px; position:relative;">
+        Features
+      </button>
+
+      <button data-btab="sizechart"
+        style="padding:12px 20px; font-size:14px; font-weight:600; border:none; border-bottom:3px solid transparent; background:none; cursor:pointer; color:#888; white-space:nowrap; margin-bottom:-2px; position:relative;">
+        Size Chart
+      </button>
+
+      <button data-btab="shipping"
+        style="padding:12px 20px; font-size:14px; font-weight:600; border:none; border-bottom:3px solid transparent; background:none; cursor:pointer; color:#888; white-space:nowrap; margin-bottom:-2px; position:relative;">
+        Shipping &amp; Returns
+      </button>
+
+      <button data-btab="reviews"
+        style="padding:12px 20px; font-size:14px; font-weight:600; border:none; border-bottom:3px solid transparent; background:none; cursor:pointer; color:#888; white-space:nowrap; margin-bottom:-2px; position:relative;">
+        Reviews
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ── Tab panels ─────────────────────────────────────── -->
+
+  <div id="blanks-tab-panel-description" style="padding:30px 0;">
+    {{ product.description }}
+  </div>
+
+  {%- if _btabs_has_breakdown -%}
+  <div id="blanks-tab-panel-breakdown" style="padding:30px 0; display:none;">
+    {%- render 'apparel-product-breakdown' -%}
+  </div>
+  {%- endif -%}
+
+  <div id="blanks-tab-panel-features" style="padding:30px 0; display:none;">
+    {{ product.metafields.custom.specs_features | metafield_tag }}
+  </div>
+
+  <div id="blanks-tab-panel-sizechart" style="padding:30px 0; display:none;">
+    <div style="font-size:0.85em; overflow-x:auto;">
+      {{ product.metafields.specs.sizechart | replace: '"', '' }}
+    </div>
+  </div>
+
+  <div id="blanks-tab-panel-shipping" style="padding:30px 0; display:none;">
+    {{ shop.metaobjects['global_text']['global-text-Ninja'].blanks_shipping_returns | metafield_tag }}
+  </div>
+
+  <div id="blanks-tab-panel-reviews" style="padding:30px 0; display:none;">
+    <h2 style="font-size:22px; text-align:center; margin-bottom:24px;">Ninja Transfers Customer Feedback</h2>
+    <div class="yotpo yotpo-pictures-widget"
+      data-gallery-id="6650b7e621416c002489edda"
+      data-product-id="{{ product.id }}">
+    </div>
+    <div style="border-top:2px solid #eaeaea; padding-top:30px; margin-top:30px;">
+      <div class="yotpo-widget-instance"
+        data-yotpo-instance-id="559369"
+        data-yotpo-product-id="{{ product.id }}"
+        data-yotpo-name="{{ product.title | escape }}"
+        data-yotpo-url="{{ shop.url }}{{ product.url }}"
+        data-yotpo-image-url="{{ product.featured_image | product_img_url: 'large' | replace: '?', '%3F' | replace: '&', '%26' }}"
+        data-yotpo-description="{{ product.description | escape }}">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tab switching JS ───────────────────────────────── -->
+  <script>
+  (function () {
+    var ACTIVE_COLOR  = '#2d2d2d';
+    var INACTIVE_COLOR = '#888';
+
+    function switchTab(tabId) {
+      document.querySelectorAll('#blanks-tab-bar [data-btab]').forEach(function (btn) {
+        btn.style.borderBottomColor = 'transparent';
+        btn.style.color = INACTIVE_COLOR;
+      });
+      document.querySelectorAll('[id^="blanks-tab-panel-"]').forEach(function (panel) {
+        panel.style.display = 'none';
+      });
+      var activeBtn = document.querySelector('#blanks-tab-bar [data-btab="' + tabId + '"]');
+      if (activeBtn) {
+        activeBtn.style.borderBottomColor = ACTIVE_COLOR;
+        activeBtn.style.color = ACTIVE_COLOR;
+      }
+      var panel = document.getElementById('blanks-tab-panel-' + tabId);
+      if (panel) panel.style.display = 'block';
+    }
+
+    document.querySelectorAll('#blanks-tab-bar [data-btab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        switchTab(this.getAttribute('data-btab'));
+      });
+    });
+  }());
+  </script>
+
+</div>

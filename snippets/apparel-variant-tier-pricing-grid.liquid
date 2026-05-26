@@ -1,0 +1,386 @@
+{%- assign page_url = content_for_header
+  | split: '"pageurl":"'
+  | last
+  | split: '"'
+  | first
+  | split: request.host
+  | last
+  | replace: '\/', '/'
+  | replace: '%20', ' '
+  | replace: '\u0026', '&'
+-%}
+{% assign param_color = null %}
+{% assign param_variant_id = null %}
+
+{%- for i in (1..1) -%}
+  {%- unless page_url contains '?' -%}{% break %}{%- endunless -%}
+  {%- assign query_string = page_url | split: '?' | last -%}
+  {%- assign qry_parts = query_string | split: '&' -%}
+
+  {%- for part in qry_parts -%}
+    {%- assign key_and_value = part | split: '=' -%}
+    {%- if key_and_value.size > 1 -%}
+      {% if key_and_value[0] == 'variant' %}
+        {% assign param_arr = key_and_value[1] | split: '_' %}
+        {% assign param_color = param_arr[0] | upcase | url_decode %}
+        {% assign param_variant_id = param_arr[1] %}
+      {% endif %}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor -%}
+
+{% assign defaultVariant = blank %}
+{% assign selectedVariant = blank %}
+{% paginate product.variants by 2049 %}
+{% for variant in product.variants %}
+  {% if variant.inventory_quantity > 0 %}
+    {% assign shirt_color = variant.metafields.specs.shirt_color | upcase %}
+    {% if defaultVariant == blank and variant.metafields.specs.shirt_color == product.metafields.specs.default_child_color %}
+      {% assign defaultVariant = variant %}
+    {% endif %}
+    {% if selectedVariant == blank and param_color and shirt_color == param_color %}
+      {% assign selectedVariant = variant %}
+    {% endif %}
+    {% if defaultVariant != blank and selectedVariant != blank %}
+      {% break %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% endpaginate %}
+{% if selectedVariant == blank %}
+  {% assign selectedVariant = defaultVariant %}
+{% endif %}
+
+{% assign whiteVariantSmall = blank %}
+{% assign whiteVariantFirst = blank %}
+{% assign colorVariantSmall = blank %}
+{% assign colorVariantFirst = blank %}
+{% assign whiteTierPricing = blank %}
+{% assign colorTierPricing = blank %}
+
+{% paginate product.variants by 2049 %}
+  {% for variant in product.variants %}
+    {% if variant.inventory_quantity > 0 %}
+      {% if variant.metafields.specs.shirt_color != blank %}
+        {% if variant.options[0].name == "WHITE" %}
+          {% if whiteVariantFirst == blank %}
+            {% assign whiteVariantFirst = variant %}
+          {% endif %}
+          {% if variant.options[1].name == "S" and whiteVariantSmall == blank %}
+            {% assign whiteVariantSmall = variant %}
+          {% elsif variant.options[1].name == "OS" and whiteVariantSmall == blank %}
+            {% assign whiteVariantSmall = variant %}
+          {% endif %}
+        {% elsif variant.options[0].name == "NATURAL"%}
+        {% else %}
+          {% if colorVariantFirst == blank or variant.price < colorVariantFirst.price %}
+            {% assign colorVariantFirst = variant %}
+          {% endif %}
+          {% if variant.options[1].name == "S" or variant.options[1].name == "OS" %}
+            {% if colorVariantSmall == blank or variant.price < colorVariantSmall.price %}
+              {% assign colorVariantSmall = variant %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+{% endpaginate %}
+
+{% unless whiteVariantSmall == blank  %}
+  {% assign whiteTierPricing = whiteVariantSmall.metafields.custom.tier_pricing | split: ',' %}
+  {% if localization.country.iso_code == "CA" %}
+  {% assign whiteTierPricing = whiteVariantSmall.metafields.custom.tier_pricing_ca | split: ',' %}
+  {% endif %}
+{% endunless%}
+{% if whiteTierPricing == blank %}
+  {% unless whiteVariantFirst == blank  %}
+    {% assign whiteTierPricing = whiteVariantFirst.metafields.custom.tier_pricing | split: ',' %}
+    {% if localization.country.iso_code == "CA" %}
+    {% assign whiteTierPricing = whiteVariantFirst.metafields.custom.tier_pricing_ca | split: ',' %}
+    {% endif %}
+  {% endunless%}
+{% endif %}
+
+{% unless colorVariantSmall == blank  %}
+  {% assign colorTierPricing = colorVariantSmall.metafields.custom.tier_pricing | split: ',' %}
+  {% if localization.country.iso_code == "CA" %}
+  {% assign colorTierPricing = colorVariantSmall.metafields.custom.tier_pricing_ca | split: ',' %}
+  {% endif %}
+{% endunless%}
+{% if colorTierPricing == blank %}
+  {% unless colorVariantFirst == blank  %}
+    {% assign colorTierPricing = colorVariantFirst.metafields.custom.tier_pricing | split: ',' %}
+    {% if localization.country.iso_code == "CA" %}
+    {% assign colorTierPricing = colorVariantFirst.metafields.custom.tier_pricing_ca | split: ',' %}
+    {% endif %}
+  {% endunless%}
+{% endif %}
+
+{% unless selectedVariant == blank %}
+  {% if selectedVariant.options[0].name == "WHITE" %}
+    {% assign whiteTierPricing = selectedVariant.metafields.custom.tier_pricing | split: ',' %}
+    {% if localization.country.iso_code == "CA" %}
+    {% assign whiteTierPricing = selectedVariant.metafields.custom.tier_pricing_ca | split: ',' %}
+    {% endif %}
+  {% else %}
+    {% assign colorTierPricing = selectedVariant.metafields.custom.tier_pricing | split: ',' %}
+    {% if localization.country.iso_code == "CA" %}
+    {% assign colorTierPricing = selectedVariant.metafields.custom.tier_pricing_ca | split: ',' %}
+    {% endif %}
+  {% endif %}
+{% endunless%}
+
+{% if whiteVariantSmall.price > 0 and whiteTierPricing.size == 7 and colorTierPricing.size == 7 %}
+  {% assign whiteMSRP = whiteVariantSmall.price | times: 1.96 %}
+  {% assign colorMSRP = colorVariantSmall.price | times: 1.96 %}
+  <style>
+        .tierPricingGridTable {
+          width:100%;
+        }
+
+        .tierPricingRetailGridTable, .tierPricingBulkGridTable {
+          width:100%;
+        }
+
+        .tierPricingBulkGridTable .percentOff {
+          font-weight:bold;
+          color:#42a9de;
+          font-size:0.7em;
+        }
+
+        .tierPricingBulkGridTable tbody td {
+          border:none;
+          border-bottom:2px solid #eeeeee;
+          padding-top:5px;
+          padding-bottom:5px;
+        }
+
+        .tierPricingBulkGridTable tbody tr.active td {
+            background-color: #e4f4fe;
+            border: none;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        .tierPricingBulkGridTable tbody tr.active td:first-child {
+          border-radius: 5px 0px 0px 5px;
+       }
+           .tierPricingBulkGridTable tbody tr.active td:nth-child(2) {
+          border-radius: 0px 0px 0px 0px;
+       }
+           .tierPricingBulkGridTable tbody tr.active td:last-child {
+          border-radius: 0px 5px 5px 0px;
+       }
+        .tierPricingBulkGridTable tbody tr td {
+            padding: 15px;
+        }
+
+        .tierPricingBulkGridTable td {
+          width:25%;
+        }
+
+        .tierPricingRetailGridTable td {
+          width:25%;
+        }
+
+        .tierPricingGridTable td {
+          border:none;
+          border-bottom:2px solid #f3f3f3;
+          padding:3px;
+        }
+
+        .tierPricingGridTable thead td {
+          font-weight:bold;
+        }
+
+        .tierPricingGridTable .percentOff {
+          font-weight:bold;
+          color:#42a9de;
+          font-size:0.7em;
+        }
+
+        .tierPricingBulkGridTable .tierRow td {
+          border-bottom:1px solid ##eeeeee;
+          padding-top:15px;
+          padding-bottom:15px;
+        }
+
+        .tierPricingBulkGridTable {
+          font-weight:bold;
+        }
+        .ninja-tierPricing-title{
+          font-weight:700;
+          font-size:22px;
+          margin: 40px 0 6px 0;
+          padding-left: 15px;
+        }
+        .ninja-tierPricing-title .ninja-tp-highlight{
+          color:#42a9de;
+        }
+        .ninja-tierPricing-subtext{
+          font-size:13px;
+          font-weight:400;
+          color:#888;
+          margin: 4px 0 8px 0;
+          padding-left: 15px;
+        }
+        .ninja-tierPricing-subtext .ninja-tp-bold{
+          font-weight:500;
+        }
+        .ninja-tierPricing-wrapper {
+          margin-right: 4rem;
+          margin-left: -15px;
+        }
+        @media(max-width:767px){
+        .ninja-tierPricing-wrapper {
+            margin-right: 0;
+            margin-left: 0;
+            margin-bottom: -30px !important;
+        }
+          .ninja-pricingTier-from-product{
+            display:none;
+          }
+          .product-custom-liquid:has(.product-uploadBtn-wrapper) {
+            margin: 0 !important;
+          }
+        }
+       @media(min-width:768px){
+         .ninja-pricingTier-from-product{
+            display:block;
+          }
+        .product-text .ninja-tierPricing-wrapper{
+           display:none
+         }
+      }
+  </style>
+  <div class="ninja-tierPricing-wrapper" style="margin-bottom:2rem;">
+    <div class="ninja-tierPricing-title">Buy More <span class="ninja-tp-highlight">Save More</span></div>
+    <div class="ninja-tierPricing-subtext">Volume discounts applied <span class="ninja-tp-bold">automatically at checkout</span></div>
+    <div class="ninja-tierPricing-table-wrapper">
+      <table class="tierPricingBulkGridTable">
+        <thead>
+          <tr>
+            <td style="font-weight:bold;padding:15px;border-bottom:1px solid #eeeeee;">
+              Cart Total
+            </td>
+            <td style="font-weight:bold;padding:15px;border-bottom:1px solid #eeeeee;">
+              White
+            </td>
+            <td style="font-weight:bold;padding:15px;border-bottom:1px solid #eeeeee;">
+              Colors
+            </td>
+          </tr>
+        </thead>
+        <tbody style="">
+          <tr class="tierRow tier1">
+            <td style="">$99+</td>
+            <td style="color:#03406C;">
+              {{ whiteTierPricing[0] | money }}
+              <span class="percentOff">
+                {{- whiteMSRP | minus: whiteTierPricing[0] | divided_by: whiteMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+            <td style="color:#03406C;">
+              {{ colorTierPricing[0] | money }}
+              <span class="percentOff">
+                {{- colorMSRP | minus: colorTierPricing[0] | divided_by: colorMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+          </tr>
+          <tr class="tierRow tier2">
+            <td style="">$150+</td>
+            <td style="color:#03406C;">
+              {{ whiteTierPricing[1] | money }}
+              <span class="percentOff">
+                {{- whiteMSRP | minus: whiteTierPricing[1] | divided_by: whiteMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+            <td style="color:#03406C;">
+              {{ colorTierPricing[1] | money }}
+              <span class="percentOff">
+                {{- colorMSRP | minus: colorTierPricing[1] | divided_by: colorMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+          </tr>
+          <tr class="tierRow tier3">
+            <td style="">$250+</td>
+            <td style="color:#03406C;">
+              {{ whiteTierPricing[2] | money }}
+              <span class="percentOff">
+                {{- whiteMSRP | minus: whiteTierPricing[2] | divided_by: whiteMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+            <td style="color:#03406C;">
+              {{ colorTierPricing[2] | money }}
+              <span class="percentOff">
+                {{- colorMSRP | minus: colorTierPricing[2] | divided_by: colorMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+          </tr>
+          <tr class="tierRow tier4">
+            <td style="">$500+</td>
+            <td style="color:#03406C;">
+              {{ whiteTierPricing[3] | money }}
+              <span class="percentOff">
+                {{- whiteMSRP | minus: whiteTierPricing[3] | divided_by: whiteMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+            <td style="color:#03406C;">
+              {{ colorTierPricing[3] | money }}
+              <span class="percentOff">
+                {{- colorMSRP | minus: colorTierPricing[3] | divided_by: colorMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+          </tr>
+          <tr class="tierRow tier5">
+            <td style="">$1,000+</td>
+            <td style="color:#03406C;">
+              {{ whiteTierPricing[4] | money }}
+              <span class="percentOff">
+                {{- whiteMSRP | minus: whiteTierPricing[4] | divided_by: whiteMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+            <td style="color:#03406C;">
+              {{ colorTierPricing[4] | money }}
+              <span class="percentOff">
+                {{- colorMSRP | minus: colorTierPricing[4] | divided_by: colorMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+          </tr>
+          <tr class="tierRow tier6">
+            <td style="">$1,750+</td>
+            <td style="color:#03406C;">
+              {{ whiteTierPricing[5] | money }}
+              <span class="percentOff">
+                {{- whiteMSRP | minus: whiteTierPricing[5] | divided_by: whiteMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+            <td style="color:#03406C;">
+              {{ colorTierPricing[5] | money }}
+              <span class="percentOff">
+                {{- colorMSRP | minus: colorTierPricing[5] | divided_by: colorMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+          </tr>
+          <tr class="tierRow tier7">
+            <td style="">$3,800+</td>
+            <td style="color:#03406C;">
+              {{ whiteTierPricing[6] | money }}
+              <span class="percentOff">
+                {{- whiteMSRP | minus: whiteTierPricing[6] | divided_by: whiteMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+            <td style="color:#03406C;">
+              {{ colorTierPricing[6] | money }}
+              <span class="percentOff">
+                {{- colorMSRP | minus: colorTierPricing[6] | divided_by: colorMSRP | times: 100 | round }}% off</span
+              >
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="padding-top:10px;font-size:0.8em;padding-bottom:10px;">Prices are for sizes S - XL</div>
+    </div>
+  </div>
+{% endif %}

@@ -1,0 +1,500 @@
+{% doc %}
+  @prompt
+    make me a section that follows the themes max width and all padding and margin rules. I need a div within in i need an assignable h1 or h2 with text  below that i need para text, all text needs weight, color and size options for desktop and mobile. Section needs the option to have a photo with optional overlay, color, or gradient background, the contect also needs an option to align it to the left right or center of the sections max width, give me top and bottom margin and padding options for the section
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-content-block-{{ ai_gen_id }} {
+    padding: {{ block.settings.padding_top }}px 0 {{ block.settings.padding_bottom }}px;
+    margin-top: {{ block.settings.margin_top }}px;
+    margin-bottom: {{ block.settings.margin_bottom }}px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ai-content-block__wrapper-{{ ai_gen_id }} {
+    max-width: {{ settings.theme_max_width }}px;
+    margin: 0 auto;
+    padding: 0 {{ settings.grid_gap }}px;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: {{ block.settings.content_position }};
+  }
+
+  .ai-content-block__inner-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    align-items: {{ block.settings.text_alignment }};
+    text-align: {{ block.settings.text_alignment }};
+    max-width: {{ block.settings.content_width }}px;
+  }
+
+  .ai-content-block__heading-{{ ai_gen_id }} {
+    margin-top: 0;
+    margin-bottom: {{ block.settings.heading_spacing }}px;
+    font-weight: {{ block.settings.heading_weight }};
+    color: {{ block.settings.heading_color }};
+    font-size: {{ block.settings.heading_size }}px;
+    line-height: 1.2;
+  }
+
+  .ai-content-block__text-{{ ai_gen_id }} {
+    margin: 0;
+    font-weight: {{ block.settings.text_weight }};
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.text_size }}px;
+    line-height: 1.5;
+  }
+
+  .ai-content-block__background-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  .ai-content-block__bg-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-content-block__bg-overlay-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    {% if block.settings.background_type == 'image_with_overlay' %}
+      background-color: {{ block.settings.overlay_color | color_modify: 'alpha', block.settings.overlay_opacity }};
+    {% elsif block.settings.background_type == 'gradient' %}
+      background: linear-gradient(to bottom, {{ block.settings.gradient_color_1 }}, {{ block.settings.gradient_color_2 }});
+    {% elsif block.settings.background_type == 'color' %}
+      background-color: {{ block.settings.background_color }};
+    {% endif %}
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-content-block-{{ ai_gen_id }} {
+      padding: {{ block.settings.padding_top_mobile }}px 0 {{ block.settings.padding_bottom_mobile }}px;
+      margin-top: {{ block.settings.margin_top_mobile }}px;
+      margin-bottom: {{ block.settings.margin_bottom_mobile }}px;
+    }
+    
+    .ai-content-block__heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size_mobile }}px;
+      margin-bottom: {{ block.settings.heading_spacing_mobile }}px;
+    }
+
+    .ai-content-block__text-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_mobile }}px;
+    }
+
+    .ai-content-block__wrapper-{{ ai_gen_id }} {
+      padding: 0 20px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-content-block-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  {% if block.settings.background_type == 'image' or block.settings.background_type == 'image_with_overlay' %}
+    <div class="ai-content-block__background-{{ ai_gen_id }}">
+      {% if block.settings.background_image %}
+        <img 
+          src="{{ block.settings.background_image | image_url: width: 2000 }}"
+          alt="{{ block.settings.background_image.alt | escape }}"
+          width="{{ block.settings.background_image.width }}"
+          height="{{ block.settings.background_image.height }}"
+          loading="lazy"
+          class="ai-content-block__bg-image-{{ ai_gen_id }}"
+        >
+      {% else %}
+        <div class="ai-content-block__bg-image-{{ ai_gen_id }}">{{ 'image' | placeholder_svg_tag }}
+        </div>
+      {% endif %}{% if block.settings.background_type == 'image_with_overlay' %}
+        <div class="ai-content-block__bg-overlay-{{ ai_gen_id }}"></div>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="ai-content-block__bg-overlay-{{ ai_gen_id }}"></div>
+  {% endif %}
+
+  <div class="ai-content-block__wrapper-{{ ai_gen_id }}">
+    <div class="ai-content-block__inner-{{ ai_gen_id }}">
+      {% if block.settings.heading != blank %}
+        {% if block.settings.heading_tag == 'h1' %}
+          <h1 class="ai-content-block__heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h1>
+        {% else %}
+          <h2 class="ai-content-block__heading-{{ ai_gen_id }}">{{ block.settings.heading }}</h2>
+        {% endif %}
+      {% endif %}
+
+      {% if block.settings.text != blank %}
+        <div class="ai-content-block__text-{{ ai_gen_id }}">{{ block.settings.text }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Content Block",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "label": "Heading tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        }
+      ],
+      "default": "h2"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Content Block Heading"
+    },
+    {
+      "type": "textarea",
+      "id": "text",
+      "label": "Text",
+      "default": "Share information about your brand with your customers. Describe a product, make announcements, or welcome customers to your store."
+    },
+    {
+      "type": "select",
+      "id": "content_position",
+      "label": "Content position",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "content_width",
+      "min": 400,
+      "max": 1200,
+      "step": 50,
+      "unit": "px",
+      "label": "Content width",
+      "default": 800
+    },
+    {
+      "type": "header",
+      "content": "Heading Style"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 20,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (desktop)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 16,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (mobile)",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "heading_weight",
+      "min": 400,
+      "max": 900,
+      "step": 100,
+      "label": "Heading weight",
+      "default": 700
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "heading_spacing",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Space after heading (desktop)",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "heading_spacing_mobile",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Space after heading (mobile)",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Text Style"
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (desktop)",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (mobile)",
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "text_weight",
+      "min": 300,
+      "max": 700,
+      "step": 100,
+      "label": "Text weight",
+      "default": 400
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#333333"
+    },
+    {
+      "type": "header",
+      "content": "Background"
+    },
+    {
+      "type": "select",
+      "id": "background_type",
+      "label": "Background type",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "color",
+          "label": "Color"
+        },
+        {
+          "value": "image",
+          "label": "Image"
+        },
+        {
+          "value": "image_with_overlay",
+          "label": "Image with overlay"
+        },
+        {
+          "value": "gradient",
+          "label": "Gradient"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#f4f4f4",
+      "info": "Used when background type is 'Color'"
+    },
+    {
+      "type": "image_picker",
+      "id": "background_image",
+      "label": "Background image",
+      "info": "Used when background type is 'Image' or 'Image with overlay'"
+    },
+    {
+      "type": "color",
+      "id": "overlay_color",
+      "label": "Overlay color",
+      "default": "#000000",
+      "info": "Used when background type is 'Image with overlay'"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0.1,
+      "max": 0.9,
+      "step": 0.1,
+      "label": "Overlay opacity",
+      "default": 0.5,
+      "info": "Used when background type is 'Image with overlay'"
+    },
+    {
+      "type": "color",
+      "id": "gradient_color_1",
+      "label": "Gradient color 1",
+      "default": "#3182CE",
+      "info": "Used when background type is 'Gradient'"
+    },
+    {
+      "type": "color",
+      "id": "gradient_color_2",
+      "label": "Gradient color 2",
+      "default": "#2B6CB0",
+      "info": "Used when background type is 'Gradient'"
+    },
+    {
+      "type": "header",
+      "content": "Spacing (Desktop)"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 60
+    },
+    {
+      "type": "header",
+      "content": "Spacing (Mobile)"
+    },
+    {
+      "type": "range",
+      "id": "margin_top_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom_mobile",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_top_mobile",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_mobile",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 40
+    }
+  ],
+  "presets": [
+    {
+      "name": "Content Block"
+    }
+  ]
+}
+{% endschema %}

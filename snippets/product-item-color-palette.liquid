@@ -1,0 +1,165 @@
+{%- liquid
+  assign shirt_style = product.metafields.specs.shirt_style | strip
+  assign show_palette = false
+  if show_collection_color_palette and product != blank and shirt_style != blank
+    assign show_palette = true
+  endif
+
+  assign palette_limit = palletcount | default: 5 | plus: 0
+  if palette_limit <= 0
+    assign palette_limit = 5
+  endif
+
+  assign product_card_url = product_url | default: product.url
+-%}
+
+{%- if show_palette -%}
+  {%- assign style_category = 'style-' | append: shirt_style -%}
+  {%- assign style_collection = collections[style_category] -%}
+  {%- if style_collection == blank -%}
+    {%- assign style_collection = product.collections | where: 'handle', style_category | first -%}
+  {%- endif -%}
+  {%- assign seen_color_keys = '|' -%}
+  {%- assign color_markup = '' -%}
+  {%- assign color_count = 0 -%}
+  {%- assign remaincount = 0 -%}
+
+  {%- for product_option in product.options_with_values -%}
+    {%- for product_option_value in product_option.values -%}
+      {%- assign color_variant = product_option_value.variant -%}
+      {%- if color_variant == blank -%}
+        {%- continue -%}
+      {%- endif -%}
+
+      {%- liquid
+        assign inventory_qty = color_variant.inventory_quantity
+        if localization.country.iso_code == 'CA'
+          assign inventory_qty = color_variant.metafields.custom.ss_ca_inventory | default: color_variant.inventory_quantity
+        endif
+        if inventory_qty <= 0
+          continue
+        endif
+
+        assign c_name = color_variant.metafields.specs.shirt_color | default: color_variant.option1 | strip
+        assign c_query = color_variant.option1 | strip
+        if c_query == blank
+          assign c_query = c_name
+        endif
+        assign c_key = c_name | downcase
+        if c_key == blank
+          continue
+        endif
+
+        assign c_token = '|' | append: c_key | append: '|'
+        if seen_color_keys contains c_token
+          continue
+        endif
+
+        assign seen_color_keys = seen_color_keys | append: c_key | append: '|'
+        assign c_hex = color_variant.metafields.specs.shirt_prim_hex | strip
+        if c_hex == blank or c_hex == '0'
+          assign c_hex = '000000'
+        endif
+        unless c_hex contains '#'
+          assign c_hex = '#' | append: c_hex
+        endunless
+
+        assign c_sec_hex = color_variant.metafields.specs.shirt_sec_hex | strip
+        if c_sec_hex != blank and c_sec_hex != '0' and c_sec_hex.size == 5
+          assign c_sec_hex = c_sec_hex | append: '0'
+        endif
+        if c_sec_hex != blank and c_sec_hex != '0'
+          unless c_sec_hex contains '#'
+            assign c_sec_hex = '#' | append: c_sec_hex
+          endunless
+        endif
+
+        assign matched_product = blank
+      -%}
+
+      {%- if style_collection != blank -%}
+        {%- paginate style_collection.products by 1000 -%}
+          {%- assign sorted_style_products = style_collection.products | sort: 'url' -%}
+          {%- for style_product in sorted_style_products -%}
+            {%- liquid
+              assign style_color_name = style_product.metafields.specs.shirt_color | strip
+              assign style_color_key = style_color_name | downcase
+              if style_color_key != c_key
+                continue
+              endif
+
+              assign style_inventory_total = 0
+              for style_variant in style_product.variants
+                assign style_inventory_qty = style_variant.inventory_quantity
+                if localization.country.iso_code == 'CA'
+                  assign style_inventory_qty = style_variant.metafields.custom.ss_ca_inventory | default: style_variant.inventory_quantity
+                endif
+                assign style_inventory_total = style_inventory_total | plus: style_inventory_qty
+              endfor
+              if style_inventory_total <= 0
+                continue
+              endif
+
+              assign matched_product = style_product
+              break
+            -%}
+          {%- endfor -%}
+        {%- endpaginate -%}
+      {%- endif -%}
+
+      {%- liquid
+        assign swatch_product = matched_product | default: product
+        assign swatch_variant = color_variant
+        if matched_product != blank
+          assign swatch_variant = matched_product.selected_or_first_available_variant | default: matched_product.variants.first
+        endif
+        assign swatch_image = swatch_variant.featured_media.preview_image | default: swatch_variant.image | default: swatch_product.featured_media.preview_image | default: swatch_product.featured_image
+        assign swatch_image_id = swatch_image.id
+        assign swatch_image_alt = swatch_product.title
+        if swatch_image != blank and swatch_image.alt != blank
+          assign swatch_image_alt = swatch_image.alt
+        endif
+      -%}
+
+      {%- if color_count < palette_limit -%}
+        {%- capture swatch_markup -%}
+          <span
+            class="product-item__color-chip"
+            title="{{ c_name | escape }}"
+            aria-label="{{ c_name | escape }}"
+            aria-pressed="false"
+            role="button"
+            tabindex="0"
+            data-product-color-chip
+            data-color-name="{{ c_name | escape }}"
+            data-color-key="{{ c_key | escape }}"
+            {% if swatch_product != blank %}data-product-handle="{{ swatch_product.handle | escape }}"{% endif %}
+            {% if swatch_variant != blank %}data-variant-id="{{ swatch_variant.id }}"{% endif %}
+            {% if swatch_image_id != blank %}data-image-id="{{ swatch_image_id }}"{% endif %}
+            {% if swatch_image != blank %}data-image-src="{{ swatch_image | image_url: width: 480 | escape }}"{% endif %}
+            {% if swatch_image != blank %}data-image-srcset="{{ swatch_image | image_url: width: 240 | escape }} 240w, {{ swatch_image | image_url: width: 360 | escape }} 360w, {{ swatch_image | image_url: width: 480 | escape }} 480w, {{ swatch_image | image_url: width: 640 | escape }} 640w, {{ swatch_image | image_url: width: 840 | escape }} 840w"{% endif %}
+            data-image-alt="{{ swatch_image_alt | escape }}"
+            style="--product-item-color-chip:{% if c_sec_hex != blank and c_sec_hex != '0' %}repeating-linear-gradient(90deg,{{ c_hex }},{{ c_hex }} 15px,{{ c_sec_hex }} 15px,{{ c_sec_hex }} 30px){% else %}{{ c_hex }}{% endif %};"
+          ></span>
+        {%- endcapture -%}
+        {%- assign color_markup = color_markup | append: swatch_markup -%}
+      {%- else -%}
+        {%- assign remaincount = remaincount | plus: 1 -%}
+      {%- endif -%}
+
+      {%- assign color_count = color_count | plus: 1 -%}
+    {%- endfor -%}
+  {%- endfor -%}
+
+  {%- if remaincount > 0 -%}
+    {%- capture swatch_colorcount -%}
+      <a href="{{ product_card_url }}" class="product-item__color__anchor product-item__color-chip--more" title="{{ '+' | append: remaincount | append : " more" }}" aria-label="{{ '+' | append: remaincount }}">+{{ remaincount }}</a>
+    {%- endcapture -%}
+  {%- endif -%}
+
+  {%- if color_count > 0 -%}
+    <div class="product-item__color-palette" data-product-color-palette aria-label="{{ product.title | escape }} available colors">
+      {{- color_markup -}}{{- swatch_colorcount -}}
+    </div>
+  {%- endif -%}
+{%- endif -%}

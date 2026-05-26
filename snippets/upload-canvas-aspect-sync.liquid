@@ -1,0 +1,187 @@
+{%- comment -%}
+  upload-canvas-aspect-sync
+
+  Resizes the upload preview canvas (`file-preview`) to match the natural
+  aspect ratio of the currently displayed `.fileupload_hero` IMG, so the
+  canvas always hugs the visible image edge-to-edge — no letterboxing
+  white bands on the sides when the image is more square than the
+  CSS-computed canvas, no white bands top/bottom when it's taller, etc.
+
+  Why this is needed: the static CSS in transferBySize.css sets
+  `file-preview { max-width: 415px; max-height: 400px; aspect-ratio: 1/1 }`
+  with `file-preview[show-dimensions] { width: calc(100% - 23px) }`. For a
+  square image those rules conflict — width gets forced to 415 but height
+  caps at 400, so the container ends up 415×400 (not square) and the
+  square IMG gets letterboxed inside it. The bg-remove and upscale toggles
+  swap the IMG src to a file with a different aspect ratio, but nothing
+  re-syncs the container — so the dead-space band stays after every
+  toggle.
+
+  This snippet:
+    1. Listens for `load` events on `.fileupload_hero` IMGs (catches
+       initial render plus every src swap).
+    2. Computes a width/height pair that fits the IMG's natural aspect
+       ratio inside a max bounding box (defaulting to the existing
+       max-width 415, height capped to match width so square images get a
+       true square canvas).
+    3. Sets those as inline styles on the parent `<file-preview>` with
+       !important so they override the static CSS.
+
+  Cart/print pipeline is untouched — the only thing changing is the
+  CSS box that wraps the IMG element on screen.
+{%- endcomment -%}
+
+<script>
+(function () {
+  /* Default ceiling matches the static `max-width: 415px` rule on
+     file-preview so we don't grow the standalone PDP canvas beyond
+     what the layout was designed for. Inside the multi-upload modal
+     (`.multiupload-files`) the column is much wider, so we lift the
+     ceiling — otherwise the canvas leaves a huge dead band on each
+     side of the modal. */
+  var DEFAULT_MAX_BOUND = 415;
+  var MULTIUPLOAD_MAX_BOUND = 760;
+  var IMG_SELECTOR = '.fileupload_hero';
+
+  function sync(img) {
+    if (!img || !img.naturalWidth || !img.naturalHeight) return;
+    var fp = img.closest('file-preview');
+    if (!fp) return;
+
+    var inMultiupload = !!fp.closest('.multiupload-files');
+    var MAX_BOUND = inMultiupload ? MULTIUPLOAD_MAX_BOUND : DEFAULT_MAX_BOUND;
+
+    /* Sum the border + padding on every wrapper between the IMG and
+       file-preview (inclusive of file-preview). The intermediate
+       <preview-block> has a 2px border-box border, which shrinks the
+       IMG's actual rendering area below file-preview's outer size — if
+       we don't account for it, a non-square IMG ends up letterboxed
+       inside an incorrectly-shaped inner content area. */
+    var chromeX = 0, chromeY = 0;
+    var node = img.parentElement;
+    while (node) {
+      var ncs = getComputedStyle(node);
+      chromeX += parseFloat(ncs.borderLeftWidth) + parseFloat(ncs.borderRightWidth)
+              +  parseFloat(ncs.paddingLeft)     + parseFloat(ncs.paddingRight);
+      chromeY += parseFloat(ncs.borderTopWidth)  + parseFloat(ncs.borderBottomWidth)
+              +  parseFloat(ncs.paddingTop)      + parseFloat(ncs.paddingBottom);
+      if (node === fp) break;
+      node = node.parentElement;
+    }
+
+    /* Cap the bounding box so we never overflow on mobile. We check
+       three sources and take the smallest:
+         1. MAX_BOUND (415) — desktop ceiling
+         2. parent.clientWidth minus parent's own horizontal padding —
+            so the canvas fits inside its container content box
+         3. viewport width minus a 24px safe margin — guards against
+            cases where the parent has already been expanded by a
+            previously-oversized canvas (feedback loop), which would
+            otherwise let the parent width report bigger than fits */
+    var bound = MAX_BOUND;
+    var parent = fp.parentElement;
+    if (parent) {
+      var pcs = getComputedStyle(parent);
+      var parentInner = parent.clientWidth
+        - parseFloat(pcs.paddingLeft)
+        - parseFloat(pcs.paddingRight);
+      if (parentInner > 0) bound = Math.min(bound, parentInner);
+    }
+    var viewportW = document.documentElement.clientWidth || window.innerWidth || 0;
+    if (viewportW > 0) {
+      bound = Math.min(bound, viewportW - 24);
+    }
+
+    /* When the dimensions ruler is shown, leave room on BOTH sides so
+       the file-preview can sit centered (auto margins below) without
+       the height label clipping the left edge. The original CSS uses
+       `width: calc(100% - 23px); margin-right: 0` which right-aligns
+       the file-preview; that puts the entire 23px gap on the left for
+       the label. We're switching to centered, so we reserve roughly
+       23px on each side (label needs ~26px from the canvas left edge
+       once the rotated text is accounted for). */
+    if (fp.hasAttribute('show-dimensions')) {
+      bound -= 46;
+    }
+
+    var ratio  = img.naturalWidth / img.naturalHeight;
+    var maxInW = bound - chromeX;
+    /* Always fill the available width so the canvas matches the
+       column width used by sibling controls (size inputs, etc.).
+       Height follows from the image's natural aspect ratio so the IMG
+       still fills the canvas edge-to-edge with no letterboxing. The
+       previous logic clamped height at `bound - chromeY`, which forced
+       taller-than-square images to render narrower than the column —
+       creating the gutter mismatch the user reported in the multi-
+       upload modal. */
+    var inW = maxInW;
+    var inH = inW / ratio;
+
+    /* Round to whole pixels so we don't end up with sub-pixel rounding
+       leaving a 1px sliver. */
+    var w = Math.round(inW + chromeX);
+    var h = Math.round(inH + chromeY);
+
+    fp.style.setProperty('width',        w + 'px', 'important');
+    fp.style.setProperty('height',       h + 'px', 'important');
+    fp.style.setProperty('max-width',    w + 'px', 'important');
+    fp.style.setProperty('max-height',   h + 'px', 'important');
+    fp.style.setProperty('aspect-ratio', 'auto',   'important');
+    /* Center the file-preview in its parent. The base CSS uses
+       `margin: 20px auto 4px` (centered) but `file-preview[show-dimensions]`
+       overrides margin-right to 0, which right-aligns the canvas and
+       leaves an oversized gap on the left once we shrink width to
+       match the image's aspect. Force both horizontal margins to auto
+       so the canvas stays centered regardless of show-dimensions. */
+    fp.style.setProperty('margin-left',  'auto', 'important');
+    fp.style.setProperty('margin-right', 'auto', 'important');
+  }
+
+  function syncAll() {
+    document.querySelectorAll(IMG_SELECTOR).forEach(function (img) {
+      if (img.complete && img.naturalWidth) sync(img);
+    });
+  }
+
+  /* IMG `load` events don't bubble, so use capture to catch them. */
+  document.addEventListener('load', function (e) {
+    var t = e.target;
+    if (t && t.matches && t.matches(IMG_SELECTOR)) sync(t);
+  }, true);
+
+  /* Catch the initial render (image was already loaded before this script
+     ran) plus any src changes that happened too fast to catch via load. */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', syncAll);
+  } else {
+    syncAll();
+  }
+  setTimeout(syncAll, 500);
+  setTimeout(syncAll, 1500);
+
+  /* Watch for src changes on existing IMGs and for new IMGs being added
+     (multi-upload clones IMGs out of <template>s when files are added). */
+  if (typeof MutationObserver !== 'undefined') {
+    new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        var m = mutations[i];
+        if (m.type === 'attributes' && m.attributeName === 'src') {
+          var t = m.target;
+          if (t && t.matches && t.matches(IMG_SELECTOR)) {
+            if (t.complete && t.naturalWidth) sync(t);
+            /* If not yet complete, the `load` listener above will fire. */
+          }
+        } else if (m.type === 'childList' && m.addedNodes && m.addedNodes.length) {
+          syncAll();
+          break;
+        }
+      }
+    }).observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src']
+    });
+  }
+})();
+</script>

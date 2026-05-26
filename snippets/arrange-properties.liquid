@@ -1,0 +1,339 @@
+{% assign _uploadFile = "" %}
+{% assign _upload_file = "" %}
+{% assign wD = "" %}
+{% assign hD = "" %}
+{% assign pGS = "" %}
+{% assign pCut = "" %}
+{% assign egs = "" %}
+{% assign dName = "" %}
+{% assign sName = "" %}
+{% assign iCount = "" %}
+{% assign disexit = disexit | split : " " | join : "_" %}
+{% assign disexit = disexit | split : "+" | join : "" %}
+{% assign disexit = disexit | downcase %}
+{% assign line_qty = qty | plus: 0 %}
+{% assign min_reach = 0 %}
+{% assign disexit ="" %}
+{% assign _psize = properties | size %}
+{% if _psize > 0 %}
+  {% liquid
+    assign upsell = ""
+    for prp in properties
+      if prp.first == "_upsell"
+        assign upsell = prp.last
+      endif
+    endfor
+  %}
+  
+{%- for p in properties -%}
+  {% assign pfirst = p.first | downcase %}
+  
+    {%- if pfirst == '_discount_input' -%}
+      {% liquid
+        assign _disdata = properties["_discount_name"] | url_decode | url_decode
+        assign _disTitleList = _disdata | split : "#"
+        assign discountList = p.last | url_decode  | url_decode  | url_decode
+
+        assign discountList = discountList | split : "#"
+        for _dis in discountList
+          assign _dis = _dis | url_decode | url_decode
+        
+          if disexit == ""
+            assign split_list = _dis | split : "-"
+            assign _min = split_list.first | split : "_"
+            assign _minVal = _min.last | plus: 0
+            assign _off = split_list.last
+            if _minVal < line_qty
+              continue
+            endif
+        
+            if _minVal > line_qty and min_reach < 1
+                assign min_reach = 1
+                echo "<span class='_discount-list' data-min='" | append : _minVal | append : "' data-max='" | append : _off | append : "'></span>"
+                break
+            endif
+        
+          else
+
+            assign _disName = _disTitleList[forloop.index] | split : " " | join: ""
+        
+              if _disName == disexit
+                assign nxt = forloop.index | plus : 1
+                assign split_list = discountList[nxt] | split : "-"
+                assign _min = split_list.first | split : "_"
+                assign _minVal = _min.last | plus: 0
+                assign _off = split_list.last
+                echo "<span class='_discount-list discount-name' data-min='" | append : _minVal | append : "' data-max='" | append : _off | append : "'></span>"
+                break;
+              endif
+      
+            endif
+        endfor
+      %}
+    {% endif %}
+  {% assign uploadtext = "Upload" %}
+  {%- comment -%}
+    The 'upload (vector files preferred)', 'preview', and 'edit' line item
+    properties are renamed to '_upload (vector files preferred)', '_preview',
+    and '_edit' at the cart-add boundary (see assets/hide-upload-property.js)
+    so Shopify auto-hides them from the customer-facing checkout. We still
+    want the cart page to render them, so accept both names below.
+  {%- endcomment -%}
+  {%- if pfirst == 'upload (vector files preferred)' or pfirst == '_upload (vector files preferred)' -%}
+    {%liquid
+      assign _upload_file = p.last
+      assign _uploadFile = p.last | split : "/"
+      assign isbg = properties["Remove Background"] | downcase
+      if isbg == "no"
+        assign _upload_file = _upload_file | replace : "?bg-remove=true" , ""
+      endif
+    %}
+  {%- endif -%}
+  {%- comment -%}
+    Accept BOTH `width`/`height` and the underscore-prefixed `_width`/`_height`
+    variants. assets/hide-upload-property.js renames width/height at the
+    cart-add request boundary so they're hidden from Shopify-hosted checkout
+    / order email / order status. The cart still composes the visible
+    "Size: W in x H in" row here from whichever form survives in the line
+    item properties.
+  {%- endcomment -%}
+  {%- if pfirst == 'width' or pfirst == '_width' -%}
+    {% assign wD = p.last %}
+  {%- endif -%}
+  {%- if pfirst == '_design name' -%}
+    {% assign uploadtext = p.last %}
+  {%- endif -%}
+  {%- if pfirst == 'height' or pfirst == '_height' -%}
+    {% assign hD = p.last %}
+  {%- endif -%}
+  {%- if pfirst == 'preview' or pfirst == '_preview' -%}
+    {% assign pGS = p.last %}
+  {%- endif -%}
+  {%- if pfirst == 'precut' -%}
+    {% assign pCut = p.last %}
+  {%- endif -%}
+  {%- if pfirst == 'edit' or pfirst == '_edit' -%}
+    {% assign egs = p.last | replace: '&amp;', '&' | replace: '&quot;', '"'  %}
+  {%- endif -%}
+  {%- if pfirst == 'design name' -%}
+    {% assign dName = p.last %}
+  {%- endif -%}
+  {%- if pfirst == 'sheet name' -%}
+    {% assign sName = p.last %}
+  {%- endif -%}
+  {%- if pfirst == 'image count' -%}
+    {% assign iCount = p.last %}
+  {%- endif -%}
+{%- endfor -%}
+      
+  {% assign _enable_edit = lineItem.product.metafields.custom.custom_enable_size_edit %}
+  {%- comment -%}
+    Names & Numbers line items don't use the bySize edit-dimensions modal —
+    their dimensions are computed from the roster, not picked by the customer.
+    The configurator's own "Edit names & numbers" link is rendered separately
+    by cart-page-item.liquid.
+  {%- endcomment -%}
+  {% if lineItem.properties["Style"] == "Names & Numbers" %}
+    {% assign _enable_edit = false %}
+  {% endif %}
+  {% if wD != "" and sizeAlreadyPrint != true %}
+    {%- liquid
+        assign _ap_is_uv = false
+        if lineItem.product.type contains 'UV' or lineItem.product.type contains 'PermaSticker'
+          assign _ap_is_uv = true
+        endif
+        assign _ap_total_dtf_qty = 0
+        assign _ap_current_dn = lineItem.properties['_discount_name']
+        for _ci in cart.items
+          assign _has_upload = false
+          assign _has_discount_input = false
+          assign _has_matching_dn = false
+          for _cp in _ci.properties
+            assign _cp_key = _cp.first | downcase
+            if _cp_key contains 'upload'
+              if _cp.last != blank
+                assign _has_upload = true
+              endif
+            endif
+            if _cp.first == '_discount_input'
+              if _cp.last != blank
+                assign _has_discount_input = true
+              endif
+            endif
+            if _cp.first == '_discount_name'
+              if _cp.last == _ap_current_dn
+                assign _has_matching_dn = true
+              endif
+            endif
+          endfor
+          if _has_upload and _has_discount_input and _has_matching_dn
+            assign _ap_total_dtf_qty = _ap_total_dtf_qty | plus: _ci.quantity
+          endif
+        endfor
+      -%}
+      <div class="prop nt-size-block"
+        data-line-key="{{ linekey }}"
+        data-width="{{ wD }}"
+        data-height="{{ hD }}"
+        data-qty="{{ line_qty }}"
+        data-product-handle="{{ lineItem.product.handle }}"
+        data-variant-id="{{ lineItem.variant.id }}"
+        data-is-uv="{{ _ap_is_uv }}"
+        data-total-dtf-qty="{{ _ap_total_dtf_qty }}"
+        data-discount-input="{{ lineItem.properties['_discount_input'] }}"
+        data-item-price="{{ lineItem.price }}"
+        data-min-dim="{{ lineItem.product.metafields.custom.minimum_measurement | default: '0.25' }}"
+        data-max-dim="{{ lineItem.product.metafields.custom.maximum_measurement | default: '22' }}"
+      >
+        <span>{% unless is_child %}Size: {% endunless %}<strong>{{ wD }} in x {{ hD }} in</strong></span>
+        {% if _enable_edit %}<button type="button" class="nt-edit-size-btn{% if edit_label %} lnkcolor{% endif %}" style="background:none; border:none; padding:0; cursor:pointer;{% unless edit_label %} color:#555;{% endunless %} font-size:inherit; font-family:inherit;">{{ edit_label | default: 'Edit on Cart Page' }}</button>{% endif %}
+        <script type="application/json" class="nt-props-json">{"p":[{%- for p in lineItem.properties -%}{%- unless forloop.first -%},{%- endunless -%}{"k":{{ p.first | json }},"v":{{ p.last | json }}}{%- endfor -%}]}</script>
+        <script type="application/json" class="nt-variants-json">[{%- for v in lineItem.product.variants -%}{%- unless forloop.first -%},{%- endunless -%}{"id":{{ v.id }},"title":{{ v.title | json }},"price":{{ v.price }},"available":{{ v.available }}}{%- endfor -%}]</script>
+        <script type="application/json" class="nt-popular-json">[{%- assign _ps_c = 0 -%}{%- for v in lineItem.product.variants -%}{%- if v.title contains '" x ' -%}{%- assign _dim_clean = v.title | remove: '"' -%}{%- assign _dim_parts = _dim_clean | split: ' x ' -%}{%- if _dim_parts.size == 2 -%}{%- assign _ps_w = _dim_parts[0] | strip | plus: 0 -%}{%- assign _ps_h = _dim_parts[1] | strip | plus: 0 -%}{%- capture _ps_desc -%}{%- render 'popular-size-desc', size: v.option1, is_uv: _ap_is_uv -%}{%- endcapture -%}{%- assign _ps_desc = _ps_desc | strip -%}{%- if _ps_c > 0 -%},{%- endif -%}{%- assign _ps_c = _ps_c | plus: 1 -%}{"id":{{ v.id }},"w":{{ _ps_w }},"h":{{ _ps_h }},"label":{{ v.option1 | json }}{%- if _ps_desc != "" -%},"desc":{{ _ps_desc | json }}{%- endif -%}}{%- endif -%}{%- endif -%}{%- endfor -%}]</script>
+      </div>
+  {% endif %}
+  
+   {% if _uploadFile.last != "" %}
+    <div class="nt-upload-preview-row">{{ uploadtext }}:
+      {%-liquid
+        capture getPropertyImg
+          for property in lineItem.properties
+            if property.first == '_cartImg' and property.last != blank
+              echo property.last
+            endif
+          endfor
+        endcapture
+      -%}
+      {%- comment -%}
+        Build the preview URL from the FULL upload URL by swapping the
+        S3 host for the imgix CDN host. The legacy fallback below
+        derived the URL from just `_uploadFile.last` (the filename
+        only), which breaks gang-sheet uploads that live under nested
+        S3 keys like `uploads/abc123/design.png` — the resulting URL
+        `//ninjauploads-production.imgix.net/design.png` 404s because
+        the `uploads/abc123/` path is missing. Non-gang products
+        happen to populate `_cartImg` so the fallback never fires for
+        them, hiding the bug.
+      {%- endcomment -%}
+      {%- assign _upload_url_clean = _upload_file | replace:"ninja-services-production-ninjauploadss3bucket-zks2mguobhe4.s3.amazonaws.com","ninjauploads-production.imgix.net" | replace:"ninja-services-production.s3.amazonaws.com","ninjauploads-production.imgix.net" -%}
+      {%- assign _upload_url_base = _upload_url_clean | split: '?' | first -%}
+      {%- assign _upload_url_ext = _upload_url_base | split: '.' | last | downcase -%}
+      <a
+        href="javascript:void(0)"
+        data-bgtype="{% if isbg == "yes" or _upload_file contains ".png" %}yes{% endif %}"
+        {% if getPropertyImg != blank %}
+          data-src="{% if getPropertyImg contains '?' %}{{ getPropertyImg | append: '&w=2000' }}{% else %}{{ getPropertyImg | append: '?w=2000' }}{% endif %}"
+        {% else %}
+          {% if lineItem.product.type contains 'gang' %}
+            {%- liquid
+              if _upload_url_ext == 'png'
+                assign _gang_params = '?auto=compress&q=50&w=1000'
+              elsif _upload_url_ext == 'ai' or _upload_url_ext == 'eps' or _upload_url_ext == 'pdf'
+                assign _gang_params = '?fm=png&auto=compress&q=50&w=1000'
+              else
+                assign _gang_params = '?auto=compress&q=50&w=1000'
+              endif
+            -%}
+            data-src="{{ _upload_url_base }}{{ _gang_params }}"
+          {% else %}
+            {%- liquid
+              if _upload_url_ext == 'png'
+                assign _img_params = '?trim=colorUnlessAlpha'
+              elsif _upload_url_ext == 'ai' or _upload_url_ext == 'eps' or _upload_url_ext == 'pdf' or _upload_url_ext == 'svg'
+                assign _img_params = '?fm=png&trim=colorUnlessAlpha&w=2000'
+              else
+                assign _img_params = ''
+              endif
+              if isbg == "yes"
+                assign _img_params = _img_params | append:'&bg-remove=true'
+              endif
+            -%}
+            data-src="{{ _upload_url_base }}{{ _img_params }}"
+          {% endif %}
+        {% endif %}
+        class= 'preview-modal {% if getPropertyImg != blank %}cartPropertyImg{%endif%}'
+        data-target='.cart-preview'
+      >
+        <strong class="lnkcolor">Preview</strong>
+      </a>
+    </div>
+  {% endif %}
+
+  {% if dName != "" %}
+    <div class="prop">Design Name: <strong>{{ dName }}</strong></div>
+  {% endif %}
+  {% if sName != "" %}
+    <div class="prop">Sheet Name: <strong>{{ sName }}</strong></div>
+  {% endif %}
+  {% if iCount != "" %}
+    <div class="prop">Image Count: <strong>{{ iCount }}</strong></div>
+  {% endif %}
+
+  {% if pGS != "" or egs != "" %}
+    <div class="prop">{% if uploadtext != "Upload" %}{{ uploadtext }}: {% endif %}{% if pGS != "" %}<a href="javascript:void(0)" {% if lineItem.product.type contains 'gang' %}yes-gang-sheet=""{% endif %} data-bgtype="{% if isbg == "yes" or pGS contains ".png" %}yes{% endif %}" data-src="{% if pGS contains "?" %}{{ pGS }}&{% else %}{{ pGS }}?{% endif %}{% if lineItem.product.type contains 'gang' %}{% else %}trim=colorUnlessAlpha{% endif %}" class="preview-modal" data-target=".cart-preview"><strong class="lnkcolor">Preview</strong></a>{% endif %}{% if pGS != "" and egs != "" %}&nbsp;|&nbsp;{% endif %}{% if egs != "" %}<a href="{{ egs }}" class="lnkcolor"><strong>Edit</strong></a>{% endif %}</div>
+  {% endif %}
+
+  {% unless hide_precut %}
+    {% if pCut != "" %}
+      <div>Precut: <strong>{{ pCut }}</strong></div>
+    {% endif %}
+  {% endunless %}
+
+  {%- if lineItem.line_level_discount_allocations.size > 0 -%}
+    {%- for discount_allocation in lineItem.line_level_discount_allocations -%}
+      <!-- Discount: <strong>{{ discount_allocation.discount_application.title }} (-{{ discount_allocation.amount | money }})</strong> -->
+      {% if discount_allocation.discount_application.title != "" %}
+        {% if discount_allocation.discount_application.title contains 'Free Transfers Applied!' %}
+          <div class="promoCoupen" li-key="{{ lineItem.key }}">
+            <span style="font-weight: 500;">Promo:</span> <strong class="seccolor" style="font-weight: 400;">{{ discount_allocation.discount_application.title }}</strong>
+          </div>
+          <style>
+            .nonePromoCoupen[li-key="{{ lineItem.key }}"] {
+              display: none;
+            }
+          </style>
+        {% elsif discount_allocation.discount_application.title contains 'Free Transfer Applied!' %}
+          <div class="promoCoupen" li-key="{{ lineItem.key }}">
+            <span style="font-weight: 500;">Promo:</span> <strong class="seccolor" style="font-weight: 400;">{{ discount_allocation.discount_application.title }}</strong>
+          </div>
+          <style>
+            .nonePromoCoupen[li-key="{{ lineItem.key }}"] {
+              display: none;
+            }
+          </style>
+        {% else %}
+          <div class="nonePromoCoupen" li-key="{{ lineItem.key }}">
+            {{ 'cart.discount' | t }}: <strong class="seccolor">{{ discount_allocation.discount_application.title }}</strong>
+          </div>
+        {% endif %}
+      {% endif %}
+    {%- endfor -%}
+  {%- endif -%}
+      {% assign _off = _off | split : "_" %}
+      {% assign _off = _off.last %}
+      {% assign _isvalid = _minVal | minus : line_qty %}
+      <!-- _isvalid: {{ _isvalid }} | _minVal: {{ _minVal }}-->
+      {% if _isvalid > 0 %}
+        <div style="display:none">
+          <textarea style="display:none" class="propitems"> { {% for prop in properties %} "{{ prop.first }}":"{{ prop.last | url_encode }}",{% endfor %} "_upsell":"true" } </textarea>
+          <input class="_discount_input" value="{{ properties["_discount_input"] }}">
+          <input class="_discount_name" value="{{ properties["_discount_name"] }}">
+        </div>
+        <div class="upsell__cta">
+          <button type="button" data-key="{{ linekey }}" data-line="{{ loopno }}" data-min_reach="{{ min_reach }}" data="{{ p.last }}" class="_upcell-cta button button--solid button--product button--loader button--move _upsell_cta">
+            <span class="button__text">
+                Add <span class="_qty_val">{{ _isvalid }}</span> to save <span class="_per_val">{{ _off | replace : "_" , " " }}%</span> off
+            </span>
+            <span class="button__preloader">
+              <svg class="button__preloader-element" viewBox="25 25 50 50"><circle cx="50" cy="50" r="20" fill="none" stroke-width="4"></circle></svg>
+            </span>
+          </button>
+        </div>
+      {% else %}
+        <div style="display:none">
+          <input class="_discount_input" value="{{ properties["_discount_input"] }}">
+          <input class="_discount_name" value="{{ properties["_discount_name"] }}">
+        </div>
+      {% endif %}
+    {% endif %}
+    

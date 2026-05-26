@@ -1,0 +1,972 @@
+{% doc %}
+  @prompt
+    make me a section that follows the themes horizontal max width padding and margin. inside i need the option to add 2,3, or 4 blocks, in each block i need an image below that a headline and below that para text., i need more image ratios, and all text should have size, color, and weight options for desktop and mobile, text need alignment options and padding for sides option. and space between options, Padding should be, horizontal and apply to all text. And weight option can match on desktop and mobile, i don't need the "Content alignment" and every block should have the option for a roll over image or video, add an option for video to be selected from the cms as well, and add an option small play icon when hover video is selected, need "Text horizontal padding" for desktop and mobile. add play "Play icon" option whenever a rollover image or video is there, "Media type" will always be an image, only another image or video on roll over. the icon should show whenever there is a "Hover effect type" other then none. and it should show before hover not after, add Play Icon Settings for position of centers or corners and padding from the edge, for desktop and mobile, and color options, give me the option to upload my own play icon. and add option for bg color or bg gradiant
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-feature-blocks-{{ ai_gen_id }} {
+    max-width: {{ settings.theme_max_width }}px;
+    margin: 0 auto;
+    padding: 0 {{ settings.grid_gap }}px;
+  }
+
+  .ai-feature-blocks__grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+    gap: {{ block.settings.space_between }}px;
+  }
+
+  .ai-feature-blocks__item-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    text-align: {{ block.settings.text_alignment }};
+  }
+
+  .ai-feature-blocks__image-wrapper-{{ ai_gen_id }} {
+    width: 100%;
+    margin-bottom: {{ block.settings.image_bottom_spacing }}px;
+    border-radius: {{ block.settings.image_border_radius }}px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .ai-feature-blocks__image-{{ ai_gen_id }} {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .ai-feature-blocks__hover-image-{{ ai_gen_id }},
+  .ai-feature-blocks__hover-video-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-feature-blocks__image-wrapper-{{ ai_gen_id }}:hover .ai-feature-blocks__hover-image-{{ ai_gen_id }},
+  .ai-feature-blocks__image-wrapper-{{ ai_gen_id }}:hover .ai-feature-blocks__hover-video-{{ ai_gen_id }} {
+    opacity: 1;
+  }
+
+  .ai-feature-blocks__hover-video-{{ ai_gen_id }} {
+    object-fit: cover;
+  }
+
+  .ai-feature-blocks__image-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    aspect-ratio: {{ block.settings.image_aspect_ratio }};
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: {{ block.settings.image_border_radius }}px;
+  }
+
+  .ai-feature-blocks__image-placeholder-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+    opacity: 0.5;
+  }
+
+  .ai-feature-blocks__content-{{ ai_gen_id }} {
+    padding-left: {{ block.settings.text_padding_horizontal_desktop }}px;
+    padding-right: {{ block.settings.text_padding_horizontal_desktop }}px;
+  }
+
+  .ai-feature-blocks__heading-{{ ai_gen_id }} {
+    font-family: var(--font-heading-family);
+    font-size: {{ block.settings.heading_size_desktop }}px;
+    font-weight: {{ block.settings.heading_weight }};
+    line-height: 1.2;
+    margin: 0 0 {{ block.settings.heading_bottom_spacing }}px 0;
+    color: {{ block.settings.heading_color }};
+  }
+
+  .ai-feature-blocks__text-{{ ai_gen_id }} {
+    font-family: var(--font-body-family);
+    font-size: {{ block.settings.text_size_desktop }}px;
+    font-weight: {{ block.settings.text_weight }};
+    line-height: 1.5;
+    margin: 0;
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-feature-blocks__play-icon-{{ ai_gen_id }} {
+    position: absolute;
+    width: {{ block.settings.play_icon_size }}px;
+    height: {{ block.settings.play_icon_size }}px;
+    {% if block.settings.play_icon_bg_type == 'color' %}
+      background-color: {{ block.settings.play_icon_bg_color }};
+    {% elsif block.settings.play_icon_bg_type == 'gradient' %}
+      background: linear-gradient(to right, {{ block.settings.play_icon_bg_gradient_start }}, {{ block.settings.play_icon_bg_gradient_end }});
+    {% else %}
+      background-color: transparent;
+    {% endif %}
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-feature-blocks__play-icon-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+    fill: {{ block.settings.play_icon_color }};
+  }
+
+  .ai-feature-blocks__play-icon-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  {% if block.settings.play_icon_position == 'center' %}
+    .ai-feature-blocks__play-icon-{{ ai_gen_id }} {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  {% elsif block.settings.play_icon_position == 'top-left' %}
+    .ai-feature-blocks__play-icon-{{ ai_gen_id }} {
+      top: {{ block.settings.play_icon_padding_desktop }}px;
+      left: {{ block.settings.play_icon_padding_desktop }}px;
+    }
+  {% elsif block.settings.play_icon_position == 'top-right' %}
+    .ai-feature-blocks__play-icon-{{ ai_gen_id }} {
+      top: {{ block.settings.play_icon_padding_desktop }}px;
+      right: {{ block.settings.play_icon_padding_desktop }}px;
+    }
+  {% elsif block.settings.play_icon_position == 'bottom-left' %}
+    .ai-feature-blocks__play-icon-{{ ai_gen_id }} {
+      bottom: {{ block.settings.play_icon_padding_desktop }}px;
+      left: {{ block.settings.play_icon_padding_desktop }}px;
+    }
+  {% elsif block.settings.play_icon_position == 'bottom-right' %}
+    .ai-feature-blocks__play-icon-{{ ai_gen_id }} {
+      bottom: {{ block.settings.play_icon_padding_desktop }}px;
+      right: {{ block.settings.play_icon_padding_desktop }}px;
+    }
+  {% endif %}
+
+  @media screen and (max-width: 749px) {
+    .ai-feature-blocks__grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr);
+      gap: {{ block.settings.space_between_mobile }}px;
+    }
+    
+    .ai-feature-blocks__image-wrapper-{{ ai_gen_id }} {
+      margin-bottom: {{ block.settings.image_bottom_spacing_mobile }}px;
+    }
+    
+    .ai-feature-blocks__content-{{ ai_gen_id }} {
+      padding-left: {{ block.settings.text_padding_horizontal_mobile }}px;
+      padding-right: {{ block.settings.text_padding_horizontal_mobile }}px;
+    }
+    
+    .ai-feature-blocks__heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size_mobile }}px;
+      margin: 0 0 {{ block.settings.heading_bottom_spacing_mobile }}px 0;
+    }
+    
+    .ai-feature-blocks__text-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_mobile }}px;
+    }
+
+    .ai-feature-blocks__play-icon-{{ ai_gen_id }} {
+      width: {{ block.settings.play_icon_size_mobile }}px;
+      height: {{ block.settings.play_icon_size_mobile }}px;
+    }
+    
+    {% if block.settings.play_icon_position == 'top-left' %}
+      .ai-feature-blocks__play-icon-{{ ai_gen_id }} {
+        top: {{ block.settings.play_icon_padding_mobile }}px;
+        left: {{ block.settings.play_icon_padding_mobile }}px;
+      }
+    {% elsif block.settings.play_icon_position == 'top-right' %}
+      .ai-feature-blocks__play-icon-{{ ai_gen_id }} {
+        top: {{ block.settings.play_icon_padding_mobile }}px;
+        right: {{ block.settings.play_icon_padding_mobile }}px;
+      }
+    {% elsif block.settings.play_icon_position == 'bottom-left' %}
+      .ai-feature-blocks__play-icon-{{ ai_gen_id }} {
+        bottom: {{ block.settings.play_icon_padding_mobile }}px;
+        left: {{ block.settings.play_icon_padding_mobile }}px;
+      }
+    {% elsif block.settings.play_icon_position == 'bottom-right' %}
+      .ai-feature-blocks__play-icon-{{ ai_gen_id }} {
+        bottom: {{ block.settings.play_icon_padding_mobile }}px;
+        right: {{ block.settings.play_icon_padding_mobile }}px;
+      }
+    {% endif %}
+  }
+{% endstyle %}
+
+<div class="ai-feature-blocks-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-feature-blocks__grid-{{ ai_gen_id }}">
+    {% for i in (1..block.settings.number_of_blocks) %}
+      {% liquid
+        assign image_key = 'image_' | append: i
+        assign hover_image_key = 'hover_image_' | append: i
+        assign hover_video_key = 'hover_video_' | append: i
+        assign hover_type_key = 'hover_type_' | append: i
+        assign heading_key = 'heading_' | append: i
+        assign text_key = 'text_' | append: i
+        
+        assign image = block.settings[image_key]
+        assign hover_image = block.settings[hover_image_key]
+        assign hover_video_url = block.settings[hover_video_key]
+        assign hover_type = block.settings[hover_type_key]
+        assign heading = block.settings[heading_key]
+        assign text = block.settings[text_key]
+      %}
+      
+      <div class="ai-feature-blocks__item-{{ ai_gen_id }}">
+        <div class="ai-feature-blocks__image-wrapper-{{ ai_gen_id }}">
+          {% if image != blank %}
+            <img 
+              src="{{ image | image_url: width: 500 }}" 
+              alt="{{ image.alt | escape }}"
+              width="{{ image.width }}"
+              height="{{ image.height }}"
+              loading="lazy"
+              class="ai-feature-blocks__image-{{ ai_gen_id }}"
+            >
+          {% else %}
+            <div class="ai-feature-blocks__image-placeholder-{{ ai_gen_id }}">
+              {{ 'image' | placeholder_svg_tag }}
+            </div>
+          {% endif %}
+          
+          {% if hover_type == 'image' and hover_image != blank %}
+            <img 
+              src="{{ hover_image | image_url: width: 500 }}" 
+              alt="{{ hover_image.alt | escape }}"
+              width="{{ hover_image.width }}"
+              height="{{ hover_image.height }}"
+              loading="lazy"
+              class="ai-feature-blocks__hover-image-{{ ai_gen_id }}"
+            >
+          {% elsif hover_type == 'video' and hover_video_url != blank %}
+            <video 
+              class="ai-feature-blocks__hover-video-{{ ai_gen_id }}" 
+              autoplay 
+              muted 
+              loop 
+              playsinline
+            >
+              <source src="{{ hover_video_url }}" type="video/mp4">
+            </video>
+          {% endif %}
+          
+          {% if hover_type != 'none' %}
+            <div class="ai-feature-blocks__play-icon-{{ ai_gen_id }}">
+              {% if block.settings.custom_play_icon != blank %}
+                <img 
+                  src="{{ block.settings.custom_play_icon | image_url: width: 100 }}" 
+                  alt="Play"
+                  loading="lazy"
+                  class="ai-feature-blocks__play-icon-image-{{ ai_gen_id }}"
+                >
+              {% else %}
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <polygon points="5,3 19,12 5,21"/>
+                </svg>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="ai-feature-blocks__content-{{ ai_gen_id }}">
+          {% if heading != blank %}
+            <h3 class="ai-feature-blocks__heading-{{ ai_gen_id }}">{{ heading }}</h3>
+          {% endif %}
+          
+          {% if text != blank %}
+            <div class="ai-feature-blocks__text-{{ ai_gen_id }}">{{ text }}</div>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Feature Blocks",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "number_of_blocks",
+      "label": "Number of blocks",
+      "options": [
+        {
+          "value": "2",
+          "label": "2 blocks"
+        },
+        {
+          "value": "3",
+          "label": "3 blocks"
+        },
+        {
+          "value": "4",
+          "label": "4 blocks"
+        }
+      ],
+      "default": "3"
+    },
+    {
+      "type": "select",
+      "id": "columns_desktop",
+      "label": "Columns on desktop",
+      "options": [
+        {
+          "value": "2",
+          "label": "2 columns"
+        },
+        {
+          "value": "3",
+          "label": "3 columns"
+        },
+        {
+          "value": "4",
+          "label": "4 columns"
+        }
+      ],
+      "default": "3"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns on mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "1 column"
+        },
+        {
+          "value": "2",
+          "label": "2 columns"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "space_between",
+      "min": 16,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Space between blocks (desktop)",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "space_between_mobile",
+      "min": 16,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Space between blocks (mobile)",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "text_padding_horizontal_desktop",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Text horizontal padding (desktop)",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "text_padding_horizontal_mobile",
+      "min": 0,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "label": "Text horizontal padding (mobile)",
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "image_bottom_spacing",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Image bottom spacing (desktop)",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "image_bottom_spacing_mobile",
+      "min": 10,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Image bottom spacing (mobile)",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "heading_bottom_spacing",
+      "min": 5,
+      "max": 40,
+      "step": 5,
+      "unit": "px",
+      "label": "Heading bottom spacing (desktop)",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "heading_bottom_spacing_mobile",
+      "min": 5,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "label": "Heading bottom spacing (mobile)",
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "Media Settings"
+    },
+    {
+      "type": "select",
+      "id": "image_aspect_ratio",
+      "label": "Image aspect ratio",
+      "options": [
+        {
+          "value": "1/1",
+          "label": "1:1 (Square)"
+        },
+        {
+          "value": "3/2",
+          "label": "3:2"
+        },
+        {
+          "value": "4/3",
+          "label": "4:3"
+        },
+        {
+          "value": "16/9",
+          "label": "16:9"
+        },
+        {
+          "value": "2/3",
+          "label": "2:3"
+        },
+        {
+          "value": "3/4",
+          "label": "3:4"
+        },
+        {
+          "value": "9/16",
+          "label": "9:16"
+        }
+      ],
+      "default": "1/1"
+    },
+    {
+      "type": "range",
+      "id": "image_border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Image border radius",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Play Icon Settings"
+    },
+    {
+      "type": "image_picker",
+      "id": "custom_play_icon",
+      "label": "Custom play icon",
+      "info": "Upload your own play icon image. Recommended size: 100x100px"
+    },
+    {
+      "type": "select",
+      "id": "play_icon_position",
+      "label": "Play icon position",
+      "options": [
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "top-left",
+          "label": "Top left"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "play_icon_size",
+      "min": 30,
+      "max": 80,
+      "step": 5,
+      "unit": "px",
+      "label": "Play icon size (desktop)",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "play_icon_size_mobile",
+      "min": 20,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Play icon size (mobile)",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "play_icon_padding_desktop",
+      "min": 10,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Play icon padding from edge (desktop)",
+      "default": 20,
+      "info": "Applies when position is not center"
+    },
+    {
+      "type": "range",
+      "id": "play_icon_padding_mobile",
+      "min": 5,
+      "max": 30,
+      "step": 5,
+      "unit": "px",
+      "label": "Play icon padding from edge (mobile)",
+      "default": 15,
+      "info": "Applies when position is not center"
+    },
+    {
+      "type": "select",
+      "id": "play_icon_bg_type",
+      "label": "Play icon background type",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "color",
+          "label": "Solid color"
+        },
+        {
+          "value": "gradient",
+          "label": "Gradient"
+        }
+      ],
+      "default": "color"
+    },
+    {
+      "type": "color",
+      "id": "play_icon_bg_color",
+      "label": "Play icon background color",
+      "default": "rgba(0, 0, 0, 0.5)"
+    },
+    {
+      "type": "color",
+      "id": "play_icon_bg_gradient_start",
+      "label": "Gradient start color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "play_icon_bg_gradient_end",
+      "label": "Gradient end color",
+      "default": "#444444"
+    },
+    {
+      "type": "color",
+      "id": "play_icon_color",
+      "label": "Play icon color",
+      "default": "#FFFFFF",
+      "info": "Only applies to default play icon, not custom icon"
+    },
+    {
+      "type": "header",
+      "content": "Heading Typography"
+    },
+    {
+      "type": "range",
+      "id": "heading_size_desktop",
+      "min": 16,
+      "max": 60,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading size (desktop)",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 14,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "label": "Heading size (mobile)",
+      "default": 20
+    },
+    {
+      "type": "select",
+      "id": "heading_weight",
+      "label": "Heading weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Text Typography"
+    },
+    {
+      "type": "range",
+      "id": "text_size_desktop",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (desktop)",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size (mobile)",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "text_weight",
+      "label": "Text weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#333333"
+    },
+    {
+      "type": "header",
+      "content": "Block 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image"
+    },
+    {
+      "type": "select",
+      "id": "hover_type_1",
+      "label": "Hover effect type",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "image",
+          "label": "Hover image"
+        },
+        {
+          "value": "video",
+          "label": "Hover video"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "image_picker",
+      "id": "hover_image_1",
+      "label": "Hover image",
+      "info": "Shown on hover when hover effect is set to 'Hover image'"
+    },
+    {
+      "type": "url",
+      "id": "hover_video_1",
+      "label": "Hover video URL",
+      "info": "Shown on hover when hover effect is set to 'Hover video'. Use .mp4 file URL"
+    },
+    {
+      "type": "text",
+      "id": "heading_1",
+      "label": "Heading",
+      "default": "Feature heading"
+    },
+    {
+      "type": "textarea",
+      "id": "text_1",
+      "label": "Text",
+      "default": "Pair text with an image to focus on your chosen product, collection, or blog post."
+    },
+    {
+      "type": "header",
+      "content": "Block 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image"
+    },
+    {
+      "type": "select",
+      "id": "hover_type_2",
+      "label": "Hover effect type",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "image",
+          "label": "Hover image"
+        },
+        {
+          "value": "video",
+          "label": "Hover video"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "image_picker",
+      "id": "hover_image_2",
+      "label": "Hover image",
+      "info": "Shown on hover when hover effect is set to 'Hover image'"
+    },
+    {
+      "type": "url",
+      "id": "hover_video_2",
+      "label": "Hover video URL",
+      "info": "Shown on hover when hover effect is set to 'Hover video'. Use .mp4 file URL"
+    },
+    {
+      "type": "text",
+      "id": "heading_2",
+      "label": "Heading",
+      "default": "Feature heading"
+    },
+    {
+      "type": "textarea",
+      "id": "text_2",
+      "label": "Text",
+      "default": "Pair text with an image to focus on your chosen product, collection, or blog post."
+    },
+    {
+      "type": "header",
+      "content": "Block 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image"
+    },
+    {
+      "type": "select",
+      "id": "hover_type_3",
+      "label": "Hover effect type",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "image",
+          "label": "Hover image"
+        },
+        {
+          "value": "video",
+          "label": "Hover video"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "image_picker",
+      "id": "hover_image_3",
+      "label": "Hover image",
+      "info": "Shown on hover when hover effect is set to 'Hover image'"
+    },
+    {
+      "type": "url",
+      "id": "hover_video_3",
+      "label": "Hover video URL",
+      "info": "Shown on hover when hover effect is set to 'Hover video'. Use .mp4 file URL"
+    },
+    {
+      "type": "text",
+      "id": "heading_3",
+      "label": "Heading",
+      "default": "Feature heading"
+    },
+    {
+      "type": "textarea",
+      "id": "text_3",
+      "label": "Text",
+      "default": "Pair text with an image to focus on your chosen product, collection, or blog post."
+    },
+    {
+      "type": "header",
+      "content": "Block 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image"
+    },
+    {
+      "type": "select",
+      "id": "hover_type_4",
+      "label": "Hover effect type",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "image",
+          "label": "Hover image"
+        },
+        {
+          "value": "video",
+          "label": "Hover video"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "image_picker",
+      "id": "hover_image_4",
+      "label": "Hover image",
+      "info": "Shown on hover when hover effect is set to 'Hover image'"
+    },
+    {
+      "type": "url",
+      "id": "hover_video_4",
+      "label": "Hover video URL",
+      "info": "Shown on hover when hover effect is set to 'Hover video'. Use .mp4 file URL"
+    },
+    {
+      "type": "text",
+      "id": "heading_4",
+      "label": "Heading",
+      "default": "Feature heading"
+    },
+    {
+      "type": "textarea",
+      "id": "text_4",
+      "label": "Text",
+      "default": "Pair text with an image to focus on your chosen product, collection, or blog post."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Feature Blocks"
+    }
+  ]
+}
+{% endschema %}

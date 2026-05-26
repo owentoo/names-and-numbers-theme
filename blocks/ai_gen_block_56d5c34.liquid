@@ -1,0 +1,665 @@
+{% doc %}
+  @prompt
+    Create a customizable section with adjustable height and width that displays icon images with small subtext underneath. The section should support 1-9 icons in a row with center alignment as default. Include settings for section dimensions, number of icons per row, alignment options, icon size, text styling, and spacing controls. Make it responsive and flexible for various use cases like features, services, or benefits showcase., I want to be able to make the icons really close together or far apart as needed. default to 3 icons, i need separate settings for mobile view, desktop alignment isn't working
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-icon-section-{{ ai_gen_id }} {
+    width: 100%;
+    max-width: {{ block.settings.section_width }}px;
+    height: {{ block.settings.section_height }}px;
+    margin: 0 auto;
+    padding: {{ block.settings.section_padding }}px;
+    background-color: {{ block.settings.background_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-icon-grid-{{ ai_gen_id }} {
+    display: grid;
+    grid-template-columns: repeat({{ block.settings.icons_per_row }}, 1fr);
+    gap: {{ block.settings.icon_spacing }}px;
+    width: 100%;
+    max-width: 100%;
+    justify-content: {{ block.settings.alignment }};
+  }
+
+  .ai-icon-item-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: {{ block.settings.text_spacing }}px;
+    justify-self: {{ block.settings.alignment }};
+  }
+
+  .ai-icon-wrapper-{{ ai_gen_id }} {
+    width: {{ block.settings.icon_size }}px;
+    height: {{ block.settings.icon_size }}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: {{ block.settings.icon_background }};
+    border-radius: {{ block.settings.icon_border_radius }}px;
+    padding: {{ block.settings.icon_padding }}px;
+  }
+
+  .ai-icon-wrapper-{{ ai_gen_id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .ai-icon-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-icon-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.5;
+  }
+
+  .ai-icon-text-{{ ai_gen_id }} {
+    font-size: {{ block.settings.text_size }}px;
+    color: {{ block.settings.text_color }};
+    font-weight: {{ block.settings.text_weight }};
+    line-height: 1.3;
+    margin: 0;
+  }
+
+  {% if block.settings.alignment == 'flex-start' %}
+    .ai-icon-grid-{{ ai_gen_id }} {
+      justify-items: start;
+    }
+  {% elsif block.settings.alignment == 'flex-end' %}
+    .ai-icon-grid-{{ ai_gen_id }} {
+      justify-items: end;
+    }
+  {% else %}
+    .ai-icon-grid-{{ ai_gen_id }} {
+      justify-items: center;
+    }
+  {% endif %}
+
+  @media screen and (max-width: 768px) {
+    .ai-icon-section-{{ ai_gen_id }} {
+      max-width: {{ block.settings.section_width_mobile }}px;
+      height: {{ block.settings.section_height_mobile }}px;
+      padding: {{ block.settings.section_padding_mobile }}px;
+    }
+
+    .ai-icon-grid-{{ ai_gen_id }} {
+      grid-template-columns: repeat({{ block.settings.icons_per_row_mobile }}, 1fr);
+      gap: {{ block.settings.icon_spacing_mobile }}px;
+    }
+
+    .ai-icon-item-{{ ai_gen_id }} {
+      gap: {{ block.settings.text_spacing_mobile }}px;
+    }
+
+    .ai-icon-wrapper-{{ ai_gen_id }} {
+      width: {{ block.settings.icon_size_mobile }}px;
+      height: {{ block.settings.icon_size_mobile }}px;
+      background-color: {{ block.settings.icon_background_mobile }};
+      border-radius: {{ block.settings.icon_border_radius_mobile }}px;
+      padding: {{ block.settings.icon_padding_mobile }}px;
+    }
+
+    .ai-icon-text-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size_mobile }}px;
+      color: {{ block.settings.text_color_mobile }};
+      font-weight: {{ block.settings.text_weight_mobile }};
+    }
+
+    {% if block.settings.alignment_mobile == 'flex-start' %}
+      .ai-icon-grid-{{ ai_gen_id }} {
+        justify-items: start;
+      }
+    {% elsif block.settings.alignment_mobile == 'flex-end' %}
+      .ai-icon-grid-{{ ai_gen_id }} {
+        justify-items: end;
+      }
+    {% else %}
+      .ai-icon-grid-{{ ai_gen_id }} {
+        justify-items: center;
+      }
+    {% endif %}
+  }
+{% endstyle %}
+
+<div class="ai-icon-section-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-icon-grid-{{ ai_gen_id }}">
+    {% for i in (1..9) %}
+      {% assign icon_key = 'icon_' | append: i %}
+      {% assign text_key = 'text_' | append: i %}
+      {% assign icon = block.settings[icon_key] %}
+      {% assign text = block.settings[text_key] %}
+      {% if icon != blank or text != blank %}
+        <div class="ai-icon-item-{{ ai_gen_id }}">
+          <div class="ai-icon-wrapper-{{ ai_gen_id }}">
+            {% if icon != blank %}
+              <img
+                src="{{ icon | image_url: width: 200 }}"
+                alt="{{ text | escape }}"
+                loading="lazy"
+                width="{{ block.settings.icon_size }}"
+                height="{{ block.settings.icon_size }}"
+              >
+            {% else %}
+              <div class="ai-icon-placeholder-{{ ai_gen_id }}">
+                {{ 'image' | placeholder_svg_tag }}
+              </div>
+            {% endif %}
+          </div>
+          {% if text != blank %}
+            <p class="ai-icon-text-{{ ai_gen_id }}">{{ text }}</p>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Icon Grid Showcase",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Desktop Layout"
+    },
+    {
+      "type": "range",
+      "id": "section_width",
+      "label": "Section width",
+      "min": 400,
+      "max": 1400,
+      "step": 50,
+      "unit": "px",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "section_height",
+      "label": "Section height",
+      "min": 200,
+      "max": 800,
+      "step": 50,
+      "unit": "px",
+      "default": 400
+    },
+    {
+      "type": "range",
+      "id": "section_padding",
+      "label": "Section padding",
+      "min": 0,
+      "max": 80,
+      "step": 10,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "icons_per_row",
+      "label": "Icons per row",
+      "min": 1,
+      "max": 9,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alignment",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "icon_spacing",
+      "label": "Space between icons",
+      "min": 0,
+      "max": 120,
+      "step": 5,
+      "unit": "px",
+      "default": 30
+    },
+    {
+      "type": "header",
+      "content": "Mobile Layout"
+    },
+    {
+      "type": "range",
+      "id": "section_width_mobile",
+      "label": "Section width (mobile)",
+      "min": 300,
+      "max": 800,
+      "step": 25,
+      "unit": "px",
+      "default": 400
+    },
+    {
+      "type": "range",
+      "id": "section_height_mobile",
+      "label": "Section height (mobile)",
+      "min": 150,
+      "max": 600,
+      "step": 25,
+      "unit": "px",
+      "default": 300
+    },
+    {
+      "type": "range",
+      "id": "section_padding_mobile",
+      "label": "Section padding (mobile)",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "icons_per_row_mobile",
+      "label": "Icons per row (mobile)",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "select",
+      "id": "alignment_mobile",
+      "label": "Alignment (mobile)",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "icon_spacing_mobile",
+      "label": "Space between icons (mobile)",
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Desktop Icon Style"
+    },
+    {
+      "type": "range",
+      "id": "icon_size",
+      "label": "Icon size",
+      "min": 40,
+      "max": 120,
+      "step": 10,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "color",
+      "id": "icon_background",
+      "label": "Icon background color",
+      "default": "#f8f8f8"
+    },
+    {
+      "type": "range",
+      "id": "icon_border_radius",
+      "label": "Icon border radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "icon_padding",
+      "label": "Icon padding",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Mobile Icon Style"
+    },
+    {
+      "type": "range",
+      "id": "icon_size_mobile",
+      "label": "Icon size (mobile)",
+      "min": 30,
+      "max": 80,
+      "step": 5,
+      "unit": "px",
+      "default": 45
+    },
+    {
+      "type": "color",
+      "id": "icon_background_mobile",
+      "label": "Icon background color (mobile)",
+      "default": "#f8f8f8"
+    },
+    {
+      "type": "range",
+      "id": "icon_border_radius_mobile",
+      "label": "Icon border radius (mobile)",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "icon_padding_mobile",
+      "label": "Icon padding (mobile)",
+      "min": 0,
+      "max": 15,
+      "step": 1,
+      "unit": "px",
+      "default": 6
+    },
+    {
+      "type": "header",
+      "content": "Desktop Text Style"
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "label": "Text size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#333333"
+    },
+    {
+      "type": "select",
+      "id": "text_weight",
+      "label": "Text weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi Bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "range",
+      "id": "text_spacing",
+      "label": "Space between icon and text",
+      "min": 5,
+      "max": 25,
+      "step": 5,
+      "unit": "px",
+      "default": 10
+    },
+    {
+      "type": "header",
+      "content": "Mobile Text Style"
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "label": "Text size (mobile)",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "color",
+      "id": "text_color_mobile",
+      "label": "Text color (mobile)",
+      "default": "#333333"
+    },
+    {
+      "type": "select",
+      "id": "text_weight_mobile",
+      "label": "Text weight (mobile)",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi Bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "400"
+    },
+    {
+      "type": "range",
+      "id": "text_spacing_mobile",
+      "label": "Space between icon and text (mobile)",
+      "min": 3,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Icon 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_1",
+      "label": "Icon image"
+    },
+    {
+      "type": "text",
+      "id": "text_1",
+      "label": "Text",
+      "default": "Feature 1"
+    },
+    {
+      "type": "header",
+      "content": "Icon 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_2",
+      "label": "Icon image"
+    },
+    {
+      "type": "text",
+      "id": "text_2",
+      "label": "Text",
+      "default": "Feature 2"
+    },
+    {
+      "type": "header",
+      "content": "Icon 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_3",
+      "label": "Icon image"
+    },
+    {
+      "type": "text",
+      "id": "text_3",
+      "label": "Text",
+      "default": "Feature 3"
+    },
+    {
+      "type": "header",
+      "content": "Icon 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_4",
+      "label": "Icon image"
+    },
+    {
+      "type": "text",
+      "id": "text_4",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Icon 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_5",
+      "label": "Icon image"
+    },
+    {
+      "type": "text",
+      "id": "text_5",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Icon 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_6",
+      "label": "Icon image"
+    },
+    {
+      "type": "text",
+      "id": "text_6",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Icon 7"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_7",
+      "label": "Icon image"
+    },
+    {
+      "type": "text",
+      "id": "text_7",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Icon 8"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_8",
+      "label": "Icon image"
+    },
+    {
+      "type": "text",
+      "id": "text_8",
+      "label": "Text"
+    },
+    {
+      "type": "header",
+      "content": "Icon 9"
+    },
+    {
+      "type": "image_picker",
+      "id": "icon_9",
+      "label": "Icon image"
+    },
+    {
+      "type": "text",
+      "id": "text_9",
+      "label": "Text"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Icon Grid Showcase"
+    }
+  ],
+  "tag": null
+}
+{% endschema %}

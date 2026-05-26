@@ -1,0 +1,1388 @@
+{% comment %}
+  Rewards Tiers Section
+  - Logged out: shows all tiers with static requirement text
+  - Logged in: highlights current tier with badge, greyed out past tiers,
+    spend-to-next-tier on current tier card
+  - Metafields (current source of truth — ninja_rewards namespace ONLY):
+      ninja_rewards.tier_label      → e.g. "White Belt", "Yellow Belt"
+      ninja_rewards.next_tier_gap   → cents remaining to next tier
+      ninja_rewards.trailing_spend  → cents spent in trailing 12 months
+    The legacy klaviyo.* loyalty metafields are NO LONGER read here. Any
+    customer with `ninja_rewards.tier_label` set (defaulting to White
+    Belt for first-time logged-in customers) will see the progress bar.
+{% endcomment %}
+
+{%- liquid
+  assign current_tier = ''
+  assign spend_remaining_cents = 0
+  assign tier_order = 'White Belt,Yellow Belt,Blue Belt,Black Belt' | split: ','
+  assign current_tier_index = -1
+
+  if customer
+    # Default to White Belt when tier_label is blank/null.
+    assign current_tier = customer.metafields.ninja_rewards.tier_label | default: 'White Belt'
+    assign spend_remaining_cents = customer.metafields.ninja_rewards.next_tier_gap | default: 0
+
+    for tier_name in tier_order
+      if tier_name == current_tier
+        assign current_tier_index = forloop.index0
+        break
+      endif
+    endfor
+  endif
+
+  # Show the progress bar for any logged-in customer. The previous
+  # klaviyo `loyalty_opt_in` gate suppressed the bar for everyone whose
+  # Klaviyo metafield wasn't set, even though `ninja_rewards.tier_label`
+  # (with a White Belt default on line above) is enough to drive the
+  # bar. ninja_rewards is the new source of truth; no klaviyo metafields
+  # are read on this page.
+  assign show_progress = false
+  if customer
+    assign show_progress = true
+  endif
+
+  assign tier_name_color = '#b0bec5'
+  assign next_tier        = 'Yellow Belt'
+  assign next_tier_color  = '#f5c800'
+  assign tier_threshold   = 250
+  assign marker_pos       = 25
+  case current_tier
+    when 'White Belt'
+      assign tier_name_color       = '#b0bec5'
+      assign next_tier             = 'Yellow Belt'
+      assign next_tier_color       = '#f5c800'
+      assign next_tier_bubble_color = '#f5c800'
+      assign tier_threshold        = 250
+      assign marker_pos            = 25
+    when 'Yellow Belt'
+      assign tier_name_color       = '#d4a800'
+      assign next_tier             = 'Blue Belt'
+      assign next_tier_color       = '#2196d4'
+      assign next_tier_bubble_color = '#2196d4'
+      assign tier_threshold        = 1000
+      assign marker_pos            = 50
+    when 'Blue Belt'
+      assign tier_name_color       = '#2196d4'
+      assign next_tier             = 'Black Belt'
+      assign next_tier_color       = '#2a2d35'
+      assign next_tier_bubble_color = '#ffffff'
+      assign tier_threshold        = 4000
+      assign marker_pos            = 75
+    when 'Black Belt'
+      assign tier_name_color       = '#2a2d35'
+      assign next_tier             = ''
+      assign next_tier_color       = ''
+      assign next_tier_bubble_color = '#ffffff'
+      assign tier_threshold        = 4000
+      assign marker_pos            = 97
+  endcase
+
+  assign tier_threshold_cents = tier_threshold | times: 100
+  assign spent_cents = customer.metafields.ninja_rewards.trailing_spend | default: 0
+
+  assign tier_entry = 0
+  case current_tier
+    when 'Yellow Belt'
+      assign tier_entry = 250
+    when 'Blue Belt'
+      assign tier_entry = 1000
+    when 'Black Belt'
+      assign tier_entry = 4000
+  endcase
+  assign tier_entry_cents = tier_entry | times: 100
+  if spent_cents < 0
+    assign spent_cents = 0
+  endif
+
+  assign yellow_active = false
+  assign blue_active   = false
+  assign black_active  = false
+  if current_tier == 'Yellow Belt' or current_tier == 'Blue Belt' or current_tier == 'Black Belt'
+    assign yellow_active = true
+  endif
+  if current_tier == 'Blue Belt' or current_tier == 'Black Belt'
+    assign blue_active = true
+  endif
+  if current_tier == 'Black Belt'
+    assign black_active = true
+  endif
+
+  assign tier_fill_pct = 0
+  case current_tier
+    when 'White Belt'
+      assign tier_fill_pct = spent_cents | times: 100 | divided_by: 25000.0 | round
+    when 'Yellow Belt'
+      assign tier_fill_pct = spent_cents | minus: 25000 | times: 100 | divided_by: 75000.0 | round
+    when 'Blue Belt'
+      assign tier_fill_pct = spent_cents | minus: 100000 | times: 100 | divided_by: 300000.0 | round
+    when 'Black Belt'
+      assign tier_fill_pct = 100
+  endcase
+  if tier_fill_pct > 100
+    assign tier_fill_pct = 100
+  endif
+  if tier_fill_pct < 0
+    assign tier_fill_pct = 0
+  endif
+
+  assign tier_faint_color = 'rgba(176,190,197,0.25)'
+  case current_tier
+    when 'White Belt'
+      assign tier_faint_color = '#dde3e9'
+    when 'Yellow Belt'
+      assign tier_faint_color = 'rgba(245,200,0,0.22)'
+    when 'Blue Belt'
+      assign tier_faint_color = 'rgba(33,150,212,0.22)'
+    when 'Black Belt'
+      assign tier_faint_color = 'rgba(42,45,53,0.22)'
+  endcase
+
+  assign segment_start_pct = current_tier_index | times: 25
+  assign fill_in_bar = tier_fill_pct | times: 25 | divided_by: 100.0
+  assign fill_end_pct = segment_start_pct | plus: fill_in_bar
+  assign segment_end_pct = segment_start_pct | plus: 25
+  assign marker_pos = fill_end_pct | plus: segment_end_pct | divided_by: 2.0 | round
+-%}
+
+<style>
+  #rt-{{ section.id }} {
+    max-width: {{ section.settings.max_width }}px;
+    margin: 0 auto;
+    padding: 60px 32px;
+  }
+
+  #rt-{{ section.id }} .rt-heading {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+    margin-bottom: 40px;
+    text-align: center;
+  }
+
+  #rt-{{ section.id }} .tiers-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    padding: 8px 0;
+  }
+
+  #rt-{{ section.id }} .tier-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+    position: relative;
+    overflow: visible;
+  }
+
+  @media (hover: hover) {
+    #rt-{{ section.id }} .tier-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 12px 32px rgba(0,0,0,0.08);
+    }
+  }
+
+  /* Active tier */
+  #rt-{{ section.id }} .tier-card--active {
+    z-index: 2;
+    margin: -30px -5px -30px;
+    outline: 4px solid var(--ring-color, rgba(0,0,0,0.25));
+    outline-offset: 0px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.22), 0 24px 56px rgba(0,0,0,0.20);
+    animation: rtActiveGlow-{{ section.id }} 3s ease-in-out infinite;
+  }
+
+  @keyframes rtActiveGlow-{{ section.id }} {
+    0%, 100% { outline-color: var(--ring-color, rgba(0,0,0,0.2)); }
+    50% { outline-color: var(--ring-color-bright, rgba(0,0,0,0.4)); }
+  }
+
+  @media (hover: hover) {
+    #rt-{{ section.id }} .tier-card--active:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.26), 0 28px 64px rgba(0,0,0,0.22);
+    }
+  }
+
+  #rt-{{ section.id }} .tier-card--active .tier-card__body {
+    padding-bottom: 54px;
+  }
+
+  /* Unlocked -- greyed out */
+  #rt-{{ section.id }} .tier-card--unlocked {
+    opacity: 0.45;
+  }
+
+  #rt-{{ section.id }} .tier-card--unlocked:hover {
+    opacity: 0.65;
+  }
+
+  /* Floating card label pill */
+  #rt-{{ section.id }} .tier-card__label {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: #000;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 99px;
+    z-index: 3;
+    white-space: nowrap;
+  }
+
+  /* Header */
+  #rt-{{ section.id }} .tier-card__header {
+    padding: 28px 24px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px 16px 0 0;
+  }
+
+  #rt-{{ section.id }} .tier-card__header::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  #rt-{{ section.id }} .tier-card__ninja {
+    width: 160px;
+    height: 160px;
+    object-fit: contain;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
+    position: relative;
+    z-index: 1;
+  }
+
+  #rt-{{ section.id }} .tier-card__belt-name {
+    font-size: {{ section.settings.belt_name_size_desktop }}px;
+    font-weight: {{ section.settings.belt_name_weight_desktop }};
+    color: {{ section.settings.belt_name_color_desktop }};
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    position: relative;
+    z-index: 1;
+  }
+
+  #rt-{{ section.id }} .tier-card__cash-back {
+    font-size: 3.25rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    position: relative;
+    z-index: 1;
+  }
+
+  #rt-{{ section.id }} .tier-card__cash-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 2px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Body */
+  #rt-{{ section.id }} .tier-card__body {
+    padding: 20px 24px 24px;
+    background: #fff;
+    border-radius: 0 0 16px 16px;
+    position: relative;
+    overflow: visible;
+  }
+
+  #rt-{{ section.id }} .tier-card__requirement {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #94a3b8;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  #rt-{{ section.id }} .tier-card__requirement--unlocked {
+    color: #16a34a;
+    font-weight: 600;
+  }
+
+  #rt-{{ section.id }} .tier-card__requirement--next {
+    color: #000;
+    font-weight: 600;
+  }
+
+  #rt-{{ section.id }} .tier-card__requirement--spent {
+    color: #16a34a;
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+
+  #rt-{{ section.id }} .tier-card__requirement--to-go {
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+
+  #rt-{{ section.id }} .tier-card__req-sub {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #4a515d;
+    margin-top: 4px;
+  }
+
+  #rt-{{ section.id }} .tier-card__perks {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0;
+    margin: 0;
+  }
+
+  #rt-{{ section.id }} .tier-card__perk {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #334155;
+  }
+
+  #rt-{{ section.id }} .tier-card__perk-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  #rt-{{ section.id }} .tier-card__perk-icon svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  /* In-card mini progress bar */
+  #rt-{{ section.id }} .tier-card__mini-progress {
+    margin: 4px 0 16px;
+  }
+  #rt-{{ section.id }} .tier-card__mini-track-wrap {
+    position: relative;
+    padding-top: 44px;
+    margin-bottom: 8px;
+  }
+  #rt-{{ section.id }} .tier-card__mini-marker {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #rt-{{ section.id }} .tier-card__mini-bubble {
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 6px;
+    text-align: center;
+    line-height: 1.5;
+    white-space: nowrap;
+    position: relative;
+  }
+  #rt-{{ section.id }} .tier-card__mini-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1a1a1a;
+    border-bottom: none;
+  }
+  #rt-{{ section.id }} .tier-card__mini-track {
+    height: 8px;
+    background: #f1f5f9;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  #rt-{{ section.id }} .tier-card__mini-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.6s ease;
+  }
+  #rt-{{ section.id }} .tier-card__mini-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #64748b;
+  }
+
+  /* Preview tooltip */
+  #rt-{{ section.id }} .perk-preview {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  #rt-{{ section.id }} .perk-preview__trigger {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 5px;
+    flex-shrink: 0;
+    transition: background 0.2s ease;
+    vertical-align: middle;
+    position: relative;
+    top: 3px;
+    left: -4px;
+  }
+
+  #rt-{{ section.id }} .perk-preview__trigger:hover {
+    background: #cbd5e1;
+  }
+
+  #rt-{{ section.id }} .perk-preview__trigger img {
+    width: 10px;
+    height: 10px;
+    opacity: 0.45;
+  }
+
+  #rt-{{ section.id }} .perk-preview__popup {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: -8px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 1px 4px rgba(0,0,0,0.08);
+    padding: 8px;
+    z-index: 99999;
+    width: 280px;
+  }
+
+  #rt-{{ section.id }} .perk-preview__popup::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 12px;
+    border: 6px solid transparent;
+    border-top-color: #fff;
+  }
+
+  #rt-{{ section.id }} .perk-preview__popup img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+  }
+
+  @media (hover: hover) {
+    #rt-{{ section.id }} .perk-preview__trigger:hover + .perk-preview__popup,
+    #rt-{{ section.id }} .perk-preview__popup:hover {
+      display: block;
+    }
+
+    #rt-{{ section.id }} .tier-card:has(.perk-preview__trigger:hover),
+    #rt-{{ section.id }} .tier-card:has(.perk-preview__popup:hover) {
+      z-index: 100;
+    }
+  }
+
+  #rt-{{ section.id }} .lightbox {
+    display: none;
+  }
+
+  /* -- Tier progress bar -- */
+  #rt-{{ section.id }} .rt-progress {
+    margin-bottom: 40px;
+  }
+  #rt-{{ section.id }} .rt-track-wrap {
+    position: relative;
+    padding-top: 60px;
+  }
+  #rt-{{ section.id }} .rt-marker {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #rt-{{ section.id }} .rt-marker-bubble {
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 5px 11px;
+    border-radius: 6px;
+    letter-spacing: 0.2px;
+    position: relative;
+    text-align: center;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  #rt-{{ section.id }} .rt-marker-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #1a1a1a;
+    border-bottom: none;
+  }
+  #rt-{{ section.id }} .rt-segments {
+    display: flex;
+    height: 30px;
+    border-radius: 99px;
+    overflow: visible;
+    gap: 4px;
+  }
+  #rt-{{ section.id }} .rt-seg {
+    flex: 1;
+    height: 100%;
+    opacity: 0.18;
+    border-radius: 99px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  #rt-{{ section.id }} .rt-seg.rt-active { opacity: 1; }
+  #rt-{{ section.id }} .rt-seg.rt-done   { opacity: 0.45; }
+  #rt-{{ section.id }} .rt-seg-white  { background: #ffffff; border: 1px solid #d0d5db; }
+  #rt-{{ section.id }} .rt-seg-yellow { background: #f5c800; }
+  #rt-{{ section.id }} .rt-seg-blue   { background: #2196d4; }
+  #rt-{{ section.id }} .rt-seg-black  { background: #2a2d35; }
+
+  @media (max-width: 700px) {
+    #rt-{{ section.id }} .rt-progress { margin: 0 20px 32px; }
+    #rt-{{ section.id }} .rt-marker {
+      left: clamp(80px, var(--rt-mp, 25%), calc(100% - 80px)) !important;
+    }
+  }
+
+  /* Carousel dots */
+  #rt-{{ section.id }} .carousel-dots {
+    display: none;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px 0 0;
+  }
+
+  #rt-{{ section.id }} .carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  #rt-{{ section.id }} .carousel-dot.active {
+    background: #334155;
+    transform: scale(1.25);
+  }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    #rt-{{ section.id }} {
+      padding: 40px 0;
+      overflow: visible;
+    }
+
+    #rt-{{ section.id }} .rt-heading {
+      padding: 0 20px;
+      font-size: 1.35rem;
+      margin-bottom: 24px;
+    }
+
+    #rt-{{ section.id }} .tiers-grid-wrapper {
+      overflow: visible;
+    }
+
+    #rt-{{ section.id }} .tiers-grid {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      gap: 12px;
+      padding: 60px 20px 80px;
+      scrollbar-width: none;
+    }
+
+    #rt-{{ section.id }} .tiers-grid::-webkit-scrollbar {
+      display: none;
+    }
+
+    #rt-{{ section.id }} .tier-card--active {
+      margin: -30px 0;
+      z-index: 10;
+      position: relative;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.16), 0 16px 36px rgba(0,0,0,0.12);
+    }
+
+    #rt-{{ section.id }} .tier-card {
+      flex: 0 0 calc(100vw - 20px - 12px - 80px);
+      scroll-snap-align: center;
+    }
+
+    #rt-{{ section.id }} .tier-card:first-child {
+      margin-left: calc((100vw - (100vw - 20px - 12px - 80px)) / 2 - 20px);
+    }
+
+    #rt-{{ section.id }} .tier-card:last-child {
+      margin-right: calc((100vw - (100vw - 20px - 12px - 80px)) / 2 - 20px);
+    }
+
+    #rt-{{ section.id }} .tier-card__ninja {
+      width: 90px;
+      height: 90px;
+    }
+
+    #rt-{{ section.id }} .tier-card__belt-name {
+      font-size: {{ section.settings.belt_name_size_mobile }}px;
+      font-weight: {{ section.settings.belt_name_weight_mobile }};
+      color: {{ section.settings.belt_name_color_mobile }};
+    }
+
+    #rt-{{ section.id }} .tier-card__cash-back {
+      font-size: 2.5rem;
+    }
+
+    #rt-{{ section.id }} .carousel-dots {
+      display: flex;
+      position: relative;
+      z-index: 20;
+      margin-top: -50px;
+      padding-bottom: 10px;
+    }
+
+    #rt-{{ section.id }} .perk-preview__popup {
+      display: none !important;
+    }
+
+    #rt-{{ section.id }} .lightbox {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    #rt-{{ section.id }} .lightbox.active {
+      display: flex;
+    }
+
+    #rt-{{ section.id }} .lightbox__img {
+      width: 90vw;
+      max-width: 400px;
+      border-radius: 16px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+    }
+
+    #rt-{{ section.id }} .lightbox__close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 300;
+      line-height: 1;
+    }
+
+    #rt-{{ section.id }} .lightbox__close:hover {
+      background: rgba(255,255,255,0.3);
+    }
+  }
+</style>
+
+<div id="rt-{{ section.id }}">
+
+  <div class="lightbox" data-lightbox>
+    <button class="lightbox__close" data-lightbox-close>&times;</button>
+    <img class="lightbox__img" data-lightbox-img src="#" alt="Preview image" width="400" height="400" loading="lazy">
+  </div>
+
+  {% if section.settings.section_heading != blank %}
+    <h2 class="rt-heading">{{ section.settings.section_heading }}</h2>
+  {% endif %}
+
+  {% if show_progress %}
+  <div class="rt-progress">
+    <div class="rt-track-wrap">
+      <div class="rt-marker" style="--rt-mp:{% if current_tier == 'Black Belt' %}88{% else %}{{ marker_pos }}{% endif %}%; left:{% if current_tier == 'Black Belt' %}88{% else %}{{ marker_pos }}{% endif %}%;">
+        <div class="rt-marker-bubble">
+          {%- if current_tier == 'Black Belt' -%}
+            You've reached our Top Tier! &#127942;
+          {%- else -%}
+            {{ spend_remaining_cents | times: 100 | money }} to
+            <span style="color:{{ next_tier_bubble_color }}; display:block; margin-top:2px;">{{ next_tier }}</span>
+          {%- endif -%}
+        </div>
+      </div>
+      <div class="rt-segments">
+        {%- if current_tier == 'White Belt' -%}
+          <div class="rt-seg rt-active rt-seg-white" style="background:linear-gradient(to right,#b0bec5 {{ tier_fill_pct }}%,{{ tier_faint_color }} {{ tier_fill_pct }}%); border:none;"></div>
+        {%- else -%}
+          <div class="rt-seg rt-done rt-seg-white"></div>
+        {%- endif -%}
+        {%- if current_tier == 'Yellow Belt' -%}
+          <div class="rt-seg rt-active rt-seg-yellow" style="background:linear-gradient(to right,#f5c800 {{ tier_fill_pct }}%,{{ tier_faint_color }} {{ tier_fill_pct }}%);"></div>
+        {%- elsif yellow_active -%}
+          <div class="rt-seg rt-done rt-seg-yellow"></div>
+        {%- else -%}
+          <div class="rt-seg rt-seg-yellow"></div>
+        {%- endif -%}
+        {%- if current_tier == 'Blue Belt' -%}
+          <div class="rt-seg rt-active rt-seg-blue" style="background:linear-gradient(to right,#2196d4 {{ tier_fill_pct }}%,{{ tier_faint_color }} {{ tier_fill_pct }}%);"></div>
+        {%- elsif blue_active -%}
+          <div class="rt-seg rt-done rt-seg-blue"></div>
+        {%- else -%}
+          <div class="rt-seg rt-seg-blue"></div>
+        {%- endif -%}
+        {%- if current_tier == 'Black Belt' -%}
+          <div class="rt-seg rt-active rt-seg-black"></div>
+        {%- else -%}
+          <div class="rt-seg rt-seg-black"></div>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="tiers-grid-wrapper">
+  <div class="tiers-grid" data-tiers-grid>
+    {% for block in section.blocks %}
+      {%- liquid
+        assign is_current = false
+        assign is_unlocked = false
+        assign is_next = false
+        assign block_index = forloop.index0
+
+        if customer and current_tier != blank
+          if block.settings.belt_name == current_tier
+            assign is_current = true
+          endif
+
+          if block_index < current_tier_index
+            assign is_unlocked = true
+          endif
+
+          assign next_index = current_tier_index | plus: 1
+          if block_index == next_index
+            assign is_next = true
+          endif
+        endif
+
+        assign text_dark = true
+        if block.settings.text_color == 'light'
+          assign text_dark = false
+        endif
+      -%}
+
+      <div
+        class="tier-card{% if is_current %} tier-card--active{% endif %}{% if is_unlocked %} tier-card--unlocked{% endif %}"
+        style="--grad-start: {{ block.settings.header_gradient_start }}; --grad-end: {{ block.settings.header_gradient_end }};{% if is_current %} --ring-color: {{ block.settings.header_gradient_start }}; --ring-color-bright: {{ block.settings.header_gradient_end }};{% endif %}"
+        {{ block.shopify_attributes }}
+      >
+        {% if is_current %}<span class="tier-card__label">Current</span>{% endif %}
+        {% if is_next %}<span class="tier-card__label">Next</span>{% endif %}
+
+        <div class="tier-card__header" style="background: linear-gradient(160deg, {{ block.settings.header_gradient_start }} 0%, {{ block.settings.header_gradient_end }} 100%);">
+          {% if block.settings.ninja_image != blank %}
+            <img
+              class="tier-card__ninja"
+              src="{{ block.settings.ninja_image | image_url: width: 320 }}"
+              alt="{{ block.settings.belt_name }}"
+              loading="lazy"
+              width="160"
+              height="160"
+            >
+          {% endif %}
+          <div class="tier-card__belt-name" style="color: {% if text_dark %}{{ section.settings.belt_name_color_desktop }}{% else %}rgba(255,255,255,0.8){% endif %};">
+            {{ block.settings.belt_name }}
+          </div>
+          <div class="tier-card__cash-back" style="color: {% if text_dark %}#000{% else %}#fff{% endif %};">
+            {{ block.settings.cash_back_percent }}
+          </div>
+          <div class="tier-card__cash-label" style="color: {% if text_dark %}rgba(0,0,0,0.45){% else %}rgba(255,255,255,0.6){% endif %};">
+            Cash Back*
+          </div>
+        </div>
+
+        <div class="tier-card__body">
+          {% if customer and current_tier != blank %}
+            {% if is_current %}
+              <div class="tier-card__requirement tier-card__requirement--spent">{{ spent_cents | times: 100 | money }} {{ section.settings.spent_suffix }}<div class="tier-card__req-sub">{{ block.settings.requirement_text }}</div></div>
+            {% elsif is_next %}
+              <div class="tier-card__requirement tier-card__requirement--to-go" style="color: {{ next_tier_color }};">{{ spend_remaining_cents | times: 100 | money }} {{ section.settings.to_go_suffix }}<div class="tier-card__req-sub">{{ block.settings.requirement_text }}</div></div>
+            {% elsif is_unlocked %}
+              <div class="tier-card__requirement tier-card__requirement--unlocked">{{ section.settings.unlocked_label }}<div class="tier-card__req-sub">{{ block.settings.requirement_text }}</div></div>
+            {% else %}
+              <div class="tier-card__requirement">{{ block.settings.requirement_text }}</div>
+            {% endif %}
+          {% else %}
+            <div class="tier-card__requirement">{{ block.settings.requirement_text }}</div>
+          {% endif %}
+
+          <ul class="tier-card__perks">
+            {% for i in (1..6) %}
+              {%- liquid
+                assign perk_key = 'perk_' | append: i
+                assign perk_text = block.settings[perk_key]
+                assign preview_key = 'perk_' | append: i | append: '_preview_image'
+                assign preview_img = block.settings[preview_key]
+                assign tag_key = 'perk_' | append: i | append: '_required_tag'
+                assign perk_required_tag = block.settings[tag_key]
+                assign show_perk = true
+                if perk_required_tag != blank
+                  assign show_perk = false
+                  if customer
+                    for ctag in customer.tags
+                      if ctag == perk_required_tag
+                        assign show_perk = true
+                        break
+                      endif
+                    endfor
+                  endif
+                endif
+              -%}
+              {% if perk_text != blank and show_perk %}
+                <li class="tier-card__perk">
+                  <span class="tier-card__perk-icon" style="background: {{ block.settings.perk_icon_bg }};">
+                    <svg viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1.5 5.5L3.5 7.5L8.5 2.5" stroke="{{ block.settings.perk_icon_color }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <span>{{ perk_text }}</span>
+                  {% if preview_img != blank %}
+                    <span class="perk-preview">
+                      <button class="perk-preview__trigger" data-preview-trigger aria-label="Preview {{ perk_text }}">
+                        {% if section.settings.eye_icon != blank %}
+                          <img src="{{ section.settings.eye_icon | image_url: width: 20 }}" alt="" width="10" height="10" loading="lazy">
+                        {% else %}
+                          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="10" height="10">
+                            <path d="M8 3C4.5 3 1.5 8 1.5 8s3 5 6.5 5 6.5-5 6.5-5-3-5-6.5-5z" stroke="#64748b" stroke-width="1.5" stroke-linejoin="round"/>
+                            <circle cx="8" cy="8" r="2" stroke="#64748b" stroke-width="1.5"/>
+                          </svg>
+                        {% endif %}
+                      </button>
+                      <div class="perk-preview__popup">
+                        <img src="{{ preview_img | image_url: width: 280 }}" alt="{{ perk_text }}" width="280" loading="lazy">
+                      </div>
+                    </span>
+                  {% endif %}
+                </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  </div>
+
+  <div class="carousel-dots" data-carousel-dots></div>
+</div>
+
+<script>
+  (function() {
+    const section = document.getElementById('rt-{{ section.id }}');
+    if (!section) return;
+
+    const grid = section.querySelector('[data-tiers-grid]');
+    const dotsContainer = section.querySelector('[data-carousel-dots]');
+    const lightbox = section.querySelector('[data-lightbox]');
+    const lightboxImg = section.querySelector('[data-lightbox-img]');
+    const lightboxClose = section.querySelector('[data-lightbox-close]');
+
+    /* Carousel */
+    if (grid && dotsContainer) {
+      const cards = grid.querySelectorAll('.tier-card');
+      cards.forEach((card, i) => {
+        const dot = document.createElement('button');
+        dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+        dot.addEventListener('click', () => {
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        });
+        dotsContainer.appendChild(dot);
+      });
+
+      const dots = dotsContainer.querySelectorAll('.carousel-dot');
+      grid.addEventListener('scroll', () => {
+        const cardWidth = cards[0].offsetWidth + 12;
+        const active = Math.round(grid.scrollLeft / cardWidth);
+        dots.forEach((d, i) => d.classList.toggle('active', i === active));
+      });
+
+      /* On mobile, scroll to current rank card */
+      if (window.innerWidth <= 700) {
+        const activeCard = section.querySelector('.tier-card--active');
+        if (activeCard) {
+          setTimeout(() => {
+            activeCard.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
+          }, 100);
+        }
+      }
+    }
+
+    /* Lightbox (mobile) */
+    function closeLightbox() {
+      if (lightbox) lightbox.classList.remove('active');
+    }
+
+    section.querySelectorAll('[data-preview-trigger]').forEach(trigger => {
+      trigger.addEventListener('click', (e) => {
+        if (window.innerWidth > 700) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const popup = trigger.closest('.perk-preview').querySelector('.perk-preview__popup img');
+        if (popup && lightboxImg) {
+          lightboxImg.src = popup.src;
+          lightboxImg.alt = popup.alt;
+          lightbox.classList.add('active');
+        }
+      });
+    });
+
+    if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+    if (lightbox) lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
+    if (lightboxImg) lightboxImg.addEventListener('click', closeLightbox);
+  })();
+</script>
+
+{% comment %} Move Rewards history button into hero section, collapse dark my-rewards section {% endcomment %}
+<script>
+(function() {
+  function setupRewardsHistoryProxy() {
+    var heroWidget = document.querySelector('.yotpo-widget-hero-section');
+    var rewardsWidget = document.querySelector('.yotpo-widget-my-rewards-widget');
+    if (!heroWidget || !rewardsWidget) return false;
+    var originalBtn = rewardsWidget.querySelector('button.yotpo-secondary-button');
+    if (!originalBtn) return false;
+    var textAndButtons = heroWidget.querySelector('.yotpo-text-and-buttons');
+    if (!textAndButtons) return false;
+    if (textAndButtons.querySelector('.nt-rewards-history-proxy')) return true;
+    var vueAttr = null;
+    for (var i = 0; i < originalBtn.attributes.length; i++) {
+      if (originalBtn.attributes[i].name.indexOf('data-v-') === 0) {
+        vueAttr = originalBtn.attributes[i].name;
+        break;
+      }
+    }
+    var proxyBtn = document.createElement('button');
+    proxyBtn.className = 'nt-rewards-history-proxy ' + originalBtn.className;
+    if (vueAttr) proxyBtn.setAttribute(vueAttr, '');
+    proxyBtn.setAttribute('style', originalBtn.getAttribute('style') || '');
+    proxyBtn.textContent = originalBtn.textContent.trim();
+    proxyBtn.addEventListener('click', function() { originalBtn.click(); });
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-top:20px; text-align:center;';
+    wrap.appendChild(proxyBtn);
+    textAndButtons.appendChild(wrap);
+    var parentSection = rewardsWidget.closest('.shopify-section');
+    if (parentSection) {
+      parentSection.style.height = '0';
+      parentSection.style.overflow = 'hidden';
+      parentSection.style.minHeight = '0';
+      parentSection.style.padding = '0';
+      parentSection.style.margin = '0';
+    }
+    return true;
+  }
+  if (!setupRewardsHistoryProxy()) {
+    var obs = new MutationObserver(function() {
+      if (setupRewardsHistoryProxy()) obs.disconnect();
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+    setTimeout(function() { obs.disconnect(); }, 15000);
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Rewards Tiers",
+  "tag": "section",
+  "class": "rewards-tiers-section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "section_heading",
+      "label": "Section Heading"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max Width (px)",
+      "min": 900,
+      "max": 1600,
+      "step": 50,
+      "default": 1400
+    },
+    {
+      "type": "image_picker",
+      "id": "eye_icon",
+      "label": "Preview Eye Icon",
+      "info": "Small eye icon shown next to perks with preview images"
+    },
+    {
+      "type": "header",
+      "content": "Logged-In Status Labels"
+    },
+    {
+      "type": "text",
+      "id": "unlocked_label",
+      "label": "Unlocked Label",
+      "default": "\u2713 Unlocked",
+      "info": "Text shown on tier cards the customer has already unlocked."
+    },
+    {
+      "type": "text",
+      "id": "spent_suffix",
+      "label": "Spent Suffix",
+      "default": "spent in last 12 months",
+      "info": "Appended after the spend amount on the current tier. E.g. \"$3,756.31 spent in last 12 months\""
+    },
+    {
+      "type": "text",
+      "id": "to_go_suffix",
+      "label": "To Go Suffix",
+      "default": "to go",
+      "info": "Appended after the remaining amount on the next tier. E.g. \"$243.69 to go\""
+    },
+    {
+      "type": "header",
+      "content": "Belt Name -- Desktop"
+    },
+    {
+      "type": "range",
+      "id": "belt_name_size_desktop",
+      "label": "Font Size (px)",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "default": 14
+    },
+    {
+      "type": "range",
+      "id": "belt_name_weight_desktop",
+      "label": "Font Weight",
+      "min": 400,
+      "max": 900,
+      "step": 100,
+      "default": 800
+    },
+    {
+      "type": "color",
+      "id": "belt_name_color_desktop",
+      "label": "Font Color (Dark Tiers)",
+      "default": "#000000",
+      "info": "Used on tiers with dark text. Light tiers use white automatically."
+    },
+    {
+      "type": "header",
+      "content": "Belt Name -- Mobile"
+    },
+    {
+      "type": "range",
+      "id": "belt_name_size_mobile",
+      "label": "Font Size (px)",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "belt_name_weight_mobile",
+      "label": "Font Weight",
+      "min": 400,
+      "max": 900,
+      "step": 100,
+      "default": 700
+    },
+    {
+      "type": "color",
+      "id": "belt_name_color_mobile",
+      "label": "Font Color (Dark Tiers)",
+      "default": "#000000",
+      "info": "Used on tiers with dark text on mobile."
+    }
+  ],
+  "blocks": [
+    {
+      "type": "tier",
+      "name": "Tier",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "text",
+          "id": "belt_name",
+          "label": "Belt Name",
+          "default": "White Belt"
+        },
+        {
+          "type": "text",
+          "id": "cash_back_percent",
+          "label": "Cash Back %",
+          "default": "2%"
+        },
+        {
+          "type": "text",
+          "id": "requirement_text",
+          "label": "Requirement Sub-Text",
+          "default": "Sign Up",
+          "info": "Logged out: shown as the main tier requirement. Logged in: shown as the small grey sub-text under the status line (Unlocked / spent / to go)."
+        },
+        {
+          "type": "image_picker",
+          "id": "ninja_image",
+          "label": "Ninja Image"
+        },
+        {
+          "type": "color",
+          "id": "header_gradient_start",
+          "label": "Header Gradient Start",
+          "default": "#f9f9f9"
+        },
+        {
+          "type": "color",
+          "id": "header_gradient_end",
+          "label": "Header Gradient End",
+          "default": "#e4e4e4"
+        },
+        {
+          "type": "select",
+          "id": "text_color",
+          "label": "Header Text Color",
+          "options": [
+            { "value": "dark", "label": "Dark" },
+            { "value": "light", "label": "Light" }
+          ],
+          "default": "dark"
+        },
+        {
+          "type": "color",
+          "id": "perk_icon_bg",
+          "label": "Perk Icon Background",
+          "default": "#f1f5f9"
+        },
+        {
+          "type": "color",
+          "id": "perk_icon_color",
+          "label": "Perk Icon Color",
+          "default": "#64748b"
+        },
+        {
+          "type": "header",
+          "content": "Perks"
+        },
+        {
+          "type": "text",
+          "id": "perk_1",
+          "label": "Perk 1",
+          "default": "Earn on every order"
+        },
+        {
+          "type": "image_picker",
+          "id": "perk_1_preview_image",
+          "label": "Perk 1 Preview Image",
+          "info": "Optional hover/tap preview image"
+        },
+        {
+          "type": "text",
+          "id": "perk_1_required_tag",
+          "label": "Perk 1 Required Tag",
+          "info": "Leave blank to always show. Enter a customer tag (e.g. vip-member) to show only for logged-in customers with that tag."
+        },
+        {
+          "type": "text",
+          "id": "perk_2",
+          "label": "Perk 2"
+        },
+        {
+          "type": "image_picker",
+          "id": "perk_2_preview_image",
+          "label": "Perk 2 Preview Image"
+        },
+        {
+          "type": "text",
+          "id": "perk_2_required_tag",
+          "label": "Perk 2 Required Tag",
+          "info": "Leave blank to always show. Enter a customer tag to show only for logged-in customers with that tag."
+        },
+        {
+          "type": "text",
+          "id": "perk_3",
+          "label": "Perk 3"
+        },
+        {
+          "type": "image_picker",
+          "id": "perk_3_preview_image",
+          "label": "Perk 3 Preview Image"
+        },
+        {
+          "type": "text",
+          "id": "perk_3_required_tag",
+          "label": "Perk 3 Required Tag",
+          "info": "Leave blank to always show. Enter a customer tag to show only for logged-in customers with that tag."
+        },
+        {
+          "type": "text",
+          "id": "perk_4",
+          "label": "Perk 4"
+        },
+        {
+          "type": "image_picker",
+          "id": "perk_4_preview_image",
+          "label": "Perk 4 Preview Image"
+        },
+        {
+          "type": "text",
+          "id": "perk_4_required_tag",
+          "label": "Perk 4 Required Tag",
+          "info": "Leave blank to always show. Enter a customer tag to show only for logged-in customers with that tag."
+        },
+        {
+          "type": "text",
+          "id": "perk_5",
+          "label": "Perk 5"
+        },
+        {
+          "type": "image_picker",
+          "id": "perk_5_preview_image",
+          "label": "Perk 5 Preview Image"
+        },
+        {
+          "type": "text",
+          "id": "perk_5_required_tag",
+          "label": "Perk 5 Required Tag",
+          "info": "Leave blank to always show. Enter a customer tag to show only for logged-in customers with that tag."
+        },
+        {
+          "type": "text",
+          "id": "perk_6",
+          "label": "Perk 6"
+        },
+        {
+          "type": "image_picker",
+          "id": "perk_6_preview_image",
+          "label": "Perk 6 Preview Image"
+        },
+        {
+          "type": "text",
+          "id": "perk_6_required_tag",
+          "label": "Perk 6 Required Tag",
+          "info": "Leave blank to always show. Enter a customer tag to show only for logged-in customers with that tag."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Rewards Tiers",
+      "blocks": [
+        {
+          "type": "tier",
+          "settings": {
+            "belt_name": "White Belt",
+            "cash_back_percent": "2%",
+            "requirement_text": "Sign Up",
+            "header_gradient_start": "#f9f9f9",
+            "header_gradient_end": "#e4e4e4",
+            "text_color": "dark",
+            "perk_icon_bg": "#f1f5f9",
+            "perk_icon_color": "#64748b",
+            "perk_1": "Earn on every order"
+          }
+        },
+        {
+          "type": "tier",
+          "settings": {
+            "belt_name": "Yellow Belt",
+            "cash_back_percent": "4%",
+            "requirement_text": "Spend $250 within 12 months",
+            "header_gradient_start": "#fef0a0",
+            "header_gradient_end": "#e6c800",
+            "text_color": "dark",
+            "perk_icon_bg": "#fef3c7",
+            "perk_icon_color": "#d97706",
+            "perk_1": "$10 Tier Entry Gift"
+          }
+        },
+        {
+          "type": "tier",
+          "settings": {
+            "belt_name": "Blue Belt",
+            "cash_back_percent": "6%",
+            "requirement_text": "Spend $1,000 within 12 months",
+            "header_gradient_start": "#6bb8f7",
+            "header_gradient_end": "#1580d0",
+            "text_color": "light",
+            "perk_icon_bg": "#dbeafe",
+            "perk_icon_color": "#2563eb",
+            "perk_1": "$20 Tier Entry Gift",
+            "perk_2": "Free Ninja Keychain"
+          }
+        },
+        {
+          "type": "tier",
+          "settings": {
+            "belt_name": "Black Belt",
+            "cash_back_percent": "10%",
+            "requirement_text": "Spend $4,000 within 12 months",
+            "header_gradient_start": "#5a6270",
+            "header_gradient_end": "#2c3239",
+            "text_color": "light",
+            "perk_icon_bg": "#1e293b",
+            "perk_icon_color": "#e2e8f0",
+            "perk_1": "$30 Tier Entry Gift",
+            "perk_2": "Free Ninja Dojo Defender"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

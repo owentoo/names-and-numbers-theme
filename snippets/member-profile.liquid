@@ -1,0 +1,720 @@
+{%- liquid
+  assign first_name = customer.first_name | default: ''
+  assign last_name = customer.last_name | default: ''
+  assign display_name = first_name | append: ' ' | append: last_name
+  if display_name == ' '
+    assign display_name = customer.email
+  endif
+  assign customer_phone = customer.phone | default: customer.default_address.phone | default: ''
+  assign customer_email = customer.email | default: ''
+  assign customer_address = customer.default_address
+  assign customer_tax_exempt = customer.tax_exempt | default: ''
+  assign exemptax_address1 = ''
+  assign exemptax_address2 = ''
+  assign exemptax_city = ''
+  assign exemptax_zip = ''
+  assign exemptax_company = ''
+  assign exemptax_country = ''
+  assign exemptax_address_gid = ''
+  if customer_address
+    assign exemptax_address1 = customer_address.address1 | default: ''
+    assign exemptax_address2 = customer_address.address2 | default: ''
+    assign exemptax_city = customer_address.city | default: ''
+    assign exemptax_zip = customer_address.zip | default: ''
+    assign exemptax_company = customer_address.company | default: ''
+    assign exemptax_country = customer_address.country | default: ''
+    capture exemptax_address_gid
+      echo 'gid://shopify/CustomerAddress/'
+      echo customer_address.id
+    endcapture
+  endif
+-%}
+
+<style>
+  /* ===== Profile section ===== */
+  .profile-section__header { margin-bottom: 16px; }
+  .profile-section__title { margin: 0; font-size: 22px; font-weight: 700; line-height: 1.3; color: #111; }
+  .profile-section__subtitle { margin: 6px 0 0; font-size: 14px; color: #6b7280; }
+  .profile-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+  .profile-card { grid-column: span 4; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; }
+  .profile-card--wide { grid-column: span 8; }
+  .profile-card--full { grid-column: 1 / -1; }
+  .profile-card__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .profile-card__title { margin: 0; font-size: 18px; font-weight: 700; color: #111; }
+  .profile-card__link { font-size: 14px; color: #2563eb; text-decoration: none; font-weight: 500; }
+  .profile-card__link:hover { text-decoration: underline; }
+  .store-credit-card { position: relative; overflow: hidden; padding: 24px; border-radius: 18px; background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 45%, #38bdf8 100%); color: #fff; box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22); }
+  .store-credit-card::before { content: ''; position: absolute; inset: auto -40px -80px auto; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.12); }
+  .store-credit-card::after { content: ''; position: absolute; inset: -90px auto auto -70px; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .store-credit-card__top,
+  .store-credit-card__bottom { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .store-credit-card__label { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.8); }
+  .store-credit-card__brand { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); }
+  .store-credit-card__icon { position: relative; z-index: 1; width: 52px; height: 52px; margin: 12px 0 14px; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.18); color: #fff; backdrop-filter: blur(6px); }
+  .store-credit-card__number { position: relative; z-index: 1; margin-bottom: 12px; font-size: clamp(14px, 3vw, 20px); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+  .store-credit-card__balance-label { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(255,255,255,0.72); }
+  .store-credit-card__balance { margin-top: 6px; font-size: clamp(28px, 4vw, 42px); font-weight: 800; line-height: 1; }
+  .store-credit-card__badge { display: inline-flex; align-items: center; justify-content: center; align-self: flex-end; padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.18); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+  .profile-detail-list { display: grid; gap: 14px; }
+  .profile-detail-row { padding: 14px 16px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f8fafc; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .profile-detail-row__left { flex: 1; min-width: 0; }
+  .profile-detail-row__label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #6b7280; }
+  .profile-detail-row__value { display: block; font-size: 15px; font-weight: 600; color: #111; word-break: break-word; }
+  .profile-edit-link { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff; color: #6b7280; cursor: pointer; transition: all 0.15s; flex-shrink: 0; text-decoration: none; }
+  .profile-edit-link:hover { background: #f3f4f6; color: #111; border-color: #d1d5db; }
+  .profile-detail-hint { margin: 10px 0 0; font-size: 13px; color: #9ca3af; }
+  .profile-detail-hint a { color: #2563eb; text-decoration: none; font-weight: 500; }
+  .profile-detail-hint a:hover { text-decoration: underline; }
+  .profile-address-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .profile-address-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; background: #f8fafc; min-width: 0; transition: border-color 0.15s; }
+  .profile-address-card--editing { border-color: #019AFF; background: #fff; }
+  .profile-address-card__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .profile-address-card__name { font-size: 15px; font-weight: 700; color: #111; }
+  .profile-address-card__actions-row { display: flex; align-items: center; gap: 6px; }
+  .profile-address-card__tag { display: inline-flex; align-items: center; justify-content: center; padding: 4px 10px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+  .profile-address-card__body { font-size: 14px; line-height: 1.6; color: #374151; }
+  .profile-addr-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 7px; border: 1px solid #e5e7eb; background: #fff; color: #6b7280; cursor: pointer; transition: all 0.15s; padding: 0; }
+  .profile-addr-icon-btn:hover { background: #f3f4f6; color: #111; border-color: #d1d5db; }
+  .profile-addr-icon-btn--delete:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+  .profile-add-addr-btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 16px; border-radius: 8px; border: 1px solid #019AFF; background: #019AFF; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; font-family: inherit; }
+  .profile-add-addr-btn:hover { background: #0180d4; }
+  .profile-addr-form-wrap { margin-top: 12px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; animation: profileSlideDown 0.2s ease; }
+  .profile-addr-form-wrap--add { margin-bottom: 16px; border-color: #019AFF; }
+  @keyframes profileSlideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .profile-addr-form-grid { display: grid; gap: 12px; }
+  .profile-addr-form__row--half { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .profile-addr-form__label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 4px; }
+  .profile-addr-form__input,
+  .profile-addr-form__select { display: block; width: 100%; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; color: #111; background: #fff; transition: border-color 0.15s; box-sizing: border-box; }
+  .profile-addr-form__select { -webkit-appearance: none; appearance: none; padding-right: 36px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; cursor: pointer; }
+  .profile-addr-form__input:focus,
+  .profile-addr-form__select:focus { outline: none; border-color: #019AFF; box-shadow: 0 0 0 3px rgba(1,154,255,0.1); }
+  .profile-addr-form__checkbox { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #374151; cursor: pointer; }
+  .profile-addr-form__checkbox input[type="checkbox"] { width: 16px; height: 16px; accent-color: #019AFF; }
+  .profile-addr-form__actions { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+  .profile-addr-save-btn { display: inline-flex; align-items: center; justify-content: center; padding: 9px 20px; border-radius: 8px; border: none; background: #019AFF; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; font-family: inherit; min-width: 120px; }
+  .profile-addr-save-btn:hover { background: #0180d4; }
+  .profile-addr-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .profile-addr-cancel-btn { display: inline-flex; align-items: center; justify-content: center; padding: 9px 20px; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; color: #374151; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .profile-addr-cancel-btn:hover { background: #f9fafb; border-color: #9ca3af; }
+  .profile-addr-msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; margin-bottom: 12px; display: none; }
+  .profile-addr-msg--error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .profile-addr-msg--success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+  .profile-empty-state { padding: 18px; border: 1px dashed #cbd5e1; border-radius: 10px; background: #f8fafc; text-align: center; }
+  .profile-empty-state p { margin: 0 0 10px; font-size: 14px; color: #6b7280; }
+  .profile-empty-state__link { color: #2563eb; text-decoration: none; font-weight: 600; }
+  .profile-empty-state__link:hover { text-decoration: underline; }
+  .profile-tax-content p { margin: 0 0 10px; font-size: 14px; line-height: 1.65; color: #374151; }
+  .profile-tax-content p:last-of-type { margin-bottom: 18px; }
+  .profile-tax-content__cta { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 10px 18px; border-radius: 8px; background: #019AFF; color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; }
+  .profile-tax-content__cta:hover { background: #0180d4; color: #fff; text-decoration: none; }
+  @media (max-width: 767px) {
+    .profile-grid { grid-template-columns: 1fr; }
+    .profile-card, .profile-card--wide, .profile-card--full { grid-column: 1 / -1; }
+    .profile-address-list { grid-template-columns: 1fr; }
+    .profile-addr-form__row--half { grid-template-columns: 1fr; }
+    .profile-address-card__top { flex-wrap: wrap; }
+    .profile-addr-form__actions { flex-wrap: wrap; }
+    .profile-addr-save-btn, .profile-addr-cancel-btn { flex: 1; min-width: 0; }
+  }
+</style>
+
+{%- comment -%} ===== PROFILE PANEL ===== {%- endcomment -%}
+<div class="mp-panel" data-panel="profile">
+  <div class="mp-content__inner">
+    <div class="profile-section">
+      <div class="profile-section__header">
+        <h1 class="profile-section__title">Profile &amp; Settings</h1>
+        <p class="profile-section__subtitle">Contact details, saved addresses, and tax exemption tools.</p>
+      </div>
+
+      <div class="profile-grid">
+        {%- comment -%} --- Profile Details card --- {%- endcomment -%}
+        <div class="profile-card">
+          <div class="profile-card__head">
+            <h3 class="profile-card__title">Profile Details</h3>
+          </div>
+          <div class="profile-detail-list">
+            <div class="profile-detail-row">
+              <div class="profile-detail-row__left">
+                <span class="profile-detail-row__label">Email</span>
+                <span class="profile-detail-row__value">{{ customer.email | default: 'Not provided' }}</span>
+              </div>
+              <a href="javascript:void(0);" data-edit-profile-trigger rel="noopener" class="profile-edit-link" title="Edit on your Ninja Transfers account">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </a>
+            </div>
+            <div class="profile-detail-row">
+              <div class="profile-detail-row__left">
+                <span class="profile-detail-row__label">Mobile</span>
+                <span class="profile-detail-row__value">
+                  {%- if customer_phone != blank -%}{{ customer_phone }}{%- else -%}Not provided{%- endif -%}
+                </span>
+              </div>
+              <a href="javascript:void(0);" data-edit-profile-trigger rel="noopener" class="profile-edit-link" title="Edit on your Ninja Transfers account">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {%- comment -%} --- Store Credit card --- {%- endcomment -%}
+        {% if customer.store_credit_account.balance > 0 %}
+          <div class="profile-card profile-card--wide">
+            <div class="profile-card__head">
+              <h3 class="profile-card__title">Payment</h3>
+            </div>
+            <div>
+              <div class="store-credit-card">
+                <div class="store-credit-card__top">
+                  <span class="store-credit-card__label">Store Credit</span>
+                  <span class="store-credit-card__brand">Ninja Transfers</span>
+                </div>
+                <div class="store-credit-card__icon" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9.5 4.8 4h14.4L21 9.5"></path>
+                    <path d="M4 10h16v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path>
+                    <path d="M9 20v-5h6v5"></path>
+                    <path d="M3.5 9.5h17"></path>
+                  </svg>
+                </div>
+                <div class="store-credit-card__bottom">
+                  <div class="store-credit-card__balance-wrap">
+                    <div class="store-credit-card__balance-label">Available Balance</div>
+                    <div class="store-credit-card__balance">
+                      {{ customer.store_credit_account.balance | default: 0 | money }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
+        {%- comment -%} --- Addresses card with CRUD --- {%- endcomment -%}
+        <div class="profile-card profile-card--full">
+          <div class="profile-card__head">
+            <h3 class="profile-card__title">Addresses</h3>
+            <button type="button" class="profile-add-addr-btn" id="profile-add-addr-toggle">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Address
+            </button>
+          </div>
+
+          {%- assign should_default_new_address = false -%}
+          {%- if customer.default_address == blank
+            or customer.default_address.address1 == blank
+            and customer.default_address.address2 == blank
+          -%}
+            {%- assign should_default_new_address = true -%}
+          {%- endif -%}
+          {%- comment -%} Add new address form (hidden) {%- endcomment -%}
+          <div id="profile-add-addr-form" style="display:none">
+            <div class="profile-addr-form-wrap profile-addr-form-wrap--add">
+              {% form 'customer_address', customer.new_address %}
+                <div class="profile-addr-msg profile-addr-msg--error" data-form-error>Could not save address. Please check the fields and try again.</div>
+                <div class="profile-addr-msg profile-addr-msg--success" data-form-success>Address added!</div>
+                <div class="profile-addr-form-grid">
+                  <div class="profile-addr-form__row--half">
+                    <div>
+                      <label class="profile-addr-form__label" for="prof_addr_fn_new">First name</label>
+                      <input type="text" id="prof_addr_fn_new" class="profile-addr-form__input" name="address[first_name]" value="{{ form.first_name }}" autocomplete="given-name">
+                    </div>
+                    <div>
+                      <label class="profile-addr-form__label" for="prof_addr_ln_new">Last name</label>
+                      <input type="text" id="prof_addr_ln_new" class="profile-addr-form__input" name="address[last_name]" value="{{ form.last_name }}" autocomplete="family-name">
+                    </div>
+                  </div>
+                  <div>
+                    <label class="profile-addr-form__label" for="prof_addr_co_new">Company</label>
+                    <input type="text" id="prof_addr_co_new" class="profile-addr-form__input" name="address[company]" value="{{ form.company }}" autocomplete="organization">
+                  </div>
+                  <div>
+                    <label class="profile-addr-form__label" for="prof_addr_a1_new">Address</label>
+                    <input type="text" id="prof_addr_a1_new" class="profile-addr-form__input" name="address[address1]" value="{{ form.address1 }}" autocomplete="address-line1">
+                  </div>
+                  <div>
+                    <label class="profile-addr-form__label" for="prof_addr_a2_new">Apartment, suite, etc.</label>
+                    <input type="text" id="prof_addr_a2_new" class="profile-addr-form__input" name="address[address2]" value="{{ form.address2 }}" autocomplete="address-line2">
+                  </div>
+                  <div>
+                    <label class="profile-addr-form__label" for="prof_addr_ci_new">City</label>
+                    <input type="text" id="prof_addr_ci_new" class="profile-addr-form__input" name="address[city]" value="{{ form.city }}" autocomplete="address-level2">
+                  </div>
+                  <div>
+                    <label class="profile-addr-form__label" for="prof_addr_co_sel_new">Country</label>
+                    <select id="prof_addr_co_sel_new" class="profile-addr-form__select" name="address[country]" data-default="{{ form.country }}" autocomplete="country">{{ country_option_tags }}</select>
+                  </div>
+                  <div id="prof_addr_prov_wrap_new" style="display:none">
+                    <label class="profile-addr-form__label" for="prof_addr_prov_new">Province / State</label>
+                    <select id="prof_addr_prov_new" class="profile-addr-form__select" name="address[province]" data-default="{{ form.province }}"></select>
+                  </div>
+                  <div class="profile-addr-form__row--half">
+                    <div>
+                      <label class="profile-addr-form__label" for="prof_addr_zi_new">ZIP / Postal code</label>
+                      <input type="text" id="prof_addr_zi_new" class="profile-addr-form__input" name="address[zip]" value="{{ form.zip }}" autocomplete="postal-code">
+                    </div>
+                    <div>
+                      <label class="profile-addr-form__label" for="prof_addr_ph_new">Phone</label>
+                      <input type="tel" id="prof_addr_ph_new" class="profile-addr-form__input" name="address[phone]" value="{{ form.phone }}" autocomplete="tel">
+                    </div>
+                  </div>
+                  <div class="profile-addr-form__checkbox">
+                    {%- if should_default_new_address -%}
+                      <input type="checkbox" name="address[default]" id="address_default_address_new" value="1" checked>
+                    {%- else -%}
+                      {{ form.set_as_default_checkbox }}
+                    {%- endif -%}
+                    <label for="address_default_address_new">Set as default address</label>
+                  </div>
+                  <div class="profile-addr-form__actions">
+                    <button type="submit" class="profile-addr-save-btn">Save Address</button>
+                    <button type="button" class="profile-addr-cancel-btn" data-cancel-add>Cancel</button>
+                  </div>
+                </div>
+              {% endform %}
+            </div>
+          </div>
+
+          {%- comment -%} Address list {%- endcomment -%}
+          <div class="profile-address-list" id="profile-address-list">
+            {%- if customer.addresses_count > 0 -%}
+              {%- for address in customer.addresses -%}
+                {%- assign is_default = false -%}
+                {%- if customer.default_address and address.id == customer.default_address.id -%}
+                  {%- assign is_default = true -%}
+                {%- endif -%}
+                <div class="profile-address-card" id="profile-addr-{{ address.id }}">
+                  {%- comment -%} Display view {%- endcomment -%}
+                  <div data-addr-display="{{ address.id }}">
+                    <div class="profile-address-card__top">
+                      <div class="profile-address-card__name">{{ address.name | default: display_name }}</div>
+                      <div class="profile-address-card__actions-row">
+                        {%- if is_default -%}
+                          <span class="profile-address-card__tag">Default</span>
+                        {%- endif -%}
+                        <button type="button" class="profile-addr-icon-btn" data-edit-addr="{{ address.id }}" title="Edit address">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        {%- unless is_default -%}
+                        <button type="button" class="profile-addr-icon-btn profile-addr-icon-btn--delete" data-delete-addr="{{ address.id }}" data-addr-name="{{ address.name | default: display_name | escape }}" title="Delete address">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                        {%- endunless -%}
+                      </div>
+                    </div>
+                    <div class="profile-address-card__body" data-body="{{ address.id }}">
+                      {%- if address.company != blank -%}<div>{{ address.company }}</div>{%- endif -%}
+                      {%- if address.address1 != blank -%}<div>{{ address.address1 }}</div>{%- endif -%}
+                      {%- if address.address2 != blank -%}<div>{{ address.address2 }}</div>{%- endif -%}
+                      <div>{{ address.city }}{%- if address.province != blank -%}, {{ address.province }}{%- endif -%} {%- if address.zip != blank -%}{{ address.zip }}{%- endif -%}</div>
+                      {%- if address.country != blank -%}<div>{{ address.country }}</div>{%- endif -%}
+                      {%- if address.phone != blank -%}<div>{{ address.phone }}</div>{%- endif -%}
+                    </div>
+                  </div>
+
+                  {%- comment -%} Edit form (hidden) {%- endcomment -%}
+                  <div data-addr-edit="{{ address.id }}" style="display:none">
+                    <div class="profile-addr-form-wrap">
+                      {% form 'customer_address', address %}
+                        <div class="profile-addr-msg profile-addr-msg--error" data-form-error>Could not save. Please check the fields and try again.</div>
+                        <div class="profile-addr-msg profile-addr-msg--success" data-form-success>Address updated!</div>
+                        <div class="profile-addr-form-grid">
+                          <div class="profile-addr-form__row--half">
+                            <div>
+                              <label class="profile-addr-form__label" for="prof_addr_fn_{{ address.id }}">First name</label>
+                              <input type="text" id="prof_addr_fn_{{ address.id }}" class="profile-addr-form__input" name="address[first_name]" value="{{ form.first_name }}" autocomplete="given-name">
+                            </div>
+                            <div>
+                              <label class="profile-addr-form__label" for="prof_addr_ln_{{ address.id }}">Last name</label>
+                              <input type="text" id="prof_addr_ln_{{ address.id }}" class="profile-addr-form__input" name="address[last_name]" value="{{ form.last_name }}" autocomplete="family-name">
+                            </div>
+                          </div>
+                          <div>
+                            <label class="profile-addr-form__label" for="prof_addr_co_{{ address.id }}">Company</label>
+                            <input type="text" id="prof_addr_co_{{ address.id }}" class="profile-addr-form__input" name="address[company]" value="{{ form.company }}" autocomplete="organization">
+                          </div>
+                          <div>
+                            <label class="profile-addr-form__label" for="prof_addr_a1_{{ address.id }}">Address</label>
+                            <input type="text" id="prof_addr_a1_{{ address.id }}" class="profile-addr-form__input" name="address[address1]" value="{{ form.address1 }}" autocomplete="address-line1">
+                          </div>
+                          <div>
+                            <label class="profile-addr-form__label" for="prof_addr_a2_{{ address.id }}">Apartment, suite, etc.</label>
+                            <input type="text" id="prof_addr_a2_{{ address.id }}" class="profile-addr-form__input" name="address[address2]" value="{{ form.address2 }}" autocomplete="address-line2">
+                          </div>
+                          <div>
+                            <label class="profile-addr-form__label" for="prof_addr_ci_{{ address.id }}">City</label>
+                            <input type="text" id="prof_addr_ci_{{ address.id }}" class="profile-addr-form__input" name="address[city]" value="{{ form.city }}" autocomplete="address-level2">
+                          </div>
+                          <div>
+                            <label class="profile-addr-form__label" for="prof_addr_co_sel_{{ address.id }}">Country</label>
+                            <select id="prof_addr_co_sel_{{ address.id }}" class="profile-addr-form__select" name="address[country]" data-default="{{ form.country }}" autocomplete="country">{{ country_option_tags }}</select>
+                          </div>
+                          <div id="prof_addr_prov_wrap_{{ address.id }}" style="display:none">
+                            <label class="profile-addr-form__label" for="prof_addr_prov_{{ address.id }}">Province / State</label>
+                            <select id="prof_addr_prov_{{ address.id }}" class="profile-addr-form__select" name="address[province]" data-default="{{ form.province }}"></select>
+                          </div>
+                          <div class="profile-addr-form__row--half">
+                            <div>
+                              <label class="profile-addr-form__label" for="prof_addr_zi_{{ address.id }}">ZIP / Postal code</label>
+                              <input type="text" id="prof_addr_zi_{{ address.id }}" class="profile-addr-form__input" name="address[zip]" value="{{ form.zip }}" autocomplete="postal-code">
+                            </div>
+                            <div>
+                              <label class="profile-addr-form__label" for="prof_addr_ph_{{ address.id }}">Phone</label>
+                              <input type="tel" id="prof_addr_ph_{{ address.id }}" class="profile-addr-form__input" name="address[phone]" value="{{ form.phone }}" autocomplete="tel">
+                            </div>
+                          </div>
+                          <div class="profile-addr-form__checkbox">
+                            {{ form.set_as_default_checkbox }}
+                            <label for="address_default_address_{{ form.id }}">Set as default address</label>
+                          </div>
+                          <div class="profile-addr-form__actions">
+                            <button type="submit" class="profile-addr-save-btn">Save Changes</button>
+                            <button type="button" class="profile-addr-cancel-btn" data-cancel-edit="{{ address.id }}">Cancel</button>
+                          </div>
+                        </div>
+                      {% endform %}
+                    </div>
+                  </div>
+                </div>
+              {%- endfor -%}
+            {%- endif -%}
+          </div>
+
+          {%- if customer.addresses_count == 0 -%}
+          <div class="profile-empty-state" id="profile-addr-empty">
+            <p>No saved addresses yet. Click "Add Address" above to get started.</p>
+          </div>
+          {%- endif -%}
+        </div>
+
+        {%- comment -%} --- Tax Exemption card --- {%- endcomment -%}
+        <div class="profile-card profile-card--full">
+          <div class="profile-card__head">
+            <h3 class="profile-card__title">Tax Exemption</h3>
+          </div>
+          <div class="profile-tax-content">
+            <p>If you're a tax exempt customer, you may submit tax exemption documents using the steps below:</p>
+            <p>
+              1. Click on the Submit Certificates button to dynamically generate a tax exemption certificate through a
+              guided flow.
+            </p>
+            <p>2. Once you submit your document(s), you will be able to proceed with checkout exempt from sales tax.</p>
+            <p>
+              3. Please note that if your document is expired or is determined to be invalid at a later date, we may
+              collect sales tax, and reach out to you offline to address any issues.
+            </p>
+            <p>If you have any questions specific to tax, please contact your tax advisor.</p>
+            
+            {% render 'grt-tax-exemption' %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  /* ===== Country / Province selector ===== */
+  function initCP(countryId, provinceId, wrapId) {
+    var cs = document.getElementById(countryId);
+    var ps = document.getElementById(provinceId);
+    var pw = document.getElementById(wrapId);
+    if (!cs || !ps || !pw) return;
+    function update() {
+      var opt = cs.options[cs.selectedIndex];
+      if (!opt) return;
+      var provs = [];
+      try { provs = JSON.parse(opt.getAttribute('data-provinces') || '[]'); } catch(e) {}
+      ps.innerHTML = '';
+      if (provs.length > 0) {
+        provs.forEach(function(p) { var o = document.createElement('option'); o.value = p[0]; o.textContent = p[1]; ps.appendChild(o); });
+        var def = ps.getAttribute('data-default');
+        if (def) { for (var i = 0; i < ps.options.length; i++) { if (ps.options[i].value === def || ps.options[i].textContent === def) { ps.selectedIndex = i; break; } } }
+        pw.style.display = '';
+      } else { pw.style.display = 'none'; }
+    }
+    cs.addEventListener('change', update);
+    var cDef = cs.getAttribute('data-default');
+    if (cDef) { for (var i = 0; i < cs.options.length; i++) { if (cs.options[i].value === cDef || cs.options[i].textContent === cDef) { cs.selectedIndex = i; break; } } }
+    update();
+  }
+
+  /* ===== AJAX form submit ===== */
+  function extractAddressResponseError(html) {
+    if (!html) return '';
+    var text = html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    var lower = text.toLowerCase();
+    var knownDeleteErrors = [
+      "you can't delete",
+      "you can’t delete",
+      'cannot delete',
+      'can not delete'
+    ];
+    for (var i = 0; i < knownDeleteErrors.length; i++) {
+      var phrase = knownDeleteErrors[i];
+      var idx = lower.indexOf(phrase);
+      if (idx >= 0) {
+        return text.slice(idx, Math.min(text.length, idx + 180));
+      }
+    }
+    try {
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var invalidField = doc.querySelector('[aria-invalid="true"], .input--error');
+      if (invalidField) {
+        return 'Please check the address fields and try again.';
+      }
+      var formError = doc.querySelector('.errors, .form__message, .alert, .notice--error');
+      if (formError) {
+        var message = (formError.textContent || '').replace(/\s+/g, ' ').trim();
+        if (message) return message;
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  function submitForm(form, btn, onSuccess, onError) {
+    var origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Saving\u2026';
+    var errEl = form.querySelector('[data-form-error]');
+    var okEl = form.querySelector('[data-form-success]');
+    if (errEl) errEl.style.display = 'none';
+    if (okEl) okEl.style.display = 'none';
+    fetch(form.action, { method: form.method || 'POST', body: new FormData(form), credentials: 'same-origin' })
+      .then(function(res) {
+        return res.text().then(function(html) {
+          var errorMessage = extractAddressResponseError(html);
+          if (!errorMessage && (res.ok || res.redirected)) {
+            onSuccess(res, html);
+          } else {
+            onError(errorMessage || 'Could not save address. Please check the fields and try again.', res, html);
+          }
+        });
+      })
+      .catch(function() { onSuccess({ status: 'request failed' }, ''); })
+      .finally(function() { btn.disabled = false; btn.textContent = origText; });
+  }
+
+  /* ===== Toggle helpers ===== */
+  function showEl(sel) { var el = typeof sel === 'string' ? document.querySelector(sel) : sel; if (el) el.style.display = ''; }
+  function hideEl(sel) { var el = typeof sel === 'string' ? document.querySelector(sel) : sel; if (el) el.style.display = 'none'; }
+
+  function getProfileTabUrl() {
+    var url = new URL(window.location.href);
+    url.searchParams.set('profile', '1');
+    return url.toString();
+  }
+
+  function reloadWithProfileTab() {
+    window.location.href = getProfileTabUrl();
+  }
+
+  function activateProfileTab() {
+    var section = document.querySelector('.members-portal');
+    if (!section) return;
+    var profileNavLink = section.querySelector('.mp-nav__link[data-icon="profile"]');
+    if (profileNavLink) {
+      profileNavLink.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      return;
+    }
+    var profPanel = section.querySelector('[data-panel="profile"]');
+    var active = section.querySelector('.mp-panel--active');
+    if (profPanel && active && profPanel !== active) {
+      active.classList.remove('mp-panel--active');
+      profPanel.classList.add('mp-panel--active');
+    }
+    section.querySelectorAll('.mp-nav__link').forEach(function(l) {
+      var icon = l.getAttribute('data-icon');
+      if (icon === 'profile') l.classList.add('mp-nav__link--active');
+      else l.classList.remove('mp-nav__link--active');
+    });
+  }
+
+  /* ===== Add Address ===== */
+  var addToggle = document.getElementById('profile-add-addr-toggle');
+  var addWrap = document.getElementById('profile-add-addr-form');
+  if (addToggle && addWrap) {
+    addToggle.addEventListener('click', function() {
+      addWrap.style.display = addWrap.style.display === 'none' ? '' : 'none';
+      if (addWrap.style.display !== 'none') { addWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+    });
+    var addCancel = addWrap.querySelector('[data-cancel-add]');
+    if (addCancel) addCancel.addEventListener('click', function() { hideEl(addWrap); });
+    var addForm = addWrap.querySelector('form');
+    if (addForm) {
+      addForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var btn = addForm.querySelector('.profile-addr-save-btn');
+        submitForm(addForm, btn, function(res) {
+          // alert('Add address request status: ' + res.status);
+          var ok = addForm.querySelector('[data-form-success]');
+          if (ok) ok.style.display = '';
+          setTimeout(function() { reloadWithProfileTab(); }, 700);
+        }, function(message, res) {
+          // alert('Add address request status: ' + (res ? res.status : 'request failed'));
+          var err = addForm.querySelector('[data-form-error]');
+          if (err) {
+            err.textContent = message;
+            err.style.display = '';
+          }
+        });
+      });
+    }
+    initCP('prof_addr_co_sel_new', 'prof_addr_prov_new', 'prof_addr_prov_wrap_new');
+  }
+
+  /* ===== Edit Address ===== */
+  document.querySelectorAll('[data-edit-addr]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = btn.getAttribute('data-edit-addr');
+      var card = document.getElementById('profile-addr-' + id);
+      if (!card) return;
+      var display = card.querySelector('[data-addr-display="' + id + '"]');
+      var edit = card.querySelector('[data-addr-edit="' + id + '"]');
+      if (display) display.style.display = 'none';
+      if (edit) edit.style.display = '';
+      card.classList.add('profile-address-card--editing');
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+
+  /* Cancel edit */
+  document.querySelectorAll('[data-cancel-edit]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = btn.getAttribute('data-cancel-edit');
+      var card = document.getElementById('profile-addr-' + id);
+      if (!card) return;
+      var display = card.querySelector('[data-addr-display="' + id + '"]');
+      var edit = card.querySelector('[data-addr-edit="' + id + '"]');
+      if (display) display.style.display = '';
+      if (edit) edit.style.display = 'none';
+      card.classList.remove('profile-address-card--editing');
+      var err = edit ? edit.querySelector('[data-form-error]') : null;
+      var ok = edit ? edit.querySelector('[data-form-success]') : null;
+      if (err) err.style.display = 'none';
+      if (ok) ok.style.display = 'none';
+    });
+  });
+
+  /* Submit edit form */
+  document.querySelectorAll('[data-addr-edit]').forEach(function(editWrap) {
+    var form = editWrap.querySelector('form');
+    if (!form) return;
+    var id = editWrap.getAttribute('data-addr-edit');
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var btn = form.querySelector('.profile-addr-save-btn');
+      submitForm(form, btn, function() {
+        /* Update display card from form values */
+        var card = document.getElementById('profile-addr-' + id);
+        if (!card) return;
+        var body = card.querySelector('[data-body="' + id + '"]');
+        if (body) {
+          var fn = form.querySelector('[name="address[first_name]"]').value;
+          var ln = form.querySelector('[name="address[last_name]"]').value;
+          var co = form.querySelector('[name="address[company]"]').value;
+          var a1 = form.querySelector('[name="address[address1]"]').value;
+          var a2 = form.querySelector('[name="address[address2]"]').value;
+          var ci = form.querySelector('[name="address[city]"]').value;
+          var provSel = form.querySelector('[name="address[province]"]');
+          var prov = provSel ? (provSel.tagName === 'SELECT' && provSel.selectedIndex >= 0 ? provSel.options[provSel.selectedIndex].textContent : provSel.value) : '';
+          var zi = form.querySelector('[name="address[zip]"]').value;
+          var ctry = form.querySelector('[name="address[country]"]');
+          var country = ctry && ctry.selectedIndex >= 0 ? ctry.options[ctry.selectedIndex].textContent : '';
+          var ph = form.querySelector('[name="address[phone]"]').value;
+          var html = '';
+          if (co) html += '<div>' + co + '</div>';
+          if (a1) html += '<div>' + a1 + '</div>';
+          if (a2) html += '<div>' + a2 + '</div>';
+          var cityLine = ci;
+          if (prov) cityLine += ', ' + prov;
+          if (zi) cityLine += ' ' + zi;
+          if (cityLine) html += '<div>' + cityLine + '</div>';
+          if (country) html += '<div>' + country + '</div>';
+          if (ph) html += '<div>' + ph + '</div>';
+          body.innerHTML = html;
+          /* Update name */
+          var nameEl = card.querySelector('.profile-address-card__name');
+          if (nameEl && (fn || ln)) nameEl.textContent = (fn + ' ' + ln).trim();
+        }
+        /* Show success, then close edit */
+        var okEl = form.querySelector('[data-form-success]');
+        if (okEl) okEl.style.display = '';
+        setTimeout(function() {
+          var display = card.querySelector('[data-addr-display="' + id + '"]');
+          var edit = card.querySelector('[data-addr-edit="' + id + '"]');
+          if (display) display.style.display = '';
+          if (edit) edit.style.display = 'none';
+          card.classList.remove('profile-address-card--editing');
+          if (okEl) okEl.style.display = 'none';
+          /* If set-as-default was checked, reload to reflect change */
+          var defCb = form.querySelector('input[name="address[default]"]');
+          if (defCb && defCb.checked) { reloadWithProfileTab(); }
+        }, 1200);
+      }, function(message) {
+        var err = form.querySelector('[data-form-error]');
+        if (err) {
+          err.textContent = message;
+          err.style.display = '';
+        }
+      });
+    });
+    initCP('prof_addr_co_sel_' + id, 'prof_addr_prov_' + id, 'prof_addr_prov_wrap_' + id);
+  });
+
+  /* ===== Delete Address ===== */
+  document.querySelectorAll('[data-delete-addr]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = btn.getAttribute('data-delete-addr');
+      var name = btn.getAttribute('data-addr-name') || 'this address';
+      if (!confirm('Delete ' + name + '? This cannot be undone.')) return;
+      btn.disabled = true;
+      /* Grab a CSRF token from any rendered form on the page */
+      var tokenInput = document.querySelector('[data-panel="profile"] input[name="authenticity_token"]');
+      var fd = new FormData();
+      fd.append('_method', 'delete');
+      if (tokenInput) fd.append('authenticity_token', tokenInput.value);
+      fetch('/account/addresses/' + id, { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(function(res) {
+          alert('Delete address request status: ' + res.status);
+          return res.text().then(function(html) {
+            var errorMessage = extractAddressResponseError(html);
+            if (!errorMessage) {
+              var card = document.getElementById('profile-addr-' + id);
+              if (card) { card.style.transition = 'opacity 0.25s, transform 0.25s'; card.style.opacity = '0'; card.style.transform = 'scale(0.95)'; setTimeout(function() { card.remove(); }, 260); }
+              var list = document.getElementById('profile-address-list');
+              var empty = document.getElementById('profile-addr-empty');
+              setTimeout(function() { if (list && list.children.length === 0 && empty) empty.style.display = ''; }, 300);
+            } else {
+              alert(errorMessage);
+              btn.disabled = false;
+            }
+          });
+        })
+        .catch(function() {
+          // alert('Delete address request status: request failed');
+          var card = document.getElementById('profile-addr-' + id);
+          if (card) { card.style.transition = 'opacity 0.25s, transform 0.25s'; card.style.opacity = '0'; card.style.transform = 'scale(0.95)'; setTimeout(function() { card.remove(); }, 260); }
+          var list = document.getElementById('profile-address-list');
+          var empty = document.getElementById('profile-addr-empty');
+          setTimeout(function() { if (list && list.children.length === 0 && empty) empty.style.display = ''; }, 300);
+        });
+    });
+  });
+
+  /* ===== Auto-open profile panel after reload ===== */
+  if (new URL(window.location.href).searchParams.get('profile')) {
+    window.addEventListener('load', function() {
+      activateProfileTab();
+    });
+  }
+})();
+</script>
+{% render 'grt-customer-profile-form' %}

@@ -1,0 +1,297 @@
+<style>
+  .posrel{position:relative;}
+  .posrel .posoverlay{position:absolute; left:0; right:0; top:0; bottom:0;}
+</style>
+
+{%liquid
+  assign menus = linklist.blank_menu.value
+  assign localzone = localization.country.iso_code
+%}
+
+  {% for menuitem in menus %}
+      {%liquid 
+        assign custom_class = menuitem.class
+        assign custom_width = menuitem.width
+        assign sumnunuitem = menuitem.second_menu_item.value 
+        assign sumnunu = ""
+        if menuitem.menu_type != blank
+          assign sumnunu = "has-submenu"
+        endif
+        
+        assign toplnk = "javascript:void(0);"
+        assign noanchor = "noclick"
+        
+        if menuitem.custom_link != blank and type != 'mobile'
+          assign toplnk = menuitem.custom_link
+          assign noanchor = ""
+        endif
+        if menuitem.top_collection != blank and type != 'mobile'
+          assign toplnk = menuitem.top_collection.value.url
+          assign noanchor = ""
+        endif
+        if menuitem.top_product != blank and type != 'mobile'
+          assign toplnk = menuitem.top_product.value.url
+          assign noanchor = ""
+        endif
+        
+        assign menu_ca = menuitem.hide_for_canada
+        if menu_ca and localzone == "CA"
+          continue
+        endif
+
+      %}
+
+
+      <li class="menu-item {{ sumnunu }} {{ menuitem.class }}" data-localzone="{{ localzone }}">
+        <div class="menu-wrapper" data-target="submenu-{{ forloop.index }}">
+          <a href="{{ toplnk }}" class="link--text header__menu-item menu-link mobile-nav-lnk {{ menuitem.class }} {{ noanchor }}">
+            <span>
+                <span class="menu-text text-animation--underline-in-header">{{ menuitem.name }}</span>
+            </span>
+            {% unless sumnunu == "" %}
+              {% if type == 'mobile' %}
+                <span class="icon -- app-menu-arr-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 0 320 512" data-license="Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc." style="width: 1em; height: 1em; display: inline-flex; flex-shrink: 0; vertical-align: middle; margin-left: 0.6em; margin-bottom: 0.5em;">
+                    <path d="M182.6 470.6c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-9.2-9.2-11.9-22.9-6.9-34.9s16.6-19.8 29.6-19.8H288c12.9 0 24.6 7.8 29.6 19.8s2.2 25.7-6.9 34.9l-128 128z" fill="currentColor"></path>
+                  </svg>
+                </span>
+              {% else %}
+                <span class="icon ++">{{- 'icon-caret.svg' | inline_asset_content -}}</span>
+              {% endif %}
+            {% endunless %}
+          </a>
+        </div>
+
+        {% assign menuitemmenu_type = menuitem.menu_type | downcase | replace : " " , "_" %}
+        
+        {% unless menuitemmenu_type == blank %}
+          {% if menuitemmenu_type == "image_thumb_menu" %}
+            <!-- Image block menu -->
+           {% liquid
+            assign prod = menuitem.product_url.value
+            assign collection = menuitem.collection_list.value
+          %}
+          
+          {% if prod != "" or collection != "" %}
+            <ul class="submenu normal-menu {{ custom_class }} {{ menuitemmenu_type }}" id="SiteNavLabel--{{ forloop.index }}">
+              <div class="grt-top-men submenu-holder submenu-block-{{- forloop.index -}}">
+                {% for product in prod %}
+                   <div class="grt-image-card">
+                  <li>
+                    <a class="grt-lay menu-link" href="{{ product.url }}">
+                      {% if product.featured_image %}
+                        <img src="{{ product.featured_image | img_url: 'master' }}" alt="{{ product.title | escape }}" class="grt-image menu-product-image" />
+                      {% endif %}
+                      <div><span class="{{ links_class }}">{{ product.title | escape }}</span></div>
+                    </a>
+                  </li>
+                   </div>
+                {% endfor %}
+                {% for coll in collection %}
+                  <div class="grt-image-card">
+                  <li>
+                    <a class="grt-lay menu-link" href="{{ coll.url }}">
+                      {% if coll.image %}
+                        <img src="{{ coll.image | img_url: 'master' }}" alt="{{ coll.title | escape }}" class="grt-image menu-product-image">
+                      {% endif %}
+                      <div><span class="{{ links_class }}">{{ coll.title | escape }}</span></div>
+                    </a>
+                  </li>
+                  </div>
+                {% endfor %}
+              </div>
+            </ul>
+          {% endif %}
+            <!-- ./Image block menu -->
+            
+          {% elsif menuitemmenu_type == "single_dropdown_menu" %}
+            
+            {%liquid
+              assign prod = menuitem.product_url.value
+              assign collection = menuitem.collection_list.value
+              comment
+              assign metaentry = menuitem.singleentry_list.value
+              endcomment
+            %}
+            {% if prod != "" or collection != "" %}
+  			<ul class="submenu normal-menu ninja-single-menu {{ custom_class }} {{ menuitemmenu_type }}" id="SiteNavLabel--{{ forloop.index }}">
+  				<div class="submenu-holder  submenu-block-{{- forloop.index -}}">
+                      {%- if type == 'mobile' -%}
+                        <li class="submenu-back">
+                            <a href="javascript:void(0);"><span class="icon">{%- render 'theme-symbols', icon: 'chevron' -%}</span>{{ 'general.accessibility_labels.back' | t }}</a>
+                        </li>
+                      {%- endif -%}
+              
+                      {% for product in prod %}
+                        <li>
+                          <a class="menu-link" href="{{ product.url }}">
+                            <span><span class="{{ links_class }}">{{ product.title | escape }}</span></span>
+                          </a>
+                        </li>
+                      {%- endfor -%}
+              
+                      {% for coll in collection %}
+                        <li>
+                            <a class="menu-link collection" href="{{ coll.url }}">
+                                <span><span class="{{ links_class }}">{{ coll.title | escape }}</span></span>
+                              </a>
+                          </li>
+                      {% endfor %}
+  				</div>
+  			</ul>
+            {% endif %}
+            
+          {% elsif menuitemmenu_type == "mega_menu" %}
+            {%liquid
+              assign count_len = 0
+              assign prod = menuitem.product_url.value
+              assign collection = menuitem.collection_list.value
+            %}
+            
+            {% if prod != "" or collection != "" %}
+              <ul class="ninja-submenu submenu normal-menu ninja-megamenu {{ custom_class }} {{ menuitemmenu_type }}" id="SiteNavLabel--{{ forloop.index }}">
+  				<div class="submenu-holder submenu-block-{{- forloop.index -}}" {%- unless type == 'mobile' -%} style="" {%- endunless -%}>
+                      {%- if type == 'mobile' -%}
+                        <li class="submenu-back">
+                            <a href="javascript:void(0);"><span class="icon">{%- render 'theme-symbols', icon: 'chevron' -%}</span>{{ 'general.accessibility_labels.back' | t }}</a>
+                        </li>
+                      {%- endif -%}
+              
+                      {% for product in prod %}
+                        <li>
+                          <a class="menu-link" href="{{ product.url }}">
+                                <span><span class="{{ links_class }}">{{ product.title | escape }}</span></span>
+                            </a>
+                        </li>
+                      {%- endfor -%}
+              
+                      {% for coll in collection %}
+                        <li>
+                            <a class="menu-link" href="{{ coll.url }}">
+                                <span><span class="{{ links_class }}">{{ coll.title | escape }}</span></span>
+                              </a>
+                          </li>
+                      {% endfor %}
+              
+                    {% for submenu in sumnunuitem  %}
+                      <!-- Second-level menu link -->
+                      {% liquid
+                        assign submenuimg = ""
+                        assign sub_name = submenu.sub_name
+                        if submenu.product
+                          assign href_value = submenu.product.value.url
+                          assign submenuimg = submenu.product.value.featured_image.src
+                        elsif submenu.collection
+                         assign sub_name = submenu.collection.value.title
+                          assign href_value = submenu.collection.value.url
+                          assign submenuimg = submenu.collection.value.image
+                        elsif submenu.custom_link
+                         assign href_value = submenu.custom_link
+                        else
+                          assign href_value = 'javascript:void(0);'
+                        endif
+                         
+                         assign submenu_ca = submenu.hide_for_canada
+                         if submenu_ca and localzone == "CA"
+                           continue
+                         endif
+                      %}
+                          <div class="grt-sub-menu">
+                            <li>
+                              {% if submenu.display_type == blank or submenu.display_type == "Title" %}
+                                <h3 class="grt-nav-heading"><span class="{{ links_class }}">{{ submenu.sub_name }} </span></h3>
+                              {% else %}
+                                <li class="d-sm-none"><a class="grt-menu-link" href="{{ href_value }}"><span><span class="{{ links_class }}">{{ sub_name }}</span></span></a></li>
+                                <div class="d-none d-sm-flex vendor-logo-box posrel" style="{% if submenuimg != blank %}background-image:url('{{- submenuimg | img_url : 'medium' -}}'){% endif %}">
+                                {% if submenuimg != blank %}
+                                 <a href="{{ href_value }}" class="posoverlay vendor"></a>
+                                {% endif %}
+                                </div>
+                              {% endif %}
+                              <ul class="sub-category">
+                                
+              					{%- if type == 'mobile' -%}
+                                  <li class="submenu-back">
+                                      <a href="javascript:void(0);"><span class="icon">{%- render 'theme-symbols', icon: 'chevron' -%}</span>{{ 'general.accessibility_labels.back' | t }}</a>
+                                  </li>
+              					{%- endif -%}
+                                {% for item in submenu.sub_category.value %}
+                                  <!-- third-level menu link -->
+                                  {% liquid
+                                     assign itemmenu_ca = item.hide_for_canada
+                                     if itemmenu_ca and localzone == "CA"
+                                       continue
+                                     endif           
+                                     
+                                    if item.product
+                                      assign cat_href = item.product.value.url
+                                    elsif item.collection
+                                      assign cat_href = item.collection.value.url
+                                    elsif  item.cat_link
+                                      assign cat_href = item.cat_link
+                                    else
+                                      assign cat_href = 'javascript:void(0);'
+                                    endif
+                                  %}
+                                  
+                                  <li>
+                                    <a class="grt-menu-link" href="{{ cat_href }}">
+                                      <span><span class="{{ links_class }}">{{ item.title }}</span></span>
+                                      {% if item.label_text %} <div class="ninja-badge" {% unless item.tag_color == blank %}style="background-color:{{ item.tag_color }}"{% endunless %}>{{ item.label_text }}</div> {% endif %}
+                                    </a>
+                                  </li>
+                                {% endfor %}
+                              </ul>
+                            </li> 
+                          </div>
+                        {% endfor %}
+  				</div>
+  			</ul>
+
+            {% endif %}
+          {% endif %}
+        {% endunless %}
+
+      </li>
+    {% endfor %}
+
+
+<style>
+  
+@media(min-width:768px){
+  {% for menuitem in menus %}
+    {% assign custom_width = menuitem.width  %}
+    .submenu-block-{{- forloop.index -}}{width:{{- custom_width -}}px;}
+  {% endfor %}
+}
+
+  
+.grt-top-men{display: grid; gap: 20px; justify-content: center; }
+img.grt-image{max-width: 150px; max-height: 150px;}
+.grt-lay{flex-direction:column;width: 150px;}
+@media (min-width: 768px) {
+  {% for menuitem in menus %}
+    {% assign custom_width = menuitem.width %}
+    {% unless custom_width == blank  %}
+    .submenu-block-{{- forloop.index -}} .grt-top-men{width: {{ custom_width }}px;}
+    .single_dropdown_menu .submenu-block-{{- forloop.index -}}{width: {{ custom_width }}px;}
+    {% endunless %}
+  {% endfor %}
+  
+  {% for menuitem in menus %}
+    ul#SiteNavLabel--{{ forloop.index }} {
+      {% assign drop_type = menuitem.menu_type | downcase | replace : " " , "_" %}
+      {% assign position_type = menuitem.position | downcase | replace : " " , "_" %}
+      {% if position_type == "middle" %}
+        {% unless drop_type == "single_dropdown_menu" %}
+          right: 0; transform: translate3d(50%, 1px, 0px);
+        {% endunless %}
+      {% elsif position_type == 'right_side' %}
+        right: 0;
+      {% else %}
+        left: 0;
+      {% endif %}
+    }
+  {% endfor %}
+}
+</style>

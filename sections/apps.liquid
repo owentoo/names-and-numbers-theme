@@ -1,0 +1,80 @@
+{%- liquid
+  assign apps_bg = section.settings.bg_color
+  assign apps_pad = section.settings.padding_y
+  assign has_wrapper = false
+  if apps_bg != blank and apps_bg != 'rgba(0,0,0,0)'
+    assign has_wrapper = true
+  endif
+  if apps_pad > 0
+    assign has_wrapper = true
+  endif
+-%}
+
+{%- if has_wrapper -%}
+<style>
+  .apps-{{ section.id }} {
+    {% if apps_bg != blank and apps_bg != 'rgba(0,0,0,0)' %}background-color: {{ apps_bg }};{% endif %}
+    {% if apps_pad > 0 %}padding-top: {{ apps_pad }}px; padding-bottom: {{ apps_pad }}px;{% endif %}
+  }
+</style>
+<div class="apps-{{ section.id }}">
+{%- endif -%}
+
+  <div class="container {% unless section.settings.remove_margin %} container--vertical-space {% endunless %} {% unless section.settings.full_width %} container--large {% else %} container--fullwidth {% endunless %}">
+    {%- liquid
+      for block in section.blocks
+        render block
+      endfor
+    -%}
+  </div>
+
+{%- if has_wrapper -%}
+</div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.apps.name",
+  "class": "mount-app",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "t:sections.image.fullwidth",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "remove_margin",
+      "label": "t:sections.local-extra-words.sections.rich-text.settings.remove_margin.label",
+      "default": false
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Section background",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "range",
+      "id": "padding_y",
+      "label": "Vertical padding (top + bottom)",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@app"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.apps.presets.name"
+    }
+  ]
+}
+{% endschema %}

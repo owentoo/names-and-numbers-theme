@@ -1,0 +1,459 @@
+<cart-form id="AjaxCartForm" class="cart-refreshing">
+{% assign moneySaved = 0 %}
+{% assign reward_money = 0 %}
+
+<div class="nt-jtl-desktop-wrap">
+  <div class="sidebar-widget cart-gift-widget nt-jtl-card">
+    {%- render 'cart-gift-wrapping', class: 'cart-wrapping--page', hideQuickBuy: true -%}
+  </div>
+</div>
+
+	<form action="{{ routes.cart_url }}" method="post" novalidate class="cart__form grt-cart-line-item-container {% if cart.item_count == 0 %} cart--empty {% endif %}" id="cart">
+
+		{%- capture freeShippingBars -%}{% render 'free-shipping-bars' %}{%- endcapture -%}
+		{%- assign freeShippingBarsTrimmed = freeShippingBars | strip -%}
+		{%- unless freeShippingBarsTrimmed == blank -%}
+			<div class="cart-form-mobile-shipping-bars cart-notice text-size--small hide-if-empty-cart">
+				{{ freeShippingBars }}
+			</div>
+		{%- endunless -%}
+
+		<div class="cart-holder" data-items="{{ cart.items.size }}">
+
+			<div class="cart-form__items">
+				{% assign productblank = 0 %}
+				{%- if cart.item_count > 0 -%}
+                  	{%liquid
+						for item in cart.items
+							if item.product.metafields.custom.points_apply
+								assign reward_money = reward_money | plus : item.line_price
+							endif
+						endfor
+					%}
+					{%- comment -%} Jump the Line first, then Pre-cut Option {%- endcomment -%}
+					{%- for item in cart.items -%}
+                      {%- if item.product.id == 6947128901715 -%}
+                        {% render 'cart-page-item', item: item, isAntigroDesignerProduct: isAntigroDesignerProduct, desc:true, displayAntigroDesignerControls: displayAntigroDesignerControls %}
+                      {%- endif -%}
+                    {%- endfor -%}
+                    {%- for item in cart.items -%}
+                      {%- if item.product.id == 7578022281299 -%}
+                        {% render 'cart-page-item', item: item, isAntigroDesignerProduct: isAntigroDesignerProduct, desc:false, displayAntigroDesignerControls: displayAntigroDesignerControls, qty_label: item.quantity %}
+                      {%- endif -%}
+                    {%- endfor -%}
+                    {%- for item in cart.items -%}
+					  {%- if productblank == 0 -%}
+                        {%- for item_tag in item.product.tags -%}
+                          {%- assign item_tag_lc = item_tag | downcase | strip -%}
+                          {%- if item_tag_lc == 'blank' or item_tag_lc == 'blanks' or item_tag_lc == 'blank apparel' or item_tag_lc == 'blanks apparel' -%}
+                            {% assign productblank = 1 %}
+                            {%- break -%}
+                          {%- endif -%}
+                        {%- endfor -%}
+                      {%- endif -%}
+                    {%- endfor -%}
+                  
+                    <!-- Design groups: bysize items grouped by product + upload filename -->
+                    {%- liquid
+                      assign _nt_seen   = ""
+                      assign _nt_groups = ""
+                      for item in cart.items
+                        if item.product.id == 6947128901715 or item.product.id == 7578022281299
+                          continue
+                        endif
+                        unless item.product.metafields.custom.custom_enable_size_edit
+                          continue
+                        endunless
+                        assign _nt_upload = ""
+                        for p in item.properties
+                          assign _pk = p.first | downcase
+                          if _pk contains 'upload'
+                            if p.last != blank
+                              assign _nt_upload = p.last | split: '/' | last | split: '?' | first | downcase
+                            endif
+                          endif
+                        endfor
+                        if _nt_upload != blank
+                          assign _nt_upload = item.product.id | append: '_' | append: _nt_upload
+                          unless _nt_seen contains _nt_upload
+                            assign _nt_seen   = _nt_seen   | append: _nt_upload | append: "|||"
+                            assign _nt_groups = _nt_groups | append: _nt_upload | append: "|"
+                          endunless
+                        endif
+                      endfor
+                      assign _nt_group_arr = _nt_groups | split: "|"
+                    -%}
+
+                    {%- for _gkey in _nt_group_arr -%}
+                      {%- if _gkey == blank -%}{%- continue -%}{%- endif -%}
+
+                      {%- liquid
+                        assign _nt_header_done    = false
+                        assign _nt_child_count   = 0
+                        assign _nt_group_qty     = 0
+                        assign _nt_thumb         = ""
+                        assign _nt_cartimg       = ""
+                        assign _nt_dname         = ""
+                        assign _nt_ptitle        = ""
+                        assign _nt_first_key     = ""
+                        assign _nt_disc_title    = ""
+                        assign _nt_precut        = ""
+                        assign _nt_group_final   = 0
+                        assign _nt_group_original = 0
+                        for item in cart.items
+                          unless item.product.metafields.custom.custom_enable_size_edit
+                            continue
+                          endunless
+                          assign _nt_f = ""
+                          for p in item.properties
+                            assign _pk = p.first | downcase
+                            if _pk contains 'upload'
+                              if p.last != blank
+                                assign _nt_f = p.last | split: '/' | last | split: '?' | first | downcase
+                              endif
+                            endif
+                          endfor
+                          if _nt_f != blank
+                            assign _nt_f = item.product.id | append: '_' | append: _nt_f
+                          endif
+                          if _nt_f == _gkey
+                            assign _nt_child_count    = _nt_child_count    | plus: 1
+                            assign _nt_solo_item      = item
+                            assign _nt_solo_line      = forloop.index
+                            assign _nt_group_qty      = _nt_group_qty      | plus: item.quantity
+                            assign _nt_group_final    = _nt_group_final    | plus: item.final_line_price
+                            assign _nt_group_original = _nt_group_original | plus: item.original_line_price
+                            unless _nt_header_done
+                              for p in item.properties
+                                assign _pk = p.first | downcase
+                                if _pk contains 'upload'
+                                  if p.last != blank
+                                    assign _nt_thumb = p.last
+                                  endif
+                                endif
+                                if _pk == '_cartimg'
+                                  if p.last != blank
+                                    assign _nt_cartimg = p.last
+                                  endif
+                                  if p.last != blank and _nt_thumb == blank
+                                    assign _nt_thumb = p.last
+                                  endif
+                                endif
+                                if _pk == '_design name'
+                                  assign _nt_dname = p.last
+                                endif
+                              endfor
+                              assign _nt_ptitle      = item.product.title
+                              assign _nt_first_key   = item.key
+                              for _pp in item.properties
+                                assign _ppk = _pp.first | downcase
+                                if _ppk == 'precut'
+                                  if _pp.last != blank and _pp.last != ''
+                                    assign _nt_precut = _pp.last
+                                  endif
+                                endif
+                              endfor
+                              for _da in item.line_level_discount_allocations
+                                if _da.discount_application.title != blank
+                                  assign _nt_disc_title = _da.discount_application.title
+                                  break
+                                endif
+                              endfor
+                              assign _nt_header_done = true
+                            endunless
+                          endif
+                        endfor
+                      -%}
+
+                      <div class="nt-design-group" data-group-key="{{ _gkey | escape }}">
+                        {%- render 'nt-design-group-header',
+                            thumb:          _nt_thumb,
+                            cartimg:        _nt_cartimg,
+                            dname:          _nt_dname,
+                            ptitle:         _nt_ptitle,
+                            group_qty:      _nt_group_qty,
+                            first_key:      _nt_first_key,
+                            disc_title:     _nt_disc_title,
+                            group_key:      _gkey,
+                            group_final:    _nt_group_final,
+                            group_original: _nt_group_original,
+                            child_count:    _nt_child_count,
+                            solo_item:      _nt_solo_item,
+                            solo_line_index: _nt_solo_line,
+                            precut:         _nt_precut -%}
+                        {%- if _nt_child_count > 1 -%}
+                        {%- for item in cart.items -%}
+                          {%- assign _nt_f = "" -%}
+                          {%- for p in item.properties -%}
+                            {%- assign _pk = p.first | downcase -%}
+                            {%- if _pk contains 'upload' -%}
+                              {%- if p.last != blank -%}
+                                {%- assign _nt_f = p.last | split: '/' | last | split: '?' | first | downcase -%}
+                              {%- endif -%}
+                            {%- endif -%}
+                          {%- endfor -%}
+                          {%- if _nt_f != blank -%}{%- assign _nt_f = item.product.id | append: '_' | append: _nt_f -%}{%- endif -%}
+                          {%- if _nt_f == _gkey -%}
+                            {%- render 'cart-page-item', item: item, isAntigroDesignerProduct: isAntigroDesignerProduct, desc: false, displayAntigroDesignerControls: displayAntigroDesignerControls, is_child: true -%}
+                          {%- endif -%}
+                        {%- endfor -%}
+                        {%- endif -%}
+                        <div class="nt-add-size-footer">
+                          <button type="button" class="nt-add-size-btn" data-first-key="{{ _nt_first_key }}">+ Add another size of this design</button>
+                        </div>
+                      </div>
+                    {%- endfor -%}
+
+                    <!-- Blank apparel groups: items grouped by product + color -->
+                    {%- liquid
+                      assign _bl_seen   = ""
+                      assign _bl_groups = ""
+                      for item in cart.items
+                        if item.product.id == 6947128901715 or item.product.id == 7578022281299
+                          continue
+                        endif
+                        assign _bl_is_blank = false
+                        for tag in item.product.tags
+                          assign _bl_tag_lc = tag | downcase | strip
+                          if _bl_tag_lc == 'blank apparel'
+                            assign _bl_is_blank = true
+                            break
+                          endif
+                        endfor
+                        unless _bl_is_blank
+                          continue
+                        endunless
+                        assign _bl_color = ""
+                        for opt in item.options_with_values
+                          assign _bl_opt_name = opt.name | downcase
+                          if _bl_opt_name == 'color'
+                            assign _bl_color = opt.value | downcase | strip
+                            break
+                          endif
+                        endfor
+                        if _bl_color == blank
+                          assign _bl_color = item.variant.option1 | downcase | strip
+                        endif
+                        assign _bl_key = item.product.id | append: '_' | append: _bl_color
+                        unless _bl_seen contains _bl_key
+                          assign _bl_seen   = _bl_seen   | append: _bl_key | append: "|||"
+                          assign _bl_groups = _bl_groups | append: _bl_key | append: "|"
+                        endunless
+                      endfor
+                      assign _bl_group_arr = _bl_groups | split: "|"
+                    -%}
+
+                    {%- for _gkey in _bl_group_arr -%}
+                      {%- if _gkey == blank -%}{%- continue -%}{%- endif -%}
+
+                      {%- liquid
+                        assign _bl_header_done    = false
+                        assign _bl_child_count    = 0
+                        assign _bl_group_qty      = 0
+                        assign _bl_group_final    = 0
+                        assign _bl_group_original = 0
+                        assign _bl_thumb          = ""
+                        assign _bl_ptitle         = ""
+                        assign _bl_color_name     = ""
+                        assign _bl_first_key      = ""
+                        assign _bl_disc_title     = ""
+                        assign _bl_product_handle = ""
+                        assign _bl_product_url    = ""
+                        assign _bl_solo_item      = nil
+                        assign _bl_solo_line      = 0
+                        for item in cart.items
+                          assign _bl_is_blank = false
+                          for tag in item.product.tags
+                            assign _bl_tag_lc = tag | downcase | strip
+                            if _bl_tag_lc == 'blank apparel'
+                              assign _bl_is_blank = true
+                              break
+                            endif
+                          endfor
+                          unless _bl_is_blank
+                            continue
+                          endunless
+                          assign _bl_c = ""
+                          for opt in item.options_with_values
+                            assign _bl_opt_name = opt.name | downcase
+                            if _bl_opt_name == 'color'
+                              assign _bl_c = opt.value | downcase | strip
+                              break
+                            endif
+                          endfor
+                          if _bl_c == blank
+                            assign _bl_c = item.variant.option1 | downcase | strip
+                          endif
+                          assign _bl_k = item.product.id | append: '_' | append: _bl_c
+                          if _bl_k == _gkey
+                            assign _bl_child_count    = _bl_child_count    | plus: 1
+                            assign _bl_solo_item      = item
+                            assign _bl_solo_line      = forloop.index
+                            assign _bl_group_qty      = _bl_group_qty      | plus: item.quantity
+                            assign _bl_group_final    = _bl_group_final    | plus: item.final_line_price
+                            assign _bl_group_original = _bl_group_original | plus: item.original_line_price
+                            unless _bl_header_done
+                              assign _bl_ptitle         = item.product.title
+                              assign _bl_first_key      = item.key
+                              assign _bl_product_handle = item.product.handle
+                              assign _bl_product_url    = item.product.url
+                              assign _bl_thumb          = item.image | image_url: width: 200
+                              for opt in item.options_with_values
+                                assign _bl_opt_name = opt.name | downcase
+                                if _bl_opt_name == 'color'
+                                  assign _bl_color_name = opt.value
+                                  break
+                                endif
+                              endfor
+                              if _bl_color_name == blank
+                                assign _bl_color_name = item.variant.option1
+                              endif
+                              for _da in item.line_level_discount_allocations
+                                if _da.discount_application.title != blank
+                                  assign _bl_disc_title = _da.discount_application.title
+                                  break
+                                endif
+                              endfor
+                              assign _bl_header_done = true
+                            endunless
+                          endif
+                        endfor
+                      -%}
+
+                      <div class="nt-blank-group" data-group-key="{{ _gkey | escape }}" data-product-handle="{{ _bl_product_handle }}">
+                        {%- render 'nt-blank-group-header',
+                            thumb:          _bl_thumb,
+                            ptitle:         _bl_ptitle,
+                            color_name:     _bl_color_name,
+                            group_qty:      _bl_group_qty,
+                            first_key:      _bl_first_key,
+                            disc_title:     _bl_disc_title,
+                            group_key:      _gkey,
+                            group_final:    _bl_group_final,
+                            group_original: _bl_group_original,
+                            child_count:    _bl_child_count,
+                            solo_item:      _bl_solo_item,
+                            solo_line_index: _bl_solo_line,
+                            product_url:    _bl_product_url,
+                            product_handle: _bl_product_handle -%}
+                        {%- if _bl_child_count > 1 -%}
+                        {%- for item in cart.items -%}
+                          {%- assign _bl_is_blank = false -%}
+                          {%- for tag in item.product.tags -%}
+                            {%- assign _bl_tag_lc = tag | downcase | strip -%}
+                            {%- if _bl_tag_lc == 'blank apparel' -%}
+                              {%- assign _bl_is_blank = true -%}
+                              {%- break -%}
+                            {%- endif -%}
+                          {%- endfor -%}
+                          {%- if _bl_is_blank -%}
+                            {%- assign _bl_c = "" -%}
+                            {%- for opt in item.options_with_values -%}
+                              {%- assign _bl_opt_name = opt.name | downcase -%}
+                              {%- if _bl_opt_name == 'color' -%}
+                                {%- assign _bl_c = opt.value | downcase | strip -%}
+                                {%- break -%}
+                              {%- endif -%}
+                            {%- endfor -%}
+                            {%- if _bl_c == blank -%}
+                              {%- assign _bl_c = item.variant.option1 | downcase | strip -%}
+                            {%- endif -%}
+                            {%- assign _bl_k = item.product.id | append: '_' | append: _bl_c -%}
+                            {%- if _bl_k == _gkey -%}
+                              {%- render 'cart-page-item', item: item, isAntigroDesignerProduct: false, desc: false, displayAntigroDesignerControls: false, is_child: true -%}
+                            {%- endif -%}
+                          {%- endif -%}
+                        {%- endfor -%}
+                        {%- endif -%}
+                        <div class="nt-blank-group-footer">
+                          <button type="button" class="nt-blank-add-size-btn" data-product-handle="{{ _bl_product_handle }}" data-color="{{ _bl_color_name | escape }}">+ Add/Edit Size(s)</button>
+                          <button type="button" class="nt-blank-add-color-btn" data-product-handle="{{ _bl_product_handle }}">+ Add a Color</button>
+                        </div>
+                      </div>
+                    {%- endfor -%}
+
+                    <!-- Non-grouped items: no upload, or upload without size-edit metafield — flat render -->
+                    {%- for item in cart.items -%}
+                      {%- if item.product.id == 6947128901715 or item.product.id == 7578022281299 -%}{%- continue -%}{%- endif -%}
+                      {%- assign _nt_has_upload = false -%}
+                      {%- for p in item.properties -%}
+                        {%- assign _pk = p.first | downcase -%}
+                        {%- if _pk contains 'upload' -%}
+                          {%- if p.last != blank -%}
+                            {%- assign _nt_has_upload = true -%}
+                          {%- endif -%}
+                        {%- endif -%}
+                      {%- endfor -%}
+                      {%- if _nt_has_upload and item.product.metafields.custom.custom_enable_size_edit -%}{%- continue -%}{%- endif -%}
+                      {%- assign _nt_is_blank = false -%}
+                      {%- for tag in item.product.tags -%}
+                        {%- assign _bl_tag_lc = tag | downcase | strip -%}
+                        {%- if _bl_tag_lc == 'blank apparel' -%}
+                          {%- assign _nt_is_blank = true -%}
+                          {%- break -%}
+                        {%- endif -%}
+                      {%- endfor -%}
+                      {%- if _nt_is_blank -%}{%- continue -%}{%- endif -%}
+                        {%- render 'cart-page-item', item: item, isAntigroDesignerProduct: isAntigroDesignerProduct, desc: false, displayAntigroDesignerControls: displayAntigroDesignerControls -%}
+                    {%- endfor -%}
+
+				{%- else -%}
+
+					{{ 'cart.empty' | t }}
+					
+					<div class="gutter-top--regular noappmodule">
+						<a href="https://ninjatransfers.com/pages/dtf-transfers-uv-dtf-3d-permastickers" class="button button--solid button--move">
+							<span class="button__text">{{ 'cart.continue_browsing' | t }}</span>
+						</a>
+					</div>
+					<div class="gutter-top--regular visibleonapp">
+						<a href="https://ninjatransfers.com/pages/mobile-app-home" class="button button--solid button--move">
+							<span class="button__text">{{ 'cart.continue_browsing' | t }}</span>
+						</a>
+					</div>
+
+				{%- endif -%}
+
+			</div>
+
+		</div>
+
+	</form>
+
+	<span class="cart__count hidden" aria-hidden="true" data-cart-count>{{ cart.item_count }}</span>
+	<span class="cart__total hidden" aria-hidden="true" data-cart-total>{{ cart.total_price | money }}</span>
+    <input type="hidden" value="{{ moneySaved | money }}" data="{{ moneySaved }}" id="moneySaved" />
+    <input type="hidden" value="{{ reward_money }}" data="{{ reward_money }}" id="reward_money" />
+	<input type="hidden" value="{{ productblank }}" data="{{ productblank }}" id="productblank" />
+</cart-form>
+
+<noscript>
+	<button type="submit" class="button button--outline button--regular" form="cart">
+		{{ 'cart.update' | t }}
+	</button>
+</noscript>
+
+<script type="text/javascript">
+	document.querySelector('cart-form').addEventListener('cart-updated', ()=>{
+		const items = parseInt(document.querySelector('.cart-holder').getAttribute('data-items'));
+		if ( items == 0 ) {
+			document.querySelector('.cart-section').classList.add('cart-section--empty');
+		} else {
+			document.querySelector('.cart-section').classList.remove('cart-section--empty');
+		}
+	});
+</script>
+{% comment %} 
+{% render 'cart-suggestion-link' %}
+{% render 'upsell-in-cart' %}
+{% endcomment %}
+<style>
+  @media (min-width: 768px) { .cart-section { padding-top: 12px; } }
+  
+  cart-form div button.share_cart_btn{padding-left:0 !important;}
+  cart-form div .share_cart_header{margin-top:0; margin-bottom:0;}
+  div .share_cart_wrap{margin-top: -30px; margin-bottom: 0;}
+  @media(min-width:768px){
+    cart-form .share_cart_wrap{margin-top: -65px; margin-bottom: 30px;}
+  }
+</style>

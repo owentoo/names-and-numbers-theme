@@ -1,0 +1,67 @@
+<div class="product-price" data-varies="{{ product_price_varies }}">
+
+  {%- if product_price_varies -%}
+
+    <span class="product-price--original pps" data-js-product-price-original>
+      {%- liquid
+        assign price = target.price | money
+        if target.compare_at_price > target.price  or target.compare_at_price_varies
+          echo 'products.grid.on_sale_from_html' | t: price: price 
+        else
+          echo 'products.grid.from_text_html' | t: price: price 
+        endif
+      -%}
+    </span>
+
+    <del class="product-price--compare" data-js-product-price-compare></del>
+    {% if ptype == "custom_transfers_gang_" or ptype == "uv_dtf_gang" or ptype == "ready_to_press" %}
+    {% if variant.metafields.custom.price_buckets_sq_in_ != blank %}
+      <span class="_sqprice c1"><strong>- ${{ variant.metafields.custom.price_buckets_sq_in_ }} cents per sq inch</strong> with No Setup or Art Fees</span>
+    {% else %}
+      <span class="_sqprice a">with No Setup or Art Fees</span>
+    {% endif %}
+      {% endif %}
+  {%- else -%}
+
+    <span class="product-price--original pps {{ text_size_class }}" data-js-product-price-original>{{ target.price | money }}</span>
+    
+    <del class="product-price--compare" data-js-product-price-compare>
+      {%- liquid 
+        if target.compare_at_price > target.price
+          echo target.compare_at_price | money | prepend: '<span>' | append: '</span>'
+        endif
+      -%}
+    </del>
+  
+    {%- if show_saving -%}
+      <span class="product-price--saving pps" data-js-product-price-saving>
+        {%- if target.compare_at_price > target.price -%}
+          {%- assign saving = target.compare_at_price | minus: target.price | money -%}
+          <span>{{ 'products.page.sales_amount_html' | t: amount: saving }}</span>
+        {%- endif -%}
+      </span>
+    {%- endif -%}
+    {% if ptype == "custom_transfers_gang_" or ptype == "uv_dtf_gang" or ptype == "ready_to_press" %}
+    {% if variant.metafields.custom.price_buckets_sq_in_ != blank %}
+      <span class="_sqprice c"><strong>- ${{ variant.metafields.custom.price_buckets_sq_in_ }} cents per sq inch</strong> with No Setup or Art Fees</span>
+    {% else %}
+      <span class="_sqprice b">with No Setup or Art Fees</span>
+    {% endif %}
+      {% endif %}
+    
+  {%- endif -%}
+
+  <span class="product-price--unit pps text-size--regular" data-js-product-price-unit>
+    {%- liquid
+      if variant.unit_price_measurement
+        echo variant.unit_price | money
+        echo ' / '
+        if variant.unit_price_measurement.reference_value != 1
+          echo variant.unit_price_measurement.reference_value
+        endif
+        echo variant.unit_price_measurement.reference_unit
+      endif
+    -%}
+  </span>
+
+</div>

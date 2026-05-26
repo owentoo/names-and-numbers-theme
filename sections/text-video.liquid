@@ -1,0 +1,403 @@
+{%-liquid
+  assign ss = section.settings
+  assign sb = section.blocks
+-%}
+{{ 'textVid.css' | asset_url | stylesheet_tag }}
+
+{% if sb.size > 0 %}
+  <div class="container--large">
+    <div class="textVid">
+      <div class="textVid__wrap">
+        {%- assign collectStyles = '' -%}
+        {%- for block in sb -%}
+          {%- assign b = block.settings -%}
+          {%- case block.type -%}
+            {%- when 'content' -%}
+              <div class="textVid__item textBlock" bid="{{ block.id }}">
+                {% if b.title != blank %}
+                  <h3 class="textVid__itemTitle">{{ b.title }}</h3>
+                {% endif %}
+
+                {% if b.content != blank %}
+                  <p class="textVid__itemText">{{ b.content }}</p>
+                {% endif %}
+
+                {% if b.btnText != blank and b.btnLink != blank %}
+                  <a href="{{ b.btnLink }}" class="textVid__itemBtn newHomeBtn">
+                    <span>
+                      {{ b.btnText }}
+                    </span>
+                    <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.3333 5.5L20 12.5M20 12.5L13.3333 19.5M20 12.5L4 12.5" stroke="#171717" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                {% endif %}
+              </div>
+
+            {%- when 'vid' -%}
+              {%- capture getImg -%}
+                {% for vid in b.video.sources %}
+                  {% if vid.format == 'mp4' %}
+                    {{ vid.url }}
+                  {% endif %}
+                {% endfor %}
+              {%- endcapture -%}
+              <div class="textVid__item vidBlock" bid="{{ block.id }}">
+                <video id="{{ section.id }}videoobj"
+                  width="100%"
+                  loop="true"
+                  controls="true"
+                  muted
+                  {% if b.image != blank %}
+                    poster="{{ b.image | image_url: width: 700 }}"
+                  {% endif %}
+                >
+                  <source src="{{ getImg }}" type="video/mp4">
+                </video>
+              </div>
+          {%- endcase -%}
+
+          {%- capture collectStyles -%}
+            {{ collectStyles }}
+            .textImg__item[bid="{{ block.id }}"] {
+              background-color: {{ b.bgColor }};
+            }
+          {%- endcapture -%}
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+
+  {%- capture getStyles -%}
+    {{ collectStyles }}
+    #shopify-section-{{ section.id }} {
+      margin-top: {{ ss.secMarginTop_desktop | append: 'px' }};
+      margin-bottom: {{ ss.secMarginBottom_desktop | append: 'px' }};
+
+      padding-top: {{ ss.secPaddingTop_desktop | append: 'px' }};
+      padding-bottom: {{ ss.secPaddingBottom_desktop | append: 'px' }};
+    }
+    @media (max-width: 1024px) {
+      #shopify-section-{{ section.id }} {
+        margin-top: {{ ss.secMarginTop_tab | append: 'px' }};
+        margin-bottom: {{ ss.secMarginBottom_tab | append: 'px' }};
+
+        padding-top: {{ ss.secPaddingTop_tab | append: 'px' }};
+        padding-bottom: {{ ss.secPaddingBottom_tab | append: 'px' }};
+      }
+    }
+    @media (max-width: 600px) {
+      #shopify-section-{{ section.id }} {
+        margin-top: {{ ss.secMarginTop_mobile | append: 'px' }};
+        margin-bottom: {{ ss.secMarginBottom_mobile | append: 'px' }};
+
+        padding-top: {{ ss.secPaddingTop_mobile | append: 'px' }};
+        padding-bottom: {{ ss.secPaddingBottom_mobile | append: 'px' }};
+      }
+    }
+    {% if ss.contentPosition_desktop == 'leftTextRightVid' %}
+      #shopify-section-{{ section.id }} .textImg__item.textBlock {
+        order: 1;
+      }
+      #shopify-section-{{ section.id }} .textImg__item.vidBlock {
+        order: 2;
+      }
+    {% elsif ss.contentPosition_desktop == 'leftVidRightText' %}
+      #shopify-section-{{ section.id }} .textImg__item.textBlock {
+        order: 2;
+      }
+      #shopify-section-{{ section.id }} .textImg__item.vidBlock {
+        order: 1;
+      }
+    {% endif %}
+    @media (max-width: 600px) {
+      {% if ss.contentPosition_mobile == 'vidTopTextBottom' %}
+        #shopify-section-{{ section.id }} .textImg__item.textBlock {
+          order: 2;
+        }
+        #shopify-section-{{ section.id }} .textImg__item.vidBlock {
+          order: 1;
+        }
+      {% elsif ss.contentPosition_mobile == 'contentTopVidBottom' %}
+        #shopify-section-{{ section.id }} .textImg__item.textBlock {
+          order: 1;
+        }
+        #shopify-section-{{ section.id }} .textImg__item.vidBlock {
+          order: 2;
+        }
+      {% endif %}
+    }
+    #shopify-section-{{ section.id }} .textVid {
+      border-radius: 16px;
+      background-color: {{ ss.bgColor }};
+      padding: 20px;
+    }
+    #shopify-section-{{ section.id }} .textVid__itemBtn {
+      background: #019aff;
+      color: #ffffff;
+      border-radius: 8px;
+      font-weight: 700;
+    }
+    #shopify-section-{{ section.id }} .textVid__itemBtn svg path {
+      stroke: #ffffff;
+    }
+  {%- endcapture -%}
+  <style>
+    {{ getStyles }}
+  </style>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Text Video",
+  "class": "can-be-fullwidth merged-section supports-absolute-header",
+  "max_blocks": 2,
+  "settings": [
+    {
+      "type": "select",
+      "id": "contentPosition_desktop",
+      "label": "Content Position Desktop",
+      "options": [
+        {
+          "value": "leftTextRightVid",
+          "label": "Content Left and Right Video"
+        },
+        {
+          "value": "leftVidRightText",
+          "label": "Left Video and Right Text"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "contentPosition_mobile",
+      "label": "Content Position Mobile",
+      "options": [
+        {
+          "value": "vidTopTextBottom",
+          "label": "Video top and content below"
+        },
+        {
+          "value": "contentTopVidBottom",
+          "label": "Content top and Video below"
+        }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "bgColor",
+      "label": "Background Color",
+      "default": "#f6f7f9"
+    },
+    {
+      "type": "header",
+      "content": "Section Margins"
+    },
+    {
+      "type": "range",
+      "id": "secMarginTop_desktop",
+      "label": "Margin Top Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginTop_tab",
+      "label": "Margin Top Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginTop_mobile",
+      "label": "Margin Top Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginBottom_desktop",
+      "label": "Margin Bottom Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginBottom_tab",
+      "label": "Margin Bottom Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secMarginBottom_mobile",
+      "label": "Margin Bottom Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Section Paddings"
+    },
+    {
+      "type": "range",
+      "id": "secPaddingTop_desktop",
+      "label": "Padding Top Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingTop_tab",
+      "label": "Padding Top Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingTop_mobile",
+      "label": "Padding Top Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingBottom_desktop",
+      "label": "Padding Bottom Desktop",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingBottom_tab",
+      "label": "Padding Bottom Tablet",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "secPaddingBottom_mobile",
+      "label": "Padding Bottom Mobile",
+      "unit": "px",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "default": 0
+    }
+  ],
+  "blocks": [
+    {
+      "type": "content",
+      "name": "Content",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Unmatched Quality"
+        },
+        {
+          "type": "inline_richtext",
+          "id": "content",
+          "label": "Content",
+          "default": "Master the art of pressing with our expert tips and techniques for flawless results. Achieve professional-quality transfers with ease and precision."
+        },
+        {
+          "type": "text",
+          "id": "btnText",
+          "label": "Button Text",
+          "default": "View Tutorial Videos"
+        },
+        {
+          "type": "url",
+          "id": "btnLink",
+          "label": "Button Link"
+        }
+      ]
+    },
+    {
+      "type": "vid",
+      "name": "Vid",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "video",
+          "id": "video",
+          "label": "Upload Video"
+        },
+        {
+          "type": "checkbox",
+          "id": "app_play",
+          "label": "Don't in APP",
+          "default": false
+        },
+        {
+          "id": "image",
+          "type": "image_picker",
+          "label": "Upload Video Poster"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Text Video",
+      "blocks": [
+        {
+          "type": "content"
+        },
+        {
+          "type": "vid"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  if (!window.apployAppManager.isMobileApp()) {
+    const video = document.getElementById("{{ section.id }}videoobj");
+    if (video) {
+      video.muted = true;
+      video.play().catch(err => {
+        console.error("Autoplay failed:", err);
+      });
+    }
+    
+  }
+});
+</script>

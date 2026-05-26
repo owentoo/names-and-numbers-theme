@@ -1,0 +1,634 @@
+{% doc %}
+  @prompt
+    Create a video block that allows uploading a video file with autoplay, loop, and muted settings. Include an editable text overlay that can be positioned and styled. The video should be responsive and mobile-friendly. Add theme settings to control the text overlay content, position, font size, color, and background. Make the video accessible with proper attributes and ensure it works across different devices and browsers., Have the option to upload a video instead of just a url
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-video-block-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: {{ block.settings.border_radius }}px;
+  }
+
+  .ai-video-container-{{ ai_gen_id }} {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: {{ block.settings.aspect_ratio | times: 100 }}%;
+    background-color: #000000;
+  }
+
+  .ai-video-element-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ai-video-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .ai-video-placeholder-{{ ai_gen_id }} svg {
+    width: 80px;
+    height: 80px;
+    color: #666666;
+  }
+
+  .ai-video-placeholder-text-{{ ai_gen_id }} {
+    color: #666666;
+    font-size: 16px;
+    text-align: center;
+  }
+
+  .ai-video-overlay-{{ ai_gen_id }} {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    padding: {{ block.settings.overlay_padding }}px;
+    background-color: {{ block.settings.overlay_background_color }};
+    color: {{ block.settings.overlay_text_color }};
+    font-size: {{ block.settings.overlay_font_size }}px;
+    font-weight: {{ block.settings.overlay_font_weight }};
+    text-align: {{ block.settings.overlay_text_align }};
+    border-radius: {{ block.settings.overlay_border_radius }}px;
+    max-width: 80%;
+    word-wrap: break-word;
+    line-height: 1.4;
+  }
+
+  .ai-video-overlay-{{ ai_gen_id }}--top-left {
+    top: 20px;
+    left: 20px;
+  }
+
+  .ai-video-overlay-{{ ai_gen_id }}--top-center {
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .ai-video-overlay-{{ ai_gen_id }}--top-right {
+    top: 20px;
+    right: 20px;
+  }
+
+  .ai-video-overlay-{{ ai_gen_id }}--center-left {
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+  }
+
+  .ai-video-overlay-{{ ai_gen_id }}--center-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .ai-video-overlay-{{ ai_gen_id }}--center-right {
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+  }
+
+  .ai-video-overlay-{{ ai_gen_id }}--bottom-left {
+    bottom: 20px;
+    left: 20px;
+  }
+
+  .ai-video-overlay-{{ ai_gen_id }}--bottom-center {
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .ai-video-overlay-{{ ai_gen_id }}--bottom-right {
+    bottom: 20px;
+    right: 20px;
+  }
+
+  .ai-video-controls-{{ ai_gen_id }} {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 3;
+    display: flex;
+    gap: 8px;
+  }
+
+  .ai-video-control-button-{{ ai_gen_id }} {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+  }
+
+  .ai-video-control-button-{{ ai_gen_id }}:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+  }
+
+  .ai-video-control-button-{{ ai_gen_id }} svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-video-overlay-{{ ai_gen_id }} {
+      font-size: {{ block.settings.overlay_font_size | times: 0.8 }}px;
+      padding: {{ block.settings.overlay_padding | times: 0.8 }}px;
+      max-width: 90%;
+    }
+
+    .ai-video-overlay-{{ ai_gen_id }}--top-left,
+    .ai-video-overlay-{{ ai_gen_id }}--center-left,
+    .ai-video-overlay-{{ ai_gen_id }}--bottom-left {
+      left: 10px;
+    }
+
+    .ai-video-overlay-{{ ai_gen_id }}--top-right,
+    .ai-video-overlay-{{ ai_gen_id }}--center-right,
+    .ai-video-overlay-{{ ai_gen_id }}--bottom-right {
+      right: 10px;
+    }
+
+    .ai-video-overlay-{{ ai_gen_id }}--top-left,
+    .ai-video-overlay-{{ ai_gen_id }}--top-center,
+    .ai-video-overlay-{{ ai_gen_id }}--top-right {
+      top: 10px;
+    }
+
+    .ai-video-overlay-{{ ai_gen_id }}--bottom-left,
+    .ai-video-overlay-{{ ai_gen_id }}--bottom-center,
+    .ai-video-overlay-{{ ai_gen_id }}--bottom-right {
+      bottom: 10px;
+    }
+
+    .ai-video-placeholder-text-{{ ai_gen_id }} {
+      font-size: 14px;
+      padding: 0 20px;
+    }
+  }
+{% endstyle %}
+
+<video-block-{{ ai_gen_id }}
+  class="ai-video-block-{{ ai_gen_id }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="ai-video-container-{{ ai_gen_id }}">
+    {% liquid
+      assign video_source = null
+      if block.settings.video_file != blank
+        assign video_source = block.settings.video_file
+      elsif block.settings.video_url != blank
+        assign video_source = block.settings.video_url
+      endif
+    %}
+
+    {% if video_source %}
+      <video
+        class="ai-video-element-{{ ai_gen_id }}"
+        {% if block.settings.autoplay %}autoplay{% endif %}
+        {% if block.settings.loop %}loop{% endif %}
+        {% if block.settings.muted %}muted{% endif %}
+        {% if block.settings.controls %}controls{% endif %}
+        playsinline
+        preload="metadata"
+        aria-label="{{ block.settings.video_description | default: 'Video content' | escape }}"
+      >
+        {% if block.settings.video_file != blank %}
+          <source src="{{ block.settings.video_file }}" type="video/mp4">
+        {% elsif block.settings.video_url != blank %}
+          <source src="{{ block.settings.video_url }}" type="video/mp4">
+        {% endif %}
+        <p>Your browser does not support the video tag. {{ block.settings.video_description | default: 'Please update your browser to view this content.' }}</p>
+      </video>
+    {% else %}
+      <div class="ai-video-placeholder-{{ ai_gen_id }}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5,3 19,12 5,21"></polygon>
+        </svg>
+        <div class="ai-video-placeholder-text-{{ ai_gen_id }}">
+          Upload a video file or enter a video URL to display your content
+        </div>
+      </div>
+    {% endif %}
+
+    {% if block.settings.overlay_text != blank %}
+      <div class="ai-video-overlay-{{ ai_gen_id }} ai-video-overlay-{{ ai_gen_id }}--{{ block.settings.overlay_position }}">
+        {{ block.settings.overlay_text }}
+      </div>
+    {% endif %}
+
+    {% unless block.settings.controls %}
+      {% if video_source %}
+        <div class="ai-video-controls-{{ ai_gen_id }}">
+          <button
+            class="ai-video-control-button-{{ ai_gen_id }} ai-play-pause-{{ ai_gen_id }}"
+            aria-label="Play/Pause video"
+            type="button"
+          >
+            <svg class="ai-play-icon-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5,3 19,12 5,21"></polygon>
+            </svg>
+            <svg class="ai-pause-icon-{{ ai_gen_id }}" style="display: none;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          </button>
+          <button
+            class="ai-video-control-button-{{ ai_gen_id }} ai-mute-unmute-{{ ai_gen_id }}"
+            aria-label="Mute/Unmute video"
+            type="button"
+          >
+            <svg class="ai-volume-icon-{{ ai_gen_id }}" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <svg class="ai-mute-icon-{{ ai_gen_id }}" style="display: none;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"></polygon>
+              <line x1="23" y1="9" x2="17" y2="15"></line>
+              <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+          </button>
+        </div>
+      {% endif %}
+    {% endunless %}
+  </div>
+</video-block-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class VideoBlock{{ai_gen_id}} extends HTMLElement {
+      constructor() {
+        super();
+        this.video = null;
+        this.playPauseButton = null;
+        this.muteButton = null;
+        this.playIcon = null;
+        this.pauseIcon = null;
+        this.volumeIcon = null;
+        this.muteIcon = null;
+      }
+
+      connectedCallback() {
+        this.video = this.querySelector('.ai-video-element-{{ ai_gen_id }}');
+        this.playPauseButton = this.querySelector('.ai-play-pause-{{ ai_gen_id }}');
+        this.muteButton = this.querySelector('.ai-mute-unmute-{{ ai_gen_id }}');
+        this.playIcon = this.querySelector('.ai-play-icon-{{ ai_gen_id }}');
+        this.pauseIcon = this.querySelector('.ai-pause-icon-{{ ai_gen_id }}');
+        this.volumeIcon = this.querySelector('.ai-volume-icon-{{ ai_gen_id }}');
+        this.muteIcon = this.querySelector('.ai-mute-icon-{{ ai_gen_id }}');
+
+        if (this.video) {
+          this.setupEventListeners();
+          this.updatePlayPauseIcon();
+          this.updateMuteIcon();
+        }
+      }
+
+      setupEventListeners() {
+        if (this.playPauseButton) {
+          this.playPauseButton.addEventListener('click', () => {
+            this.togglePlayPause();
+          });
+        }
+
+        if (this.muteButton) {
+          this.muteButton.addEventListener('click', () => {
+            this.toggleMute();
+          });
+        }
+
+        this.video.addEventListener('play', () => {
+          this.updatePlayPauseIcon();
+        });
+
+        this.video.addEventListener('pause', () => {
+          this.updatePlayPauseIcon();
+        });
+
+        this.video.addEventListener('volumechange', () => {
+          this.updateMuteIcon();
+        });
+
+        this.video.addEventListener('loadedmetadata', () => {
+          this.updatePlayPauseIcon();
+          this.updateMuteIcon();
+        });
+
+        this.video.addEventListener('error', (e) => {
+          console.error('Video loading error:', e);
+        });
+      }
+
+      togglePlayPause() {
+        if (this.video.paused) {
+          this.video.play().catch(error => {
+            console.log('Video play failed:', error);
+          });
+        } else {
+          this.video.pause();
+        }
+      }
+
+      toggleMute() {
+        this.video.muted = !this.video.muted;
+      }
+
+      updatePlayPauseIcon() {
+        if (this.playIcon && this.pauseIcon) {
+          if (this.video.paused) {
+            this.playIcon.style.display = 'block';
+            this.pauseIcon.style.display = 'none';
+          } else {
+            this.playIcon.style.display = 'none';
+            this.pauseIcon.style.display = 'block';
+          }
+        }
+      }
+
+      updateMuteIcon() {
+        if (this.volumeIcon && this.muteIcon) {
+          if (this.video.muted) {
+            this.volumeIcon.style.display = 'none';
+            this.muteIcon.style.display = 'block';
+          } else {
+            this.volumeIcon.style.display = 'block';
+            this.muteIcon.style.display = 'none';
+          }
+        }
+      }
+    }
+
+    customElements.define('video-block-{{ ai_gen_id }}', VideoBlock{{ai_gen_id}});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Video Block",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Video Source"
+    },
+    {
+      "type": "video",
+      "id": "video_file",
+      "label": "Upload video file",
+      "info": "Upload an MP4 video file directly to your store"
+    },
+    {
+      "type": "url",
+      "id": "video_url",
+      "label": "Video URL",
+      "info": "Or enter a direct URL to an MP4 video file"
+    },
+    {
+      "type": "paragraph",
+      "content": "Choose either upload a video file or enter a video URL. The uploaded file will take priority if both are provided."
+    },
+    {
+      "type": "header",
+      "content": "Video Settings"
+    },
+    {
+      "type": "textarea",
+      "id": "video_description",
+      "label": "Video description",
+      "info": "Describe the video content for accessibility"
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "Autoplay",
+      "default": true,
+      "info": "Video will play automatically when page loads"
+    },
+    {
+      "type": "checkbox",
+      "id": "loop",
+      "label": "Loop",
+      "default": true,
+      "info": "Video will repeat continuously"
+    },
+    {
+      "type": "checkbox",
+      "id": "muted",
+      "label": "Muted",
+      "default": true,
+      "info": "Video will start without sound"
+    },
+    {
+      "type": "checkbox",
+      "id": "controls",
+      "label": "Show browser controls",
+      "default": false,
+      "info": "Display default video controls"
+    },
+    {
+      "type": "select",
+      "id": "aspect_ratio",
+      "label": "Aspect ratio",
+      "options": [
+        {
+          "value": "0.5625",
+          "label": "16:9"
+        },
+        {
+          "value": "0.75",
+          "label": "4:3"
+        },
+        {
+          "value": "1",
+          "label": "1:1"
+        },
+        {
+          "value": "1.25",
+          "label": "4:5"
+        }
+      ],
+      "default": "0.5625"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Text Overlay"
+    },
+    {
+      "type": "richtext",
+      "id": "overlay_text",
+      "label": "Overlay text",
+      "default": "<p>Your video content here</p>"
+    },
+    {
+      "type": "select",
+      "id": "overlay_position",
+      "label": "Text position",
+      "options": [
+        {
+          "value": "top-left",
+          "label": "Top left"
+        },
+        {
+          "value": "top-center",
+          "label": "Top center"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "center-left",
+          "label": "Center left"
+        },
+        {
+          "value": "center-center",
+          "label": "Center"
+        },
+        {
+          "value": "center-right",
+          "label": "Center right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "bottom-center",
+          "label": "Bottom center"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        }
+      ],
+      "default": "center-center"
+    },
+    {
+      "type": "range",
+      "id": "overlay_font_size",
+      "min": 12,
+      "max": 48,
+      "step": 2,
+      "unit": "px",
+      "label": "Font size",
+      "default": 24
+    },
+    {
+      "type": "select",
+      "id": "overlay_font_weight",
+      "label": "Font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "select",
+      "id": "overlay_text_align",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "color",
+      "id": "overlay_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "overlay_background_color",
+      "label": "Background color",
+      "default": "rgba(0,0,0,0.5)"
+    },
+    {
+      "type": "range",
+      "id": "overlay_padding",
+      "min": 8,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Padding",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "overlay_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    }
+  ],
+  "presets": [
+    {
+      "name": "Video Block"
+    }
+  ]
+}
+{% endschema %}

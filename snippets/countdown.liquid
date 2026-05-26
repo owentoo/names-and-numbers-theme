@@ -1,0 +1,240 @@
+{{ 'moment.min.js' | asset_url | script_tag }}
+{{ 'moment-timezone-with-data-2012-2022.min.js' | asset_url | script_tag }}
+
+<style>
+  #site-header{padding-top:0;}
+</style>
+
+<div class="headerCountdown"></div>
+<div class="headerCountdown_mobile"></div>
+
+<script>
+  moment.tz.setDefault("America/New_York");
+
+  const SATURDAY_WORKING = true;
+  const HOLIDAYS = {{ shop.metafields.custom.holiday | default: '[]' }};
+
+  function isHoliday(m){return HOLIDAYS.indexOf(m.format("YYYY-MM-DD"))>-1;}
+  function isWorkingDay(m){var d=m.day(); if(d===0) return false; if(d===6) return SATURDAY_WORKING; return true;}
+  function bumpToNextWorkingDay(m){var x=m.clone(); while(!isWorkingDay(x)||isHoliday(x)){x.add(1,"day").startOf("day");} return x;}
+  function makeCutoffMoment(baseDayStart,eventEndTime){return baseDayStart.clone().tz("America/New_York").startOf("day").hour(eventEndTime).minute(0).second(0).millisecond(0);}
+  function getNextMonday(fromMoment){var x=fromMoment.clone().startOf("day"); while(x.day()!==1) x.add(1,"day"); return x;}
+
+  const dayNo = moment().day();
+  const currentMint = moment().minutes();
+  const currentHour = moment().hour();
+
+  let dayName;
+  if(dayNo==0){dayName='Sun';}
+  else if(dayNo==1){dayName='Mon';}
+  else if(dayNo==2){dayName='Tue';}
+  else if(dayNo==3){dayName='Wed';}
+  else if(dayNo==4){dayName='Thu';}
+  else if(dayNo==5){dayName='Fri';}
+  else if(dayNo==6){dayName='Sat';}
+  else if(dayNo==7){dayName='Sun';}
+
+  let eventDateTime, getEvtDate;
+  let deliveryLabel = "";
+  const dateFormat = "MMM. D";
+
+  let mints_leftForEndingToday = 59 - currentMint;
+  mints_leftForEndingToday = mints_leftForEndingToday + 1;
+  let hours_leftForEndingToday = 23 - currentHour;
+
+  let countdown_text = ``;
+  let countdown_textMobile = ``;
+
+  const eventEndTime = {{ b.counterEndTimer | plus: 11 | json }};
+  const nowNY = moment.tz("America/New_York");
+  let deliveryMoment = null;
+  const FORCE_AFTER_CUTOFF = isHoliday(nowNY);
+
+  if(dayName=='Mon'){
+    if(!FORCE_AFTER_CUTOFF && currentHour<eventEndTime){
+      eventDateTime=moment().startOf('day').add(eventEndTime,'h').format();
+      countdown_text=`{{ b.contentFriday }}`; product_text=`{{ b.contentFriday_product }}`; countdown_product=`{{ b.contentFriday }}`; countdown_textMobile=`{{ b.contentFriday_mobile }}`;
+      deliveryMoment=moment().startOf('day').add(1,'d');
+    }else{
+      eventDateTime=moment().add(mints_leftForEndingToday,'m').add(hours_leftForEndingToday,'h').add(eventEndTime,'h').format();
+      countdown_text=`{{ b.contentMonday }}`; product_text=`{{ b.contentMonday_product }}`; countdown_textMobile=`{{ b.contentMonday_mobile }}`;
+      deliveryMoment=moment().startOf('day').add(2,'d');
+    }
+  }else if(dayName=='Tue'){
+    if(!FORCE_AFTER_CUTOFF && currentHour<eventEndTime){
+      eventDateTime=moment().startOf('day').add(eventEndTime,'h').format();
+      countdown_text=`{{ b.contentMonday }}`; product_text=`{{ b.contentMonday_product }}`; countdown_textMobile=`{{ b.contentMonday_mobile }}`;
+      deliveryMoment=moment().startOf('day').add(1,'d');
+    }else{
+      eventDateTime=moment().add(mints_leftForEndingToday,'m').add(hours_leftForEndingToday,'h').add(eventEndTime,'h').format();
+      countdown_text=`{{ b.contentTuesday }}`; product_text=`{{ b.contentTuesday_product }}`; countdown_textMobile=`{{ b.contentTuesday_mobile }}`;
+      deliveryMoment=moment().startOf('day').add(2,'d');
+    }
+  }else if(dayName=='Wed'){
+    if(!FORCE_AFTER_CUTOFF && currentHour<eventEndTime){
+      eventDateTime=moment().startOf('day').add(eventEndTime,'h').format();
+      countdown_text=`{{ b.contentTuesday }}`; product_text=`{{ b.contentTuesday_product }}`; countdown_textMobile=`{{ b.contentTuesday_mobile }}`;
+      deliveryMoment=moment().startOf('day').add(1,'d');
+    }else{
+      eventDateTime=moment().add(mints_leftForEndingToday,'m').add(hours_leftForEndingToday,'h').add(eventEndTime,'h').format();
+      countdown_text=`{{ b.contentWednesday }}`; product_text=`{{ b.contentWednesday_product }}`; countdown_textMobile=`{{ b.contentWednesday_mobile }}`;
+      deliveryMoment=moment().startOf('day').add(2,'d');
+    }
+  }else if(dayName=='Thu'){
+    if(!FORCE_AFTER_CUTOFF && currentHour<eventEndTime){
+      eventDateTime=moment().startOf('day').add(eventEndTime,'h').format();
+      countdown_text=`{{ b.contentWednesday }}`; product_text=`{{ b.contentWednesday_product }}`; countdown_textMobile=`{{ b.contentWednesday_mobile }}`;
+      deliveryMoment=moment().startOf('day').add(1,'d');
+    }else{
+      eventDateTime=moment().add(mints_leftForEndingToday,'m').add(hours_leftForEndingToday,'h').add(eventEndTime,'h').format();
+      countdown_text=`{{ b.contentThursday }}`; product_text=`{{ b.contentThursday_product }}`; countdown_textMobile=`{{ b.contentThursday_mobile }}`;
+      deliveryMoment=moment().startOf('day').add(2,'d');
+    }
+  }else if(dayName=='Fri'){
+    if(!FORCE_AFTER_CUTOFF && currentHour<eventEndTime){
+      eventDateTime=moment().startOf('day').add(eventEndTime,'h').format();
+      countdown_text=`{{ b.contentThursday }}`; product_text=`{{ b.contentThursday_product }}`; countdown_textMobile=`{{ b.contentThursday_mobile }}`;
+      deliveryMoment=moment().startOf('day').add(1,'d');
+    }else{
+      eventDateTime=moment().add(mints_leftForEndingToday,'m').add(hours_leftForEndingToday,'h').add((47+eventEndTime),'h').format();
+      countdown_text=`{{ b.contentFriday }}`; product_text=`{{ b.contentFriday_product }}`; countdown_textMobile=`{{ b.contentFriday_mobile }}`;
+      deliveryMoment=moment().startOf('day').add(4,'d'); // Tue
+
+      // ✅ SPECIAL CASE: Fri after cutoff + upcoming Monday holiday => deliver Wed (no Sat pickup)
+      var nextMon=getNextMonday(nowNY);
+      if(isHoliday(nextMon)){deliveryMoment=deliveryMoment.clone().add(1,'day');}
+    }
+  }else if(dayName=='Sat'){
+    eventDateTime=moment().startOf('day').add((47+eventEndTime),'h').format();
+    countdown_text=`{{ b.contentFriday }}`; product_text=`{{ b.contentFriday_product }}`; countdown_textMobile=`{{ b.contentFriday_mobile }}`;
+    deliveryMoment=moment().startOf('day').add(3,'d'); // Tue
+
+    // ✅ SPECIAL CASE: Sat order + upcoming Monday holiday => deliver Wed (no Sat pickup)
+    var nextMon2=getNextMonday(nowNY);
+    if(isHoliday(nextMon2)){deliveryMoment=deliveryMoment.clone().add(1,'day');}
+  }else if(dayName=='Sun'){
+    eventDateTime=moment().startOf('day').add((23+eventEndTime),'h').format();
+    countdown_text=`{{ b.contentFriday }}`; product_text='<strong>Need it fast?</strong> Rush Delivery Tues, [DATE] if ordered in [TIMER]'; countdown_textMobile=`{{ b.contentFriday_mobile }}`;
+    deliveryMoment=moment().startOf('day').add(2,'d');
+
+    // ✅ SPECIAL CASE: Sun order + upcoming Monday holiday => deliver Wed (adds 1 day)
+    var nextMon3=getNextMonday(nowNY);
+    if(isHoliday(nextMon3)){deliveryMoment=deliveryMoment.clone().add(1,'day');}
+  }
+
+  if(deliveryMoment){
+    deliveryMoment = deliveryMoment.startOf("day");
+    if(deliveryMoment.day()===6 && isHoliday(deliveryMoment)){deliveryMoment=deliveryMoment.clone().add(3,"day");} // legacy safety
+    deliveryMoment = bumpToNextWorkingDay(deliveryMoment); // ✅ keep here (one place only)
+    getEvtDate = deliveryMoment.format(dateFormat);
+    deliveryLabel = deliveryMoment.format("ddd, MMM. D");
+  }
+
+  if(eventDateTime){
+    var evt=moment.tz(eventDateTime,"America/New_York");
+    if(!isWorkingDay(evt)||isHoliday(evt)){
+      var nextWorkDay=bumpToNextWorkingDay(evt.clone().add(1,"day").startOf("day"));
+      evt=makeCutoffMoment(nextWorkDay,eventEndTime);
+      eventDateTime=evt.format();
+    }
+  }
+
+  var timeElement,timeElementMobile,eventTime,currentTime,duration,interval,intervalId,timeElementProduct;
+  var _isrun=0;
+  interval=1000;
+
+  function stripWeekdayBeforeDateTag(html){return html.replace(/\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s*<date>/g,"<date>");}
+
+  function __loadmsg(){
+    let updatedContent=countdown_text.replace(`[TIMER]`,`<time></time>`);
+    updatedContent=updatedContent.replace(`[DATE]`,`<date>${deliveryLabel}</date>`);
+    updatedContent=stripWeekdayBeforeDateTag(updatedContent);
+
+    let productContent=product_text.replace(`[TIMER]`,`<time></time>`);
+    productContent=productContent.replace(`[DATE]`,`<date>${deliveryLabel}</date>`);
+    productContent=stripWeekdayBeforeDateTag(productContent);
+
+    let updatedContent_mobile=countdown_textMobile.replace(`[TIMER]`,`<time></time>`);
+    updatedContent_mobile=updatedContent_mobile.replace(`[DATE]`,`<date>${deliveryLabel}</date>`);
+    updatedContent_mobile=stripWeekdayBeforeDateTag(updatedContent_mobile);
+
+    document.querySelector(`.headerCountdown`).innerHTML=`${updatedContent}`;
+    document.querySelector(`.headerCountdown_mobile`).innerHTML=`${updatedContent_mobile}`;
+    fast_productContent = productContent.replace(/\s*\|\s*/g, '<br>');
+    if(document.querySelector(`.delivery-block`)){document.querySelector(`.delivery-block .textinfodel`).innerHTML=`${fast_productContent}`;}
+
+    timeElement=document.querySelector(".headerCountdown time");
+    timeElementMobile=document.querySelector(".headerCountdown_mobile time");
+    timeElementProduct=document.querySelector(".delivery-block .textinfodel");
+
+    eventTime=moment.tz(eventDateTime,"America/New_York");
+    currentTime=moment.tz("America/New_York");
+    duration=moment.duration(eventTime.diff(currentTime));
+  }
+
+  (function(){
+    __loadmsg();
+
+    const processCountdown=()=>{
+      duration=moment.duration(duration-interval,'milliseconds');
+
+      if(duration.asSeconds()<=0){
+        clearInterval(intervalId);
+        if(timeElement) timeElement.classList.add("hidden");
+        if(timeElementMobile) timeElementMobile.classList.add("hidden");
+      }else{
+        let totalHoursAre=0;
+        if(duration.days()>0){totalHoursAre=duration.days()*24;}
+
+        const hours=totalHoursAre+duration.hours();
+        const minutes=duration.minutes();
+        const seconds=duration.seconds();
+
+        const hoursText=hours.toString().padStart(2,"0");
+        const minutesText=minutes.toString().padStart(2,"0");
+        const secondsText=seconds.toString().padStart(2,"0");
+
+        const formattedTimeText=`${hoursText}h ${minutesText}m ${secondsText}s`;
+        const formattedTimeHtml=
+          `<span class="countdown-part"><span class="countdown-number">${hoursText}</span><span class="countdown-unit"><span class='d-none grt-announce'>Hrs</span><span class='d-none grt-product'>h&nbsp;</span></span></span><span class="grt-countdonw-dot countdown-part"><span class="countdown-number">:</span><span class="countdown-unit">&nbsp;</span></span>`+
+          `<span class="countdown-part"><span class="countdown-number">${minutesText}</span><span class="countdown-unit"><span class='d-none grt-announce'>Mins</span><span class='d-none grt-product'>m&nbsp;</span></span></span><span class="grt-countdonw-dot countdown-part"><span class="countdown-number">:</span><span class="countdown-unit">&nbsp;</span></span>`+
+          `<span class="countdown-part d-none grt-announce"><span class="countdown-number">${secondsText}</span><span class="countdown-unit">Secs</span></span>`;
+        const formattedTimeHtmlFast= `${hoursText}h&nbsp;`+`${minutesText}m&nbsp;`;
+
+        if(timeElement) timeElement.innerHTML=formattedTimeHtml;
+        if(timeElementMobile) timeElementMobile.innerHTML=formattedTimeHtml;
+        if(timeElementProduct && document.querySelector(".delivery-block .textinfodel time")){document.querySelector(".delivery-block .textinfodel time").innerHTML=formattedTimeHtmlFast;}
+
+        eventTime_Variable=formattedTimeText;
+
+        var __tval=$(timeElement).text();
+        if(__tval.length>0 && _isrun==0 && typeof _coundown==='function'){_coundown(); _isrun++;}
+      }
+    }
+
+    {% if template == 'cart' %}
+      processCountdown();
+    {% else %}
+      //processCountdown();
+      setInterval(function(){processCountdown();},interval);
+    {% endif %}
+  }());
+
+  (function debugCountdown(){
+    try{
+      console.log(
+        "[COUNTDOWN DEBUG]",
+        "\nNY Now      :", moment.tz("America/New_York").format("ddd, YYYY-MM-DD HH:mm"),
+        "\nDelivery   :", deliveryMoment ? deliveryMoment.format("ddd, YYYY-MM-DD") : "N/A",
+        "\nCutoff At  :", moment.tz(eventDateTime,"America/New_York").format("ddd, YYYY-MM-DD HH:mm")
+      );
+    }catch(e){
+      console.warn("[COUNTDOWN DEBUG ERROR]",e);
+    }
+  })();
+</script>
+<style>
+  .countdown-part{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;margin:0 1px;font-weight:700;}
+  .countdown-number{display:block;font-size:18px;line-height:1}
+  .countdown-unit{display:block;font-size:10px;line-height:1;margin-top:2px;}
+</style>

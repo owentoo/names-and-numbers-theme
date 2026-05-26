@@ -1,0 +1,92 @@
+{%- if predictive_search.performed -%}
+  <div class="sidebar__search-container ninja-search-block">
+    <div class="sidebar__search-results" data-js-search-results-holder>
+      
+		{%- if predictive_search.resources.products.size > 0 -%}
+          <div class="search-block search-box">
+            <span class="search-title">{{ 'search.form.product_results_title' | t }}</span>
+            {%- for product in predictive_search.resources.products -%}
+              {% unless product.metafields.custom.hidden == true %}
+              <div class="search-item cart-item" data-js-search-item>
+                <a tabindex="-1" href="{{ product.url }}" title="{{ product.title | escape }}" class="cart-item__thumbnail element--border-width-clamped element--border-radius">
+                  {%- render 'lazy-image-small', image: product.featured_media, aspect_ratio: settings.cart_image_ratio, fit: settings.cart_image_fit, class: 'lazy-image--scale-animation' -%}
+                </a>
+                <div class="cart-item__content">
+                  <div>
+                    <a tabindex="-1" href="{{ product.url }}" class="cart-item__title">
+                      <span class="text-animation--underline-thin">{{ product.title | escape }}</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+              {% endunless %}
+            {%- endfor -%}
+          </div>
+		{%- endif -%}
+
+
+      <div class="search-block search-term-block">
+        {%- if predictive_search.resources.queries.size > 0 -%}
+            <span class="search-title">Suggestions</span>
+            {%- for query in predictive_search.resources.queries -%}
+              <a class="search-item" href="{{ query.url }}" data-js-search-item tabindex="-1">
+                <span class=""><span class="text-animation--underline-thin">{{ query.styled_text }}</span></span>
+              </a>
+            {%- endfor -%}
+            {%- for collection in predictive_search.resources.collections -%}
+              <a class="search-item" href="{{ collection.url }}" data-js-search-item tabindex="-1">
+                <span class=""><span class="text-animation--underline-thin">{{ collection.title }}</span></span>
+              </a>
+            {%- endfor -%}
+        {%- endif -%}
+  
+          <div class="">
+            <span class="search-title">Collections</span>
+        {%- if predictive_search.resources.collections.size > 0 -%}
+            {%- for collection in predictive_search.resources.collections -%}
+              
+              {% unless collection.metafields.custom.hidden == true %}
+              <a class="search-item" href="{{ collection.url }}" data-js-search-item tabindex="-1">
+                <span class=""><span class="text-animation--underline-thin">{{ collection.title }}</span></span>
+              </a>
+              {% endunless %}
+            {%- endfor -%}
+          {% else %}
+            <span>No result</span>
+        {%- endif -%}
+          </div>
+        
+		
+          <div class="search-block pages-row">
+            <span class="search-title">{{ 'search.form.page_results_title' | t }}</span>
+            {%- if predictive_search.resources.pages.size > 0 -%}
+              {%- for page in predictive_search.resources.pages -%}
+                {% unless page.metafields.custom.hidden == true %}
+                <a 
+                  href="{{ page.url }}" tabindex="-1" 
+                  class="search-item"
+                  data-js-search-item
+                >
+                  <span class=""><span class="text-animation--underline-thin">{{ page.title | escape }}</span></span>
+                </a>
+                {% endunless %}
+              {%- endfor -%}
+            {% else %}
+              <span>No result</span>
+            {%- endif -%}
+          </div>
+		
+      </div>
+
+
+	</div>
+
+  <div class="search-block">
+  	<a tabindex="-1" class="search-more button button--solid button--regular button--move button--fullwidth" data-js-search-item href="{{ routes.search_url }}?q={{ predictive_search.terms | url_encode }}">
+      <span class="button__text">{{ 'search.form.search_for_html' | t: terms: predictive_search.terms }}</span>
+    </a>
+  </div>
+
+</div>
+
+{%- endif -%}

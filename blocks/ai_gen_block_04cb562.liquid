@@ -1,0 +1,644 @@
+{% doc %}
+  @prompt
+    Create a section with a large H1 that says:
+    Perfect for [changing word]
+    The word inside the brackets should change as the user scrolls through the section.
+    
+    Each time the word changes:
+    
+    A new image appears beside the text
+    A new paragraph appears under the H1
+    Layout:
+    
+    Two columns on desktop: text on the left, image on the right
+    On mobile: stack text above the image
+    The H1, paragraph, and image should all update together
+    Content settings:
+    
+    Add up to 5 examples
+    For each example, include:
+    A word or phrase for the H1 (e.g. “families”, “creators”, “events”)
+    A matching image (with desktop and mobile size options)
+    A short paragraph of text
+    Customization settings:
+    
+    Font size and weight for desktop and mobile
+    Padding and margin controls (top, bottom, sides)
+    Max width setting for the text column
+    Background color or gradient option
+    Animation style for text/image change (e.g., fade or slide)
+    Scroll trigger sensitivity setting (how much scroll before it changes)
+    Make sure the section stays within page width and doesn’t overflow when scrolling., the image and text should switch on scroll
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-scroll-section-{{ ai_gen_id }} {
+    padding-top: {{ block.settings.padding_top }}px;
+    padding-bottom: {{ block.settings.padding_bottom }}px;
+    padding-left: {{ block.settings.padding_sides }}px;
+    padding-right: {{ block.settings.padding_sides }}px;
+    margin-top: {{ block.settings.margin_top }}px;
+    margin-bottom: {{ block.settings.margin_bottom }}px;
+    overflow: hidden;
+    position: relative;
+    background: {{ block.settings.background }};
+  }
+
+  .ai-scroll-container-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: row;
+    max-width: {{ block.settings.section_max_width }}px;
+    margin: 0 auto;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .ai-scroll-text-column-{{ ai_gen_id }} {
+    flex: 1;
+    max-width: {{ block.settings.text_column_max_width }}px;
+    padding-right: 40px;
+  }
+
+  .ai-scroll-image-column-{{ ai_gen_id }} {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .ai-scroll-heading-{{ ai_gen_id }} {
+    font-size: {{ block.settings.heading_size_desktop }}px;
+    font-weight: {{ block.settings.heading_weight }};
+    margin-bottom: 20px;
+    line-height: 1.2;
+  }
+
+  .ai-scroll-paragraph-{{ ai_gen_id }} {
+    font-size: {{ block.settings.paragraph_size_desktop }}px;
+    line-height: 1.5;
+    margin-top: 0;
+  }
+
+  .ai-scroll-image-wrapper-{{ ai_gen_id }} {
+    width: 100%;
+    height: 0;
+    padding-bottom: 75%;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  .ai-scroll-image-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity {{ block.settings.animation_duration }}s ease;
+  }
+
+  .ai-scroll-image-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f4f4f4;
+  }
+
+  .ai-scroll-image-placeholder-{{ ai_gen_id }} svg {
+    width: 50%;
+    height: 50%;
+  }
+
+  .ai-scroll-word-{{ ai_gen_id }} {
+    display: inline-block;
+    position: relative;
+  }
+
+  .ai-scroll-changing-word-{{ ai_gen_id }} {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    transition: opacity {{ block.settings.animation_duration }}s ease;
+  }
+
+  .ai-scroll-changing-word-{{ ai_gen_id }}.active {
+    position: relative;
+    opacity: 1;
+  }
+
+  .ai-scroll-content-{{ ai_gen_id }} {
+    opacity: 0;
+    transition: opacity {{ block.settings.animation_duration }}s ease;
+    position: absolute;
+    left: 0;
+  }
+
+  .ai-scroll-content-{{ ai_gen_id }}.active {
+    opacity: 1;
+    position: relative;
+  }
+
+  .ai-scroll-image-{{ ai_gen_id }}.active {
+    opacity: 1;
+  }
+
+  .ai-scroll-paragraph-container-{{ ai_gen_id }} {
+    position: relative;
+    min-height: 100px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-scroll-container-{{ ai_gen_id }} {
+      flex-direction: column;
+    }
+
+    .ai-scroll-text-column-{{ ai_gen_id }} {
+      padding-right: 0;
+      padding-bottom: 30px;
+      width: 100%;
+    }
+
+    .ai-scroll-image-column-{{ ai_gen_id }} {
+      width: 100%;
+    }
+
+    .ai-scroll-heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size_mobile }}px;
+    }
+
+    .ai-scroll-paragraph-{{ ai_gen_id }} {
+      font-size: {{ block.settings.paragraph_size_mobile }}px;
+    }
+  }
+{% endstyle %}
+
+<scroll-section-{{ ai_gen_id }} 
+  class="ai-scroll-section-{{ ai_gen_id }}" 
+  data-sensitivity="{{ block.settings.scroll_sensitivity }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="ai-scroll-container-{{ ai_gen_id }}">
+    <div class="ai-scroll-text-column-{{ ai_gen_id }}">
+      <h1 class="ai-scroll-heading-{{ ai_gen_id }}">
+        Perfect for 
+        <span class="ai-scroll-word-{{ ai_gen_id }}">
+          {% for i in (1..5) %}
+            {% assign word_key = 'word_' | append: i %}
+            {% if block.settings[word_key] != blank %}
+              <span class="ai-scroll-changing-word-{{ ai_gen_id }} {% if forloop.first %}active{% endif %}" data-index="{{ forloop.index0 }}">
+                {{ block.settings[word_key] }}
+              </span>
+            {% endif %}
+          {% endfor %}
+        </span>
+      </h1>
+
+      <div class="ai-scroll-paragraph-container-{{ ai_gen_id }}">
+        {% for i in (1..5) %}
+          {% assign paragraph_key = 'paragraph_' | append: i %}
+          {% if block.settings[paragraph_key] != blank %}
+            <p class="ai-scroll-paragraph-{{ ai_gen_id }} ai-scroll-content-{{ ai_gen_id }} {% if forloop.first %}active{% endif %}" data-index="{{ forloop.index0 }}">
+              {{ block.settings[paragraph_key] }}
+            </p>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="ai-scroll-image-column-{{ ai_gen_id }}">
+      <div class="ai-scroll-image-wrapper-{{ ai_gen_id }}">
+        {% for i in (1..5) %}
+          {% assign image_key = 'image_' | append: i %}
+          {% if block.settings[image_key] != blank %}
+            <img 
+              src="{{ block.settings[image_key] | image_url: width: 1000 }}" 
+              alt="{{ block.settings[image_key].alt | escape }}"
+              class="ai-scroll-image-{{ ai_gen_id }} {% if forloop.first %}active{% endif %}"
+              loading="lazy"
+              data-index="{{ forloop.index0 }}"
+            >
+          {% endif %}
+        {% endfor %}
+
+        {% unless block.settings.image_1 %}
+          <div class="ai-scroll-image-placeholder-{{ ai_gen_id }}">
+            {{ 'image' | placeholder_svg_tag }}
+          </div>
+        {% endunless %}
+      </div>
+    </div>
+  </div>
+</scroll-section-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class ScrollSection extends HTMLElement {
+      constructor() {
+        super();
+        this.items = [];
+        this.words = [];
+        this.paragraphs = [];
+        this.images = [];
+        this.currentIndex = 0;
+        this.totalItems = 0;
+        this.sensitivity = parseFloat(this.dataset.sensitivity) || 0.2;
+        this.scrollPosition = 0;
+        this.sectionHeight = 0;
+        this.initialized = false;
+      }
+
+      connectedCallback() {
+        this.words = Array.from(this.querySelectorAll('.ai-scroll-changing-word-{{ ai_gen_id }}'));
+        this.paragraphs = Array.from(this.querySelectorAll('.ai-scroll-paragraph-{{ ai_gen_id }}'));
+        this.images = Array.from(this.querySelectorAll('.ai-scroll-image-{{ ai_gen_id }}'));
+        
+        this.totalItems = Math.min(
+          this.words.length > 0 ? this.words.length : Infinity,
+          this.paragraphs.length > 0 ? this.paragraphs.length : Infinity,
+          this.images.length > 0 ? this.images.length : Infinity
+        );
+
+        if (this.totalItems <= 1) return;
+
+        // Initialize after a small delay to ensure all elements are rendered
+        setTimeout(() => {
+          this.initialize();
+        }, 100);
+
+        window.addEventListener('resize', this.handleResize.bind(this));
+      }
+
+      initialize() {
+        this.sectionHeight = this.getBoundingClientRect().height;
+        this.scrollPosition = window.scrollY;
+        
+        window.addEventListener('scroll', this.handleScroll.bind(this));
+        
+        this.initialized = true;
+      }
+
+      handleResize() {
+        if (!this.initialized) return;
+        
+        // Update section height on resize
+        this.sectionHeight = this.getBoundingClientRect().height;
+      }
+
+      handleScroll() {
+        if (!this.initialized || this.totalItems <= 1) return;
+        
+        const rect = this.getBoundingClientRect();
+        const sectionTop = rect.top;
+        const sectionBottom = rect.bottom;
+        const windowHeight = window.innerHeight;
+        
+        // Check if section is in viewport
+        if (sectionTop > windowHeight || sectionBottom < 0) return;
+        
+        // Calculate progress through the section (0 to 1)
+        const visibleHeight = Math.min(sectionBottom, windowHeight) - Math.max(sectionTop, 0);
+        const totalVisibleHeight = Math.min(this.sectionHeight, windowHeight);
+        const progress = visibleHeight / totalVisibleHeight;
+        
+        // Calculate which item to show based on progress and sensitivity
+        const itemProgress = progress / this.sensitivity;
+        const normalizedProgress = Math.max(0, Math.min(1, itemProgress));
+        const newIndex = Math.min(
+          Math.floor(normalizedProgress * this.totalItems),
+          this.totalItems - 1
+        );
+        
+        if (newIndex !== this.currentIndex) {
+          this.updateContent(newIndex);
+        }
+      }
+
+      updateContent(index) {
+        // Update current index
+        this.currentIndex = index;
+        
+        // Update words
+        this.words.forEach((word, i) => {
+          if (i === index) {
+            word.classList.add('active');
+          } else {
+            word.classList.remove('active');
+          }
+        });
+        
+        // Update paragraphs
+        this.paragraphs.forEach((paragraph, i) => {
+          if (i === index) {
+            paragraph.classList.add('active');
+          } else {
+            paragraph.classList.remove('active');
+          }
+        });
+        
+        // Update images
+        this.images.forEach((image, i) => {
+          if (i === index) {
+            image.classList.add('active');
+          } else {
+            image.classList.remove('active');
+          }
+        });
+      }
+
+      disconnectedCallback() {
+        window.removeEventListener('scroll', this.handleScroll.bind(this));
+        window.removeEventListener('resize', this.handleResize.bind(this));
+      }
+    }
+
+    customElements.define('scroll-section-{{ ai_gen_id }}', ScrollSection);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Scroll Text Change",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "word_1",
+      "label": "Word 1",
+      "default": "families"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image 1"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_1",
+      "label": "Paragraph 1",
+      "default": "Create lasting memories with our family-friendly products designed for everyone to enjoy together."
+    },
+    {
+      "type": "text",
+      "id": "word_2",
+      "label": "Word 2",
+      "default": "creators"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image 2"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_2",
+      "label": "Paragraph 2",
+      "default": "Unleash your creativity with professional-grade tools that help bring your vision to life."
+    },
+    {
+      "type": "text",
+      "id": "word_3",
+      "label": "Word 3",
+      "default": "businesses"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_3",
+      "label": "Image 3"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_3",
+      "label": "Paragraph 3",
+      "default": "Scale your operations with enterprise solutions designed to optimize workflow and increase productivity."
+    },
+    {
+      "type": "text",
+      "id": "word_4",
+      "label": "Word 4",
+      "default": "events"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_4",
+      "label": "Image 4"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_4",
+      "label": "Paragraph 4",
+      "default": "Make your special occasions memorable with our curated selection of event essentials."
+    },
+    {
+      "type": "text",
+      "id": "word_5",
+      "label": "Word 5",
+      "default": "adventurers"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_5",
+      "label": "Image 5"
+    },
+    {
+      "type": "textarea",
+      "id": "paragraph_5",
+      "label": "Paragraph 5",
+      "default": "Explore the world with confidence using our durable gear designed for the toughest conditions."
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "heading_size_desktop",
+      "min": 24,
+      "max": 96,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "min": 20,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size (mobile)",
+      "default": 36
+    },
+    {
+      "type": "select",
+      "id": "heading_weight",
+      "label": "Heading weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Regular"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semibold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        },
+        {
+          "value": "800",
+          "label": "Extra Bold"
+        }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size_desktop",
+      "min": 14,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Paragraph size (desktop)",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "paragraph_size_mobile",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Paragraph size (mobile)",
+      "default": 16
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "section_max_width",
+      "min": 800,
+      "max": 1600,
+      "step": 50,
+      "unit": "px",
+      "label": "Section max width",
+      "default": 1200
+    },
+    {
+      "type": "range",
+      "id": "text_column_max_width",
+      "min": 300,
+      "max": 800,
+      "step": 50,
+      "unit": "px",
+      "label": "Text column max width",
+      "default": 500
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "padding_sides",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding sides",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Margin top",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "label": "Margin bottom",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Animation"
+    },
+    {
+      "type": "range",
+      "id": "animation_duration",
+      "min": 0.3,
+      "max": 1,
+      "step": 0.1,
+      "label": "Animation duration (seconds)",
+      "default": 0.5
+    },
+    {
+      "type": "range",
+      "id": "scroll_sensitivity",
+      "min": 0.1,
+      "max": 1,
+      "step": 0.1,
+      "label": "Scroll sensitivity",
+      "info": "Lower values make content change more quickly as you scroll",
+      "default": 0.2
+    },
+    {
+      "type": "color_background",
+      "id": "background",
+      "label": "Background",
+      "default": "linear-gradient(0deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 1))"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Scroll Text Change"
+    }
+  ]
+}
+{% endschema %}

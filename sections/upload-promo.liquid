@@ -1,0 +1,492 @@
+{%- comment -%}
+  Upload Promo (V16 — light two-step layout)
+
+  Customer-targeted promo banner that auto-hides when a file is uploading
+  or already uploaded. The placement + hide lifecycle lives in
+  snippets/upload-aware-hide.liquid so other promos can reuse it.
+
+  Tag rules use a "contains" match so the gate works against tag prefixes
+  like Transfers_Buyer / Blank_Buyer. Set required_tag and excluded_tag to
+  empty strings to disable each rule.
+{%- endcomment -%}
+
+{%- liquid
+  assign show_promo = true
+
+  if section.settings.require_logged_in and customer == blank
+    assign show_promo = false
+  endif
+
+  if show_promo and section.settings.required_tag != blank
+    assign has_required = false
+    if customer
+      for t in customer.tags
+        if t contains section.settings.required_tag
+          assign has_required = true
+        endif
+      endfor
+    endif
+    if has_required == false
+      assign show_promo = false
+    endif
+  endif
+
+  if show_promo and section.settings.excluded_tag != blank and customer
+    for t in customer.tags
+      if t contains section.settings.excluded_tag
+        assign show_promo = false
+      endif
+    endfor
+  endif
+-%}
+
+{%- if show_promo -%}
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+
+<style>
+  /* Hide until upload-aware-hide moves the banner into the upload area,
+     so we don't flash it at the bottom of the page during the brief move. */
+  .upload-promo { display: none; }
+  .upload-promo.upload-promo--between { display: grid; }
+
+  /* The PDP upload area is ~760px wide. The V16 reference is laid out for
+     ~1000px so we keep the two-column structure but tighten vertical
+     padding, drop the headline a notch (54→44px) and shrink the thumbnail
+     tiles so step labels don't wrap. Goal: short horizontal strip, not a
+     tall hero. */
+  .upload-promo {
+    font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    width: 100%;
+    max-width: {{ section.settings.max_width }}px;
+    margin: 0 auto;
+    background: {{ section.settings.surface_color }};
+    border-radius: 16px;
+    overflow: hidden;
+    color: {{ section.settings.ink_color }};
+    grid-template-columns: 1.4fr 1fr;
+    box-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.18);
+    border: 1px solid #e5e7eb;
+    box-sizing: border-box;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  }
+  .upload-promo:hover {
+    border-color: #c2c7d3;
+    box-shadow: 0 16px 32px -14px rgba(15, 23, 42, 0.18);
+    transform: translateY(-1px);
+  }
+  .upload-promo.upload-promo--between { margin: 20px auto 10px !important; }
+  .upload-promo.upload-promo--between + .generative-ai-area { margin-top: 0 !important; }
+
+  .upload-area, master-upload, upload-controls, .file-upload-overlay-1 {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .upload-promo *, .upload-promo *::before, .upload-promo *::after { box-sizing: border-box; }
+
+  .upload-promo__copy { padding: 16px 22px; }
+
+  .upload-promo__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: {{ section.settings.accent_color | color_modify: 'alpha', 0.1 }};
+    color: {{ section.settings.accent_color | color_darken: 8 }};
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    letter-spacing: 1.8px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    line-height: 1.3;
+  }
+  .upload-promo__eyebrow-dot {
+    width: 6px;
+    height: 6px;
+    background: {{ section.settings.accent_color }};
+    border-radius: 999px;
+    box-shadow: 0 0 8px {{ section.settings.accent_color | color_modify: 'alpha', 0.6 }};
+    flex-shrink: 0;
+  }
+
+  .upload-promo__headline {
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 0.98;
+    letter-spacing: -1.4px;
+    color: {{ section.settings.ink_color }};
+    margin: 0;
+  }
+  .upload-promo__num { color: {{ section.settings.accent_color }}; }
+  .upload-promo__on-us {
+    font-style: italic;
+    font-weight: 400;
+    color: #9ca3af;
+  }
+
+  .upload-promo__subhead {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 8px 0 0;
+    max-width: 380px;
+    line-height: 1.45;
+  }
+
+  .upload-promo__perks {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: #6b7280;
+    flex-wrap: wrap;
+  }
+  .upload-promo__perks-check {
+    color: {{ section.settings.accent_color }};
+    font-weight: 800;
+    margin-right: 4px;
+  }
+
+  .upload-promo__flow {
+    background: radial-gradient(circle at 50% 40%, #f9fafb 0%, #f3f4f6 80%);
+    border-left: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 12px 18px;
+    gap: 8px;
+  }
+
+  .upload-promo__step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .upload-promo__step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .upload-promo__step-num--outline {
+    border: 1px solid #d1d5db;
+    color: {{ section.settings.accent_color }};
+    background: {{ section.settings.surface_color }};
+  }
+  .upload-promo__step-num--filled {
+    background: {{ section.settings.accent_color }};
+    color: #ffffff;
+  }
+
+  .upload-promo__step-thumb {
+    width: 64px;
+    height: 54px;
+    background: {{ section.settings.surface_color }};
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #e5e7eb;
+    flex-shrink: 0;
+  }
+  .upload-promo__step-thumb svg { width: 92%; height: auto; }
+
+  .upload-promo__step-text { min-width: 0; }
+  .upload-promo__step-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: {{ section.settings.ink_color }};
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .upload-promo__step-sub {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 1px;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  .upload-promo__connector {
+    margin-left: 14px;
+    height: 8px;
+    width: 1px;
+    background: #d1d5db;
+  }
+
+  @media (max-width: 540px) {
+    .upload-promo.upload-promo--between { grid-template-columns: 1fr; }
+    .upload-promo__flow { border-left: 0; border-top: 1px solid #e5e7eb; }
+    .upload-promo__headline { font-size: 30px; letter-spacing: -1px; }
+    .upload-promo__perks { gap: 8px 14px; }
+  }
+</style>
+
+<section class="upload-promo" role="region" aria-label="{{ section.settings.aria_label | escape }}">
+
+  <div class="upload-promo__copy">
+    <div class="upload-promo__eyebrow">
+      <span class="upload-promo__eyebrow-dot" aria-hidden="true"></span>
+      {{ section.settings.eyebrow }}
+    </div>
+
+    <h2 class="upload-promo__headline">
+      {{- section.settings.headline_pre }}
+      <span class="upload-promo__num">{{- section.settings.headline_num -}}</span><br />
+      {{ section.settings.headline_mid }}
+      <span class="upload-promo__on-us">{{- section.settings.headline_emphasis -}}</span>
+    </h2>
+
+    <p class="upload-promo__subhead">{{ section.settings.subhead }}</p>
+
+    {%- assign perk_count = 0 -%}
+    {%- for block in section.blocks -%}
+      {%- if block.type == 'perk' -%}{%- assign perk_count = perk_count | plus: 1 -%}{%- endif -%}
+    {%- endfor -%}
+    {%- if perk_count > 0 -%}
+      <div class="upload-promo__perks">
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'perk' -%}
+            <span {{ block.shopify_attributes }}><span class="upload-promo__perks-check" aria-hidden="true">✓</span>{{ block.settings.label }}</span>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  </div>
+
+  <div class="upload-promo__flow">
+    <div class="upload-promo__step">
+      <div class="upload-promo__step-num upload-promo__step-num--outline">01</div>
+      <div class="upload-promo__step-thumb">
+        {%- comment -%} Stacked blank tees illustration — verbatim from V16 handoff {%- endcomment -%}
+        <svg viewBox="0 0 140 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <filter id="up-promo-sh1-{{ section.id }}" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.15" />
+            </filter>
+          </defs>
+          <g filter="url(#up-promo-sh1-{{ section.id }})" transform="translate(8 6) rotate(-8 60 50)">
+            <path d="M10 25 L30 12 L45 18 Q55 25 65 18 L80 12 L100 25 L92 40 L80 35 L80 85 Q80 92 73 92 L37 92 Q30 92 30 85 L30 35 L18 40 Z" fill="#1a1a1a" />
+          </g>
+          <g filter="url(#up-promo-sh1-{{ section.id }})" transform="translate(14 18) rotate(2 60 50)">
+            <path d="M10 25 L30 12 L45 18 Q55 25 65 18 L80 12 L100 25 L92 40 L80 35 L80 85 Q80 92 73 92 L37 92 Q30 92 30 85 L30 35 L18 40 Z" fill="#f5f5f5" stroke="#d4d4d4" stroke-width="1" />
+          </g>
+          <g filter="url(#up-promo-sh1-{{ section.id }})" transform="translate(22 30) rotate(10 60 50)">
+            <path d="M10 25 L30 12 L45 18 Q55 25 65 18 L80 12 L100 25 L92 40 L80 35 L80 85 Q80 92 73 92 L37 92 Q30 92 30 85 L30 35 L18 40 Z" fill="#7fb8d9" />
+          </g>
+        </svg>
+      </div>
+      <div class="upload-promo__step-text">
+        <div class="upload-promo__step-label">{{ section.settings.step1_label }}</div>
+        <div class="upload-promo__step-sub">{{ section.settings.step1_sub }}</div>
+      </div>
+    </div>
+
+    <div class="upload-promo__connector" aria-hidden="true"></div>
+
+    <div class="upload-promo__step">
+      <div class="upload-promo__step-num upload-promo__step-num--filled">02</div>
+      <div class="upload-promo__step-thumb">
+        {%- comment -%} Fanned colorful transfer sheets illustration — verbatim from V16 handoff {%- endcomment -%}
+        <svg viewBox="0 0 140 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <filter id="up-promo-sh2-{{ section.id }}" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.18" />
+            </filter>
+          </defs>
+          <g filter="url(#up-promo-sh2-{{ section.id }})" transform="translate(10 8) rotate(-14 50 50)">
+            <rect x="0" y="0" width="80" height="90" rx="3" fill="#fff" stroke="#e5e5e5" />
+            <circle cx="18" cy="22" r="10" fill="#ff3b9a" />
+            <rect x="32" y="14" width="38" height="16" rx="3" fill="#22c55e" />
+            <rect x="10" y="40" width="60" height="14" rx="2" fill="#fbbf24" />
+            <rect x="18" y="60" width="50" height="12" rx="2" fill="#3b82f6" />
+          </g>
+          <g filter="url(#up-promo-sh2-{{ section.id }})" transform="translate(30 4) rotate(4 50 50)">
+            <rect x="0" y="0" width="80" height="90" rx="3" fill="#fff" stroke="#e5e5e5" />
+            <path d="M10 20 L25 12 L40 22 L55 10 L68 24" stroke="#ef4444" stroke-width="5" fill="none" stroke-linecap="round" />
+            <rect x="10" y="36" width="60" height="10" rx="2" fill="#8b5cf6" />
+            <rect x="10" y="52" width="44" height="10" rx="2" fill="#06b6d4" />
+            <circle cx="58" cy="74" r="8" fill="#f59e0b" />
+          </g>
+          <g filter="url(#up-promo-sh2-{{ section.id }})" transform="translate(46 16) rotate(16 50 50)">
+            <rect x="0" y="0" width="80" height="90" rx="3" fill="#fff" stroke="#e5e5e5" />
+            <text x="40" y="40" font-family="Impact, Arial Black, sans-serif" font-size="22" font-weight="900" text-anchor="middle" fill="#ec4899">SUMMER</text>
+            <text x="40" y="64" font-family="Impact, Arial Black, sans-serif" font-size="22" font-weight="900" text-anchor="middle" fill="#10b981">LIMIT</text>
+          </g>
+        </svg>
+      </div>
+      <div class="upload-promo__step-text">
+        <div class="upload-promo__step-label">{{ section.settings.step2_label }}</div>
+        <div class="upload-promo__step-sub">{{ section.settings.step2_sub }}</div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+{%- render 'upload-aware-hide',
+   selector: '.upload-promo',
+   place_after: '.dtfut',
+   place_before: '.generative-ai-area',
+   placed_class: 'upload-promo--between' -%}
+
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Upload Promo",
+  "tag": "div",
+  "class": "upload-promo-section",
+  "settings": [
+    { "type": "header", "content": "Targeting" },
+    {
+      "type": "checkbox",
+      "id": "require_logged_in",
+      "label": "Require logged-in customer",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "required_tag",
+      "label": "Required customer tag (contains)",
+      "info": "Show only if a customer tag contains this string. Leave blank to skip.",
+      "default": "Transfers_Buyer"
+    },
+    {
+      "type": "text",
+      "id": "excluded_tag",
+      "label": "Excluded customer tag (contains)",
+      "info": "Hide if a customer tag contains this string. Leave blank to skip.",
+      "default": "Blank_Buyer"
+    },
+
+    { "type": "header", "content": "Copy" },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow text",
+      "default": "NEW CUSTOMER BONUS"
+    },
+    {
+      "type": "text",
+      "id": "headline_pre",
+      "label": "Headline · before number",
+      "default": "Your first"
+    },
+    {
+      "type": "text",
+      "id": "headline_num",
+      "label": "Headline · accent number",
+      "default": "10"
+    },
+    {
+      "type": "text",
+      "id": "headline_mid",
+      "label": "Headline · between number & emphasis (line 2 prefix)",
+      "default": "transfers are"
+    },
+    {
+      "type": "text",
+      "id": "headline_emphasis",
+      "label": "Headline · italic emphasis",
+      "default": "on us."
+    },
+    {
+      "type": "textarea",
+      "id": "subhead",
+      "label": "Subhead",
+      "default": "Add 5 or more blanks to your first blank order. We'll toss in 10 DTF transfers automatically — up to 11×11\" each."
+    },
+    {
+      "type": "text",
+      "id": "aria_label",
+      "label": "Accessible label (aria-label)",
+      "default": "New customer offer: 10 free transfers"
+    },
+
+    { "type": "header", "content": "Steps" },
+    {
+      "type": "text",
+      "id": "step1_label",
+      "label": "Step 1 · label",
+      "default": "Buy 5 blanks"
+    },
+    {
+      "type": "text",
+      "id": "step1_sub",
+      "label": "Step 1 · sublabel",
+      "default": "Any style, any size"
+    },
+    {
+      "type": "text",
+      "id": "step2_label",
+      "label": "Step 2 · label",
+      "default": "Get 10 FREE"
+    },
+    {
+      "type": "text",
+      "id": "step2_sub",
+      "label": "Step 2 · sublabel",
+      "default": "Auto at checkout"
+    },
+
+    { "type": "header", "content": "Colors" },
+    {
+      "type": "color",
+      "id": "surface_color",
+      "label": "Surface (background)",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "ink_color",
+      "label": "Ink (headlines)",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent (brand green)",
+      "default": "#16a34a"
+    },
+
+    { "type": "header", "content": "Layout" },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max width (px)",
+      "min": 600,
+      "max": 1200,
+      "step": 20,
+      "default": 1000
+    }
+  ],
+  "blocks": [
+    {
+      "type": "perk",
+      "name": "Perk",
+      "limit": 6,
+      "settings": [
+        { "type": "text", "id": "label", "label": "Label", "default": "Next-day delivery" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Upload Promo",
+      "blocks": [
+        { "type": "perk", "settings": { "label": "Next-day delivery" } },
+        { "type": "perk", "settings": { "label": "Free ship $50+ on blanks" } },
+        { "type": "perk", "settings": { "label": "No minimums" } }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "templates": ["product"]
+  }
+}
+{% endschema %}
