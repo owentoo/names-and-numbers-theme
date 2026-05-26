@@ -118,6 +118,7 @@
     renderHeightPills(dom.heightName,   nameHeights,   state.nameHeightId);
     renderHeightPills(dom.heightNumber, numberHeights, state.numberHeightId);
     if (state.entries.length === 0) addEntry();
+    else renderEntries();
 
     // Defensive ordering: wire the gallery-swap listener FIRST so any later wire
     // crash doesn't prevent the carousel→jersey swap from working.
