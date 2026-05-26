@@ -744,7 +744,7 @@
       // are NOT counted — we only charge for the printed ink area.
       const printAreaSqIn = printables.reduce((sum, p) => sum + ((p.widthIn || 0) * (p.heightIn || 0)), 0);
       const totalSqIn = Math.ceil(printAreaSqIn);
-      dom.dims.textContent = `${cfg.sheetWidthIn}" × ${packed.totalHeightIn.toFixed(2)}"`;
+      dom.dims.textContent = `${packed.sheetWidthIn.toFixed(2)}" × ${packed.totalHeightIn.toFixed(2)}"`;
       dom.sqin.textContent = `${totalSqIn} sq in`;
 
       const variant = matchVariantBySqIn(variants, totalSqIn);
@@ -875,30 +875,43 @@
       return b.widthIn - a.widthIn;
     });
 
+    // First-Fit-Decreasing-Height (FFDH) shelf packing. Items drop into the
+    // first existing shelf that's tall enough and still has horizontal room,
+    // so 2" names tuck alongside 8" numbers instead of each height starting
+    // its own short row. Items are bottom-aligned within their shelf so a
+    // mixed-height row shares a baseline.
     const usableWidthIn = cfg.sheetWidthIn - 2 * cfg.sideMarginIn;
+    const rightEdge = cfg.sheetWidthIn - cfg.sideMarginIn;
+    const shelves = [];
     const placements = [];
-    let cursorY = cfg.sideMarginIn;
-    let i = 0;
-    while (i < sorted.length) {
-      const shelfHeightIn = sorted[i].heightIn;
-      let cursorX = cfg.sideMarginIn;
-      while (i < sorted.length && sorted[i].heightIn === shelfHeightIn) {
-        const item = sorted[i];
-        const widthIn = Math.min(item.widthIn, usableWidthIn);
-        const overflow = cursorX !== cfg.sideMarginIn && (cursorX + widthIn > cfg.sheetWidthIn - cfg.sideMarginIn);
-        if (overflow) {
-          cursorY += shelfHeightIn + cfg.vertGapIn;
-          cursorX = cfg.sideMarginIn;
+    let nextY = cfg.sideMarginIn;
+    for (const item of sorted) {
+      const widthIn = Math.min(item.widthIn, usableWidthIn);
+      let shelf = null;
+      for (const s of shelves) {
+        if (s.heightIn >= item.heightIn && s.cursorX + widthIn <= rightEdge) {
+          shelf = s;
+          break;
         }
-        placements.push({ item, x: cursorX, y: cursorY, w: widthIn, h: shelfHeightIn });
-        cursorX += widthIn + cfg.horizGapIn;
-        i++;
       }
-      cursorY += shelfHeightIn + cfg.vertGapIn;
+      if (!shelf) {
+        shelf = { heightIn: item.heightIn, cursorX: cfg.sideMarginIn, y: nextY };
+        shelves.push(shelf);
+        nextY += item.heightIn + cfg.vertGapIn;
+      }
+      const itemY = shelf.y + (shelf.heightIn - item.heightIn);
+      placements.push({ item, x: shelf.cursorX, y: itemY, w: widthIn, h: item.heightIn });
+      shelf.cursorX += widthIn + cfg.horizGapIn;
     }
 
-    const totalHeightIn = cursorY - cfg.vertGapIn + cfg.sideMarginIn;
-    return { placements, totalHeightIn, sheetWidthIn: cfg.sheetWidthIn };
+    const totalHeightIn = nextY - cfg.vertGapIn + cfg.sideMarginIn;
+    // Crop the sheet width to the actual content extent so a single small
+    // item doesn't ship padded out to the full 22" sheet. Wrapping during
+    // packing still uses the full cfg.sheetWidthIn, so multi-row layouts
+    // keep their wrap point — this is purely an output crop.
+    const maxRightIn = Math.max(...placements.map(p => p.x + p.w));
+    const croppedWidthIn = Math.min(cfg.sheetWidthIn, maxRightIn + cfg.sideMarginIn);
+    return { placements, totalHeightIn, sheetWidthIn: croppedWidthIn };
   }
 
   async function renderExportPNG(packed, cfg, fontDef, colorHex) {
