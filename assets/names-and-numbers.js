@@ -217,6 +217,7 @@
               <button type="button" class="nn-stepper__btn" data-nn-qty-step="1" aria-label="Increase qty">+</button>
             </div>
           </td>
+          <td class="nn-roster__price" data-nn-line-price>—</td>
           <td><button type="button" class="nn-roster__remove" data-nn-remove aria-label="Remove row">&times;</button></td>
         `;
         tr.querySelector('[data-nn-field="name"]').value   = entry.name || '';
@@ -612,6 +613,28 @@
               entryPrintables.set(p.entryIdx, p);
             }
           });
+
+          // bySize tier-quantity discount ladder (mirrors the prices-table at
+          // snippets/portal-multiupload.liquid:498-540). Total qty across the
+          // whole submission determines the active tier. We attach the FULL
+          // ladder string + the active tier name to each line so the existing
+          // cart Liquid (snippets/arrange-properties.liquid:31) renders the
+          // discount badge correctly.
+          const TIER_DISCOUNT_LADDER = '_discount_input=min_1-off_50#min_15-off_20#min_50-off_30#min_100-off_40#min_250-off_50#';
+          // The ladder above is purely for cart display. The numbers actually
+          // applied per tier come from this table:
+          const TIER_TABLE = [
+            { min:   1, max: 14,      off: 0,  name: '0%_off_for_1_transfers'    },
+            { min:  15, max: 49,      off: 20, name: '20%_off_for_15_transfers'  },
+            { min:  50, max: 99,      off: 30, name: '30%_off_for_50_transfers'  },
+            { min: 100, max: 249,     off: 40, name: '40%_off_for_100_transfers' },
+            { min: 250, max: Infinity, off: 50, name: '50%_off_for_250_transfers' },
+          ];
+          const totalQty = state.entries.reduce((sum, e) => sum + Math.max(1, parseInt(e.qty, 10) || 1), 0);
+          const activeTier = TIER_TABLE.find(t => totalQty >= t.min && totalQty <= t.max) || TIER_TABLE[0];
+          const discountInputProp = `min_${activeTier.min}-off_${activeTier.off}`;
+          const discountNameProp  = activeTier.name;
+
           const items = [];
           state.entries.forEach((entry, i) => {
             const p = entryPrintables.get(i);
@@ -629,7 +652,10 @@
                 '_entry_idx': String(i),
                 '_width':  p.widthIn.toFixed(2),
                 '_height': p.heightIn.toFixed(2),
+                '_Size':   variant.option1 || '',
                 '_Total Sq In': String(lineSqIn),
+                '_discount_input': discountInputProp,
+                '_discount_name':  discountNameProp,
               },
             });
           });
@@ -838,6 +864,7 @@
       let oversize = false;
       let lastVariantId = '';
       const lineSummary = [];
+      const perEntryCents = new Map();   // entryIdx → line total cents
       state.entries.forEach((entry, i) => {
         const p = entryPrintables.get(i);
         if (!p) return;
@@ -847,11 +874,25 @@
         const variant = matchVariantBySqIn(variants, lineSqIn);
         if (!variant) { oversize = true; return; }
         lastVariantId = variant.id;
-        totalCents += (variant.price || 0) * qty;
-        lineSummary.push({ entryIdx: i, sqIn: lineSqIn, qty, variantId: variant.id });
+        const lineCents = (variant.price || 0) * qty;
+        totalCents += lineCents;
+        perEntryCents.set(i, lineCents);
+        lineSummary.push({ entryIdx: i, sqIn: lineSqIn, qty, variantId: variant.id, lineCents });
       });
       // Stash the per-line breakdown for the submit handler to consume.
       state._lineSummary = lineSummary;
+
+      // Paint per-line prices into the roster table. Each row already has a
+      // `[data-nn-line-price]` cell from renderEntries().
+      dom.entries.querySelectorAll('.nn-roster__row').forEach((row, idx) => {
+        const cell = row.querySelector('[data-nn-line-price]');
+        if (!cell) return;
+        if (perEntryCents.has(idx)) {
+          cell.textContent = '$' + (perEntryCents.get(idx) / 100).toFixed(2);
+        } else {
+          cell.textContent = '—';
+        }
+      });
 
       dom.dims.textContent = `${packed.sheetWidthIn.toFixed(2)}" × ${packed.totalHeightIn.toFixed(2)}"`;
       dom.sqin.textContent = `${totalSqIn} sq in`;
