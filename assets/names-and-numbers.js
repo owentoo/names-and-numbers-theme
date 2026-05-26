@@ -558,9 +558,14 @@
     }
 
     function wireForm() {
-      // The submit button intercepts and drives /cart/add.js + (optionally)
-      // /cart/change.js entirely via fetch — bypasses bySizeNew's product
-      // form to avoid double-id collisions from its <template> clone.
+      // The submit button intercepts and drives /cart/add.js (bulk) entirely
+      // via fetch — bypasses bySizeNew's product form to avoid double-id
+      // collisions from its <template> clone.
+      //
+      // Each roster entry becomes its own cart line item, sized & priced by
+      // the matched bySize-style variant. All lines from one configurator
+      // session share `_design name` + `_Upload (Vector Files Preferred)`
+      // so the cart UI groups them under one design header.
       dom.submitBtn.addEventListener('click', async e => {
         if (!dom.variantInput.value) return; // disabled state — let nothing happen
         e.preventDefault();
@@ -579,31 +584,99 @@
 
           dom.submitLabel.textContent = state.editLineKey ? 'Updating cart…' : 'Adding to cart…';
 
-          // Build FormData ourselves so we control exactly which inputs go.
-          const formData = new FormData();
-          formData.set('id', dom.variantInput.value);
-          formData.set('quantity', '1');
-          root.querySelectorAll('[data-nn-prop]').forEach(inp => {
-            if (inp.name) formData.set(inp.name, inp.value);
+          // Shared properties — every line in this design carries these so
+          // the cart UI groups them and the round-trip Edit link can hydrate
+          // the full roster from any line.
+          const designId = 'nn-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+          const sharedProps = {
+            'Style': 'Names & Numbers',
+            '_design name': designId,
+            'Upload (Vector Files Preferred)': imgixUrl,
+            '_Original Image': sourceUrl,
+            '_cartImg': imgixUrl + '?w=200&h=200&fit=clip&auto=format&q=80',
+            'Scope': scopeLabel(state.scope),
+            'Font': fontDef.label,
+            'Color': colorDef.id === 'custom' ? `Custom (${colorDef.hex})` : colorDef.label,
+            'Name Height': state.scope === 'numbers' ? '' : `${currentNameH().inches} in (${currentNameH().label})`,
+            'Number Height': state.scope === 'names' ? '' : `${currentNumH().inches} in (${currentNumH().label})`,
+            'Entries': serializeEntries(state),
+            'Entries Count': String(state.entries.length),
+            '_render_version': 'client-v3',
+          };
+
+          // Build one cart-line item per roster entry. Variant matched by
+          // each entry's individual bounding-box sq in, qty = entry.qty.
+          const entryPrintables = new Map();
+          printables.forEach(p => {
+            if (p.copyIdx === 0 && !entryPrintables.has(p.entryIdx)) {
+              entryPrintables.set(p.entryIdx, p);
+            }
           });
-          formData.set('properties[Style]', 'Names & Numbers');
+          const items = [];
+          state.entries.forEach((entry, i) => {
+            const p = entryPrintables.get(i);
+            if (!p) return;
+            const lineSqIn = Math.ceil((p.widthIn || 0) * (p.heightIn || 0));
+            const variant = matchVariantBySqIn(variants, lineSqIn);
+            if (!variant) return;
+            items.push({
+              id: variant.id,
+              quantity: Math.max(1, parseInt(entry.qty, 10) || 1),
+              properties: {
+                ...sharedProps,
+                'Name':   p.kind === 'pair' ? p.name : (p.kind === 'name' ? p.text : ''),
+                'Number': p.kind === 'pair' ? p.number : (p.kind === 'number' ? p.text : ''),
+                '_entry_idx': String(i),
+                '_width':  p.widthIn.toFixed(2),
+                '_height': p.heightIn.toFixed(2),
+                '_Total Sq In': String(lineSqIn),
+              },
+            });
+          });
+          if (items.length === 0) throw new Error('No valid roster entries to add');
+
+          // Edit-line cleanup: if we came back from cart to edit, delete the
+          // ENTIRE previous design group before adding the new bulk. We look
+          // up the old design by either _design name (preferred) or the
+          // editLineKey directly.
+          let updatesPayload = null;
+          if (state.editLineKey) {
+            try {
+              const cartRes = await fetch('/cart.js', { credentials: 'include' });
+              const cart = await cartRes.json();
+              const editingLine = (cart.items || []).find(it => it.key === state.editLineKey);
+              const oldDesignId = editingLine && editingLine.properties && editingLine.properties['_design name'];
+              const updates = {};
+              (cart.items || []).forEach(it => {
+                if (it.key === state.editLineKey) {
+                  updates[it.key] = 0;
+                } else if (oldDesignId && it.properties && it.properties['_design name'] === oldDesignId) {
+                  updates[it.key] = 0;
+                }
+              });
+              if (Object.keys(updates).length > 0) updatesPayload = { updates };
+            } catch (cartErr) {
+              console.warn('N&N: failed to read cart for edit-cleanup; falling back to single-line delete', cartErr);
+              updatesPayload = { updates: { [state.editLineKey]: 0 } };
+            }
+          }
 
           const addRes = await fetch('/cart/add.js', {
             method: 'POST',
-            body: formData,
-            headers: { 'Accept': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ items }),
           });
           if (!addRes.ok) {
             const errText = await addRes.text().catch(() => '');
             throw new Error(`/cart/add.js HTTP ${addRes.status}: ${errText.slice(0, 200)}`);
           }
-          if (state.editLineKey) {
-            const changeRes = await fetch('/cart/change.js', {
+          if (updatesPayload) {
+            const updRes = await fetch('/cart/update.js', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: state.editLineKey, quantity: 0 }),
+              body: JSON.stringify(updatesPayload),
             });
-            if (!changeRes.ok) console.warn('N&N: failed to remove old line; cart may have a duplicate');
+            if (!updRes.ok) console.warn('N&N: failed to remove old design group; cart may have duplicates');
           }
           window.location.href = '/cart';
         } catch (err) {
@@ -672,6 +745,17 @@
       }
 
       if (editLine) state.editLineKey = editLine;
+
+      // entry_idx focuses a specific roster row when the customer clicked
+      // a per-line Edit link in the cart. Resolves to focusedEntryId after
+      // entries have been parsed above.
+      const entryIdxParam = params.get('entry_idx');
+      if (entryIdxParam != null && state.entries.length > 0) {
+        const idx = parseInt(entryIdxParam, 10);
+        if (!isNaN(idx) && idx >= 0 && idx < state.entries.length) {
+          state.focusedEntryId = state.entries[idx].id;
+        }
+      }
     }
 
     function addEntry() {
@@ -739,30 +823,62 @@
         return;
       }
 
-      // Pricing is based on the SUM of each individual name/number's area
-      // (width × height per printable). The packed sheet's whitespace/gaps
-      // are NOT counted — we only charge for the printed ink area.
-      const printAreaSqIn = printables.reduce((sum, p) => sum + ((p.widthIn || 0) * (p.heightIn || 0)), 0);
-      const totalSqIn = Math.ceil(printAreaSqIn);
+      // Per-entry cart-line model: each roster entry becomes its own cart
+      // line item, sized by its bounding box (or pair box for scope=both).
+      // The configurator's displayed total is the sum of per-line prices so
+      // the customer sees what they'll pay before adding to cart.
+      const entryPrintables = new Map();   // entryIdx → representative printable (one copy)
+      printables.forEach(p => {
+        if (p.copyIdx === 0 && !entryPrintables.has(p.entryIdx)) {
+          entryPrintables.set(p.entryIdx, p);
+        }
+      });
+      let totalSqIn = 0;
+      let totalCents = 0;
+      let oversize = false;
+      let lastVariantId = '';
+      const lineSummary = [];
+      state.entries.forEach((entry, i) => {
+        const p = entryPrintables.get(i);
+        if (!p) return;
+        const qty = Math.max(1, parseInt(entry.qty, 10) || 1);
+        const lineSqIn = Math.ceil((p.widthIn || 0) * (p.heightIn || 0));
+        totalSqIn += lineSqIn * qty;
+        const variant = matchVariantBySqIn(variants, lineSqIn);
+        if (!variant) { oversize = true; return; }
+        lastVariantId = variant.id;
+        totalCents += (variant.price || 0) * qty;
+        lineSummary.push({ entryIdx: i, sqIn: lineSqIn, qty, variantId: variant.id });
+      });
+      // Stash the per-line breakdown for the submit handler to consume.
+      state._lineSummary = lineSummary;
+
       dom.dims.textContent = `${packed.sheetWidthIn.toFixed(2)}" × ${packed.totalHeightIn.toFixed(2)}"`;
       dom.sqin.textContent = `${totalSqIn} sq in`;
 
-      const variant = matchVariantBySqIn(variants, totalSqIn);
-      if (variant) {
-        dom.variantInput.value = variant.id;
-        dom.price.textContent = variant.price_formatted;
-        dom.ctaPrice.textContent = `· ${variant.price_formatted}`;
-        dom.submitBtn.disabled = false;
-        dom.submitLabel.textContent = state.editLineKey ? 'Update item' : 'Add to cart';
-        dom.warning.hidden = true;
-      } else {
+      if (oversize) {
         dom.variantInput.value = '';
         dom.price.textContent = '—';
         dom.ctaPrice.textContent = '';
         dom.submitBtn.disabled = true;
-        dom.submitLabel.textContent = 'Sheet too large';
+        dom.submitLabel.textContent = 'Item too large';
         dom.warning.hidden = false;
-        dom.warning.textContent = `This sheet (${totalSqIn} sq in) is larger than our biggest variant. Reduce sizes or split into two orders.`;
+        dom.warning.textContent = `One of the names/numbers is larger than our biggest variant. Reduce its size or split into two orders.`;
+      } else if (lineSummary.length === 0) {
+        dom.variantInput.value = '';
+        dom.price.textContent = '—';
+        dom.ctaPrice.textContent = '';
+        dom.submitBtn.disabled = true;
+        dom.submitLabel.textContent = 'Add a name or number to start';
+        dom.warning.hidden = true;
+      } else {
+        dom.variantInput.value = lastVariantId;   // satisfies the wireForm gate
+        const totalFormatted = '$' + (totalCents / 100).toFixed(2);
+        dom.price.textContent = totalFormatted;
+        dom.ctaPrice.textContent = `· ${totalFormatted}`;
+        dom.submitBtn.disabled = false;
+        dom.submitLabel.textContent = state.editLineKey ? 'Update item' : 'Add to cart';
+        dom.warning.hidden = true;
       }
 
       // Sync hidden properties
@@ -839,12 +955,30 @@
     const out = [];
     state.entries.forEach((e, i) => {
       const qty = Math.max(1, parseInt(e.qty, 10) || 1);
+      const name = (e.name   || '').trim().toUpperCase();
+      const num  = (e.number || '').trim();
+      const hasName = state.scope !== 'numbers' && name !== '';
+      const hasNum  = state.scope !== 'names'   && num  !== '';
+      if (!hasName && !hasNum) return;
       for (let k = 0; k < qty; k++) {
-        if (state.scope !== 'numbers' && (e.name || '').trim() !== '') {
-          out.push({ kind: 'name',   text: e.name.trim().toUpperCase(), heightIn: nameH.inches, entryIdx: i, copyIdx: k });
-        }
-        if (state.scope !== 'names' && (e.number || '').trim() !== '') {
-          out.push({ kind: 'number', text: e.number.trim(),             heightIn: numH.inches,  entryIdx: i, copyIdx: k });
+        if (state.scope === 'both' && hasName && hasNum) {
+          // Combined per-entry printable: name above number, stacked. The
+          // bounding box is what gets priced as a single cart line item.
+          out.push({
+            kind: 'pair',
+            name,
+            number: num,
+            text: `${name} ${num}`,         // used by cart-line display
+            nameHeightIn: nameH.inches,
+            numHeightIn:  numH.inches,
+            heightIn: nameH.inches + numH.inches,   // gap added in packShelf measurement
+            entryIdx: i,
+            copyIdx: k,
+          });
+        } else if (hasName) {
+          out.push({ kind: 'name',   text: name, heightIn: nameH.inches, entryIdx: i, copyIdx: k });
+        } else if (hasNum) {
+          out.push({ kind: 'number', text: num,  heightIn: numH.inches,  entryIdx: i, copyIdx: k });
         }
       }
     });
@@ -860,14 +994,35 @@
     const measureCanvas = document.createElement('canvas');
     const mctx = measureCanvas.getContext('2d');
     const maxWidth = cfg.maxItemWidthIn || Infinity;
-    printables.forEach(p => {
-      const probePx = p.heightIn * 96;
+    const measureWidthIn = (text, heightIn) => {
+      const probePx = heightIn * 96;
       mctx.font = `${weight} ${probePx}px "${family}", sans-serif`;
-      const m = mctx.measureText(p.text);
-      const naturalWidthIn = (m.width / 96) + (p.heightIn * 0.1);
-      p.naturalWidthIn = naturalWidthIn;
-      p.widthIn = Math.min(naturalWidthIn, maxWidth);
-      p.scaleX = naturalWidthIn > maxWidth ? maxWidth / naturalWidthIn : 1;
+      const m = mctx.measureText(text);
+      return (m.width / 96) + (heightIn * 0.1);
+    };
+    printables.forEach(p => {
+      if (p.kind === 'pair') {
+        // Combined per-entry printable: name above number. Bounding box width
+        // is the wider of the two text widths; height is the sum plus a
+        // vertical gap so they don't visually run together.
+        const nameW = measureWidthIn(p.name,   p.nameHeightIn);
+        const numW  = measureWidthIn(p.number, p.numHeightIn);
+        const pairH = p.nameHeightIn + cfg.vertGapIn + p.numHeightIn;
+        const naturalWidthIn = Math.max(nameW, numW);
+        p.naturalWidthIn = naturalWidthIn;
+        p.widthIn  = Math.min(naturalWidthIn, maxWidth);
+        p.heightIn = pairH;
+        p.scaleX   = naturalWidthIn > maxWidth ? maxWidth / naturalWidthIn : 1;
+        // Pre-compute the per-piece draw widths (uncapped) so renderExportPNG
+        // can center each line within the pair's bounding box.
+        p._nameWidthIn = nameW;
+        p._numWidthIn  = numW;
+      } else {
+        const naturalWidthIn = measureWidthIn(p.text, p.heightIn);
+        p.naturalWidthIn = naturalWidthIn;
+        p.widthIn = Math.min(naturalWidthIn, maxWidth);
+        p.scaleX = naturalWidthIn > maxWidth ? maxWidth / naturalWidthIn : 1;
+      }
     });
 
     const sorted = [...printables].sort((a, b) => {
@@ -926,22 +1081,41 @@
     ctx.textBaseline = 'alphabetic';
     const family = fontDef.family;
     const weight = fontDef.weight || 700;
+    const drawText = (text, x, y, heightIn, scaleX) => {
+      ctx.font = `${weight} ${heightIn}px "${family}", sans-serif`;
+      const m = ctx.measureText(text);
+      const ascent  = m.actualBoundingBoxAscent  || heightIn * 0.78;
+      const descent = m.actualBoundingBoxDescent || heightIn * 0.22;
+      const measuredHeight = ascent + descent;
+      const scale = heightIn / measuredHeight;
+      ctx.save();
+      ctx.translate(x, y + ascent * scale);
+      ctx.scale(scale * scaleX, scale);
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+    };
     packed.placements.forEach(pl => {
+      if (pl.item.kind === 'pair') {
+        const scaleX = pl.item.scaleX || 1;
+        // Name: centered horizontally in the bounding box, drawn in the top
+        // (nameHeightIn) strip.
+        const nameDrawW = (pl.item._nameWidthIn || 0) * scaleX;
+        const nameX = pl.x + Math.max(0, (pl.w - nameDrawW) / 2);
+        drawText(pl.item.name, nameX, pl.y, pl.item.nameHeightIn, scaleX);
+        // Number: centered below, after a vertical gap.
+        const numDrawW = (pl.item._numWidthIn || 0) * scaleX;
+        const numX = pl.x + Math.max(0, (pl.w - numDrawW) / 2);
+        const numY = pl.y + pl.item.nameHeightIn + cfg.vertGapIn;
+        drawText(pl.item.number, numX, numY, pl.item.numHeightIn, scaleX);
+        return;
+      }
+      const scaleX = pl.item.scaleX || 1;
       ctx.font = `${weight} ${pl.h}px "${family}", sans-serif`;
       const m = ctx.measureText(pl.item.text);
-      const ascent  = m.actualBoundingBoxAscent  || pl.h * 0.78;
-      const descent = m.actualBoundingBoxDescent || pl.h * 0.22;
-      const measuredHeight = ascent + descent;
-      const scale = pl.h / measuredHeight;
-      const naturalDrawWidth = m.width * scale;
-      // Compress horizontally if the item width was capped by the packer.
-      const scaleX = pl.item.scaleX || 1;
+      const naturalDrawWidth = m.width * (pl.h / ((m.actualBoundingBoxAscent || pl.h * 0.78) + (m.actualBoundingBoxDescent || pl.h * 0.22)));
       const drawWidth = naturalDrawWidth * scaleX;
-      ctx.save();
-      ctx.translate(pl.x + Math.max(0, (pl.w - drawWidth) / 2), pl.y + ascent * scale);
-      ctx.scale(scale * scaleX, scale);
-      ctx.fillText(pl.item.text, 0, 0);
-      ctx.restore();
+      const tx = pl.x + Math.max(0, (pl.w - drawWidth) / 2);
+      drawText(pl.item.text, tx, pl.y, pl.h, scaleX);
     });
     return new Promise(resolve => canvas.toBlob(b => resolve(b), 'image/png'));
   }
@@ -953,6 +1127,7 @@
     sqIn = Number(sqIn);
     for (const v of variants) {
       if (!v.option1) continue;
+      if (v.available === false) continue;
       const m = v.option1.match(/(\d+)\s*[–-]\s*(\d+)/);
       if (!m) continue;
       const min = parseInt(m[1], 10);
