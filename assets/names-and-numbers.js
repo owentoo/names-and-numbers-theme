@@ -1039,43 +1039,56 @@
     return out;
   }
 
-  // Measure each printable's bounding box. Mutates input array; safe to call
-  // before either packShelf (preview layout) or renderEntryPNG (per-entry art).
+  // Measure each printable's TIGHT INK bounding box. Sets widthIn / heightIn
+  // to the visible glyph extent (not the em-square) so the canvas can be
+  // cropped to "art only — nothing cut off, nothing added". Customer's chosen
+  // letter height (e.g., "8 in number") is treated as the visible ink height.
   function measurePrintables(printables, cfg, fontDef) {
     if (printables.length === 0) return;
     const family = fontDef.family;
     const weight = fontDef.weight || 700;
-    const measureCanvas = document.createElement('canvas');
-    const mctx = measureCanvas.getContext('2d');
+    const mctx = document.createElement('canvas').getContext('2d');
     const maxWidth = cfg.maxItemWidthIn || Infinity;
-    const measureWidthIn = (text, heightIn) => {
-      const probePx = heightIn * 96;
-      mctx.font = `${weight} ${probePx}px "${family}", sans-serif`;
+    const measureInk = (text, heightIn) => {
+      const PROBE_PX = heightIn * 96;
+      mctx.font = `${weight} ${PROBE_PX}px "${family}", sans-serif`;
       const m = mctx.measureText(text);
-      return (m.width / 96) + (heightIn * 0.1);
+      const ascentPx  = m.actualBoundingBoxAscent  || PROBE_PX * 0.78;
+      const descentPx = m.actualBoundingBoxDescent || PROBE_PX * 0.22;
+      const leftPx    = m.actualBoundingBoxLeft    || 0;
+      const rightPx   = m.actualBoundingBoxRight   || m.width;
+      // Scale so the actual ink height (ascent + descent) equals heightIn.
+      const scale = heightIn / (ascentPx + descentPx);
+      return {
+        widthIn:   (leftPx + rightPx) * scale,
+        ascentIn:  ascentPx  * scale,
+        descentIn: descentPx * scale,
+        leftIn:    leftPx    * scale,
+        _probePx:  PROBE_PX,
+        _scale:    scale,
+      };
     };
     printables.forEach(p => {
       if (p.kind === 'pair') {
-        // Combined per-entry printable: name above number. Bounding box width
-        // is the wider of the two text widths; height is the sum plus a
-        // vertical gap so they don't visually run together.
-        const nameW = measureWidthIn(p.name,   p.nameHeightIn);
-        const numW  = measureWidthIn(p.number, p.numHeightIn);
-        const pairH = p.nameHeightIn + cfg.vertGapIn + p.numHeightIn;
-        const naturalWidthIn = Math.max(nameW, numW);
-        p.naturalWidthIn = naturalWidthIn;
-        p.widthIn  = Math.min(naturalWidthIn, maxWidth);
-        p.heightIn = pairH;
-        p.scaleX   = naturalWidthIn > maxWidth ? maxWidth / naturalWidthIn : 1;
-        // Pre-compute the per-piece draw widths (uncapped) so the renderer
-        // can center each line within the pair's bounding box.
-        p._nameWidthIn = nameW;
-        p._numWidthIn  = numW;
+        const nameInk = measureInk(p.name,   p.nameHeightIn);
+        const numInk  = measureInk(p.number, p.numHeightIn);
+        const contentW = Math.max(nameInk.widthIn, numInk.widthIn);
+        const contentH = (nameInk.ascentIn + nameInk.descentIn)
+                       + cfg.vertGapIn
+                       + (numInk.ascentIn  + numInk.descentIn);
+        p.naturalWidthIn = contentW;
+        p.widthIn  = Math.min(contentW, maxWidth);
+        p.heightIn = contentH;
+        p.scaleX   = contentW > maxWidth ? maxWidth / contentW : 1;
+        p._nameInk = nameInk;
+        p._numInk  = numInk;
       } else {
-        const naturalWidthIn = measureWidthIn(p.text, p.heightIn);
-        p.naturalWidthIn = naturalWidthIn;
-        p.widthIn = Math.min(naturalWidthIn, maxWidth);
-        p.scaleX = naturalWidthIn > maxWidth ? maxWidth / naturalWidthIn : 1;
+        const ink = measureInk(p.text, p.heightIn);
+        p.naturalWidthIn = ink.widthIn;
+        p.widthIn  = Math.min(ink.widthIn, maxWidth);
+        p.heightIn = ink.ascentIn + ink.descentIn;
+        p.scaleX   = ink.widthIn > maxWidth ? maxWidth / ink.widthIn : 1;
+        p._ink     = ink;
       }
     });
   }
@@ -1142,52 +1155,37 @@
     ctx.textBaseline = 'alphabetic';
     const family = fontDef.family;
     const weight = fontDef.weight || 700;
-    const drawText = (text, x, y, heightIn, scaleX) => {
-      // Render at a high probe font size (heightIn × 96 px) and scale down
-      // via ctx.scale to the target inches. Using a small CSS font like
-      // "8px" directly causes subpixel rounding in measureText that makes
-      // glyphs render slightly wider than the packer predicted, clipping
-      // off the right edge of the canvas. Probe-sized rendering matches
-      // measurePrintables exactly.
-      const PROBE_PX = heightIn * 96;
-      ctx.font = `${weight} ${PROBE_PX}px "${family}", sans-serif`;
-      const m = ctx.measureText(text);
-      const ascent  = m.actualBoundingBoxAscent  || PROBE_PX * 0.78;
-      const descent = m.actualBoundingBoxDescent || PROBE_PX * 0.22;
-      const measuredHeight = ascent + descent;
-      const scale = heightIn / measuredHeight;
+    // Draw a measured text piece. (x, y) is the TOP-LEFT of the ink bounding
+    // box in context (inch) units. The glyph is shifted so its visible
+    // left edge lands at x and its visible top lands at y.
+    const drawInk = (text, x, y, ink, scaleX) => {
+      ctx.font = `${weight} ${ink._probePx}px "${family}", sans-serif`;
       ctx.save();
-      ctx.translate(x, y + ascent * scale);
-      ctx.scale(scale * scaleX, scale);
-      ctx.fillText(text, 0, 0);
+      ctx.translate(x, y + ink.ascentIn);
+      ctx.scale(ink._scale * scaleX, ink._scale);
+      // Negative shift in probe-px so the bbox-left aligns to the translated origin.
+      ctx.fillText(text, -ink.leftIn / ink._scale, 0);
       ctx.restore();
     };
     packed.placements.forEach(pl => {
+      const scaleX = pl.item.scaleX || 1;
       if (pl.item.kind === 'pair') {
-        const scaleX = pl.item.scaleX || 1;
-        // Name: centered horizontally in the bounding box, drawn in the top
-        // (nameHeightIn) strip.
-        const nameDrawW = (pl.item._nameWidthIn || 0) * scaleX;
-        const nameX = pl.x + Math.max(0, (pl.w - nameDrawW) / 2);
-        drawText(pl.item.name, nameX, pl.y, pl.item.nameHeightIn, scaleX);
-        // Number: centered below, after a vertical gap.
-        const numDrawW = (pl.item._numWidthIn || 0) * scaleX;
-        const numX = pl.x + Math.max(0, (pl.w - numDrawW) / 2);
-        const numY = pl.y + pl.item.nameHeightIn + cfg.vertGapIn;
-        drawText(pl.item.number, numX, numY, pl.item.numHeightIn, scaleX);
+        const nameInk = pl.item._nameInk;
+        const numInk  = pl.item._numInk;
+        // Center each piece horizontally within the placement bounding box.
+        const nameW = nameInk.widthIn * scaleX;
+        const nameX = pl.x + (pl.w - nameW) / 2;
+        drawInk(pl.item.name, nameX, pl.y, nameInk, scaleX);
+        const numW = numInk.widthIn * scaleX;
+        const numX = pl.x + (pl.w - numW) / 2;
+        const numY = pl.y + nameInk.ascentIn + nameInk.descentIn + cfg.vertGapIn;
+        drawInk(pl.item.number, numX, numY, numInk, scaleX);
         return;
       }
-      const scaleX = pl.item.scaleX || 1;
-      // Use the same probe-px convention as measurePrintables for the
-      // centering calc so the offset isn't out of sync with what drawText
-      // actually paints.
-      const PROBE_PX_C = pl.h * 96;
-      ctx.font = `${weight} ${PROBE_PX_C}px "${family}", sans-serif`;
-      const m = ctx.measureText(pl.item.text);
-      const naturalDrawWidth = m.width / 96;      // inches at heightIn px tall
-      const drawWidth = naturalDrawWidth * scaleX;
-      const tx = pl.x + Math.max(0, (pl.w - drawWidth) / 2);
-      drawText(pl.item.text, tx, pl.y, pl.h, scaleX);
+      const ink = pl.item._ink;
+      const w   = ink.widthIn * scaleX;
+      const tx  = pl.x + (pl.w - w) / 2;
+      drawInk(pl.item.text, tx, pl.y, ink, scaleX);
     });
     return new Promise(resolve => canvas.toBlob(b => resolve(b), 'image/png'));
   }
