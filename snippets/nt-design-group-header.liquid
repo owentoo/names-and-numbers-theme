@@ -67,6 +67,15 @@
         <span class="nt-dg-precut">Precut: <strong>{{ precut }}</strong></span>
       {%- endif -%}
       {%- render 'arrange-properties', lineItem: solo_item, loopno: solo_line_index, linekey: solo_item.key, qty: solo_item.quantity, properties: solo_item.properties, sizeAlreadyPrint: false, edit_label: 'Edit', hide_precut: true -%}
+
+      {%- assign _ndgh_style = solo_item.properties["Style"] | replace: '&amp;', '&' -%}
+      {%- if _ndgh_style == "Names & Numbers" -%}
+        {%- capture nn_state -%}{"scope":{{ solo_item.properties["Scope"] | default: '' | json }},"font":{{ solo_item.properties["Font"] | default: '' | json }},"color":{{ solo_item.properties["Color"] | default: '' | json }},"nameHeight":{{ solo_item.properties["Name Height"] | default: '' | json }},"numberHeight":{{ solo_item.properties["Number Height"] | default: '' | json }},"entries":{{ solo_item.properties["Entries"] | default: '' | json }}}{%- endcapture -%}
+        {%- assign nn_state_b64 = nn_state | base64_encode -%}
+        <div class="nn-cart-edit">
+          <a href="/products/{{ solo_item.product.handle }}?nn={{ nn_state_b64 }}&amp;edit_line={{ solo_item.key | url_encode }}" class="nn-cart-edit__link">Edit names &amp; numbers</a>
+        </div>
+      {%- endif -%}
     {%- else -%}
       {%- if disc_title != blank -%}
         <span class="nt-dg-discount">{{ 'cart.discount' | t }}: <strong class="seccolor">{{ disc_title }}</strong></span>
