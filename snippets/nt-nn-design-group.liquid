@@ -1,32 +1,45 @@
 {{ 'names-and-numbers.css' | asset_url | stylesheet_tag }}
 {%- comment -%}
-  Alternate cart design-group renderer for Names & Numbers items.
-  Detected when the group's first child has line property
-  Style == "Names & Numbers". Layout-only — reuses existing cart text
-  classes (.nt-dg-name, .nt-dg-discount, .cart-item__price etc.) plus
-  .nn-cart-edit__link for the brand-blue Edit links.
+  Cart design-group renderer for Names & Numbers items. Detected at the
+  cart-form / cart-form-page level by the group's first child having
+  Style == "Names & Numbers".
+
+  Layout mirrors bySize's flat cart-form-item--layout grid
+  (assets/section-main-cart.css:60-83):
+    desktop:   6.25rem 18.75rem 1fr 6.25rem  (thumb | info | qty | total)
+    ≤1100px:   6.25rem 12.5rem  1fr 6.25rem
+  No thumbnail (each entry has its own art so a single group thumb
+  isn't meaningful) — thumbnail column is reserved blank to keep
+  alignment with bySize rows above.
 
   Params:
-    group_key       — string, used as data-group-key
-    first_item      — any child line item (shared props read from here)
-    first_key       — first child's key (group-level Edit link's edit_line)
-    group_final     — sum of children's final_line_price (cents)
-    group_original  — sum of children's original_line_price (cents)
+    group_key       — string, data-group-key
+    first_item      — representative child line item (read shared props)
+    first_key       — first child's key (group Edit link's edit_line)
+    group_final     — sum children final_line_price (cents)
+    group_original  — sum children original_line_price (cents)
     disc_title      — discount allocation title (or blank)
+    child_count     — number of children in the group
 {%- endcomment -%}
 
 {%- assign _nn_name_height   = first_item.properties["Name Height"]   | default: '' -%}
 {%- assign _nn_number_height = first_item.properties["Number Height"] | default: '' -%}
 {%- assign _nn_scope         = first_item.properties["Scope"]         | default: '' -%}
 
-{%- comment -%} Compose the configurator round-trip URL with the full roster. {%- endcomment -%}
 {%- capture _nn_state -%}{"scope":{{ _nn_scope | json }},"font":{{ first_item.properties["Font"] | default: '' | json }},"color":{{ first_item.properties["Color"] | default: '' | json }},"nameHeight":{{ _nn_name_height | json }},"numberHeight":{{ _nn_number_height | json }},"entries":{{ first_item.properties["Entries"] | default: '' | json }}}{%- endcapture -%}
 {%- assign _nn_state_b64 = _nn_state | base64_encode -%}
 
-{%- comment -%}
-  Collect every child line key in this design group so the group-level
-  × button can remove them all in a single /cart/update.js call.
-{%- endcomment -%}
+{%- assign _nn_name_in = _nn_name_height | split: ' in' | first -%}
+{%- assign _nn_num_in  = _nn_number_height | split: ' in' | first -%}
+{%- if _nn_scope == 'Names only' -%}
+  {%- assign _nn_size_summary = _nn_name_in | append: '" Names' -%}
+{%- elsif _nn_scope == 'Numbers only' -%}
+  {%- assign _nn_size_summary = _nn_num_in | append: '" Numbers' -%}
+{%- else -%}
+  {%- assign _nn_size_summary = _nn_name_in | append: '" Names + ' | append: _nn_num_in | append: '" Numbers' -%}
+{%- endif -%}
+
+{%- comment -%} Collect every child line key so the × button can zero them all in one /cart/update.js call. {%- endcomment -%}
 {%- assign _nn_child_keys = "" -%}
 {%- for item in cart.items -%}
   {%- assign _gn = "" -%}
@@ -41,41 +54,43 @@
   {%- endif -%}
 {%- endfor -%}
 
-{%- comment -%} Heights look like "2 in (Medium)" — pull the leading number. {%- endcomment -%}
-{%- assign _nn_name_in = _nn_name_height | split: ' in' | first -%}
-{%- assign _nn_num_in  = _nn_number_height | split: ' in' | first -%}
-{%- if _nn_scope == 'Names only' -%}
-  {%- assign _nn_size_summary = _nn_name_in | append: '" Names' -%}
-{%- elsif _nn_scope == 'Numbers only' -%}
-  {%- assign _nn_size_summary = _nn_num_in | append: '" Numbers' -%}
-{%- else -%}
-  {%- assign _nn_size_summary = _nn_name_in | append: '" Names + ' | append: _nn_num_in | append: '" Numbers' -%}
-{%- endif -%}
+<div class="cart-form-item nt-nn-group" data-group-key="{{ group_key | escape }}" data-nn-expanded="false">
+  <div class="cart-item__product-info cart-form-item--layout nt-nn-group__row">
 
-<div class="nt-nn-group" data-group-key="{{ group_key | escape }}" data-nn-expanded="false">
-  <div class="nt-nn-group__header">
-    <div class="nt-nn-group__info">
-      <span class="nt-dg-name">DTF Names and Numbers</span>
-      <span class="nt-nn-group__settings">
-        {{ _nn_size_summary }}&nbsp;<a class="nn-cart-edit__link" href="/products/{{ first_item.product.handle }}?view=names-and-numbers&amp;nn={{ _nn_state_b64 }}&amp;edit_line={{ first_key | url_encode }}">Edit</a>
-      </span>
+    {%- comment -%} Empty thumbnail slot — reserves the 6.25rem column so info/qty/total align with bySize rows above. {%- endcomment -%}
+    <div class="cart-item__thumbnail nt-nn-group__thumb" aria-hidden="true"></div>
+
+    <div class="cart-form-item__price-title-variants nt-nn-group__info">
+      <strong class="cart-item__title">DTF Names and Numbers</strong>
+      <span class="cart-item__property">{{ _nn_size_summary }}&nbsp;<a class="nn-cart-edit__link" href="/products/{{ first_item.product.handle }}?view=names-and-numbers&amp;nn={{ _nn_state_b64 }}&amp;edit_line={{ first_key | url_encode }}">Edit</a></span>
       {%- if disc_title != blank -%}
-        <span class="nt-dg-discount">{{ 'cart.discount' | t }}: <strong class="seccolor">{{ disc_title }}</strong></span>
+        <span class="cart-item__property nt-dg-discount">{{ 'cart.discount' | t }}: <strong class="seccolor">{{ disc_title }}</strong></span>
       {%- endif -%}
     </div>
-    <div class="nt-nn-group__price">
-      {%- if group_final < group_original -%}
-        <div class="cart-item__price discounted-line-item-price">
-          <del><strong>{{ group_original | money }}</strong></del>
-          <strong>{{ group_final | money }}</strong>
-        </div>
-      {%- else -%}
-        <strong>{{ group_final | money }}</strong>
-      {%- endif -%}
+
+    {%- comment -%} Qty slot — static "1" for now. Each child line carries its own quantity from the configurator. {%- endcomment -%}
+    <div class="cart-item__actions cart__quantity nt-nn-group__qty">
+      <div class="nt-nn-group__qty-static">
+        <span class="qty-button" aria-hidden="true">&minus;</span>
+        <span class="nt-nn-group__qty-value">1</span>
+        <span class="qty-button" aria-hidden="true">+</span>
+      </div>
     </div>
-    <button type="button" class="nt-nn-group__remove" data-nn-remove-group data-nn-keys="{{ _nn_child_keys }}" aria-label="Remove design">
-      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-    </button>
+
+    <div class="cart-item__total nt-nn-group__total">
+      <div class="cart-item__price discounted-line-item-price">
+        {%- if group_final < group_original -%}
+          <div><span><del><strong>{{ group_original | money }}</strong></del></span></div>
+          <div><strong>{{ group_final | money }}</strong></div>
+        {%- else -%}
+          <div><strong>{{ group_final | money }}</strong></div>
+        {%- endif -%}
+      </div>
+      <button type="button" class="remove nt-nn-group__remove" data-nn-remove-group data-nn-keys="{{ _nn_child_keys }}" aria-label="Remove design">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
   </div>
 
   <button type="button" class="nt-nn-group__toggle" data-nn-toggle-entries data-group-key="{{ group_key | escape }}">
@@ -93,7 +108,6 @@
       {%- endfor -%}
       {%- if _gn != blank -%}{%- assign _gn = item.product.id | append: '_' | append: _gn -%}{%- endif -%}
       {%- if _gn == group_key -%}
-        {%- assign _entry_idx = item.properties["_entry_idx"] | default: 0 -%}
         <div class="nt-nn-entry">
           <div class="nt-nn-entry__main">
             <div class="nt-nn-entry__label">
@@ -123,17 +137,11 @@
   </div>
 </div>
 
-{%- comment -%}
-  Toggle handler. Window-guard so multiple N&N groups on the same page
-  don't double-bind. Loaded inline because the cart doesn't load the
-  configurator JS bundle.
-{%- endcomment -%}
 <script data-nn-cart-toggle>
   (function () {
     if (window.__nnCartToggleBound) return;
     window.__nnCartToggleBound = true;
     document.addEventListener('click', function (e) {
-      // See All / Hide All Entries toggle
       var toggle = e.target.closest('[data-nn-toggle-entries]');
       if (toggle) {
         var group = toggle.closest('.nt-nn-group');
@@ -148,7 +156,6 @@
         if (hideT) hideT.hidden = !expanded ? false : true;
         return;
       }
-      // Group-level remove: zero out every child line in one /cart/update.js call
       var remove = e.target.closest('[data-nn-remove-group]');
       if (remove) {
         e.preventDefault();

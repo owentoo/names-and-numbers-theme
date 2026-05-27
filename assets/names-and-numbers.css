@@ -1,35 +1,30 @@
 /* Names & Numbers — v2 layout */
 
-/* Names & Numbers cart group — alternate design-group layout.
-   Layout-only rules; all text styling (font/size/weight/color) comes from
-   existing cart classes (.nt-dg-name, .nt-dg-discount, .cart-item__price)
-   and .nn-cart-edit__link defined below.
-
-   IMPORTANT: this block deliberately does NOT inherit .nt-design-group's
-   `grid-template-columns: 5rem 18.75rem 1fr 10rem` (thumbnail/info/actions/
-   total) because N&N items have no thumbnail and the reserved columns
-   leave half the card visually empty. We provide our own card layout. */
-/* Card chrome + content inset both match bySize's .cart-form-item--layout
-   (padding: var(--gutter-regular)) so column positions align between
-   N&N and bySize rows above. */
-.nt-nn-group {
-  margin-bottom: 12px;
-  padding: var(--gutter-regular, 25px);
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-@media screen and (max-width: 1100px) {
-  .nt-nn-group { padding: var(--gutter-small, 15px); }
-}
-@media (max-width: 767px) {
-  .nt-nn-group { padding: 16px; }
-}
-.nt-nn-group__header { display: grid; grid-template-columns: 1fr auto auto; align-items: start; gap: 16px; }
+/* Names & Numbers cart group reuses bySize's .cart-form-item +
+   .cart-form-item--layout chrome so the thumb / info / qty / total
+   columns line up exactly with regular DTF By Size rows above.
+   We only add: empty-thumb placeholder, static qty stepper visual,
+   remove button styling, and the toggle + expanded entries section. */
+.nt-nn-group__thumb { visibility: hidden; }
 .nt-nn-group__info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.nt-nn-group__settings { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.nt-nn-group__price { white-space: nowrap; text-align: right; }
+
+/* Static qty stepper — visual parity with bySize. Each N&N child line
+   already carries its own qty from the configurator; group-level
+   multiplier is a future iteration. */
+.nt-nn-group__qty-static {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 4px;
+  gap: 8px;
+  color: var(--nn-text-muted, #555);
+  user-select: none;
+}
+.nt-nn-group__qty-static .qty-button { font-size: 14px; padding: 0 8px; }
+.nt-nn-group__qty-value { font-weight: 600; color: var(--nn-text, #111); min-width: 1.5rem; text-align: center; }
+
+.nt-nn-group__total { display: flex; align-items: center; justify-content: flex-end; gap: 8px; text-align: right; }
 .nt-nn-group__remove {
   background: none;
   border: 0;
@@ -44,24 +39,36 @@
 }
 .nt-nn-group__remove:hover { color: var(--nn-text, #111); background: var(--nn-bg-muted, #f7f8fa); }
 .nt-nn-group__remove:disabled { opacity: 0.5; cursor: wait; }
-.nt-nn-group__toggle { background: none; border: 0; padding: 8px 0 0; margin: 0; cursor: pointer; text-align: left; }
-.nt-nn-group__entries { margin-top: 8px; }
-/* Entry row mirrors the EXACT grid bySize uses for design-group children
-   (sections/main-cart.liquid:387-398):
-     desktop:   grid-template-columns: calc(25rem + var(--gutter-regular)) 1fr 10rem
-     ≤1100px:   grid-template-columns: calc(18.75rem + var(--gutter-small)) 1fr 6.25rem
-   We put label + per-piece in the first (wide) column, leave the middle
-   1fr column empty (where bySize's qty stepper sits), and the line total
-   in the right 10rem column — so the "ea" and total prices line up
-   vertically with the bySize line items above. */
+
+/* Toggle + entries below the main grid row, padded to match the card's
+   inner gutter. */
+.nt-nn-group__toggle {
+  background: none;
+  border: 0;
+  padding: 0 var(--gutter-regular, 25px) var(--gutter-regular, 25px);
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.nt-nn-group__entries {
+  padding: 0 var(--gutter-regular, 25px) var(--gutter-regular, 25px);
+  border-top: 1px solid #f0f0f0;
+}
+@media screen and (max-width: 1100px) {
+  .nt-nn-group__toggle { padding: 0 var(--gutter-small, 15px) var(--gutter-small, 15px); }
+  .nt-nn-group__entries { padding: 0 var(--gutter-small, 15px) var(--gutter-small, 15px); }
+}
+
+/* Expanded entries — borderless rows aligned with bySize children. */
 .nt-nn-entry {
   display: grid;
   grid-template-columns: calc(25rem + var(--gutter-regular)) 1fr 10rem;
   align-items: center;
   gap: var(--gutter-regular, 25px);
   padding: 8px 0;
-  border-top: 1px solid var(--nn-border, #e5e7eb);
+  border-top: 1px solid #f0f0f0;
 }
+.nt-nn-entry:first-child { border-top: 0; }
 .nt-nn-entry__main { grid-column: 1; display: flex; justify-content: space-between; align-items: center; gap: 16px; min-width: 0; }
 .nt-nn-entry__label { display: flex; gap: 12px; align-items: baseline; min-width: 0; }
 .nt-nn-entry__line { grid-column: 3; white-space: nowrap; text-align: right; }
@@ -73,8 +80,7 @@
   }
 }
 
-/* `hidden` attribute beats `.nn-cart-edit__link { display: inline-block }`.
-   Without this rule the See/Hide All Entries spans both render at once. */
+/* `hidden` attribute beats `.nn-cart-edit__link { display: inline-block }`. */
 .nn-cart-edit__link[hidden] { display: none !important; }
 
 /* Cart-page "Edit names & numbers" link */
