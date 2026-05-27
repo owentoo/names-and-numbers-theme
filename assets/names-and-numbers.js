@@ -87,6 +87,7 @@
       dims:            root.querySelector('[data-nn-dimensions]'),
       sqin:            root.querySelector('[data-nn-sqin]'),
       price:           root.querySelector('[data-nn-price]'),
+      discount:        root.querySelector('[data-nn-discount]'),
       ctaPrice:        root.querySelector('[data-nn-cta-price]'),
       warning:         root.querySelector('[data-nn-warning]'),
       submitBtn:       root.querySelector('[data-nn-submit]'),
@@ -957,6 +958,13 @@
             hint.textContent = `Maximum discount unlocked — 50% off`;
             hint.classList.add('nn-tiers__hint--maxed');
           }
+        }
+        // Mirror the active tier's % off into the summary's Discount row.
+        if (dom.discount) {
+          const activeOff = activeIdx >= 0
+            ? parseInt(cells[activeIdx].getAttribute('data-tier-off'), 10)
+            : 0;
+          dom.discount.textContent = activeOff > 0 ? `${activeOff}% off` : '—';
         }
       }
 
