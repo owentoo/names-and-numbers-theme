@@ -1025,25 +1025,25 @@
       // mockup honest about what will actually fit on the jersey.
       const maxSvgWidth = (cfg.maxItemWidthIn || 12) * SVG_UNITS_PER_INCH;
 
-      // Probe each text's actual bbox-to-em ratio so the rendered visible
-      // glyph height matches the customer's heightIn — same convention the
-      // printed art uses (measurePrintables scales by actualBoundingBox).
-      // Uppercase block names have bbox ≈ 0.7em (no descenders), so we
-      // upscale font-size by 1/ratio to make the visible height land at
-      // heightIn × SVG_UNITS_PER_INCH instead of ~70% of it.
+      // Probe the font's cap-height ratio ONCE with a reference glyph (M)
+      // so every text in this font renders at the same visual size for the
+      // same heightIn. Per-text probing made letters jitter as the customer
+      // typed — e.g. "EREW" measured 0.75 (the R's leg adds descent) and
+      // "DSFD" measured 0.70 (all flat-bottomed), so a 4" name looked ~7%
+      // bigger when DSFD-like letters were used. The print pipeline still
+      // does per-text bbox math (pricing accuracy); the preview is just a
+      // mockup so visual consistency wins.
       const PROBE_PX = 768;
       const probeCtx = document.createElement('canvas').getContext('2d');
-      const bboxEmRatio = (text) => {
-        probeCtx.font = `${fontDef.weight || 700} ${PROBE_PX}px "${fontDef.family}", sans-serif`;
-        const m = probeCtx.measureText(text || 'M');
-        const ascent  = m.actualBoundingBoxAscent  || PROBE_PX * 0.78;
-        const descent = m.actualBoundingBoxDescent || PROBE_PX * 0.22;
-        return Math.max(0.4, (ascent + descent) / PROBE_PX);  // clamp to avoid runaway
-      };
+      probeCtx.font = `${fontDef.weight || 700} ${PROBE_PX}px "${fontDef.family}", sans-serif`;
+      const probeM = probeCtx.measureText('M');
+      const capRatio = Math.max(0.4, (
+        (probeM.actualBoundingBoxAscent  || PROBE_PX * 0.78) +
+        (probeM.actualBoundingBoxDescent || 0)
+      ) / PROBE_PX);
 
       const applyTextStyles = (node, text, heightIn) => {
-        const ratio = bboxEmRatio(text);
-        const px = Math.max(1, Math.round((heightIn * SVG_UNITS_PER_INCH) / ratio));
+        const px = Math.max(1, Math.round((heightIn * SVG_UNITS_PER_INCH) / capRatio));
         node.textContent = text;
         node.setAttribute('x', String(centerX));
         node.setAttribute('font-size', String(px));
