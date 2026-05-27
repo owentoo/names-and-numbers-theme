@@ -954,52 +954,57 @@
       const showName   = state.scope !== 'numbers' && name;
       const showNumber = state.scope !== 'names'   && number;
 
-      // SVG scale: jersey body is ~22 inches wide → 380 svg units wide → 17.3 units per inch.
-      // Real garments compress vertically a bit; using 16 looks right on a 480×560 viewBox.
+      // Real-scale preview: 1 inch → SVG_UNITS_PER_INCH svg units. The shirt
+      // back panel is ~20 inches wide in the back PNG and maps to 320 svg
+      // units in the zone, so 16 units/inch keeps the printed art at the
+      // same relative size the customer will get on their jersey. Big
+      // designs overflow the back panel — that's intentional (Owen wants
+      // an honest sense of how large the print will be).
       const SVG_UNITS_PER_INCH = 16;
-      const maxSvgWidth = (cfg.maxItemWidthIn || 12) * SVG_UNITS_PER_INCH;
 
-      const applyTextSquish = (node) => {
-        // Measure natural width with textLength removed, then re-apply if it overflows.
+      // Read the back-panel zone from the SVG's data attributes (defined in
+      // snippets/nn-preview-left.liquid). The stack is positioned with its
+      // top edge at zoneY and centered horizontally on the zone's center.
+      const svg = dom.jerseyName && dom.jerseyName.ownerSVGElement;
+      const zoneX = svg ? parseFloat(svg.getAttribute('data-nn-zone-x') || '80')  : 80;
+      const zoneY = svg ? parseFloat(svg.getAttribute('data-nn-zone-y') || '140') : 140;
+      const zoneW = svg ? parseFloat(svg.getAttribute('data-nn-zone-w') || '320') : 320;
+      const centerX = zoneX + zoneW / 2;
+      const gapU = cfg.vertGapIn * SVG_UNITS_PER_INCH;
+
+      const applyTextStyles = (node, text, heightIn) => {
+        const px = Math.max(1, Math.round(heightIn * SVG_UNITS_PER_INCH));
+        node.textContent = text;
+        node.setAttribute('x', String(centerX));
+        node.setAttribute('font-size', String(px));
+        node.style.fontFamily = `"${fontDef.family}", sans-serif`;
+        node.setAttribute('font-weight', String(fontDef.weight || 700));
+        node.setAttribute('fill', colorDef.hex);
         node.removeAttribute('textLength');
         node.removeAttribute('lengthAdjust');
-        try {
-          const w = node.getComputedTextLength();
-          if (w > maxSvgWidth) {
-            node.setAttribute('textLength', String(maxSvgWidth));
-            node.setAttribute('lengthAdjust', 'spacingAndGlyphs');
-          }
-        } catch { /* SVG not in DOM yet; skip */ }
+        node.style.display = '';
       };
 
-      // Name text
+      // Stack the focused entry's pieces with their top edges at zoneY,
+      // then name-bottom + vertGap → number-top. dominant-baseline="hanging"
+      // (set in the Liquid markup) makes y= the top of the text rather than
+      // the baseline, so adding heightIn lands at the next piece's top.
+      let cursorY = zoneY;
       if (showName && nameH) {
-        const px = Math.round(nameH.inches * SVG_UNITS_PER_INCH);
-        dom.jerseyName.textContent = name.toUpperCase();
-        dom.jerseyName.style.fontFamily = `"${fontDef.family}", sans-serif`;
-        dom.jerseyName.setAttribute('font-weight', String(fontDef.weight || 700));
-        dom.jerseyName.setAttribute('fill', colorDef.hex);
-        dom.jerseyName.setAttribute('font-size', String(px));
-        dom.jerseyName.style.display = '';
-        applyTextSquish(dom.jerseyName);
+        applyTextStyles(dom.jerseyName, name.toUpperCase(), nameH.inches);
+        dom.jerseyName.setAttribute('y', String(cursorY));
+        cursorY += nameH.inches * SVG_UNITS_PER_INCH;
+        if (showNumber) cursorY += gapU;
       } else {
         dom.jerseyName.style.display = 'none';
       }
 
-      // Number text
       if (showNumber && numH) {
-        const px = Math.round(numH.inches * SVG_UNITS_PER_INCH);
-        dom.jerseyNumber.textContent = number;
-        dom.jerseyNumber.style.fontFamily = `"${fontDef.family}", sans-serif`;
-        dom.jerseyNumber.setAttribute('font-weight', String(fontDef.weight || 700));
-        dom.jerseyNumber.setAttribute('fill', colorDef.hex);
-        dom.jerseyNumber.setAttribute('font-size', String(px));
-        dom.jerseyNumber.style.display = '';
-        applyTextSquish(dom.jerseyNumber);
+        applyTextStyles(dom.jerseyNumber, number, numH.inches);
+        dom.jerseyNumber.setAttribute('y', String(cursorY));
       } else {
         dom.jerseyNumber.style.display = 'none';
       }
-
     }
   }
 
