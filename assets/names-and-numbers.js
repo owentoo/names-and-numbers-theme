@@ -217,7 +217,6 @@
               <button type="button" class="nn-stepper__btn" data-nn-qty-step="1" aria-label="Increase qty">+</button>
             </div>
           </td>
-          <td class="nn-roster__price" data-nn-line-price>—</td>
           <td><button type="button" class="nn-roster__remove" data-nn-remove aria-label="Remove row">&times;</button></td>
         `;
         tr.querySelector('[data-nn-field="name"]').value   = entry.name || '';
@@ -894,18 +893,6 @@
       });
       // Stash the per-line breakdown for the submit handler to consume.
       state._lineSummary = lineSummary;
-
-      // Paint per-line prices into the roster table. Each row already has a
-      // `[data-nn-line-price]` cell from renderEntries().
-      dom.entries.querySelectorAll('.nn-roster__row').forEach((row, idx) => {
-        const cell = row.querySelector('[data-nn-line-price]');
-        if (!cell) return;
-        if (perEntryCents.has(idx)) {
-          cell.textContent = '$' + (perEntryCents.get(idx) / 100).toFixed(2);
-        } else {
-          cell.textContent = '—';
-        }
-      });
 
       dom.dims.textContent = `${packed.sheetWidthIn.toFixed(2)}" × ${packed.totalHeightIn.toFixed(2)}"`;
       dom.sqin.textContent = `${totalSqIn} sq in`;
