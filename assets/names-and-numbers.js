@@ -977,8 +977,25 @@
       // mockup honest about what will actually fit on the jersey.
       const maxSvgWidth = (cfg.maxItemWidthIn || 12) * SVG_UNITS_PER_INCH;
 
+      // Probe each text's actual bbox-to-em ratio so the rendered visible
+      // glyph height matches the customer's heightIn — same convention the
+      // printed art uses (measurePrintables scales by actualBoundingBox).
+      // Uppercase block names have bbox ≈ 0.7em (no descenders), so we
+      // upscale font-size by 1/ratio to make the visible height land at
+      // heightIn × SVG_UNITS_PER_INCH instead of ~70% of it.
+      const PROBE_PX = 768;
+      const probeCtx = document.createElement('canvas').getContext('2d');
+      const bboxEmRatio = (text) => {
+        probeCtx.font = `${fontDef.weight || 700} ${PROBE_PX}px "${fontDef.family}", sans-serif`;
+        const m = probeCtx.measureText(text || 'M');
+        const ascent  = m.actualBoundingBoxAscent  || PROBE_PX * 0.78;
+        const descent = m.actualBoundingBoxDescent || PROBE_PX * 0.22;
+        return Math.max(0.4, (ascent + descent) / PROBE_PX);  // clamp to avoid runaway
+      };
+
       const applyTextStyles = (node, text, heightIn) => {
-        const px = Math.max(1, Math.round(heightIn * SVG_UNITS_PER_INCH));
+        const ratio = bboxEmRatio(text);
+        const px = Math.max(1, Math.round((heightIn * SVG_UNITS_PER_INCH) / ratio));
         node.textContent = text;
         node.setAttribute('x', String(centerX));
         node.setAttribute('font-size', String(px));
