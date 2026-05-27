@@ -971,6 +971,11 @@
       const zoneW = svg ? parseFloat(svg.getAttribute('data-nn-zone-w') || '320') : 320;
       const centerX = zoneX + zoneW / 2;
       const gapU = cfg.vertGapIn * SVG_UNITS_PER_INCH;
+      // Mirror the packer's maxItemWidthIn cap: if a name's natural width
+      // exceeds this, both the print and the preview compress horizontally
+      // (scaleX in the print, textLength squish in the SVG). Keeps the
+      // mockup honest about what will actually fit on the jersey.
+      const maxSvgWidth = (cfg.maxItemWidthIn || 12) * SVG_UNITS_PER_INCH;
 
       const applyTextStyles = (node, text, heightIn) => {
         const px = Math.max(1, Math.round(heightIn * SVG_UNITS_PER_INCH));
@@ -983,6 +988,14 @@
         node.removeAttribute('textLength');
         node.removeAttribute('lengthAdjust');
         node.style.display = '';
+        // Measure natural width and squish-fit if it exceeds maxItemWidthIn.
+        try {
+          const w = node.getComputedTextLength();
+          if (w > maxSvgWidth) {
+            node.setAttribute('textLength', String(maxSvgWidth));
+            node.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+          }
+        } catch { /* SVG not laid out yet on first render; skip */ }
       };
 
       // Stack the focused entry's pieces with their top edges at zoneY,
