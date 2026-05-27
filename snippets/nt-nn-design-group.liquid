@@ -1,0 +1,120 @@
+{{ 'names-and-numbers.css' | asset_url | stylesheet_tag }}
+{%- comment -%}
+  Alternate cart design-group renderer for Names & Numbers items.
+  Detected when the group's first child has line property
+  Style == "Names & Numbers". Layout-only — reuses existing cart text
+  classes (.nt-dg-name, .nt-dg-discount, .cart-item__price etc.) plus
+  .nn-cart-edit__link for the brand-blue Edit links.
+
+  Params:
+    group_key       — string, used as data-group-key
+    first_item      — any child line item (shared props read from here)
+    first_key       — first child's key (group-level Edit link's edit_line)
+    group_final     — sum of children's final_line_price (cents)
+    group_original  — sum of children's original_line_price (cents)
+    disc_title      — discount allocation title (or blank)
+{%- endcomment -%}
+
+{%- assign _nn_name_height   = first_item.properties["Name Height"]   | default: '' -%}
+{%- assign _nn_number_height = first_item.properties["Number Height"] | default: '' -%}
+{%- assign _nn_scope         = first_item.properties["Scope"]         | default: '' -%}
+
+{%- comment -%} Compose the configurator round-trip URL with the full roster. {%- endcomment -%}
+{%- capture _nn_state -%}{"scope":{{ _nn_scope | json }},"font":{{ first_item.properties["Font"] | default: '' | json }},"color":{{ first_item.properties["Color"] | default: '' | json }},"nameHeight":{{ _nn_name_height | json }},"numberHeight":{{ _nn_number_height | json }},"entries":{{ first_item.properties["Entries"] | default: '' | json }}}{%- endcapture -%}
+{%- assign _nn_state_b64 = _nn_state | base64_encode -%}
+
+{%- comment -%} Heights look like "2 in (Medium)" — pull the leading number. {%- endcomment -%}
+{%- assign _nn_name_in = _nn_name_height | split: ' in' | first -%}
+{%- assign _nn_num_in  = _nn_number_height | split: ' in' | first -%}
+{%- if _nn_scope == 'Names only' -%}
+  {%- assign _nn_size_summary = _nn_name_in | append: '" Names' -%}
+{%- elsif _nn_scope == 'Numbers only' -%}
+  {%- assign _nn_size_summary = _nn_num_in | append: '" Numbers' -%}
+{%- else -%}
+  {%- assign _nn_size_summary = _nn_name_in | append: '" Names + ' | append: _nn_num_in | append: '" Numbers' -%}
+{%- endif -%}
+
+<div class="nt-design-group nt-nn-group" data-group-key="{{ group_key | escape }}" data-nn-expanded="false">
+  <div class="nt-dg-header nt-nn-group__header">
+    <div class="nt-dg-info nt-nn-group__info">
+      <span class="nt-dg-name">DTF Names and Numbers</span>
+      <span class="nt-nn-group__settings">
+        {{ _nn_size_summary }}&nbsp;<a class="nn-cart-edit__link" href="/products/{{ first_item.product.handle }}?view=names-and-numbers&amp;nn={{ _nn_state_b64 }}&amp;edit_line={{ first_key | url_encode }}">Edit</a>
+      </span>
+      {%- if disc_title != blank -%}
+        <span class="nt-dg-discount">{{ 'cart.discount' | t }}: <strong class="seccolor">{{ disc_title }}</strong></span>
+      {%- endif -%}
+    </div>
+    <div class="nt-nn-group__price text-right">
+      {%- if group_final < group_original -%}
+        <div class="cart-item__price discounted-line-item-price">
+          <del><strong>{{ group_original | money }}</strong></del>
+          <strong>{{ group_final | money }}</strong>
+        </div>
+      {%- else -%}
+        <strong>{{ group_final | money }}</strong>
+      {%- endif -%}
+    </div>
+  </div>
+
+  <button type="button" class="nt-nn-group__toggle" data-nn-toggle-entries data-group-key="{{ group_key | escape }}">
+    <span class="nn-cart-edit__link" data-nn-show-text>See All Entries</span>
+    <span class="nn-cart-edit__link" data-nn-hide-text hidden>Hide All Entries</span>
+  </button>
+
+  <div class="nt-nn-group__entries" data-nn-entries hidden>
+    {%- for item in cart.items -%}
+      {%- assign _gn = "" -%}
+      {%- for p in item.properties -%}
+        {%- if p.first == '_design name' and p.last != blank -%}
+          {%- assign _gn = p.last | handleize -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- if _gn != blank -%}{%- assign _gn = item.product.id | append: '_' | append: _gn -%}{%- endif -%}
+      {%- if _gn == group_key -%}
+        {%- assign _entry_idx = item.properties["_entry_idx"] | default: 0 -%}
+        <div class="nt-nn-entry">
+          <div class="nt-nn-entry__label">
+            <strong>{{ item.properties["Name"] | default: '—' }}</strong>
+            <span>{{ item.properties["Number"] }}</span>
+          </div>
+          <div class="nt-nn-entry__price">
+            {%- if item.final_line_price < item.original_line_price -%}
+              <del><strong>{{ item.original_line_price | money }}</strong></del>
+              <strong>{{ item.final_line_price | money }}</strong>
+            {%- else -%}
+              <strong>{{ item.final_line_price | money }}</strong>
+            {%- endif -%}
+          </div>
+          <a href="/products/{{ item.product.handle }}?view=names-and-numbers&amp;nn={{ _nn_state_b64 }}&amp;edit_line={{ item.key | url_encode }}&amp;entry_idx={{ _entry_idx }}" class="nn-cart-edit__link nt-nn-entry__edit" aria-label="Edit {{ item.properties['Name'] | default: 'entry' }}">×</a>
+        </div>
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+</div>
+
+{%- comment -%}
+  Toggle handler. Window-guard so multiple N&N groups on the same page
+  don't double-bind. Loaded inline because the cart doesn't load the
+  configurator JS bundle.
+{%- endcomment -%}
+<script data-nn-cart-toggle>
+  (function () {
+    if (window.__nnCartToggleBound) return;
+    window.__nnCartToggleBound = true;
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-nn-toggle-entries]');
+      if (!btn) return;
+      var group = btn.closest('.nt-nn-group');
+      if (!group) return;
+      var expanded = group.getAttribute('data-nn-expanded') === 'true';
+      group.setAttribute('data-nn-expanded', expanded ? 'false' : 'true');
+      var entries = group.querySelector('[data-nn-entries]');
+      if (entries) entries.hidden = expanded;
+      var showT = btn.querySelector('[data-nn-show-text]');
+      var hideT = btn.querySelector('[data-nn-hide-text]');
+      if (showT) showT.hidden = !expanded ? true : false;
+      if (hideT) hideT.hidden = !expanded ? false : true;
+    });
+  })();
+</script>
