@@ -39,8 +39,17 @@
   {%- assign _nn_size_summary = _nn_name_in | append: '" Names + ' | append: _nn_num_in | append: '" Numbers' -%}
 {%- endif -%}
 
-{%- comment -%} Collect every child line key so the × button can zero them all in one /cart/update.js call. {%- endcomment -%}
+{%- comment -%}
+  Collect:
+  1. every child line key so the × button can zero them all in one
+     /cart/update.js call, and
+  2. the first child's _cartImg URL — used as the group thumbnail.
+     We pick the first matched item rather than first_item (which is
+     the last child iterated by the cart-form loop) so the thumb stays
+     stable as children come/go.
+{%- endcomment -%}
 {%- assign _nn_child_keys = "" -%}
+{%- assign _nn_thumb_src  = "" -%}
 {%- for item in cart.items -%}
   {%- assign _gn = "" -%}
   {%- for p in item.properties -%}
@@ -51,89 +60,125 @@
   {%- if _gn != blank -%}{%- assign _gn = item.product.id | append: '_' | append: _gn -%}{%- endif -%}
   {%- if _gn == group_key -%}
     {%- assign _nn_child_keys = _nn_child_keys | append: item.key | append: "," -%}
+    {%- if _nn_thumb_src == blank -%}
+      {%- for p in item.properties -%}
+        {%- if p.first == '_cartImg' and p.last != blank and _nn_thumb_src == blank -%}
+          {%- assign _nn_thumb_src = p.last -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- if _nn_thumb_src == blank -%}
+        {%- for p in item.properties -%}
+          {%- if p.first == 'Upload (Vector Files Preferred)' and p.last != blank and _nn_thumb_src == blank -%}
+            {%- assign _nn_thumb_src = p.last -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+    {%- endif -%}
   {%- endif -%}
 {%- endfor -%}
 
-<div class="cart-form-item nt-nn-group" data-group-key="{{ group_key | escape }}" data-nn-expanded="false">
-  <div class="cart-item__product-info cart-form-item--layout nt-nn-group__row">
+<div class="nt-design-group nt-nn-group" data-group-key="{{ group_key | escape }}" data-nn-expanded="false">
+  <div class="cart-form-item nt-nn-group__card">
+    <div class="cart-item__product-info cart-form-item--layout nt-nn-group__row">
 
-    {%- comment -%} Empty thumbnail slot — reserves the 6.25rem column so info/qty/total align with bySize rows above. {%- endcomment -%}
-    <div class="cart-item__thumbnail nt-nn-group__thumb" aria-hidden="true"></div>
+      <a href="{%- if _nn_thumb_src != blank -%}{{ _nn_thumb_src | replace: '&h=100', '' | replace: '&q=50', '' }}{%- else -%}javascript:void(0){%- endif -%}"
+         class="cart-item__thumbnail nt-nn-group__thumb {%- if _nn_thumb_src != blank %} preview-modal cartPropertyImg transparent-image{%- endif -%}"
+         {%- if _nn_thumb_src != blank %} data-src="{{ _nn_thumb_src | replace: '&h=100', '' | replace: '&q=50', '' }}" data-target=".cart-preview"{%- endif -%}
+         aria-hidden="true">
+        {%- if _nn_thumb_src != blank -%}
+          <img src="{{ _nn_thumb_src }}" alt="" loading="lazy">
+        {%- endif -%}
+      </a>
 
-    <div class="cart-form-item__price-title-variants nt-nn-group__info">
-      <strong class="cart-item__title">DTF Names and Numbers</strong>
-      <span class="cart-item__property">{{ _nn_size_summary }}&nbsp;<a class="nn-cart-edit__link" href="/products/{{ first_item.product.handle }}?view=names-and-numbers&amp;nn={{ _nn_state_b64 }}&amp;edit_line={{ first_key | url_encode }}">Edit</a></span>
-      {%- if disc_title != blank -%}
-        <span class="cart-item__property nt-dg-discount">{{ 'cart.discount' | t }}: <strong class="seccolor">{{ disc_title }}</strong></span>
-      {%- endif -%}
-    </div>
-
-    {%- comment -%} Qty slot — static "1" for now. Each child line carries its own quantity from the configurator. {%- endcomment -%}
-    <div class="cart-item__actions cart__quantity nt-nn-group__qty">
-      <div class="nt-nn-group__qty-static">
-        <span class="qty-button" aria-hidden="true">&minus;</span>
-        <span class="nt-nn-group__qty-value">1</span>
-        <span class="qty-button" aria-hidden="true">+</span>
-      </div>
-    </div>
-
-    <div class="cart-item__total nt-nn-group__total">
-      <div class="cart-item__price discounted-line-item-price">
-        {%- if group_final < group_original -%}
-          <div><span><del><strong>{{ group_original | money }}</strong></del></span></div>
-          <div><strong>{{ group_final | money }}</strong></div>
-        {%- else -%}
-          <div><strong>{{ group_final | money }}</strong></div>
+      <div class="cart-form-item__price-title-variants nt-nn-group__info">
+        <strong class="cart-item__title">DTF Names and Numbers</strong>
+        <span class="cart-item__property">{{ _nn_size_summary }}&nbsp;<a class="nn-cart-edit__link" href="/products/{{ first_item.product.handle }}?view=names-and-numbers&amp;nn={{ _nn_state_b64 }}&amp;edit_line={{ first_key | url_encode }}">Edit</a></span>
+        {%- if disc_title != blank -%}
+          <span class="cart-item__property nt-dg-discount">{{ 'cart.discount' | t }}: <strong class="seccolor">{{ disc_title }}</strong></span>
         {%- endif -%}
       </div>
-      <button type="button" class="remove nt-nn-group__remove" data-nn-remove-group data-nn-keys="{{ _nn_child_keys }}" aria-label="Remove design">
-        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      </button>
+
+      {%- comment -%} Qty slot — static "1" for now. Each child line carries its own quantity from the configurator. {%- endcomment -%}
+      <div class="cart-item__actions cart__quantity nt-nn-group__qty">
+        <div class="nt-nn-group__qty-static">
+          <span class="qty-button" aria-hidden="true">&minus;</span>
+          <span class="nt-nn-group__qty-value">1</span>
+          <span class="qty-button" aria-hidden="true">+</span>
+        </div>
+      </div>
+
+      <div class="cart-item__total nt-nn-group__total">
+        <div class="cart-item__price discounted-line-item-price">
+          {%- if group_final < group_original -%}
+            <div><span><del><strong>{{ group_original | money }}</strong></del></span></div>
+            <div><strong>{{ group_final | money }}</strong></div>
+          {%- else -%}
+            <div><strong>{{ group_final | money }}</strong></div>
+          {%- endif -%}
+        </div>
+        <button type="button" class="remove nt-nn-group__remove" data-nn-remove-group data-nn-keys="{{ _nn_child_keys }}" aria-label="Remove design">
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
     </div>
 
-  </div>
-
-  <button type="button" class="nt-nn-group__toggle" data-nn-toggle-entries data-group-key="{{ group_key | escape }}">
-    <span class="nn-cart-edit__link" data-nn-show-text>Show all {{ child_count }} {% if child_count == 1 %}entry{% else %}entries{% endif %}</span>
-    <span class="nn-cart-edit__link" data-nn-hide-text hidden>Hide all {{ child_count }} {% if child_count == 1 %}entry{% else %}entries{% endif %}</span>
-  </button>
-
-  <div class="nt-nn-group__entries" data-nn-entries hidden>
-    {%- for item in cart.items -%}
-      {%- assign _gn = "" -%}
-      {%- for p in item.properties -%}
-        {%- if p.first == '_design name' and p.last != blank -%}
-          {%- assign _gn = p.last | handleize -%}
-        {%- endif -%}
-      {%- endfor -%}
-      {%- if _gn != blank -%}{%- assign _gn = item.product.id | append: '_' | append: _gn -%}{%- endif -%}
-      {%- if _gn == group_key -%}
-        <div class="nt-nn-entry">
-          <div class="nt-nn-entry__main">
-            <div class="nt-nn-entry__label">
-              <strong>{{ item.properties["Name"] | default: '—' }}</strong>
-              <span>{{ item.properties["Number"] }}</span>
+    {%- comment -%}
+      Expanded entries live INSIDE the card so toggling them keeps the
+      card boundary around everything. The toggle button itself sits in
+      a footer below (next sibling), mirroring bySize's nt-add-size-footer.
+    {%- endcomment -%}
+    <div class="nt-nn-group__entries" data-nn-entries hidden>
+      {%- for item in cart.items -%}
+        {%- assign _gn = "" -%}
+        {%- for p in item.properties -%}
+          {%- if p.first == '_design name' and p.last != blank -%}
+            {%- assign _gn = p.last | handleize -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {%- if _gn != blank -%}{%- assign _gn = item.product.id | append: '_' | append: _gn -%}{%- endif -%}
+        {%- if _gn == group_key -%}
+          <div class="nt-nn-entry">
+            <div class="nt-nn-entry__main">
+              <div class="nt-nn-entry__label">
+                <strong>{{ item.properties["Name"] | default: '—' }}</strong>
+                <span>{{ item.properties["Number"] }}</span>
+              </div>
+              <div class="cart-item__price discounted-line-item-price nt-nn-entry__unit">
+                {%- if item.final_line_price < item.original_line_price -%}
+                  <div><span><del><strong>{{ item.original_line_price | divided_by: item.quantity | money }}</strong> ea</del></span></div>
+                  <div class="seccolor"><strong>{{ item.final_line_price | divided_by: item.quantity | money }}</strong> ea</div>
+                {%- else -%}
+                  <div><strong>{{ item.final_line_price | divided_by: item.quantity | money }}</strong> ea</div>
+                {%- endif -%}
+              </div>
             </div>
-            <div class="cart-item__price discounted-line-item-price nt-nn-entry__unit">
+            <div class="cart-item__price discounted-line-item-price nt-nn-entry__line">
               {%- if item.final_line_price < item.original_line_price -%}
-                <div><span><del><strong>{{ item.original_line_price | divided_by: item.quantity | money }}</strong> ea</del></span></div>
-                <div class="seccolor"><strong>{{ item.final_line_price | divided_by: item.quantity | money }}</strong> ea</div>
+                <div><span><del><strong>{{ item.original_line_price | money }}</strong></del></span></div>
+                <div><strong>{{ item.final_line_price | money }}</strong></div>
               {%- else -%}
-                <div><strong>{{ item.final_line_price | divided_by: item.quantity | money }}</strong> ea</div>
+                <div><strong>{{ item.final_line_price | money }}</strong></div>
               {%- endif -%}
             </div>
           </div>
-          <div class="cart-item__price discounted-line-item-price nt-nn-entry__line">
-            {%- if item.final_line_price < item.original_line_price -%}
-              <div><span><del><strong>{{ item.original_line_price | money }}</strong></del></span></div>
-              <div><strong>{{ item.final_line_price | money }}</strong></div>
-            {%- else -%}
-              <div><strong>{{ item.final_line_price | money }}</strong></div>
-            {%- endif -%}
-          </div>
-        </div>
-      {%- endif -%}
-    {%- endfor -%}
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+
+  {%- comment -%}
+    Footer with the Show/Hide All Entries toggle. Sits OUTSIDE the
+    .cart-form-item card but INSIDE the .nt-design-group wrapper so the
+    card chrome (border / radius / shadow from sections/main-cart.liquid
+    .nt-design-group rule) wraps the whole block — same shape as
+    bySize's "+ Add another size of this design" footer.
+  {%- endcomment -%}
+  <div class="nt-add-size-footer nt-nn-group__footer">
+    <button type="button" class="nt-add-size-btn nt-nn-group__toggle" data-nn-toggle-entries data-group-key="{{ group_key | escape }}">
+      <span data-nn-show-text>Show all {{ child_count }} {% if child_count == 1 %}entry{% else %}entries{% endif %}</span>
+      <span data-nn-hide-text hidden>Hide all {{ child_count }} {% if child_count == 1 %}entry{% else %}entries{% endif %}</span>
+    </button>
   </div>
 </div>
 
