@@ -217,7 +217,6 @@
         const isFocused = entry.id === state.focusedEntryId;
         const tr = el('tr', isFocused ? 'nn-roster__row is-focused' : 'nn-roster__row', { 'data-id': entry.id });
         tr.innerHTML = `
-          <td class="nn-roster__idx">${idx + 1}</td>
           <td><input type="text" placeholder="${escapeHTML(PLACEHOLDER_NAME)}" maxlength="40" data-nn-field="name"></td>
           <td><input type="text" placeholder="${escapeHTML(PLACEHOLDER_NUMBER)}" maxlength="6" data-nn-field="number"></td>
           <td>
