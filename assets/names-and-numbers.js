@@ -926,10 +926,9 @@
       updateTierUI();
 
       if (empty) {
-        dom.dims.textContent = '—';
-        dom.sqin.textContent = '—';
-        dom.price.textContent = '—';
-        dom.ctaPrice.textContent = '';
+        if (dom.dims)  dom.dims.textContent  = '—';
+        if (dom.sqin)  dom.sqin.textContent  = '—';
+        if (dom.price) dom.price.textContent = '—';
         dom.submitBtn.disabled = true;
         dom.submitLabel.textContent = 'Add a name or number to start';
         dom.warning.hidden = true;
@@ -973,8 +972,8 @@
       // Tier UI already updated above (runs in both empty + populated
       // branches so the cart-aware tier reflects regardless of roster).
 
-      dom.dims.textContent = `${packed.sheetWidthIn.toFixed(2)}" × ${packed.totalHeightIn.toFixed(2)}"`;
-      dom.sqin.textContent = `${totalSqIn} sq in`;
+      if (dom.dims) dom.dims.textContent = `${packed.sheetWidthIn.toFixed(2)}" × ${packed.totalHeightIn.toFixed(2)}"`;
+      if (dom.sqin) dom.sqin.textContent = `${totalSqIn} sq in`;
 
       if (oversize) {
         dom.variantInput.value = '';
