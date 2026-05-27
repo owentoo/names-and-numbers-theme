@@ -1330,21 +1330,33 @@
   async function fetchCartTransferQty() {
     try {
       const res = await fetch('/cart.js', { credentials: 'include' });
-      if (!res.ok) return 0;
+      if (!res.ok) {
+        console.warn('[N&N] /cart.js HTTP', res.status);
+        return 0;
+      }
       const cart = await res.json();
       const QUALIFIERS = [
-        'dtf transfers by size',
+        'dtf transfers',     // matches "DTF Transfers By Size", "DTF Transfers Names & Numbers", etc.
         'uv dtf',
         'puff',
         'names & numbers',
         'names &amp; numbers',
       ];
-      return (cart.items || []).reduce((sum, item) => {
-        const title = String(item.product_title || item.title || '').toLowerCase();
-        const qualifies = QUALIFIERS.some(q => title.indexOf(q) !== -1);
-        return qualifies ? sum + (item.quantity || 0) : sum;
-      }, 0);
+      let total = 0;
+      const trace = [];
+      (cart.items || []).forEach(item => {
+        const productTitle = String(item.product_title || '').toLowerCase();
+        const lineTitle    = String(item.title || '').toLowerCase();
+        const qualifies = QUALIFIERS.some(q =>
+          productTitle.indexOf(q) !== -1 || lineTitle.indexOf(q) !== -1
+        );
+        trace.push({ title: item.product_title, qty: item.quantity, qualifies });
+        if (qualifies) total += (item.quantity || 0);
+      });
+      console.log('[N&N] cart qualifier trace:', trace, '→ total', total);
+      return total;
     } catch (e) {
+      console.warn('[N&N] /cart.js fetch failed', e);
       return 0;
     }
   }
