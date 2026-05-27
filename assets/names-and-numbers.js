@@ -604,6 +604,14 @@
 
           dom.submitLabel.textContent = state.editLineKey ? 'Updating cart…' : 'Adding to cart…';
 
+          // bySize file-output convention (assets/__blanksUploadHelper.js:23-94,
+          // PNG fileType): order URL appends "trim=colorUnlessAlpha", cart
+          // thumbnail appends "trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100".
+          // We mirror that exactly so the cart, preview modal, and fulfillment
+          // pipeline see N&N lines as just-another-bySize line.
+          const ORDER_PARAMS = 'trim=colorUnlessAlpha';
+          const CART_PARAMS  = 'trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100';
+
           // Shared properties — every line carries _design name so the cart
           // UI groups them under one design header even though each line has
           // a different upload URL.
@@ -611,7 +619,6 @@
           const sharedProps = {
             'Style': 'Names & Numbers',
             '_design name': designId,
-            '_design_thumb': firstUrls.imgixUrl + '?w=200&h=200&fit=clip&auto=format&q=80',
             'Scope': scopeLabel(state.scope),
             'Font': fontDef.label,
             'Color': colorDef.id === 'custom' ? `Custom (${colorDef.hex})` : colorDef.label,
@@ -619,7 +626,7 @@
             'Number Height': state.scope === 'names' ? '' : `${currentNumH().inches} in (${currentNumH().label})`,
             'Entries': serializeEntries(state),
             'Entries Count': String(state.entries.length),
-            '_render_version': 'client-v4',
+            '_render_version': 'client-v5',
           };
 
           // bySize tier-quantity discount ladder (mirrors the prices-table at
@@ -651,20 +658,26 @@
             const variant = matchVariantBySqIn(variants, lineSqIn);
             if (!variant) return;
             const lineUrls = urlByEntryIdx.get(i) || firstUrls;
+            const widthStr  = p.widthIn.toFixed(2);
+            const heightStr = p.heightIn.toFixed(2);
             items.push({
               id: variant.id,
               quantity: Math.max(1, parseInt(entry.qty, 10) || 1),
               properties: {
                 ...sharedProps,
-                'Upload (Vector Files Preferred)': lineUrls.imgixUrl,
-                '_Original Image': lineUrls.sourceUrl,
-                '_cartImg': lineUrls.imgixUrl + '?w=200&h=200&fit=clip&auto=format&q=80',
+                // File URLs match bySize PNG convention exactly:
+                //   Upload (Vector Files Preferred) → imgix?trim=colorUnlessAlpha (production file)
+                //   _Original Image                 → imgix?trim=colorUnlessAlpha (per [imgIx] order rule)
+                //   _cartImg                        → imgix?trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100
+                'Upload (Vector Files Preferred)': lineUrls.imgixUrl + '?' + ORDER_PARAMS,
+                '_Original Image':                 lineUrls.imgixUrl + '?' + ORDER_PARAMS,
+                '_cartImg':                        lineUrls.imgixUrl + '?' + CART_PARAMS,
                 'Name':   p.kind === 'pair' ? p.name : (p.kind === 'name' ? p.text : ''),
                 'Number': p.kind === 'pair' ? p.number : (p.kind === 'number' ? p.text : ''),
                 '_entry_idx': String(i),
-                '_width':  p.widthIn.toFixed(2),
-                '_height': p.heightIn.toFixed(2),
-                '_Size':   variant.option1 || '',
+                'width':  widthStr,
+                'height': heightStr,
+                '_Size':  `${widthStr}x${heightStr}`,
                 '_Total Sq In': String(lineSqIn),
                 '_discount_input': discountInputProp,
                 '_discount_name':  discountNameProp,
