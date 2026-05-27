@@ -816,6 +816,138 @@
   .nn-step { padding: 12px; }
   .nn-csv-drop { padding: 24px 12px; }
 }
+
+/* === Mobile / narrow column (≤768px) ===========================
+   Phones AND tablet-portrait widths get two structural rewrites:
+   1. Volume-discount tier strip flips from 5 horizontal pills to a
+      vertical list (qty label left, % off right).
+   2. Roster table flips into a stacked-card layout — each row becomes
+      a bordered card with NAME/NUMBER labels and inputs on the top
+      line and qty+remove on the bottom line.
+   Both are CSS-only; no markup or JS changes needed.
+
+   NOTE on specificity: `.nn-roster tr` is (0,1,1), beating
+   `.nn-roster__row` (0,1,0), so the layout-altering rules use
+   `tr.nn-roster__row` / `.nn-roster tr.nn-roster__row` to win.
+   =============================================================== */
+@media (max-width: 768px) {
+  /* --- Tier strip → vertical list of standalone bars ---------- */
+  /* No outer wrapper border; each row is its own rounded bar with
+     subtle background, separated by gap. Active row gets a green
+     outline + tint + bold green % OFF — matches Owen's proof. */
+  .nn-tiers .nn-tiers__row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .nn-tiers .nn-tiers__cell {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: var(--nn-bg-muted);
+    border: 0;
+    box-shadow: none;
+  }
+  .nn-tiers .nn-tiers__cell.is-active {
+    background: #e7f7e3;
+    /* Inset outline so the bar's height stays consistent with inactive rows. */
+    box-shadow: inset 0 0 0 2px #27af1a;
+  }
+  /* Qty label: bold black, larger on mobile so it reads at a glance. */
+  .nn-tiers .nn-tiers__qty {
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  /* % OFF: muted regular weight on inactive rows, bold green on active. */
+  .nn-tiers .nn-tiers__off {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .nn-tiers .nn-tiers__cell.is-active .nn-tiers__off {
+    font-weight: 700;
+  }
+
+  /* --- Roster table → stacked cards --------------------------- */
+  /* Drop the desktop wrap border — each row is now its own card,
+     so the outer container would render as a redundant frame. */
+  .nn-roster-wrap {
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .nn-roster, .nn-roster thead, .nn-roster tbody, .nn-roster tr, .nn-roster td {
+    display: block;
+  }
+  .nn-roster thead { display: none; }
+  .nn-roster {
+    border: 0;
+    background: transparent;
+    overflow: visible;
+  }
+  /* tr-selector here so specificity (0,1,1) beats the display:block
+     above (which also matches at 0,1,1) AND tags itself as the grid
+     container. */
+  .nn-roster tr.nn-roster__row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 10px 12px;
+    border: 1px solid var(--nn-border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: var(--nn-bg);
+  }
+  .nn-roster tr.nn-roster__row.is-focused {
+    background: var(--nn-accent-tint);
+    box-shadow: inset 3px 0 0 var(--nn-accent);
+  }
+  /* Reset cell chrome — the card border replaces inter-row dividers. */
+  .nn-roster tr.nn-roster__row td {
+    padding: 0;
+    border-top: 0;
+    vertical-align: middle;
+  }
+  /* DOM order of <td>s: 1=name, 2=number, 3=qty, 4=remove.
+     Map them onto the 2×2 grid: name+number on row 1, qty+× on row 2. */
+  .nn-roster tr.nn-roster__row td:nth-child(1) { grid-column: 1; grid-row: 1; }
+  .nn-roster tr.nn-roster__row td:nth-child(2) { grid-column: 2; grid-row: 1; }
+  .nn-roster tr.nn-roster__row td:nth-child(3) { grid-column: 1; grid-row: 2; justify-self: start; align-self: center; }
+  .nn-roster tr.nn-roster__row td:nth-child(4) { grid-column: 2; grid-row: 2; justify-self: end;  align-self: center; }
+  /* Per-card NAME / NUMBER labels (the proof shows uppercase column
+     labels above each input — restore them via ::before since we
+     hide the <thead> in stacked mode). */
+  .nn-roster tr.nn-roster__row td:nth-child(1)::before,
+  .nn-roster tr.nn-roster__row td:nth-child(2)::before {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--nn-text-muted);
+    margin-bottom: 4px;
+  }
+  .nn-roster tr.nn-roster__row td:nth-child(1)::before { content: "Name"; }
+  .nn-roster tr.nn-roster__row td:nth-child(2)::before { content: "Number"; }
+  /* Inputs go full-width inside their cells. */
+  .nn-roster tr.nn-roster__row input { width: 100%; }
+  /* Stepper restored to full size on stacked cards (the 720px shrink
+     rule below this would otherwise leave it cramped). */
+  .nn-stepper { height: 38px; }
+  .nn-stepper__btn { width: 32px; font-size: 16px; }
+  .nn-stepper input[type="number"] { width: 44px; }
+  /* Focus stripe now lives on the <tr>; suppress the desktop
+     :first-child inset shadow to avoid a double-up. */
+  .nn-roster tr.nn-roster__row.is-focused td:first-child { box-shadow: none; }
+}
 .nn-roster__remove {
   background: transparent; border: 0;
   width: 28px; height: 28px;

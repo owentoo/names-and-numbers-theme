@@ -29,6 +29,11 @@
       sideMarginIn:    numAttr(root, 'data-side-margin-in', 0.25),
       horizGapIn:      numAttr(root, 'data-horiz-gap-in', 0.25),
       vertGapIn:       numAttr(root, 'data-vert-gap-in', 0.25),
+      // Pair stacking gap (name above number). Distinct from vertGapIn
+      // (inter-shelf packing gap) so we can keep the sheet packing tight
+      // while still showing realistic jersey spacing between a player's
+      // name and number — both in the preview and in the printed PNG.
+      nameNumGapIn:    numAttr(root, 'data-name-num-gap-in', 1.0),
       maxEntries:      numAttr(root, 'data-max-entries', 200),
       maxItemWidthIn:  numAttr(root, 'data-max-item-width-in', 12),
       apiUrl:          root.getAttribute('data-api-url'),
@@ -890,12 +895,7 @@
       dom.currentFont.textContent  = fontDef.label;
       dom.currentColor.textContent = colorDef.label;
 
-      // Chip
-      const chipParts = [];
-      chipParts.push(fontDef.label);
-      if (nameH && state.scope !== 'numbers') chipParts.push(`${nameH.inches}" name`);
-      if (numH  && state.scope !== 'names')   chipParts.push(`${numH.inches}" number`);
-      dom.chip.textContent = chipParts.join(' · ');
+      // (Chip + LIVE PREVIEW badge removed from the markup — skip writing.)
 
       // Jersey mockup — follow whichever entry the user last interacted with,
       // falling back to the first entry or placeholder samples.
@@ -1021,84 +1021,114 @@
       const showName   = state.scope !== 'numbers' && name;
       const showNumber = state.scope !== 'names'   && number;
 
-      // Real-scale preview: 1 inch → SVG_UNITS_PER_INCH svg units. The shirt
-      // back panel is ~20 inches wide in the back PNG and maps to 320 svg
-      // units in the zone, so 16 units/inch keeps the printed art at the
-      // same relative size the customer will get on their jersey. Big
-      // designs overflow the back panel — that's intentional (Owen wants
-      // an honest sense of how large the print will be).
-      const SVG_UNITS_PER_INCH = 16;
+      // Target scale: 1 inch → REAL_UNITS_PER_INCH svg units. The shirt
+      // back panel maps to ~320 svg units in the zone, so 16 units/inch
+      // keeps the printed art at the same relative size as the actual
+      // jersey. When a chosen stack overflows the zone we scale uniformly
+      // down to fit; the inter-entry ratio stays honest.
+      const REAL_UNITS_PER_INCH = 16;
 
-      // Read the back-panel zone from the SVG's data attributes (defined in
-      // snippets/nn-preview-left.liquid). The stack is positioned with its
-      // top edge at zoneY and centered horizontally on the zone's center.
       const svg = dom.jerseyName && dom.jerseyName.ownerSVGElement;
       const zoneX = svg ? parseFloat(svg.getAttribute('data-nn-zone-x') || '80')  : 80;
       const zoneY = svg ? parseFloat(svg.getAttribute('data-nn-zone-y') || '140') : 140;
       const zoneW = svg ? parseFloat(svg.getAttribute('data-nn-zone-w') || '320') : 320;
+      const zoneH = svg ? parseFloat(svg.getAttribute('data-nn-zone-h') || '340') : 340;
       const centerX = zoneX + zoneW / 2;
-      const gapU = cfg.vertGapIn * SVG_UNITS_PER_INCH;
-      // Mirror the packer's maxItemWidthIn cap: if a name's natural width
-      // exceeds this, both the print and the preview compress horizontally
-      // (scaleX in the print, textLength squish in the SVG). Keeps the
-      // mockup honest about what will actually fit on the jersey.
-      const maxSvgWidth = (cfg.maxItemWidthIn || 12) * SVG_UNITS_PER_INCH;
 
-      // Probe the font's cap-height ratio ONCE with a reference glyph (M)
-      // so every text in this font renders at the same visual size for the
-      // same heightIn. Per-text probing made letters jitter as the customer
-      // typed — e.g. "EREW" measured 0.75 (the R's leg adds descent) and
-      // "DSFD" measured 0.70 (all flat-bottomed), so a 4" name looked ~7%
-      // bigger when DSFD-like letters were used. The print pipeline still
-      // does per-text bbox math (pricing accuracy); the preview is just a
-      // mockup so visual consistency wins.
+      // Per-text bbox sizing — mirrors measureInk() in renderExportPNG.
+      // We scale each text so its INK bbox height equals the requested
+      // heightU. Using a shared M-cap probe (previous behaviour) made
+      // numbers like "00" render taller than their requested height
+      // because '0' bbox > 'M' bbox in many fonts, especially italic
+      // display faces like Racing Sans One.
       const PROBE_PX = 768;
       const probeCtx = document.createElement('canvas').getContext('2d');
-      probeCtx.font = `${fontDef.weight || 700} ${PROBE_PX}px "${fontDef.family}", sans-serif`;
-      const probeM = probeCtx.measureText('M');
-      const capRatio = Math.max(0.4, (
-        (probeM.actualBoundingBoxAscent  || PROBE_PX * 0.78) +
-        (probeM.actualBoundingBoxDescent || 0)
-      ) / PROBE_PX);
-
-      const applyTextStyles = (node, text, heightIn) => {
-        const px = Math.max(1, Math.round((heightIn * SVG_UNITS_PER_INCH) / capRatio));
-        node.textContent = text;
-        node.setAttribute('x', String(centerX));
-        node.setAttribute('font-size', String(px));
-        node.style.fontFamily = `"${fontDef.family}", sans-serif`;
-        node.setAttribute('font-weight', String(fontDef.weight || 700));
-        node.setAttribute('fill', colorDef.hex);
-        node.removeAttribute('textLength');
-        node.removeAttribute('lengthAdjust');
-        node.style.display = '';
-        // Measure natural width and squish-fit if it exceeds maxItemWidthIn.
-        try {
-          const w = node.getComputedTextLength();
-          if (w > maxSvgWidth) {
-            node.setAttribute('textLength', String(maxSvgWidth));
-            node.setAttribute('lengthAdjust', 'spacingAndGlyphs');
-          }
-        } catch { /* SVG not laid out yet on first render; skip */ }
+      const family = fontDef.family;
+      const weight = fontDef.weight || 700;
+      const measureFor = (text, heightU) => {
+        if (!text || !heightU) return { fontSize: 0, ascent: 0, height: 0, bboxWidth: 0, advance: 0 };
+        probeCtx.font = `${weight} ${PROBE_PX}px "${family}", sans-serif`;
+        const m = probeCtx.measureText(text);
+        const ascentPx  = m.actualBoundingBoxAscent  || PROBE_PX * 0.78;
+        const descentPx = m.actualBoundingBoxDescent || 0;
+        // True visual ink width (left+right bbox extents). Stencil and
+        // italic display fonts have ink that overhangs the advance width,
+        // so using advance for fit-checks lets glyphs spill past the zone.
+        const leftPx    = m.actualBoundingBoxLeft    || 0;
+        const rightPx   = m.actualBoundingBoxRight   || m.width;
+        const inkPx     = ascentPx + descentPx;
+        if (!inkPx) return { fontSize: 0, ascent: 0, height: 0, bboxWidth: 0, advance: 0 };
+        const k = heightU / inkPx;
+        return {
+          fontSize:  PROBE_PX * k,
+          ascent:    ascentPx * k,            // baseline = capTop + ascent (alphabetic)
+          height:    heightU,                 // ink bbox height in svg units
+          bboxWidth: (leftPx + rightPx) * k,  // true visual width
+          advance:   m.width * k,             // text advance — what textLength manipulates
+        };
       };
 
-      // Stack the focused entry's pieces with their top edges at zoneY,
-      // then name-bottom + vertGap → number-top. dominant-baseline="hanging"
-      // (set in the Liquid markup) makes y= the top of the text rather than
-      // the baseline, so adding heightIn lands at the next piece's top.
-      let cursorY = zoneY;
-      if (showName && nameH) {
-        applyTextStyles(dom.jerseyName, name.toUpperCase(), nameH.inches);
-        dom.jerseyName.setAttribute('y', String(cursorY));
-        cursorY += nameH.inches * SVG_UNITS_PER_INCH;
-        if (showNumber) cursorY += gapU;
+      // HEIGHTS NEVER SCALE. A 2" name always renders at 2" tall × 16 = 32
+      // svg units, an 8" number at 128 svg units, regardless of how long
+      // the text is. Owen wants real heights preserved so the customer
+      // sees an accurate sense of the printed size; if a name is too wide
+      // it compresses horizontally (textLength squish) instead of shrinking
+      // the whole stack. Mirrors renderExportPNG's scaleX behaviour.
+      const nameU = showName   ? nameH.inches      * REAL_UNITS_PER_INCH : 0;
+      const numU  = showNumber ? numH.inches       * REAL_UNITS_PER_INCH : 0;
+      const gapU  = (showName && showNumber) ? cfg.nameNumGapIn * REAL_UNITS_PER_INCH : 0;
+      const nameMeas = showName   ? measureFor(name.toUpperCase(), nameU) : null;
+      const numMeas  = showNumber ? measureFor(number,             numU)  : null;
+
+      // Horizontal squish target: the smaller of the zone bound (with a 5%
+      // safety margin so glyphs don't kiss the shirt edge) and the print's
+      // maxItemWidthIn — which the print pipeline clamps to via scaleX.
+      // Keeping these in lockstep makes the preview width = printed width.
+      const WIDTH_SAFETY = 0.95;
+      const maxBboxU = Math.min(zoneW * WIDTH_SAFETY, cfg.maxItemWidthIn * REAL_UNITS_PER_INCH);
+
+      // Anchor stack to the TOP of the zone — names sit high on the back
+      // panel like real jersey placement, with the number below.
+      const stackTop = zoneY;
+
+      const applyText = (node, text, meas) => {
+        node.textContent = text;
+        node.setAttribute('x', String(centerX));
+        node.setAttribute('font-size', String(Math.max(1, Math.round(meas.fontSize))));
+        node.style.fontFamily = `"${family}", sans-serif`;
+        node.setAttribute('font-weight', String(weight));
+        node.setAttribute('fill', colorDef.hex);
+        // alphabetic baseline → y is the baseline; ascent rises ABOVE it,
+        // descent drops BELOW it. Lets us place pieces by cap-top + ascent.
+        node.setAttribute('dominant-baseline', 'alphabetic');
+        // Squish horizontally if the bbox overflows. textLength controls
+        // ADVANCE width, but bbox scales proportionally with advance under
+        // spacingAndGlyphs, so target = maxBboxU × advance/bbox makes the
+        // resulting visual bbox = maxBboxU exactly. Height stays untouched.
+        if (meas.bboxWidth > maxBboxU && meas.bboxWidth > 0) {
+          const ratio = meas.advance / meas.bboxWidth;
+          node.setAttribute('textLength', String(maxBboxU * ratio));
+          node.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+        } else {
+          node.removeAttribute('textLength');
+          node.removeAttribute('lengthAdjust');
+        }
+        node.style.display = '';
+      };
+
+      // cursorY tracks the INK TOP of the next piece.
+      let cursorY = stackTop;
+      if (showName && nameMeas) {
+        applyText(dom.jerseyName, name.toUpperCase(), nameMeas);
+        dom.jerseyName.setAttribute('y', String(cursorY + nameMeas.ascent));
+        cursorY += nameMeas.height + gapU;
       } else {
         dom.jerseyName.style.display = 'none';
       }
 
-      if (showNumber && numH) {
-        applyTextStyles(dom.jerseyNumber, number, numH.inches);
-        dom.jerseyNumber.setAttribute('y', String(cursorY));
+      if (showNumber && numMeas) {
+        applyText(dom.jerseyNumber, number, numMeas);
+        dom.jerseyNumber.setAttribute('y', String(cursorY + numMeas.ascent));
       } else {
         dom.jerseyNumber.style.display = 'none';
       }
@@ -1178,7 +1208,7 @@
         const numInk  = measureInk(p.number, p.numHeightIn);
         const contentW = Math.max(nameInk.widthIn, numInk.widthIn);
         const contentH = (nameInk.ascentIn + nameInk.descentIn)
-                       + cfg.vertGapIn
+                       + cfg.nameNumGapIn
                        + (numInk.ascentIn  + numInk.descentIn);
         p.naturalWidthIn = contentW;
         p.widthIn  = Math.min(contentW, maxWidth);
@@ -1282,7 +1312,7 @@
         drawInk(pl.item.name, nameX, pl.y, nameInk, scaleX);
         const numW = numInk.widthIn * scaleX;
         const numX = pl.x + (pl.w - numW) / 2;
-        const numY = pl.y + nameInk.ascentIn + nameInk.descentIn + cfg.vertGapIn;
+        const numY = pl.y + nameInk.ascentIn + nameInk.descentIn + cfg.nameNumGapIn;
         drawInk(pl.item.number, numX, numY, numInk, scaleX);
         return;
       }
