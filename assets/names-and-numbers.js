@@ -909,13 +909,47 @@
       // Stash the per-line breakdown for the submit handler to consume.
       state._lineSummary = lineSummary;
 
+      // Highlight the active volume-discount tier and write the
+      // "add N more to unlock X% off" hint. Tier definitions live on
+      // the .nn-tiers__cell data attributes, so changing the ladder is
+      // a Liquid-only edit (no JS change).
+      const tiersContainer = document.querySelector('[data-nn-tiers]');
+      if (tiersContainer) {
+        const totalQty = state.entries.reduce((sum, e) => sum + Math.max(1, parseInt(e.qty, 10) || 1), 0);
+        const cells = [...tiersContainer.querySelectorAll('.nn-tiers__cell')];
+        let activeIdx = -1;
+        cells.forEach((cell, i) => {
+          const min = parseInt(cell.getAttribute('data-tier-min'), 10);
+          const max = parseInt(cell.getAttribute('data-tier-max'), 10);
+          const hit = totalQty >= min && totalQty <= max;
+          cell.classList.toggle('is-active', hit);
+          if (hit) activeIdx = i;
+        });
+        const hint = tiersContainer.querySelector('[data-nn-tier-hint]');
+        if (hint) {
+          if (totalQty <= 0) {
+            hint.textContent = 'Add transfers to unlock discounts';
+            hint.classList.remove('nn-tiers__hint--maxed');
+          } else if (activeIdx >= 0 && activeIdx < cells.length - 1) {
+            const next = cells[activeIdx + 1];
+            const nextMin = parseInt(next.getAttribute('data-tier-min'), 10);
+            const nextOff = parseInt(next.getAttribute('data-tier-off'), 10);
+            const need = Math.max(1, nextMin - totalQty);
+            hint.textContent = `Add ${need} more transfer${need === 1 ? '' : 's'} to unlock ${nextOff}% off`;
+            hint.classList.remove('nn-tiers__hint--maxed');
+          } else {
+            hint.textContent = `Maximum discount unlocked — 50% off`;
+            hint.classList.add('nn-tiers__hint--maxed');
+          }
+        }
+      }
+
       dom.dims.textContent = `${packed.sheetWidthIn.toFixed(2)}" × ${packed.totalHeightIn.toFixed(2)}"`;
       dom.sqin.textContent = `${totalSqIn} sq in`;
 
       if (oversize) {
         dom.variantInput.value = '';
         dom.price.textContent = '—';
-        dom.ctaPrice.textContent = '';
         dom.submitBtn.disabled = true;
         dom.submitLabel.textContent = 'Item too large';
         dom.warning.hidden = false;
@@ -923,7 +957,6 @@
       } else if (lineSummary.length === 0) {
         dom.variantInput.value = '';
         dom.price.textContent = '—';
-        dom.ctaPrice.textContent = '';
         dom.submitBtn.disabled = true;
         dom.submitLabel.textContent = 'Add a name or number to start';
         dom.warning.hidden = true;
@@ -931,7 +964,6 @@
         dom.variantInput.value = lastVariantId;   // satisfies the wireForm gate
         const totalFormatted = '$' + (totalCents / 100).toFixed(2);
         dom.price.textContent = totalFormatted;
-        dom.ctaPrice.textContent = `· ${totalFormatted}`;
         dom.submitBtn.disabled = false;
         dom.submitLabel.textContent = state.editLineKey ? 'Update item' : 'Add to cart';
         dom.warning.hidden = true;
