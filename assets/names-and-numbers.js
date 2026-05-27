@@ -836,6 +836,51 @@
     function currentNameH() { return nameHeights.find(h => h.id === state.nameHeightId)     || nameHeights[0]; }
     function currentNumH()  { return numberHeights.find(h => h.id === state.numberHeightId) || numberHeights[0]; }
 
+    // Refresh the volume-discount tier strip + Discount summary row from
+    // effectiveQty = roster qty + state.cartTransferQty. Runs every render
+    // (both empty and populated paths) so the cart-aware discount shows
+    // even before the customer adds entries.
+    function updateTierUI() {
+      const tiersContainer = document.querySelector('[data-nn-tiers]');
+      if (!tiersContainer) return;
+      const rosterQty = state.entries.reduce((sum, e) => sum + Math.max(1, parseInt(e.qty, 10) || 1), 0);
+      const effectiveQty = rosterQty + (state.cartTransferQty || 0);
+      const cells = [...tiersContainer.querySelectorAll('.nn-tiers__cell')];
+      let activeIdx = -1;
+      cells.forEach((cell, i) => {
+        const min = parseInt(cell.getAttribute('data-tier-min'), 10);
+        const max = parseInt(cell.getAttribute('data-tier-max'), 10);
+        const hit = effectiveQty >= min && effectiveQty <= max;
+        cell.classList.toggle('is-active', hit);
+        if (hit) activeIdx = i;
+      });
+      const hint = tiersContainer.querySelector('[data-nn-tier-hint]');
+      if (hint) {
+        if (effectiveQty <= 0) {
+          hint.textContent = 'Add transfers to unlock discounts';
+          hint.classList.remove('nn-tiers__hint--maxed');
+        } else if (activeIdx >= 0 && activeIdx < cells.length - 1) {
+          const next = cells[activeIdx + 1];
+          const nextMin = parseInt(next.getAttribute('data-tier-min'), 10);
+          const nextOff = parseInt(next.getAttribute('data-tier-off'), 10);
+          const need = Math.max(1, nextMin - effectiveQty);
+          const inCart = state.cartTransferQty || 0;
+          const cartNote = inCart > 0 ? ` (${inCart} already in cart)` : '';
+          hint.textContent = `Add ${need} more transfer${need === 1 ? '' : 's'} to unlock ${nextOff}% off${cartNote}`;
+          hint.classList.remove('nn-tiers__hint--maxed');
+        } else {
+          hint.textContent = 'Maximum discount unlocked — 50% off';
+          hint.classList.add('nn-tiers__hint--maxed');
+        }
+      }
+      if (dom.discount) {
+        const activeOff = activeIdx >= 0
+          ? parseInt(cells[activeIdx].getAttribute('data-tier-off'), 10)
+          : 0;
+        dom.discount.textContent = activeOff > 0 ? `${activeOff}% off` : '—';
+      }
+    }
+
     function render() {
       const fontDef  = currentFont();
       const colorDef = currentColor();
@@ -872,6 +917,13 @@
       const printables = buildPrintables(state, nameHeights, numberHeights);
       const packed = packShelf(printables, cfg, fontDef);
       const empty = packed.placements.length === 0;
+
+      // Refresh the volume-discount tier UI ALWAYS — even when the roster
+      // is empty — so a customer arriving with items already in their cart
+      // sees the active tier reflected in the Discount row + tier strip.
+      // (Moved out of the populated-roster block below; the populated
+      // block also calls this after computing per-entry totals.)
+      updateTierUI();
 
       if (empty) {
         dom.dims.textContent = '—';
@@ -918,54 +970,8 @@
       // Stash the per-line breakdown for the submit handler to consume.
       state._lineSummary = lineSummary;
 
-      // Highlight the active volume-discount tier and write the
-      // "add N more to unlock X% off" hint. Tier is determined by
-      // CUMULATIVE qty: items already in cart that count toward the
-      // bySize tier ladder (DTF Transfers By Size / UV DTF / Puff /
-      // Names & Numbers) PLUS the current roster's qty. Matches the
-      // bySize behavior at assets/bySize.js:3409+ (which reads from
-      // ?view=itemsInCart__cumulative). We read /cart.js directly at
-      // init and stash on state.cartTransferQty.
-      const tiersContainer = document.querySelector('[data-nn-tiers]');
-      if (tiersContainer) {
-        const rosterQty   = state.entries.reduce((sum, e) => sum + Math.max(1, parseInt(e.qty, 10) || 1), 0);
-        const effectiveQty = rosterQty + (state.cartTransferQty || 0);
-        const cells = [...tiersContainer.querySelectorAll('.nn-tiers__cell')];
-        let activeIdx = -1;
-        cells.forEach((cell, i) => {
-          const min = parseInt(cell.getAttribute('data-tier-min'), 10);
-          const max = parseInt(cell.getAttribute('data-tier-max'), 10);
-          const hit = effectiveQty >= min && effectiveQty <= max;
-          cell.classList.toggle('is-active', hit);
-          if (hit) activeIdx = i;
-        });
-        const hint = tiersContainer.querySelector('[data-nn-tier-hint]');
-        if (hint) {
-          if (effectiveQty <= 0) {
-            hint.textContent = 'Add transfers to unlock discounts';
-            hint.classList.remove('nn-tiers__hint--maxed');
-          } else if (activeIdx >= 0 && activeIdx < cells.length - 1) {
-            const next = cells[activeIdx + 1];
-            const nextMin = parseInt(next.getAttribute('data-tier-min'), 10);
-            const nextOff = parseInt(next.getAttribute('data-tier-off'), 10);
-            const need = Math.max(1, nextMin - effectiveQty);
-            const inCart = state.cartTransferQty || 0;
-            const cartNote = inCart > 0 ? ` (${inCart} already in cart)` : '';
-            hint.textContent = `Add ${need} more transfer${need === 1 ? '' : 's'} to unlock ${nextOff}% off${cartNote}`;
-            hint.classList.remove('nn-tiers__hint--maxed');
-          } else {
-            hint.textContent = `Maximum discount unlocked — 50% off`;
-            hint.classList.add('nn-tiers__hint--maxed');
-          }
-        }
-        // Mirror the active tier's % off into the summary's Discount row.
-        if (dom.discount) {
-          const activeOff = activeIdx >= 0
-            ? parseInt(cells[activeIdx].getAttribute('data-tier-off'), 10)
-            : 0;
-          dom.discount.textContent = activeOff > 0 ? `${activeOff}% off` : '—';
-        }
-      }
+      // Tier UI already updated above (runs in both empty + populated
+      // branches so the cart-aware tier reflects regardless of roster).
 
       dom.dims.textContent = `${packed.sheetWidthIn.toFixed(2)}" × ${packed.totalHeightIn.toFixed(2)}"`;
       dom.sqin.textContent = `${totalSqIn} sq in`;
