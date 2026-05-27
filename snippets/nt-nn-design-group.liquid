@@ -23,6 +23,24 @@
 {%- capture _nn_state -%}{"scope":{{ _nn_scope | json }},"font":{{ first_item.properties["Font"] | default: '' | json }},"color":{{ first_item.properties["Color"] | default: '' | json }},"nameHeight":{{ _nn_name_height | json }},"numberHeight":{{ _nn_number_height | json }},"entries":{{ first_item.properties["Entries"] | default: '' | json }}}{%- endcapture -%}
 {%- assign _nn_state_b64 = _nn_state | base64_encode -%}
 
+{%- comment -%}
+  Collect every child line key in this design group so the group-level
+  × button can remove them all in a single /cart/update.js call.
+{%- endcomment -%}
+{%- assign _nn_child_keys = "" -%}
+{%- for item in cart.items -%}
+  {%- assign _gn = "" -%}
+  {%- for p in item.properties -%}
+    {%- if p.first == '_design name' and p.last != blank -%}
+      {%- assign _gn = p.last | handleize -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if _gn != blank -%}{%- assign _gn = item.product.id | append: '_' | append: _gn -%}{%- endif -%}
+  {%- if _gn == group_key -%}
+    {%- assign _nn_child_keys = _nn_child_keys | append: item.key | append: "," -%}
+  {%- endif -%}
+{%- endfor -%}
+
 {%- comment -%} Heights look like "2 in (Medium)" — pull the leading number. {%- endcomment -%}
 {%- assign _nn_name_in = _nn_name_height | split: ' in' | first -%}
 {%- assign _nn_num_in  = _nn_number_height | split: ' in' | first -%}
@@ -55,6 +73,9 @@
         <strong>{{ group_final | money }}</strong>
       {%- endif -%}
     </div>
+    <button type="button" class="nt-nn-group__remove" data-nn-remove-group data-nn-keys="{{ _nn_child_keys }}" aria-label="Remove design">
+      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </button>
   </div>
 
   <button type="button" class="nt-nn-group__toggle" data-nn-toggle-entries data-group-key="{{ group_key | escape }}">
@@ -102,18 +123,41 @@
     if (window.__nnCartToggleBound) return;
     window.__nnCartToggleBound = true;
     document.addEventListener('click', function (e) {
-      var btn = e.target.closest('[data-nn-toggle-entries]');
-      if (!btn) return;
-      var group = btn.closest('.nt-nn-group');
-      if (!group) return;
-      var expanded = group.getAttribute('data-nn-expanded') === 'true';
-      group.setAttribute('data-nn-expanded', expanded ? 'false' : 'true');
-      var entries = group.querySelector('[data-nn-entries]');
-      if (entries) entries.hidden = expanded;
-      var showT = btn.querySelector('[data-nn-show-text]');
-      var hideT = btn.querySelector('[data-nn-hide-text]');
-      if (showT) showT.hidden = !expanded ? true : false;
-      if (hideT) hideT.hidden = !expanded ? false : true;
+      // See All / Hide All Entries toggle
+      var toggle = e.target.closest('[data-nn-toggle-entries]');
+      if (toggle) {
+        var group = toggle.closest('.nt-nn-group');
+        if (!group) return;
+        var expanded = group.getAttribute('data-nn-expanded') === 'true';
+        group.setAttribute('data-nn-expanded', expanded ? 'false' : 'true');
+        var entries = group.querySelector('[data-nn-entries]');
+        if (entries) entries.hidden = expanded;
+        var showT = toggle.querySelector('[data-nn-show-text]');
+        var hideT = toggle.querySelector('[data-nn-hide-text]');
+        if (showT) showT.hidden = !expanded ? true : false;
+        if (hideT) hideT.hidden = !expanded ? false : true;
+        return;
+      }
+      // Group-level remove: zero out every child line in one /cart/update.js call
+      var remove = e.target.closest('[data-nn-remove-group]');
+      if (remove) {
+        e.preventDefault();
+        var raw = (remove.getAttribute('data-nn-keys') || '').split(',');
+        var keys = raw.map(function (k) { return k.trim(); }).filter(Boolean);
+        if (keys.length === 0) return;
+        var updates = {};
+        keys.forEach(function (k) { updates[k] = 0; });
+        remove.disabled = true;
+        fetch('/cart/update.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updates: updates })
+        }).then(function () {
+          window.location.reload();
+        }).catch(function () {
+          remove.disabled = false;
+        });
+      }
     });
   })();
 </script>
