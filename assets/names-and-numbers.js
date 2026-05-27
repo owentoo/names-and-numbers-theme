@@ -9,8 +9,8 @@
 
   const EXPORT_DPI = 300;
 
-  const PLACEHOLDER_NAME   = 'RIVERA';
-  const PLACEHOLDER_NUMBER = '23';
+  const PLACEHOLDER_NAME   = 'NAME';
+  const PLACEHOLDER_NUMBER = '00';
 
   function bootAll() { document.querySelectorAll('.nn-page').forEach(boot); }
 
