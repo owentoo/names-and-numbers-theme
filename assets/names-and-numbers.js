@@ -836,13 +836,13 @@
     function currentNameH() { return nameHeights.find(h => h.id === state.nameHeightId)     || nameHeights[0]; }
     function currentNumH()  { return numberHeights.find(h => h.id === state.numberHeightId) || numberHeights[0]; }
 
-    // Refresh the volume-discount tier strip + Discount summary row from
-    // effectiveQty = roster qty + state.cartTransferQty. Runs every render
-    // (both empty and populated paths) so the cart-aware discount shows
-    // even before the customer adds entries.
+    // Refresh the volume-discount tier strip + hint. Returns the active
+    // tier's % off so render() can use it for the Discount-row dollar
+    // savings + Subtotal final-price math. (The Discount row itself is
+    // written by render() once it has totalCents to multiply against.)
     function updateTierUI() {
       const tiersContainer = document.querySelector('[data-nn-tiers]');
-      if (!tiersContainer) return;
+      if (!tiersContainer) return 0;
       const rosterQty = state.entries.reduce((sum, e) => sum + Math.max(1, parseInt(e.qty, 10) || 1), 0);
       const effectiveQty = rosterQty + (state.cartTransferQty || 0);
       const cells = [...tiersContainer.querySelectorAll('.nn-tiers__cell')];
@@ -873,12 +873,7 @@
           hint.classList.add('nn-tiers__hint--maxed');
         }
       }
-      if (dom.discount) {
-        const activeOff = activeIdx >= 0
-          ? parseInt(cells[activeIdx].getAttribute('data-tier-off'), 10)
-          : 0;
-        dom.discount.textContent = activeOff > 0 ? `${activeOff}% off` : '—';
-      }
+      return activeIdx >= 0 ? parseInt(cells[activeIdx].getAttribute('data-tier-off'), 10) || 0 : 0;
     }
 
     function render() {
@@ -918,17 +913,17 @@
       const packed = packShelf(printables, cfg, fontDef);
       const empty = packed.placements.length === 0;
 
-      // Refresh the volume-discount tier UI ALWAYS — even when the roster
-      // is empty — so a customer arriving with items already in their cart
-      // sees the active tier reflected in the Discount row + tier strip.
-      // (Moved out of the populated-roster block below; the populated
-      // block also calls this after computing per-entry totals.)
-      updateTierUI();
+      // Refresh the volume-discount tier strip ALWAYS — even when the
+      // roster is empty — so a customer arriving with items already in
+      // their cart sees the active tier highlighted. Returns the active
+      // tier's % off for the savings math below.
+      const activeOff = updateTierUI() || 0;
 
       if (empty) {
-        if (dom.dims)  dom.dims.textContent  = '—';
-        if (dom.sqin)  dom.sqin.textContent  = '—';
-        if (dom.price) dom.price.textContent = '—';
+        if (dom.dims)     dom.dims.textContent     = '—';
+        if (dom.sqin)     dom.sqin.textContent     = '—';
+        if (dom.price)    dom.price.textContent    = '—';
+        if (dom.discount) dom.discount.textContent = '—';
         dom.submitBtn.disabled = true;
         dom.submitLabel.textContent = 'Add a name or number to start';
         dom.warning.hidden = true;
@@ -978,6 +973,7 @@
       if (oversize) {
         dom.variantInput.value = '';
         dom.price.textContent = '—';
+        if (dom.discount) dom.discount.textContent = '—';
         dom.submitBtn.disabled = true;
         dom.submitLabel.textContent = 'Item too large';
         dom.warning.hidden = false;
@@ -985,13 +981,24 @@
       } else if (lineSummary.length === 0) {
         dom.variantInput.value = '';
         dom.price.textContent = '—';
+        if (dom.discount) dom.discount.textContent = '—';
         dom.submitBtn.disabled = true;
         dom.submitLabel.textContent = 'Add a name or number to start';
         dom.warning.hidden = true;
       } else {
+        // Apply the active tier's % off to derive the dollar savings.
+        // Subtotal shows the FINAL price (matches what Shopify will charge
+        // at checkout once the line-level discount is applied); Discount
+        // row shows the savings as a negative dollar amount.
+        const savingsCents = Math.round(totalCents * activeOff / 100);
+        const finalCents   = totalCents - savingsCents;
         dom.variantInput.value = lastVariantId;   // satisfies the wireForm gate
-        const totalFormatted = '$' + (totalCents / 100).toFixed(2);
-        dom.price.textContent = totalFormatted;
+        dom.price.textContent = '$' + (finalCents / 100).toFixed(2);
+        if (dom.discount) {
+          dom.discount.textContent = savingsCents > 0
+            ? '−$' + (savingsCents / 100).toFixed(2) + ` (${activeOff}% off)`
+            : '—';
+        }
         dom.submitBtn.disabled = false;
         dom.submitLabel.textContent = state.editLineKey ? 'Update item' : 'Add to cart';
         dom.warning.hidden = true;
