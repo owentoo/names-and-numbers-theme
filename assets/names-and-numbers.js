@@ -604,13 +604,15 @@
 
           dom.submitLabel.textContent = state.editLineKey ? 'Updating cart…' : 'Adding to cart…';
 
-          // bySize file-output convention (assets/__blanksUploadHelper.js:23-94,
-          // PNG fileType): order URL appends "trim=colorUnlessAlpha", cart
-          // thumbnail appends "trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100".
-          // We mirror that exactly so the cart, preview modal, and fulfillment
-          // pipeline see N&N lines as just-another-bySize line.
-          const ORDER_PARAMS = 'trim=colorUnlessAlpha';
-          const CART_PARAMS  = 'trim=colorUnlessAlpha&fm=png&auto=compress&q=50&h=100';
+          // File URL params. bySize uses `trim=colorUnlessAlpha` (which skips
+          // transparent edges) — that's right for their files which have solid
+          // color backgrounds. Our N&N PNGs ship with a transparent safety
+          // pad around the ink to prevent anti-aliasing edge clipping, so we
+          // use `trim=auto` which detects content boundaries and crops the
+          // transparent border at imgix delivery time. Result: fulfillment
+          // downloads a tight crop matching the customer's priced dimensions.
+          const ORDER_PARAMS = 'trim=auto';
+          const CART_PARAMS  = 'trim=auto&fm=png&auto=compress&q=50&h=100';
 
           // Shared properties — every line carries _design name so the cart
           // UI groups them under one design header even though each line has
